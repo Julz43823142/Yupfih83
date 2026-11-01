@@ -7,11 +7,11 @@ export async function onRequestGet({ params, env }) {
   try {
     const runs = await listRuns(env.GITHUB_TOKEN);
     const run = matchingRun(runs, id);
-    if (!run) return json({ state: "queued", progress: "Waiting for GitHub to schedule the review…" });
+    if (!run) return json({ state: "queued", progress: "Waiting for analysis to start…" });
     if (run.status !== "completed") {
-      return json({ state: "running", progress: run.status === "queued" ? "Waiting for a GitHub runner…" : "Original Python v87 review running…" });
+      return json({ state: "running", progress: run.status === "queued" ? "Preparing analysis…" : "Analyzing games…" });
     }
-    if (run.conclusion !== "success") return json({ state: "failed", error: "GitHub review did not complete successfully. Check the Actions run." });
+    if (run.conclusion !== "success") return json({ state: "failed", error: "Analysis could not complete successfully. Please try again." });
     const artifactsResponse = await github(env.GITHUB_TOKEN, "/actions/runs/" + run.id + "/artifacts?per_page=30");
     if (!artifactsResponse.ok) throw new Error("Cannot read artifacts");
     const artifacts = (await artifactsResponse.json()).artifacts || [];
@@ -22,6 +22,6 @@ export async function onRequestGet({ params, env }) {
     const result = parseStoredZip(await zipResponse.arrayBuffer());
     return json({ state: "complete", result });
   } catch {
-    return json({ state: "failed", error: "Unable to retrieve the v87 review. Please try again later." }, 502);
+    return json({ state: "failed", error: "Unable to retrieve the analysis. Please try again later." }, 502);
   }
 }
