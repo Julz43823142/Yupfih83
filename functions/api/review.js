@@ -11,7 +11,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const runs = await listRuns(env.GITHUB_TOKEN);
     const active = runs.filter(run => run.status === "queued" || run.status === "in_progress").length;
-    if (active >= MAX_ACTIVE) return json({ error: "Ten reviews are already running. Please try again later." }, 429);
+    if (active >= MAX_ACTIVE) return json({ error: "The analysis service is busy. Please try again shortly." }, 429);
     const id = crypto.randomUUID();
     const response = await github(env.GITHUB_TOKEN,
       "/actions/workflows/fairplay-v87-website.yml/dispatches", {
@@ -19,9 +19,9 @@ export async function onRequestPost({ request, env }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ref: "main", inputs: { chess_username: username, request_id: id } })
       });
-    if (!response.ok) return json({ error: "Unable to start GitHub review (" + response.status + ")." }, 502);
+    if (!response.ok) return json({ error: "Unable to start analysis (" + response.status + ")." }, 502);
     return json({ job_id: id, state: "queued" }, 202);
   } catch {
-    return json({ error: "GitHub review service temporarily unavailable." }, 502);
+    return json({ error: "Analysis service temporarily unavailable." }, 502);
   }
 }
