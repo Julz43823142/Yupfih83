@@ -481,42 +481,7 @@ footer {
 @keyframes v87-progress-sweep { from { transform: translateX(-95%); } to { transform: translateX(260%); } }
 @media (prefers-reduced-motion: reduce) { .v87-progress-fill { animation: none; width: 65%; } }
 
-
-/* EloScanner editorial chess design */
-:root{--bg:#08111e;--surface:#101e2d;--surface-light:#17283b;--border:#294058;--blue:#357fc2;--cyan:#9acbf2;--text:#edf2f7;--muted:#a1b1c2}
-body{background:#08111e;font-family:Inter,system-ui,sans-serif}
-.navbar{height:76px;max-width:none;padding:0 max(24px,calc((100vw - 1220px)/2));background:#0b1725;border-color:#283b4c}
-.brand{font-weight:800;letter-spacing:-.8px;font-size:22px}
-.brand-icon{display:grid;place-items:center;width:43px;height:43px;font-size:32px;color:#d7e8f6;background:#1b3246;border:1px solid #3b5b73;border-radius:8px}
-.nav-label{font-size:11px;letter-spacing:1.7px}
-.hero{min-height:455px;background:linear-gradient(135deg,#101f30 0%,#0c1724 65%,#08111e 100%);border-bottom:1px solid #22384b}
-.hero::before{opacity:.13;background-image:linear-gradient(45deg,#466480 25%,transparent 25%),linear-gradient(-45deg,#466480 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#466480 75%),linear-gradient(-45deg,transparent 75%,#466480 75%);background-size:46px 46px;background-position:0 0,0 23px,23px -23px,-23px 0;mask-image:linear-gradient(to right,transparent 15%,#000 100%)}
-.hero-glow{display:none}
-.hero-content{max-width:1010px;text-align:left;padding:84px 30px 78px}
-.eyebrow{font-size:11px;letter-spacing:1.8px;color:#a6d6f3}
-h1{font-size:clamp(42px,6vw,70px);line-height:1.07;letter-spacing:-2.7px;max-width:820px;margin:19px 0 21px;font-weight:800}
-h1 span{color:#9acbf2}
-.subtitle{margin:0 0 30px;max-width:640px;font-size:16px;line-height:1.65;color:#b4c1cf}
-.search-box{margin:0;max-width:690px;box-shadow:none;border:1px solid #54718a;border-radius:9px;background:#102033;padding:7px}
-.search-box button{background:#3179b6;border-radius:6px;font-weight:700}
-.search-box button:hover{background:#448dc8;filter:none}
-.status{text-align:left;color:#c6e6fb}
-.results{max-width:1230px;padding:55px 25px}
-.section-heading h2{font-size:32px;letter-spacing:-.8px}
-.player-card{border-radius:11px;padding:25px;background:#111f2f}
-.player-avatar{border-radius:8px}
-.rating-box{border-radius:7px;background:#172b40}
-.feature-card{border-radius:9px;background:#0e1c2b}
-.feature-icon{font-size:30px}
-.features{max-width:1230px;padding-top:30px}
-.disclaimer{border-radius:6px;max-width:1180px}
-.v87-review{background:#101e2d;border-radius:11px;box-shadow:none;border:1px solid #304960;padding:32px}
-.v87-priority{color:#a4cff2}
-.v87-metric{border-radius:7px;background:#172a3c}
-.v87-metric span{font-size:11px}
-.v87-reasons{background:#0d1928;border-radius:7px}
-.v87-chart{background:#16283a;border-radius:8px}
-.v87-note{border-top:1px solid #294058;padding-top:18px}
+/* Only the new analysis charts retain dedicated layout styling. */
 .timeline-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .timeline-card{min-width:0;background:#132437;border:1px solid #304960;border-radius:9px;padding:23px 22px 16px}
 .timeline-card h4{margin:6px 0 16px;font-size:19px;letter-spacing:-.4px}
@@ -526,4 +491,4 @@ h1 span{color:#9acbf2}
 .timeline-svg text{font-family:Inter,system-ui,sans-serif}
 .timeline-footnote{font-size:11px;color:#9eaec0;margin:12px 0 0}
 @media(min-width:1100px){.timeline-card:nth-child(3n + 1){grid-column:1/-1}}
-@media(max-width:720px){.timeline-grid{grid-template-columns:1fr}.timeline-card:nth-child(3n + 1){grid-column:auto}.hero-content{padding:58px 22px}.v87-review{padding:20px}.navbar{padding:0 22px}h1{letter-spacing:-1.5px}}
+@media(max-width:720px){.timeline-grid{grid-template-columns:1fr}.timeline-card:nth-child(3n + 1){grid-column:auto}}
