@@ -940,3 +940,32 @@ footer {
  .hero .hero-sus-ranking {position:relative;order:2;left:auto;top:auto;width:min(480px,calc(100% - 34px));margin:0 auto 24px;}
  .hero .hero-content {order:1;}
 }
+
+
+/* Dedicated leaderboard page, matching EloScanner's existing navy theme. */
+a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none;}
+.top100-home-link {color:#6adff4;text-decoration:none;font-size:13px;font-weight:750;}
+.top100-page {width:min(1200px,calc(100% - 36px));margin:55px auto 100px;}
+.top100-page-heading {margin-bottom:30px;}
+.top100-page-heading h1 {font-size:clamp(32px,5vw,54px);margin:13px 0 18px;letter-spacing:-1.5px;}
+.top100-page-heading p {max-width:850px;color:#a3c4da;line-height:1.7;}
+.top100-table-wrap {overflow-x:auto;border:1px solid #28516d;border-radius:14px;background:#081e34;}
+.top100-table {border-collapse:collapse;width:100%;min-width:690px;text-align:left;}
+.top100-table th {font-size:11px;letter-spacing:1px;color:#73cfe6;text-transform:uppercase;background:#0e2b43;}
+.top100-table td,.top100-table th {padding:16px 19px;border-bottom:1px solid #1c3d56;}
+.top100-table tr:last-child td {border-bottom:0;}
+.top100-table td {color:#eaf6ff;font-size:14px;}
+.top100-table td a:not(.top100-analyze) {color:#dff6ff;text-decoration:none;font-weight:750;}
+.top100-table td a:hover {color:#45e5ef;}
+.top100-position {color:#90b9d0!important;}
+.top100-votes {font-weight:850;font-variant-numeric:tabular-nums;}
+.top100-priority {font-weight:850;white-space:nowrap;}
+.top100-priority.priority-low {color:#5ee5a5;}
+.top100-priority.priority-moderate {color:#f2cf66;}
+.top100-priority.priority-high {color:#ffa35e;}
+.top100-priority.priority-very-high {color:#ff767d;}
+.top100-analyze {display:inline-block;text-decoration:none;background:#067bd7;color:white;padding:10px 13px;border-radius:8px;font-weight:750;white-space:nowrap;}
+.top100-analyze:hover {background:#0e97f3;color:white!important;}
+.top100-note {font-size:12px;color:#93b4c9;line-height:1.6;margin-top:19px;}
+/* Keep Hikaru's image frame visible even when the profile API is rate limited. */
+.sample-button[data-username="Hikaru"] .sample-avatar-frame {display:flex;}
