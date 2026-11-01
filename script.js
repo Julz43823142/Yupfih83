@@ -119,29 +119,54 @@ function timelineChart(parent, rows, field, unit, compareField = null) {
   });
   add(parent,"p","timeline-footnote",`${valid.length} measured games · gaps represent missing data`);
 }
-function realCharts(parent,data){
-  sectionTitle(parent,"Game-by-game analysis","Measured values from the completed review · by time control");
-  const grid=add(parent,"div","timeline-grid");
-  const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
-  for(const [key,label] of groups){
-    const rows=Array.isArray(data.charts?.[key])?data.charts[key]:[];
-    for(const [field,title,unit,compare] of [
-      ["rolling_observed","Last 10 games · actual vs Elo expected","%","rolling_expected"],
-      ["official_accuracy","Official Chess.com accuracy","%",null],
-      ["player_elo","Player rating","",null],
-      ["opponent_elo","Opponent rating","",null],
-      ["median_think_seconds","Median thinking time","s",null]]){
-      if(!rows.some(r=>Number.isFinite(r?.[field]))) continue;
-      const card=add(grid,"article","timeline-card");
-      add(card,"div","timeline-category",label.toUpperCase());
-      add(card,"h4","",title);
-      const plot=add(card,"div","timeline-plot");
-      timelineChart(plot,rows,field,unit,compare);
-      if(compare) add(card,"p","timeline-legend","Orange: actual points · blue dashed: Elo expected · matched rated games only");
+function realCharts(parent, data) {
+  sectionTitle(parent, "Game-by-game analysis", "Choose Rapid, Blitz or Bullet below each chart");
+  const grid = add(parent, "div", "timeline-grid");
+  const groups = [["rapid", "Rapid"], ["blitz", "Blitz"], ["bullet", "Bullet"]];
+  const measures = [
+    ["rolling_observed", "Last 10 games · actual vs Elo expected", "%", "rolling_expected"],
+    ["official_accuracy", "Official Chess.com accuracy", "%", null],
+    ["player_elo", "Player Elo rating", "", null],
+    ["opponent_elo", "Opponent Elo rating", "", null],
+    ["median_think_seconds", "Median thinking time", "s", null]
+  ];
+  for (const [field, title, unit, compare] of measures) {
+    const available = groups.filter(([key]) => {
+      const rows = data.charts?.[key];
+      return Array.isArray(rows) && rows.some(r => Number.isFinite(r?.[field]));
+    });
+    if (!available.length) continue;
+    const card = add(grid, "article", "timeline-card");
+    add(card, "h4", "", title);
+    const plot = add(card, "div", "timeline-plot");
+    const controls = add(card, "div", "timeline-controls");
+    controls.setAttribute("role", "group");
+    controls.setAttribute("aria-label", title + " time control");
+    const buttons = new Map();
+    function selectControl(key) {
+      plot.replaceChildren();
+      const rows = data.charts[key];
+      timelineChart(plot, rows, field, unit, compare);
+      for (const [name, button] of buttons) {
+        const active = name === key;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", String(active));
+      }
     }
+    for (const [key, label] of groups) {
+      const btn = add(controls, "button", "timeline-control", label);
+      btn.type = "button";
+      const exists = available.some(([name]) => name === key);
+      btn.disabled = !exists;
+      btn.title = exists ? "Show " + label + " games" : "No observations for " + label;
+      btn.setAttribute("aria-pressed", "false");
+      btn.addEventListener("click", () => selectControl(key));
+      buttons.set(key, btn);
+    }
+    if (compare) add(card, "p", "timeline-legend", "Orange: actual points · blue dashed: Elo expected");
+    selectControl(available[0][0]);
   }
 }
-
 
 function showReviewProgress(message, stage = "queued") {
   const panel = document.getElementById("v87-review");
