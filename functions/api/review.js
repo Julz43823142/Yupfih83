@@ -1,4 +1,4 @@
-import { json, github, listRuns, MAX_ACTIVE } from "../lib/v87-github.js";
+import { json, github, listRuns, MAX_ACTIVE } from "../../lib/v87-github.js";
 
 export async function onRequestPost({ request, env }) {
   if (!env.GITHUB_TOKEN) return json({ error: "Server secret GITHUB_TOKEN is missing." }, 503);
