@@ -578,3 +578,13 @@ footer {
 .opening-shift p { color:#bed4e5; line-height:1.7; margin:0; }
 @media(max-width:900px) { .opening-grid { grid-template-columns:1fr; } }
 @media(max-width:560px) { .timeline-card { padding:19px 12px; } .timeline-card h4 { font-size:18px; } }
+
+
+/* Consistent Method 3 priority severity colors. */
+.v87-priority-low { color:#48d68c; }
+.v87-priority-moderate { color:#f1d365; }
+.v87-priority-high { color:#f5a052; }
+.v87-priority-very-high { color:#f06b78; }
+.opening-list li { margin:0 0 9px; }
+.opening-bar-track { margin-top:4px; width:100%; height:5px; border-radius:8px; background:#091b31; overflow:hidden; }
+.opening-bar-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#218fd6,#45dfdc); }
