@@ -511,10 +511,7 @@ async function finishReviewProgress(){
 
 
 function placeExampleCardsNearOverview() {
-  const samples=document.querySelector(".sample-section");
-  const heading=document.querySelector("#results .section-heading");
-  if(samples&&heading&&samples.parentElement!==heading)
-    heading.appendChild(samples);
+  // Previews remain in the dedicated left sidebar on the homepage.
 }
 function showMeasuredDuration(result) {
   const target=document.getElementById("analysisDuration");
