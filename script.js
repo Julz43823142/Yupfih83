@@ -787,14 +787,9 @@ async function showExample(username,displayName){
 }
 // Real D1 SUS vote leaderboard; never display fictional example totals.
 const susTop5=document.getElementById("sus-top5-list");
-const susTop100=document.getElementById("sus-top100-list");
-const susPanel=document.getElementById("sus-top100-panel");
-const susOpen=document.getElementById("sus-top100-button");
 function showSusRanking(target,players){
   target.replaceChildren();
-  if(!Array.isArray(players)||!players.length){
-    add(target,"li","sus-rank-message","No votes yet.");return;
-  }
+  if(!Array.isArray(players)||!players.length){add(target,"li","sus-rank-message","No votes yet.");return;}
   for(const entry of players){
     const name=String(entry.username||"");
     if(!/^[a-z0-9_-]{3,25}$/i.test(name))continue;
@@ -809,19 +804,6 @@ async function refreshSusTop5(){
   try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=5")).players);}
   catch{susTop5.replaceChildren();add(susTop5,"li","sus-rank-message","Ranking temporarily unavailable.");}
 }
-async function openSusTop100(){
-  susPanel.hidden=false;susOpen.setAttribute("aria-expanded","true");
-  susTop100.replaceChildren();add(susTop100,"li","sus-rank-message","Loading…");
-  document.getElementById("sus-top100-close").focus();
-  try{const data=await getJSON("/api/sus/top?limit=100");if(!susPanel.hidden)showSusRanking(susTop100,data.players);}
-  catch{susTop100.replaceChildren();add(susTop100,"li","sus-rank-message","Ranking temporarily unavailable.");}
-}
-function closeSusTop100(){
-  susPanel.hidden=true;susOpen.setAttribute("aria-expanded","false");susOpen.focus();
-}
-susOpen.addEventListener("click",()=>susPanel.hidden?openSusTop100():closeSusTop100());
-document.getElementById("sus-top100-close").addEventListener("click",closeSusTop100);
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!susPanel.hidden)closeSusTop100();});
 refreshSusTop5();
 
 // Fetch real public Chess.com avatars; never substitute unrelated player images.
@@ -904,3 +886,9 @@ form.addEventListener("submit", async event => {
     button.textContent = "Analyze Player →";
   }
 });
+
+const requestedAnalysis=new URLSearchParams(location.search).get("analyze");
+if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
+  usernameInput.value=requestedAnalysis;
+  form.requestSubmit();
+}
