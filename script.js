@@ -87,84 +87,142 @@ function listRows(items, labelKey, valueKey) {
   })) : [];
 }
 
-/* Chronological plots use actual v87 observations, never fabricated values. */
-function timelineChart(parent, rows, field, unit, compareField = null) {
-  const valid = rows.filter(r => Number.isFinite(r?.[field]) && Number.isFinite(r?.game));
-  if (!valid.length) return empty(parent, "No published observations for this measure");
-  const W=760,H=238,L=54,R=19,T=18,B=39;
-  const values=valid.flatMap(r=>[r[field], compareField ? r[compareField] : null].filter(Number.isFinite)), lo=Math.min(...values), hi=Math.max(...values);
-  const isPercent=field==="official_accuracy" || field==="rolling_observed";
-  const min=isPercent?0:Math.max(0,lo-(hi-lo||1)*.12);
-  const max=isPercent?100:hi+(hi-lo||1)*.12;
-  const end=Math.max(2,...rows.map(r=>Number(r.game)||0));
-  const x=v=>L+(v-1)/(end-1)*(W-L-R), y=v=>T+(max-v)/(max-min||1)*(H-T-B);
+/* Actual observations only. Overlaid controls share chronological timestamps when available. */
+function timelineChart(parent, series, field, unit, compareField = null) {
+  const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
+  const data = series.flatMap(({key,label,rows}) => rows
+    .filter(r => Number.isFinite(r?.[field]))
+    .map((r,i) => ({...r, control:key, label, position:i+1,
+      time:Number(r.ended)>1000000000?Number(r.ended):null})));
+  if(!data.length) return empty(parent,"Choose at least one time control");
+  const dated = data.every(r => r.time !== null);
+  const W=920,H=330,L=65,R=24,T=22,B=49;
+  const xs=data.map(r=>dated?r.time:r.position);
+  const xmin=Math.min(...xs), xmax=Math.max(...xs);
+  const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null].filter(Number.isFinite));
+  const low=Math.min(...values),high=Math.max(...values),range=high-low||1;
+  const percent=field==="official_accuracy"||field==="rolling_observed";
+  const min=percent?0:Math.max(0,low-range*.13);
+  const max=percent?100:high+range*.13;
+  const x=v=>L+((v-xmin)/(xmax-xmin||1))*(W-L-R);
+  const y=v=>T+(max-v)/(max-min||1)*(H-T-B);
   const ns="http://www.w3.org/2000/svg";
-  const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  svg.setAttribute("role","img");svg.setAttribute("aria-label",`${field.replaceAll("_"," ")} over ${end} games`);
-  svg.classList.add("timeline-svg");parent.appendChild(svg);
-  function node(tag,attrs={},text){const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(text!==undefined)n.textContent=text;svg.appendChild(n);return n;}
-  for(let i=0;i<=4;i++){const v=min+(max-min)*i/4, yy=y(v);
+  const svg=document.createElementNS(ns,"svg");
+  svg.classList.add("timeline-svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.setAttribute("role","img");svg.setAttribute("aria-label","Interactive "+field.replaceAll("_"," ")+" chart");
+  parent.appendChild(svg);
+  function node(tag,attrs={},text,within=svg){const n=document.createElementNS(ns,tag);
+    Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));
+    if(text!==undefined)n.textContent=text;within.appendChild(n);return n;}
+  for(let i=0;i<=4;i++){const v=min+(max-min)*i/4,yy=y(v);
     node("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#29405a","stroke-width":1});
-    node("text",{x:L-10,y:yy+4,"text-anchor":"end",fill:"#9bb1c6","font-size":12},`${Math.round(v)}${unit}`);
+    node("text",{x:L-12,y:yy+4,"text-anchor":"end",fill:"#9bb1c6","font-size":13},`${number(v,0)}${unit}`);
   }
-  [1,Math.round((end+1)/2),end].forEach(g=>node("text",{x:x(g),y:H-12,"text-anchor":"middle",fill:"#9bb1c6","font-size":12},g));
-  let path="",prev=0;
-  rows.forEach(r=>{if(!Number.isFinite(r?.[field])||!Number.isFinite(r?.game)){prev=0;return;}
-    path+=(prev?" L ":" M ")+x(r.game).toFixed(1)+" "+y(r[field]).toFixed(1);prev=1;});
-  node("path",{d:path,fill:"none",stroke:compareField?"#f59b52":"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-linejoin":"round"});
-  if(compareField){let other="",prevOther=false;for(const r of rows){if(!Number.isFinite(r?.[compareField])||!Number.isFinite(r?.game)){prevOther=false;continue;}other+=(prevOther?" L ":" M ")+x(r.game).toFixed(1)+" "+y(r[compareField]).toFixed(1);prevOther=true;}node("path",{d:other,fill:"none",stroke:"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-dasharray":"6 4"});}
-  valid.forEach((r,i)=>{if(valid.length>140&&i%Math.ceil(valid.length/140)!==0)return;
-    const c=node("circle",{cx:x(r.game),cy:y(r[field]),r:valid.length>90?2.3:3.7,fill:"#a6ddff"});
-    const title=document.createElementNS(ns,"title");title.textContent=`Game ${r.game}: ${number(r[field],1)}${unit}`;c.appendChild(title);
-  });
-  add(parent,"p","timeline-footnote",`${valid.length} measured games · gaps represent missing data`);
+  const ticks=[xmin,(xmin+xmax)/2,xmax];
+  for(const value of ticks){
+    const label=dated?new Date(value*1000).toLocaleDateString("en-GB",{month:"short",year:"2-digit"}):"Game "+Math.round(value);
+    node("text",{x:x(value),y:H-15,"text-anchor":"middle",fill:"#9bb1c6","font-size":13},label);
+  }
+  const targets=[];
+  for(const {key,label,rows} of series){
+    const color=palette[key];
+    const ordered=rows.filter(r=>Number.isFinite(r?.[field]))
+      .map((r,i)=>({...r,position:i+1,time:Number(r.ended)>1000000000?Number(r.ended):null}))
+      .sort((a,b)=>(dated?a.time-b.time:a.position-b.position));
+    function graphPath(measure){
+      let path="",started=false;
+      for(const r of ordered){if(!Number.isFinite(r?.[measure])){started=false;continue;}
+        const gx=x(dated?r.time:r.position),gy=y(r[measure]);
+        path+=(started?" L ":" M ")+gx.toFixed(1)+" "+gy.toFixed(1);started=true;}
+      return path;
+    }
+    node("path",{d:graphPath(field),fill:"none",stroke:compareField?"#f59b52":color,
+      "stroke-width":2.7,"stroke-linejoin":"round","stroke-linecap":"round",
+      opacity:compareField&&series.length>1?".82":"1"});
+    if(compareField) node("path",{d:graphPath(compareField),fill:"none",stroke:color,
+      "stroke-width":2.3,"stroke-dasharray":"7 5","stroke-linecap":"round"});
+    for(const r of ordered){
+      const px=x(dated?r.time:r.position),py=y(r[field]);
+      targets.push({x:px,y:py,row:r,key,label,color});
+      if(ordered.length<=180) node("circle",{cx:px,cy:py,r:2.7,fill:compareField?"#f59b52":color,opacity:.8});
+    }
+  }
+  const focus=node("circle",{cx:0,cy:0,r:7,fill:"#061b32",stroke:"#fff","stroke-width":2});
+  focus.style.display="none";
+  const tooltip=add(parent,"div","timeline-tooltip");
+  tooltip.setAttribute("role","status");tooltip.hidden=true;
+  function show(event) {
+    const rect=svg.getBoundingClientRect();
+    const px=(event.clientX-rect.left)*W/rect.width,py=(event.clientY-rect.top)*H/rect.height;
+    let best=null,distance=Infinity;
+    for(const point of targets){const dx=point.x-px,dy=(point.y-py)*.8,d=dx*dx+dy*dy;
+      if(d<distance){distance=d;best=point;}}
+    if(!best || Math.sqrt(distance)>(event.pointerType==="touch"?58:30)){
+      tooltip.hidden=true;focus.style.display="none";return;}
+    focus.setAttribute("cx",best.x);focus.setAttribute("cy",best.y);
+    focus.setAttribute("stroke",best.color);focus.style.display="";
+    const r=best.row;
+    tooltip.replaceChildren();
+    add(tooltip,"strong","",best.label);
+    const when=dated?new Date(r.time*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"Game "+(r.game??r.position);
+    add(tooltip,"span","",when+" · Game "+(r.game??r.position));
+    add(tooltip,"b","",number(r[field],2)+unit);
+    if(compareField && Number.isFinite(r[compareField]))
+      add(tooltip,"span","", "Elo expected: "+number(r[compareField],2)+unit);
+    tooltip.hidden=false;
+    const left=(best.x/W)*rect.width,top=(best.y/H)*rect.height;
+    tooltip.style.left=Math.max(12,Math.min(rect.width-175,left))+"px";
+    tooltip.style.top=Math.max(12,top-14)+"px";
+  }
+  svg.addEventListener("pointermove",show);
+  svg.addEventListener("pointerdown",show);
+  svg.addEventListener("pointerleave",()=>{tooltip.hidden=true;focus.style.display="none";});
+  add(parent,"p","timeline-footnote",data.length+" measured observations · hover or tap for exact values");
 }
-function realCharts(parent, data) {
-  sectionTitle(parent, "Game-by-game analysis", "Choose Rapid, Blitz or Bullet below each chart");
-  const grid = add(parent, "div", "timeline-grid");
-  const groups = [["rapid", "Rapid"], ["blitz", "Blitz"], ["bullet", "Bullet"]];
-  const measures = [
-    ["rolling_observed", "Last 10 games · actual vs Elo expected", "%", "rolling_expected"],
-    ["official_accuracy", "Official Chess.com accuracy", "%", null],
-    ["player_elo", "Player Elo rating", "", null],
-    ["opponent_elo", "Opponent Elo rating", "", null],
-    ["median_think_seconds", "Median thinking time", "s", null]
+function realCharts(parent,data){
+  sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
+  const grid=add(parent,"div","timeline-grid");
+  const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
+  const measures=[
+    ["rolling_observed","Results vs Elo expectation · rolling 10-game average","%","rolling_expected"],
+    ["official_accuracy","Official Chess.com accuracy","%",null],
+    ["player_elo","Player Elo rating","",null],
+    ["opponent_elo","Opponent Elo rating","",null],
+    ["median_think_seconds","Median thinking time","s",null]
   ];
-  for (const [field, title, unit, compare] of measures) {
-    const available = groups.filter(([key]) => {
-      const rows = data.charts?.[key];
-      return Array.isArray(rows) && rows.some(r => Number.isFinite(r?.[field]));
-    });
-    if (!available.length) continue;
-    const card = add(grid, "article", "timeline-card");
-    add(card, "h4", "", title);
-    const plot = add(card, "div", "timeline-plot");
-    const controls = add(card, "div", "timeline-controls");
-    controls.setAttribute("role", "group");
-    controls.setAttribute("aria-label", title + " time control");
-    const buttons = new Map();
-    function selectControl(key) {
+  for(const [field,title,unit,compare] of measures){
+    const available=groups.filter(([key])=>Array.isArray(data.charts?.[key])&&
+      data.charts[key].some(r=>Number.isFinite(r?.[field])));
+    if(!available.length)continue;
+    const card=add(grid,"article","timeline-card");
+    add(card,"h4","",title);
+    const plot=add(card,"div","timeline-plot");
+    const controls=add(card,"div","timeline-controls");
+    controls.setAttribute("role","group");
+    controls.setAttribute("aria-label",title+" · visible time controls");
+    const buttons=new Map(),selected=new Set([available[0][0]]);
+    function draw(){
       plot.replaceChildren();
-      const rows = data.charts[key];
-      timelineChart(plot, rows, field, unit, compare);
-      for (const [name, button] of buttons) {
-        const active = name === key;
-        button.classList.toggle("is-active", active);
-        button.setAttribute("aria-pressed", String(active));
-      }
+      const active=available.filter(([key])=>selected.has(key))
+        .map(([key,label])=>({key,label,rows:data.charts[key]}));
+      if(active.length)timelineChart(plot,active,field,unit,compare);
+      else empty(plot,"Select Rapid, Blitz or Bullet to show the chart");
+      for(const [key,btn] of buttons){const on=selected.has(key);
+        btn.classList.toggle("is-active",on);btn.setAttribute("aria-pressed",String(on));}
     }
-    for (const [key, label] of groups) {
-      const btn = add(controls, "button", "timeline-control", label);
-      btn.type = "button";
-      const exists = available.some(([name]) => name === key);
-      btn.disabled = !exists;
-      btn.title = exists ? "Show " + label + " games" : "No observations for " + label;
-      btn.setAttribute("aria-pressed", "false");
-      btn.addEventListener("click", () => selectControl(key));
-      buttons.set(key, btn);
+    for(const [key,label] of groups){
+      const btn=add(controls,"button","timeline-control",label);
+      btn.type="button";
+      const exists=available.some(([name])=>name===key);
+      btn.disabled=!exists;
+      btn.setAttribute("aria-pressed","false");
+      btn.title=exists?"Toggle "+label:"No data for "+label;
+      btn.addEventListener("click",()=>{if(selected.has(key))selected.delete(key);
+        else selected.add(key);draw();});
+      buttons.set(key,btn);
     }
-    if (compare) add(card, "p", "timeline-legend", "Orange: actual points · blue dashed: Elo expected");
-    selectControl(available[0][0]);
+    if(compare)add(card,"p","timeline-legend","Orange: actual score · blue/cyan/purple dashed: Elo expectation");
+    draw();
   }
 }
 
