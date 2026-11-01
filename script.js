@@ -353,7 +353,9 @@ function realCharts(parent,data){
         else selected.add(key);draw();});
       buttons.set(key,btn);
     }
-    if(compare)add(card,"p","timeline-legend","Orange dashed: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
+    if(compare)add(card,"p","timeline-legend",field==="rolling_observed"
+      ?"Orange dashed: observed rolling 10-game score · blue/cyan/purple: rolling expected Elo score"
+      :"Orange dashed: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
     add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
     draw();
@@ -417,7 +419,10 @@ function renderReview(data) {
   const top = add(panel, "div", "v87-top");
   const left = add(top, "div");
   add(left, "span", "eyebrow", "FAIR PLAY REVIEW");
-  add(left, "h3", "v87-priority", data.priority || "UNAVAILABLE");
+  const priorityHeading=add(left, "h3", "v87-priority", data.priority || "UNAVAILABLE");
+  const level=String(data.priority||"").toUpperCase().replaceAll(" ","-");
+  if(["LOW","MODERATE","HIGH","VERY-HIGH"].includes(level))
+    priorityHeading.classList.add("v87-priority-"+level.toLowerCase());
   const entries = Array.isArray(data.reasons) ? data.reasons : [data.reasons];
   const cleanedReasons = entries.filter(x => x != null)
     .map(x => typeof x === "string" ? x : JSON.stringify(x))
@@ -457,7 +462,13 @@ function renderReview(data) {
       for(const group of groups){
         add(card,"h5","",group.group+" · "+number(group.total,0)+" games");
         const ul=add(card,"ul","opening-list");
-        for(const choice of group.choices||[])add(ul,"li","",choice.name+" — "+number(choice.games,0)+" games");
+        for(const choice of group.choices||[]){
+          const li=add(ul,"li","");
+          add(li,"span","",choice.name+" — "+number(choice.games,0)+" games");
+          const track=add(li,"div","opening-bar-track");
+          const fill=add(track,"div","opening-bar-fill");
+          fill.style.width=Math.min(100,100*choice.games/group.total).toFixed(1)+"%";
+        }
       }
     }
   }
