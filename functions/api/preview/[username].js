@@ -23,7 +23,7 @@ export async function onRequestGet({params,env}) {
       try {
         const result=parseStoredZip(await zip.arrayBuffer());
         if(String(result.username||"").toLowerCase()!==key)continue;
-        return json({state:"ready",username,result,generated_at:run.updated_at});
+        return new Response(JSON.stringify({state:"ready",username,result,generated_at:run.updated_at}),{headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"public, max-age=300, s-maxage=3600"}});
       }catch {}
     }
     const active=await github(env.GITHUB_TOKEN,
@@ -31,7 +31,7 @@ export async function onRequestGet({params,env}) {
     const pending=active.ok?
       ((await active.json()).workflow_runs||[]).some(run=>run.status!=="completed"):false;
     return json({state:pending?"preparing":"unavailable",
-      message:pending?"The verified sample reports are being generated. Please check again shortly.":
+      message:pending?"The example is still being prepared. You can start a live analysis now.":
         "No verified saved report is available yet. You can run a fresh public analysis instead."});
   }catch {
     return json({state:"unavailable",message:"Could not load the saved example report."},503);
