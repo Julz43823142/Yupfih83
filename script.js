@@ -664,6 +664,7 @@ async function showSusVoting(username,proof){
       });
       count.textContent=number(reply.count,0)+" SUS votes";
       action.textContent="Voted ✓";action.disabled=true;
+      refreshSusTop5();
       hint.textContent=reply.new_vote?"Vote recorded · not a cheating verdict.":
         "You have already voted for this player.";
     }catch(error){
@@ -784,6 +785,45 @@ async function showExample(username,displayName){
     controls.forEach(btn=>btn.disabled=false);
   }
 }
+// Real D1 SUS vote leaderboard; never display fictional example totals.
+const susTop5=document.getElementById("sus-top5-list");
+const susTop100=document.getElementById("sus-top100-list");
+const susPanel=document.getElementById("sus-top100-panel");
+const susOpen=document.getElementById("sus-top100-button");
+function showSusRanking(target,players){
+  target.replaceChildren();
+  if(!Array.isArray(players)||!players.length){
+    add(target,"li","sus-rank-message","No votes yet.");return;
+  }
+  for(const entry of players){
+    const name=String(entry.username||"");
+    if(!/^[a-z0-9_-]{3,25}$/i.test(name))continue;
+    const row=add(target,"li","");
+    const link=add(row,"a","sus-rank-name",name);
+    link.href="https://www.chess.com/member/"+encodeURIComponent(name);
+    link.target="_blank";link.rel="noopener noreferrer";
+    add(row,"span","sus-rank-count",number(Number(entry.votes)||0,0));
+  }
+}
+async function refreshSusTop5(){
+  try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=5")).players);}
+  catch{susTop5.replaceChildren();add(susTop5,"li","sus-rank-message","Ranking temporarily unavailable.");}
+}
+async function openSusTop100(){
+  susPanel.hidden=false;susOpen.setAttribute("aria-expanded","true");
+  susTop100.replaceChildren();add(susTop100,"li","sus-rank-message","Loading…");
+  document.getElementById("sus-top100-close").focus();
+  try{const data=await getJSON("/api/sus/top?limit=100");if(!susPanel.hidden)showSusRanking(susTop100,data.players);}
+  catch{susTop100.replaceChildren();add(susTop100,"li","sus-rank-message","Ranking temporarily unavailable.");}
+}
+function closeSusTop100(){
+  susPanel.hidden=true;susOpen.setAttribute("aria-expanded","false");susOpen.focus();
+}
+susOpen.addEventListener("click",()=>susPanel.hidden?openSusTop100():closeSusTop100());
+document.getElementById("sus-top100-close").addEventListener("click",closeSusTop100);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!susPanel.hidden)closeSusTop100();});
+refreshSusTop5();
+
 // Fetch real public Chess.com avatars; never substitute unrelated player images.
 async function loadSampleAvatars(){
   const avatars=document.querySelectorAll(".sample-avatar[data-avatar-for]");
@@ -791,14 +831,29 @@ async function loadSampleAvatars(){
     const username=image.dataset.avatarFor;
     try{
       const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
-      const avatar=typeof profile.avatar==="string"?profile.avatar:"";
-      if(!avatar||!/^https:\/\//i.test(avatar))return;
+      const avatar=typeof profile.avatar==="string"&&profile.avatar.startsWith("https://")?profile.avatar:"";
+      const fallback=username.toLowerCase()==="hikaru"?"https://images.chesscomfiles.com/uploads/v1/user/15448422.png":"";
+      if(!avatar&&!fallback)return;
       image.referrerPolicy="no-referrer";
-      image.addEventListener("load",()=>{image.hidden=false;image.closest(".sample-avatar-frame")?.classList.add("has-avatar");},{once:true});
-      image.addEventListener("error",()=>{image.hidden=true;},{once:true});
-      image.src=avatar;
+      image.addEventListener("load",()=>{
+        image.hidden=false;
+        image.closest(".sample-avatar-frame")?.classList.add("has-avatar");
+      });
+      image.addEventListener("error",()=>{
+        if(fallback&&image.src!==fallback){image.src=fallback;return;}
+        image.hidden=true;
+        image.closest(".sample-avatar-frame")?.classList.remove("has-avatar");
+      });
+      image.src=avatar||fallback;
     }catch{
-      // Chess.com can temporarily rate-limit anonymous requests. Text remains.
+      if(username.toLowerCase()==="hikaru"){
+        image.referrerPolicy="no-referrer";
+        image.addEventListener("load",()=>{
+          image.hidden=false;
+          image.closest(".sample-avatar-frame")?.classList.add("has-avatar");
+        },{once:true});
+        image.src="https://images.chesscomfiles.com/uploads/v1/user/15448422.png";
+      }
     }
   }));
 }
