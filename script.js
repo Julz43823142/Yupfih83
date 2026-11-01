@@ -87,6 +87,73 @@ function listRows(items, labelKey, valueKey) {
   })) : [];
 }
 
+/* Fetch all publicly available monthly Chess.com archives only when All Time is requested.
+   The Fair Play review remains limited to its own 5,000-game analysis window. */
+const careerHistoryCache = new Map();
+async function loadCareerRatings(username, onProgress) {
+  const user = String(username || "").toLowerCase();
+  if (!/^[a-z0-9_-]{3,25}$/.test(user)) throw new Error("Player username is unavailable.");
+  if (careerHistoryCache.has(user)) return careerHistoryCache.get(user);
+  const task = (async () => {
+    const root = "https://api.chess.com/pub/player/" + encodeURIComponent(user);
+    const manifest = await getJSON(root + "/games/archives");
+    const archives = Array.isArray(manifest.archives) ? manifest.archives : [];
+    if (!archives.length) throw new Error("No publicly available monthly game archives.");
+    const all = {rapid:[],blitz:[],bullet:[]};
+    const fetchMonth = async url => {
+      if (typeof url !== "string" || !url.startsWith(root + "/games/")) throw new Error("Invalid archive address.");
+      for (let attempt=0; attempt<3; attempt++) {
+        try { return await getJSON(url); }
+        catch (error) {
+          if (attempt===2 || !/Rate limit|429|failed/i.test(String(error.message))) throw error;
+          await wait(800*(attempt+1));
+        }
+      }
+    };
+    for (let i=0;i<archives.length;i+=2) {
+      const months = await Promise.all(archives.slice(i,i+2).map(fetchMonth));
+      for (const month of months) {
+        for (const game of Array.isArray(month.games)?month.games:[]) {
+          const kind=String(game.time_class||"").toLowerCase();
+          if (!Object.hasOwn(all,kind) || game.rated!==true) continue;
+          const isWhite=String(game.white?.username||"").toLowerCase()===user;
+          const isBlack=String(game.black?.username||"").toLowerCase()===user;
+          if (!isWhite&&!isBlack) continue;
+          const rating=Number((isWhite?game.white:game.black)?.rating);
+          const ended=Number(game.end_time);
+          if (rating>0 && Number.isFinite(rating) && ended>1000000000)
+            all[kind].push({player_elo:rating,ended});
+        }
+      }
+      if (typeof onProgress==="function") onProgress("Loading career history: "+Math.min(i+2,archives.length)+" / "+archives.length+" months");
+    }
+    const sampled={};let total=0;
+    for (const kind of ["rapid","blitz","bullet"]) {
+      const rows=all[kind].sort((a,b)=>a.ended-b.ended);
+      total+=rows.length;
+      const stride=Math.max(1,Math.ceil(rows.length/850));
+      const subset=rows.filter((_,i)=>i%stride===0).slice(0,850);
+      if (rows.length&&subset.length&&subset[subset.length-1]!==rows[rows.length-1])
+        subset[subset.length-1]=rows[rows.length-1];
+      sampled[kind]=subset.map(row=>({...row,game:rows.indexOf(row)+1}));
+    }
+    if (!total) throw new Error("No rated Rapid, Blitz or Bullet history found.");
+    return {charts:sampled,archives:archives.length,total};
+  })();
+  careerHistoryCache.set(user,task);
+  try { return await task; }
+  catch(error){careerHistoryCache.delete(user);throw error;}
+}
+function withPerGameScores(rows) {
+  return rows.map(r=>{
+    if(Number.isFinite(r?.actual_score)&&Number.isFinite(r?.expected_score))return r;
+    const good=r?.rated===true && [r.score,r.player_elo,r.opponent_elo].every(Number.isFinite)
+      && r.player_elo>0 && r.opponent_elo>0 && [0,.5,1].includes(r.score);
+    return good?{...r,actual_score:r.score*100,
+      expected_score:100/(1+Math.pow(10,(r.opponent_elo-r.player_elo)/400))}:r;
+  });
+}
+
 /* Actual observations only. Overlaid controls share chronological timestamps when available. */
 function timelineChart(parent, series, field, unit, compareField = null) {
   const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
@@ -101,7 +168,7 @@ function timelineChart(parent, series, field, unit, compareField = null) {
   const xmin=Math.min(...xs), xmax=Math.max(...xs);
   const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null].filter(Number.isFinite));
   const low=Math.min(...values),high=Math.max(...values),range=high-low||1;
-  const percent=field==="official_accuracy"||field==="rolling_observed";
+  const percent=field==="official_accuracy"||field==="actual_score";
   const min=percent?0:Math.max(0,low-range*.13);
   const max=percent?100:high+range*.13;
   const x=v=>L+((v-xmin)/(xmax-xmin||1))*(W-L-R);
@@ -180,11 +247,14 @@ function timelineChart(parent, series, field, unit, compareField = null) {
   add(parent,"p","timeline-footnote",data.length+" measured observations · hover or tap for exact values");
 }
 function realCharts(parent,data){
+  for(const kind of ["rapid","blitz","bullet"]){
+    if(Array.isArray(data.charts?.[kind]))data.charts[kind]=withPerGameScores(data.charts[kind]);
+  }
   sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
   const grid=add(parent,"div","timeline-grid");
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   const measures=[
-    ["rolling_observed","Results vs Elo expectation · rolling 10-game average","%","rolling_expected"],
+    ["actual_score","Actual vs expected score · per game","%","expected_score"],
     ["official_accuracy","Official Chess.com accuracy","%",null],
     ["player_elo","Player Elo rating","",null],
     ["opponent_elo","Opponent Elo rating","",null],
@@ -201,27 +271,61 @@ function realCharts(parent,data){
     controls.setAttribute("role","group");
     controls.setAttribute("aria-label",title+" · visible time controls");
     const buttons=new Map(),selected=new Set([available[0][0]]);
+    let careerMode=false,careerData=null;
+    let allTimeButton=null,statusLabel=null;
+    if(field==="player_elo"){
+      allTimeButton=add(controls,"button","timeline-control timeline-all-time","All Time");
+      allTimeButton.type="button";
+      allTimeButton.setAttribute("aria-pressed","false");
+      allTimeButton.title="Load the full publicly available rated-game history";
+      statusLabel=add(card,"p","timeline-career-note","");
+      allTimeButton.addEventListener("click",async ()=>{
+        if(careerMode){careerMode=false;draw();return;}
+        allTimeButton.disabled=true;
+        statusLabel.textContent="Loading complete public Chess.com game history…";
+        try {
+          careerData=await loadCareerRatings(data.username,message=>{statusLabel.textContent=message;});
+          careerMode=true;
+          selected.clear();
+          for(const [key] of groups){
+            if(careerData.charts[key]?.length)selected.add(key);
+          }
+          draw();
+        }catch(error){
+          statusLabel.textContent="All Time unavailable: "+error.message;
+        }finally{allTimeButton.disabled=false;}
+      });
+    }
     function draw(){
       plot.replaceChildren();
-      const active=available.filter(([key])=>selected.has(key))
-        .map(([key,label])=>({key,label,rows:data.charts[key]}));
+      const source=careerMode?careerData.charts:data.charts;
+      const active=groups.filter(([key])=>selected.has(key)&&Array.isArray(source[key])&&source[key].length)
+        .map(([key,label])=>({key,label,rows:source[key]}));
       if(active.length)timelineChart(plot,active,field,unit,compare);
       else empty(plot,"Select Rapid, Blitz or Bullet to show the chart");
       for(const [key,btn] of buttons){const on=selected.has(key);
         btn.classList.toggle("is-active",on);btn.setAttribute("aria-pressed",String(on));}
+      if(allTimeButton){
+        allTimeButton.classList.toggle("is-active",careerMode);
+        allTimeButton.setAttribute("aria-pressed",String(careerMode));
+        if(careerMode)statusLabel.textContent="All Time: "+number(careerData.total,0)+
+          " rated games across "+careerData.archives+" monthly archives · sampled points for chart clarity";
+        else if(!statusLabel.textContent.startsWith("All Time unavailable"))statusLabel.textContent=
+          "Recent analysis: up to 5,000 games. Choose All Time for the complete available career.";
+      }
     }
     for(const [key,label] of groups){
       const btn=add(controls,"button","timeline-control",label);
       btn.type="button";
       const exists=available.some(([name])=>name===key);
-      btn.disabled=!exists;
+      btn.disabled=!exists && !careerMode;
       btn.setAttribute("aria-pressed","false");
       btn.title=exists?"Toggle "+label:"No data for "+label;
       btn.addEventListener("click",()=>{if(selected.has(key))selected.delete(key);
         else selected.add(key);draw();});
       buttons.set(key,btn);
     }
-    if(compare)add(card,"p","timeline-legend","Orange: actual score · blue/cyan/purple dashed: Elo expectation");
+    if(compare)add(card,"p","timeline-legend","Orange: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple dashed: expected score per game");
     draw();
   }
 }
