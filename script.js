@@ -630,6 +630,54 @@ function renderReview(data) {
   const foot = add(panel, "p", "v87-note",
     "Charts reflect available observed game data; they are not cheating probabilities. Statistical review priority is not proof of misconduct.");
 }
+// The SUS control is not constructed until the server confirms a finished analysis.
+let activeSusProof=null;
+async function showSusVoting(username,proof){
+  const header=playerCard.querySelector(".player-header");
+  const identity=playerCard.querySelector(".player-identity");
+  if(!header||!identity||!proof)return;
+  const normalized=String(username||"").trim().toLowerCase();
+  if(!/^[a-z0-9_-]{3,25}$/.test(normalized))return;
+  // Remove any previous control when a new report is displayed.
+  playerCard.querySelector(".sus-widget")?.remove();
+  const widget=add(identity,"div","sus-widget");
+  const action=add(widget,"button","sus-button","SUS +1");
+  action.type="button";action.disabled=true;
+  action.setAttribute("aria-label","Mark this player's results as suspicious (community opinion)");
+  const count=add(widget,"span","sus-count","— SUS votes");
+  const hint=add(widget,"span","sus-description","Community opinions, not evidence of cheating.");
+  hint.setAttribute("role","status");
+  async function update(){
+    const state=await getJSON("/api/sus/"+encodeURIComponent(normalized));
+    count.textContent=number(state.count,0)+" SUS votes";
+    action.disabled=!!state.voted;
+    action.textContent=state.voted?"Voted ✓":"SUS +1";
+    if(state.voted)hint.textContent="You already voted for this player · community opinion only.";
+  }
+  action.addEventListener("click",async()=>{
+    action.disabled=true;
+    hint.textContent="Recording your vote…";
+    try{
+      const reply=await getJSON("/api/sus/"+encodeURIComponent(normalized),{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({proof})
+      });
+      count.textContent=number(reply.count,0)+" SUS votes";
+      action.textContent="Voted ✓";action.disabled=true;
+      hint.textContent=reply.new_vote?"Vote recorded · not a cheating verdict.":
+        "You have already voted for this player.";
+    }catch(error){
+      action.disabled=false;
+      hint.textContent="Vote unavailable: "+error.message;
+    }
+  });
+  try{await update();}catch(error){
+    action.disabled=true;
+    count.textContent="Voting unavailable";
+    hint.textContent="The community voting service is not configured yet.";
+  }
+}
+
 function renderPlayer(profile, stats, username) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
@@ -638,7 +686,7 @@ function renderPlayer(profile, stats, username) {
     avatar.alt = "Player avatar";
     avatar.referrerPolicy = "no-referrer";
   }
-  const identity = add(header, "div");
+  const identity = add(header, "div", "player-identity");
   add(identity, "h3", "player-name", profile.username || username);
   const link = add(identity, "a", "player-link", "View Chess.com profile");
   link.href = "https://www.chess.com/member/" + encodeURIComponent(profile.username || username);
@@ -671,6 +719,7 @@ async function runReview(username) {
     if (job.state === "complete") {
       await finishReviewProgress();
       renderReview(job.result);
+      await showSusVoting(job.result?.username||username,job.sus_proof);
       statusText.textContent = "Analysis complete.";
       return;
     }
