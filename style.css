@@ -552,3 +552,29 @@ footer {
 
 /* Primary statistical finding appears directly beneath the review priority. */
 .v87-priority-finding { margin: 7px 0 12px; max-width: 850px; color: #d8e8f6; font-size: 14px; line-height: 1.65; }
+
+
+/* Discord-inspired vertically stacked, wide charts. Preserve the site's navy styling. */
+.timeline-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
+.timeline-card { width:100%; max-width:none; padding:28px 30px 24px; }
+.timeline-card:nth-child(3n + 1) { grid-column:auto; }
+.timeline-plot { width:100%; min-width:0; }
+.timeline-svg { width:100%; height:auto; max-height:none; }
+.timeline-card h4 { font-size:22px; }
+.timeline-footnote { margin-top:12px; }
+.timeline-controls { justify-content:center; }
+.timeline-all-time { margin-right:auto; }
+.v87-progress-value { font-size:clamp(34px,5vw,54px); font-weight:850; color:#60deff; margin:8px 0 3px; font-variant-numeric:tabular-nums; letter-spacing:-2px; }
+.v87-progress-track { height:16px; border-radius:999px; border:1px solid #2d7098; box-shadow:0 0 14px rgba(28,185,244,.13); }
+.v87-progress-fill { height:100%; background:linear-gradient(90deg,#1365c0,#28baff,#56eced); border-radius:999px; transition:width .65s ease-out; box-shadow:0 0 14px rgba(59,210,255,.35); animation:none !important; }
+.v87-progress-note { font-size:12px; color:#90aec6; margin-top:14px; line-height:1.6; }
+.v87-progress-complete .v87-progress-value { color:#6be3c0; }
+.opening-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.opening-card,.opening-shift { background:#11263b; border:1px solid #2b4d69; border-radius:12px; padding:20px 22px; min-width:0; }
+.opening-card h4,.opening-shift h4 { margin:0 0 15px; color:#e5f8ff; font-size:18px; }
+.opening-card h5 { color:#8ccdec; font-size:13px; margin:16px 0 5px; }
+.opening-list { margin:0; padding-left:18px; color:#c4d8e8; line-height:1.75; font-size:13px; }
+.opening-shift { margin-top:16px; }
+.opening-shift p { color:#bed4e5; line-height:1.7; margin:0; }
+@media(max-width:900px) { .opening-grid { grid-template-columns:1fr; } }
+@media(max-width:560px) { .timeline-card { padding:19px 12px; } .timeline-card h4 { font-size:18px; } }
