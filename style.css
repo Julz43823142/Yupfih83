@@ -614,3 +614,28 @@ footer {
 .v87-progress-track { height:17px; }
 .v87-progress-fill { transition:width .19s linear; }
 .v87-sample-warning { background:rgba(245,174,83,.075); border:1px solid rgba(245,174,83,.4); border-radius:10px; padding:13px 16px; color:#edc797; font-size:13px; line-height:1.6; }
+
+
+/* Clear interpretation of shaded intervals, with no extra chart clutter. */
+.period-explanation { display:grid; gap:8px; background:#10243a; border:1px solid #2b4860; padding:15px 19px; border-radius:11px; margin:12px 0 23px; }
+.period-explanation p { margin:0; font-size:12px; line-height:1.7; color:#b8d2e3; }
+.period-high { color:#f5a052; }
+.period-context { color:#ba97ff; }
+/* One combined opening repertoire instead of separate Rapid/Blitz/Bullet cards. */
+.opening-unified { width:100%; max-width:none; padding:25px 30px; }
+.opening-overview { display:flex; gap:13px; align-items:baseline; margin-bottom:22px; }
+.opening-overview-count { color:#6ae4f4; font-size:29px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+.opening-overview-description { color:#99b9cd; font-size:13px; }
+.opening-overview-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:34px; row-gap:18px; }
+.opening-unified .opening-summary-label { font-size:13px; }
+.opening-unified .opening-bar-track { height:7px; margin-top:6px; }
+.opening-unified .opening-details { margin-top:25px; }
+.opening-extra { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:34px; }
+.opening-disclaimer { color:#87a5bd; font-size:11px; margin:20px 0 0; }
+@media(max-width:700px) {
+ .period-explanation { padding:12px; }
+ .opening-unified { padding:18px 15px; }
+ .opening-overview-list,.opening-extra { grid-template-columns:1fr; }
+}
+.v87-progress-message { color:#6adce5; font-style:normal; min-height:26px; }
+.v87-progress-note { margin-top:15px; }
