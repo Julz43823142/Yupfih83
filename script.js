@@ -276,6 +276,7 @@ function realCharts(parent,data){
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   const measures=[
     ["actual_score","Actual vs expected score · per game","%","expected_score"],
+    ["rolling_observed","Rolling 10-game results vs Elo expectation","%","rolling_expected"],
     ["official_accuracy","Official Chess.com accuracy","%",null],
     ["player_elo","Player Elo rating","",null],
     ["opponent_elo","Opponent Elo rating","",null],
@@ -359,22 +360,57 @@ function realCharts(parent,data){
   }
 }
 
-function showReviewProgress(message, stage = "queued") {
-  const panel = document.getElementById("v87-review");
-  if (!panel) return;
-  let progress = panel.querySelector(".v87-progress");
-  if (!progress) {
-    panel.replaceChildren();
-    progress = add(panel, "div", "v87-progress");
-    add(progress, "div", "v87-progress-heading", "PLAYER ANALYSIS");
-    add(progress, "p", "v87-progress-message", "");
-    const track = add(progress, "div", "v87-progress-track");
-    add(track, "div", "v87-progress-fill");
-    add(progress, "p", "v87-progress-note", "Reviewing public game history. This may take several minutes.");
-  }
-  progress.querySelector(".v87-progress-message").textContent = message;
-  progress.querySelector(".v87-progress-fill").classList.toggle("v87-progress-running", stage === "running");
+let reviewProgressStarted=0, reviewProgressTimer=null, reviewProgressStage="queued";
+function currentReviewEstimate() {
+  const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
+  // Displayed as an estimate: fast at first, then asymptotically approaches 90%.
+  return Math.min(90, Math.floor(7+84*(1-Math.exp(-elapsed/85000))));
 }
+function stopReviewProgress() {
+  if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
+  reviewProgressStarted=0;
+}
+function showReviewProgress(message, stage="queued") {
+  const panel=document.getElementById("v87-review");
+  if(!panel)return;
+  let progress=panel.querySelector(".v87-progress");
+  if(!progress) {
+    panel.replaceChildren();
+    progress=add(panel,"div","v87-progress");
+    add(progress,"div","v87-progress-heading","PLAYER ANALYSIS");
+    const value=add(progress,"div","v87-progress-value","0%");
+    value.setAttribute("aria-label","Estimated analysis progress");
+    add(progress,"p","v87-progress-message","");
+    const track=add(progress,"div","v87-progress-track");
+    track.setAttribute("role","progressbar");
+    track.setAttribute("aria-label","Estimated analysis progress");
+    track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");
+    const fill=add(track,"div","v87-progress-fill");
+    fill.style.width="0%";
+    add(progress,"p","v87-progress-note","Estimated progress. The exact completion time depends on the game history; 100% appears only when analysis finishes.");
+  }
+  const value=progress.querySelector(".v87-progress-value");
+  const track=progress.querySelector(".v87-progress-track");
+  const fill=progress.querySelector(".v87-progress-fill");
+  const fraction=stage==="complete"?100:stage==="queued"
+    ?Math.min(12,currentReviewEstimate()):currentReviewEstimate();
+  value.textContent=fraction+"%";
+  track.setAttribute("aria-valuenow",String(fraction));
+  fill.style.width=fraction+"%";
+  progress.querySelector(".v87-progress-message").textContent=message;
+  progress.classList.toggle("v87-progress-complete",stage==="complete");
+}
+function startReviewProgress() {
+  stopReviewProgress();
+  reviewProgressStarted=Date.now();
+  showReviewProgress("Preparing your Fair Play review…","queued");
+  reviewProgressTimer=setInterval(()=>{
+    const panel=document.getElementById("v87-review");
+    const progress=panel?.querySelector(".v87-progress");
+    if(progress)showReviewProgress(progress.querySelector(".v87-progress-message").textContent,reviewProgressStage);
+  },850);
+}
+
 function renderReview(data) {
   const panel = document.getElementById("v87-review");
   panel.replaceChildren();
@@ -408,6 +444,31 @@ function renderReview(data) {
   else readable.slice(0, 20).forEach(reason => add(reasons, "li", "", reason));
   if (data.charts && Object.values(data.charts).some(rows => Array.isArray(rows) && rows.length)) realCharts(panel, data);
   else { sectionTitle(panel, "Game-by-game analysis", "Detailed charts are available for new completed analyses."); add(panel, "p", "v87-muted", "This result does not contain chronological game observations. Start a new analysis to generate the charts."); }
+  const opening=data.opening_summary;
+  const shift=data.method3?.opening_shift;
+  if(opening && typeof opening==="object"){
+    sectionTitle(panel,"Opening repertoire","Public game openings by time control, based on recorded first moves and replies.");
+    const openingGrid=add(panel,"div","opening-grid");
+    for(const [kind,label] of [["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]]){
+      const groups=Array.isArray(opening[kind])?opening[kind]:[];
+      if(!groups.length)continue;
+      const card=add(openingGrid,"article","opening-card");
+      add(card,"h4","",label);
+      for(const group of groups){
+        add(card,"h5","",group.group+" · "+number(group.total,0)+" games");
+        const ul=add(card,"ul","opening-list");
+        for(const choice of group.choices||[])add(ul,"li","",choice.name+" — "+number(choice.games,0)+" games");
+      }
+    }
+  }
+  if(shift&&typeof shift==="object"){
+    const wrap=add(panel,"div","opening-shift");
+    add(wrap,"h4","","Opening change near the selected period · context only");
+    add(wrap,"p","","In "+String(shift.time_class||"")+" ("+String(shift.color||"")+
+      ", "+String(shift.opponent_opening||"")+"): "+String(shift.before||"")+" → "+
+      String(shift.during||"")+" → "+String(shift.after||"")+
+      ". A temporary change in openings is not evidence of misconduct.");
+  }
   const foot = add(panel, "p", "v87-note",
     "Charts reflect available observed game data; they are not cheating probabilities. Statistical review priority is not proof of misconduct.");
 }
@@ -438,7 +499,8 @@ async function runReview(username) {
       "The analysis service is currently unavailable. Please try again later.");
     return;
   }
-  showReviewProgress("Preparing your Fair Play review…");
+  reviewProgressStage="queued";
+  startReviewProgress();
   statusText.textContent = "";
   const base = API_URL.replace(/\/$/, "");
   const started = await getJSON(base + "/review", {
@@ -449,14 +511,18 @@ async function runReview(username) {
     await wait(3000);
     const job = await getJSON(base + "/review/" + encodeURIComponent(started.job_id));
     if (job.state === "complete") {
+      showReviewProgress("Analysis complete.","complete");
+      stopReviewProgress();
       renderReview(job.result);
       statusText.textContent = "Analysis complete.";
       return;
     }
-    if (job.state === "failed") throw new Error(job.error || "Review failed.");
+    if (job.state === "failed") {stopReviewProgress();throw new Error(job.error || "Review failed.");}
+    reviewProgressStage=job.state;
     showReviewProgress(job.state === "running" ? "Analyzing game history…" : "Your analysis is in the queue…", job.state);
     statusText.textContent = "";
   }
+  stopReviewProgress();
   throw new Error("Review still processing. Try again later.");
 }
 form.addEventListener("submit", async event => {
@@ -487,6 +553,7 @@ form.addEventListener("submit", async event => {
     results.scrollIntoView({behavior:"smooth",block:"start"});
     try { await runReview(username); }
     catch (error) {
+      stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
       statusText.textContent = "Profile loaded, but the analysis could not finish.";
