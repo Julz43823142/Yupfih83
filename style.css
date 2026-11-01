@@ -691,3 +691,25 @@ footer {
  .sample-button { min-height:86px; padding:15px 17px; }
  .sample-player-name { font-size:16px; }
 }
+
+
+/* Place example previews alongside Analysis Overview when a report is visible. */
+.results .section-heading { display:flex; gap:24px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:22px; }
+.results .section-heading .overview-title-group { flex:0 0 auto; min-width:220px; }
+.results .section-heading h2 { margin:10px 0 6px; }
+.analysis-duration { display:inline-flex; color:#77ddf5; border:1px solid #2e617e; border-radius:7px; background:#112d45; padding:7px 11px; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+.analysis-duration[hidden] { display:none !important; }
+.results .section-heading .sample-section { flex:1 1 620px; margin:0; padding:0; max-width:940px; display:block; min-width:0; }
+.results .section-heading .sample-heading { display:none; }
+.results .section-heading .sample-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:0; }
+.results .section-heading .sample-button { padding:12px 16px; min-height:75px; }
+.results .section-heading .sample-player-name { font-size:14px; }
+.results .section-heading .sample-player-handle { font-size:11px; }
+.results .section-heading .sample-status { font-size:12px; margin:7px 0 0; }
+@media(max-width:900px) {
+ .results .section-heading { align-items:stretch; }
+ .results .section-heading .sample-section { flex-basis:100%; }
+}
+@media(max-width:570px) {
+ .results .section-heading .sample-options { grid-template-columns:1fr; }
+}
