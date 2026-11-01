@@ -588,3 +588,21 @@ footer {
 .opening-list li { margin:0 0 9px; }
 .opening-bar-track { margin-top:4px; width:100%; height:5px; border-radius:8px; background:#091b31; overflow:hidden; }
 .opening-bar-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#218fd6,#45dfdc); }
+
+
+/* Compact opening overview; full details remain accessible on demand. */
+.opening-compact { padding:22px 24px; }
+.opening-compact h4 { margin:0 0 3px; }
+.opening-subtitle { margin:0 0 18px; font-size:12px; color:#86b5d0; }
+.opening-summary-list { display:grid; gap:14px; }
+.opening-summary-row { min-width:0; }
+.opening-summary-label { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:6px; font-size:12px; color:#d5e9f6; }
+.opening-summary-label span { min-width:0; overflow-wrap:anywhere; }
+.opening-summary-label strong { flex:0 0 auto; color:#5cdbed; font-variant-numeric:tabular-nums; }
+.opening-summary-row .opening-bar-track { height:7px; border-radius:10px; }
+.opening-details { margin-top:20px; border-top:1px solid #294760; padding-top:12px; }
+.opening-details > summary { cursor:pointer; list-style:revert; font-size:12px; font-weight:700; color:#53d8f1; padding:5px; }
+.opening-details > summary:hover { color:#fff; }
+.opening-details-body { padding:8px 3px; display:grid; gap:12px; }
+.opening-details-body h5 { margin:12px 0 0; font-size:12px; color:#8ccdec; }
+.v87-progress-fill { transition:width .17s linear; }
