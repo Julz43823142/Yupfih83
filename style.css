@@ -548,3 +548,7 @@ footer {
 .timeline-all-time { margin-right: auto; border-color:#34a9d1; font-weight:800; }
 .timeline-career-note { text-align:center; color:#9bb8cc; font-size:11px; margin:12px 0 0; line-height:1.6; }
 @media(max-width:560px) { .timeline-all-time { flex:0 0 100% !important; margin-right:0; } }
+
+
+/* Primary statistical finding appears directly beneath the review priority. */
+.v87-priority-finding { margin: 7px 0 12px; max-width: 850px; color: #d8e8f6; font-size: 14px; line-height: 1.65; }
