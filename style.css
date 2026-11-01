@@ -469,3 +469,14 @@ footer {
   .v87-review { padding: 18px; }
   .v87-chart-grid, .v87-metrics { grid-template-columns: 1fr; }
 }
+
+/* Review loading state below the Chess.com ratings. */
+.v87-progress { padding: 4px 0; }
+.v87-progress-heading { color: var(--cyan); font-size: 12px; font-weight: 700; letter-spacing: 1.8px; }
+.v87-progress-message { color: #e6f5ff; font-size: 18px; margin: 18px 0 16px; }
+.v87-progress-track { height: 11px; background: #102d47; border: 1px solid #205274; border-radius: 100px; overflow: hidden; }
+.v87-progress-fill { height: 100%; width: 38%; border-radius: 100px; background: linear-gradient(90deg, #006fc7, #49ddff); animation: v87-progress-sweep 2.4s ease-in-out infinite alternate; }
+.v87-progress-running { animation-duration: 1.7s; }
+.v87-progress-note { margin: 13px 0 0; color: var(--muted); font-size: 12px; }
+@keyframes v87-progress-sweep { from { transform: translateX(-95%); } to { transform: translateX(260%); } }
+@media (prefers-reduced-motion: reduce) { .v87-progress-fill { animation: none; width: 65%; } }
