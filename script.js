@@ -510,7 +510,30 @@ async function finishReviewProgress(){
 }
 
 
+function placeExampleCardsNearOverview() {
+  const samples=document.querySelector(".sample-section");
+  const heading=document.querySelector("#results .section-heading");
+  if(samples&&heading&&samples.parentElement!==heading)
+    heading.appendChild(samples);
+}
+function showMeasuredDuration(result) {
+  const target=document.getElementById("analysisDuration");
+  if(!target)return;
+  const seconds=Number(result?.elapsed_seconds);
+  if(!Number.isFinite(seconds)||seconds<=0){
+    target.textContent="Analysis time unavailable";
+    target.hidden=false;
+    return;
+  }
+  const rounded=Math.round(seconds);
+  const minutes=Math.floor(rounded/60);
+  const remainder=rounded%60;
+  target.textContent="Analysis time: "+(minutes?minutes+"m ":"")+remainder+"s";
+  target.hidden=false;
+}
 function renderReview(data) {
+  placeExampleCardsNearOverview();
+  showMeasuredDuration(data);
   const panel = document.getElementById("v87-review");
   panel.replaceChildren();
   const top = add(panel, "div", "v87-top");
@@ -702,6 +725,7 @@ async function showExample(username,displayName){
       " · the runtime is historical and does not predict current waiting time. Statistical review labels are not cheating allegations.";
     report.prepend(intro);
     results.classList.remove("hidden");
+    placeExampleCardsNearOverview();
     results.scrollIntoView({behavior:"smooth",block:"start"});
     sampleStatus.textContent="Showing the verified saved report for "+displayName+".";
   } catch(error){
@@ -743,6 +767,7 @@ form.addEventListener("submit", async event => {
       panel.id = "v87-review";
     }
     results.classList.remove("hidden");
+    placeExampleCardsNearOverview();
     results.scrollIntoView({behavior:"smooth",block:"start"});
     try { await runReview(username); }
     catch (error) {
