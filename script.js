@@ -354,6 +354,16 @@ function renderReview(data) {
   const left = add(top, "div");
   add(left, "span", "eyebrow", "FAIR PLAY REVIEW");
   add(left, "h3", "v87-priority", data.priority || "UNAVAILABLE");
+  const entries = Array.isArray(data.reasons) ? data.reasons : [data.reasons];
+  const cleanedReasons = entries.filter(x => x != null)
+    .map(x => typeof x === "string" ? x : JSON.stringify(x))
+    .map(x => x.replace(/\\s*This experimental results flag is not engine or Maia confirmation\\.?/gi, "").trim())
+    .filter(Boolean);
+  const highlightedIndex = cleanedReasons.findIndex(reason =>
+    /A chronological period scored substantially above its Elo-point expectation and passed the history-search guard/i.test(reason));
+  if (highlightedIndex !== -1) {
+    add(left, "p", "v87-priority-finding", cleanedReasons[highlightedIndex]);
+  }
   add(left, "p", "v87-muted", "Manual review priority — not a cheating probability or verdict.");
   const stats = add(panel, "div", "v87-metrics");
   metric(stats, "REVIEW CONFIDENCE", data.confidence);
@@ -363,9 +373,10 @@ function renderReview(data) {
   if (data.partial) add(panel, "p", "v87-warning", "Partial review: data or time limits affected coverage.");
   sectionTitle(panel, "Review findings", "Key observations and reliability context");
   const reasons = add(panel, "ul", "v87-reasons");
-  const entries = Array.isArray(data.reasons) ? data.reasons : [data.reasons];
-  const readable = entries.filter(x => x != null).map(x => typeof x === "string" ? x : JSON.stringify(x));
-  if (!readable.length) add(reasons, "li", "", "No additional reason text supplied.");
+  const readable = cleanedReasons.filter((_, i) => i !== highlightedIndex);
+  if (!readable.length) add(reasons, "li", "", highlightedIndex !== -1
+    ? "The primary finding is displayed directly below the review priority."
+    : "No additional reason text supplied.");
   else readable.slice(0, 20).forEach(reason => add(reasons, "li", "", reason));
   if (data.charts && Object.values(data.charts).some(rows => Array.isArray(rows) && rows.length)) realCharts(panel, data);
   else { sectionTitle(panel, "Game-by-game analysis", "Detailed charts are available for new completed analyses."); add(panel, "p", "v87-muted", "This result does not contain chronological game observations. Start a new analysis to generate the charts."); }
