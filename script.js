@@ -88,13 +88,14 @@ function listRows(items, labelKey, valueKey) {
 }
 
 /* Chronological plots use actual v87 observations, never fabricated values. */
-function timelineChart(parent, rows, field, unit) {
+function timelineChart(parent, rows, field, unit, compareField = null) {
   const valid = rows.filter(r => Number.isFinite(r?.[field]) && Number.isFinite(r?.game));
   if (!valid.length) return empty(parent, "No published observations for this measure");
   const W=760,H=238,L=54,R=19,T=18,B=39;
-  const values=valid.map(r=>r[field]), lo=Math.min(...values), hi=Math.max(...values);
-  const min=field==="official_accuracy"?0:Math.max(0,lo-(hi-lo||1)*.12);
-  const max=field==="official_accuracy"?100:hi+(hi-lo||1)*.12;
+  const values=valid.flatMap(r=>[r[field], compareField ? r[compareField] : null].filter(Number.isFinite)), lo=Math.min(...values), hi=Math.max(...values);
+  const isPercent=field==="official_accuracy" || field==="rolling_observed";
+  const min=isPercent?0:Math.max(0,lo-(hi-lo||1)*.12);
+  const max=isPercent?100:hi+(hi-lo||1)*.12;
   const end=Math.max(2,...rows.map(r=>Number(r.game)||0));
   const x=v=>L+(v-1)/(end-1)*(W-L-R), y=v=>T+(max-v)/(max-min||1)*(H-T-B);
   const ns="http://www.w3.org/2000/svg";
@@ -110,7 +111,8 @@ function timelineChart(parent, rows, field, unit) {
   let path="",prev=0;
   rows.forEach(r=>{if(!Number.isFinite(r?.[field])||!Number.isFinite(r?.game)){prev=0;return;}
     path+=(prev?" L ":" M ")+x(r.game).toFixed(1)+" "+y(r[field]).toFixed(1);prev=1;});
-  node("path",{d:path,fill:"none",stroke:"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-linejoin":"round"});
+  node("path",{d:path,fill:"none",stroke:compareField?"#f59b52":"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-linejoin":"round"});
+  if(compareField){let other="",prevOther=false;for(const r of rows){if(!Number.isFinite(r?.[compareField])||!Number.isFinite(r?.game)){prevOther=false;continue;}other+=(prevOther?" L ":" M ")+x(r.game).toFixed(1)+" "+y(r[compareField]).toFixed(1);prevOther=true;}node("path",{d:other,fill:"none",stroke:"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-dasharray":"6 4"});}
   valid.forEach((r,i)=>{if(valid.length>140&&i%Math.ceil(valid.length/140)!==0)return;
     const c=node("circle",{cx:x(r.game),cy:y(r[field]),r:valid.length>90?2.3:3.7,fill:"#a6ddff"});
     const title=document.createElementNS(ns,"title");title.textContent=`Game ${r.game}: ${number(r[field],1)}${unit}`;c.appendChild(title);
@@ -123,64 +125,23 @@ function realCharts(parent,data){
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   for(const [key,label] of groups){
     const rows=Array.isArray(data.charts?.[key])?data.charts[key]:[];
-    for(const [field,title,unit] of [
-      ["official_accuracy","Official Chess.com accuracy","%"],
-      ["player_elo","Player rating",""],
-      ["median_think_seconds","Median thinking time","s"]]){
+    for(const [field,title,unit,compare] of [
+      ["rolling_observed","Last 10 games · actual vs Elo expected","%","rolling_expected"],
+      ["official_accuracy","Official Chess.com accuracy","%",null],
+      ["player_elo","Player rating","",null],
+      ["opponent_elo","Opponent rating","",null],
+      ["median_think_seconds","Median thinking time","s",null]]){
       const card=add(grid,"article","timeline-card");
       add(card,"div","timeline-category",label.toUpperCase());
       add(card,"h4","",title);
       const plot=add(card,"div","timeline-plot");
-      timelineChart(plot,rows,field,unit);
+      timelineChart(plot,rows,field,unit,compare);
+      if(compare) add(card,"p","timeline-legend","Orange: actual points · blue dashed: Elo expected · matched rated games only");
     }
   }
 }
 
-function chartNine(parent, data) {
-  const m = data.method3 || {};
-  const chosen = m.selected || {};
-  const quality = m.data_quality || {};
-  const context = m.period_context || {};
-  const grid = add(parent, "div", "v87-chart-grid");
-  let plot;
 
-  plot = chartCard(grid, "01 · Review coverage", "Games and searched windows");
-  bars(plot, [{label:"Games",value:data.games}, {label:"Selected",value:data.selected_games},
-    {label:"Windows",value:m.searched_windows}, {label:"Segments",value:m.segments_checked}]);
-
-  plot = chartCard(grid, "02 · Rating reliability", "Original v87 rating reliability diagnostics");
-  bars(plot, objectRows(m.rating_reliability, ["rated_games","unrated_games","rated_count","anchors","anchor_count","repeated_opponents"]));
-
-  plot = chartCard(grid, "03 · Selected period", "Observed selected-period measurements");
-  bars(plot, objectRows(chosen, ["games","wins","draws","losses","score_excess","expected_score","actual_score","score","z_score"]));
-
-  plot = chartCard(grid, "04 · Results screen", "v87 effect screen; not cheating probability");
-  bars(plot, objectRows(m.selected_high_effect_screen,
-    ["observed_excess","required_excess","additional_percentage_points_needed"]));
-
-  plot = chartCard(grid, "05 · Data quality", "Counts reported by the original review");
-  bars(plot, objectRows(quality, ["games","rated_games","unrated_games","missing_accuracy","missing_rating","archives","coverage"]));
-
-  plot = chartCard(grid, "06 · Guarded periods", "Reasons periods were limited by reliability guards");
-  bars(plot, Object.entries(m.period_guard_counts || {}).map(([label,value]) => ({label,value})));
-
-  plot = chartCard(grid, "07 · Accuracy frequency", "Available official-Accuracy signal counts");
-  bars(plot, Array.isArray(m.accuracy_frequency_signals)
-    ? [{label:"Signals",value:m.accuracy_frequency_signals.length},
-       {label:"Absolute signals",value:(m.absolute_accuracy_frequency_signals || []).length},
-       {label:"Limited flags",value:(m.limited_accuracy_review_flags || []).length}]
-    : objectRows(m.accuracy_frequency, ["games","samples","eligible","signals"]));
-
-  plot = chartCard(grid, "08 · Historical changes", "Changes identified in the player's own history");
-  bars(plot, Array.isArray(m.history_changes)
-    ? [{label:"History changes",value:m.history_changes.length},
-       {label:"Marked periods",value:Array.isArray(m.marked_periods)?m.marked_periods.length:0},
-       {label:"Review observations",value:Array.isArray(m.manual_review_observations)?m.manual_review_observations.length:0}]
-    : []);
-
-  plot = chartCard(grid, "09 · Period context", "Additional original Method 3 period measurements");
-  bars(plot, objectRows(context, ["games","wins","draws","losses","score_excess","accuracy","average_accuracy","rating_change"]));
-}
 function showReviewProgress(message, stage = "queued") {
   const panel = document.getElementById("v87-review");
   if (!panel) return;
@@ -208,7 +169,7 @@ function renderReview(data) {
   const stats = add(panel, "div", "v87-metrics");
   metric(stats, "REVIEW CONFIDENCE", data.confidence);
   metric(stats, "GAMES REVIEWED", number(data.games, 0));
-  metric(stats, "SEARCHED WINDOWS", number(data.method3?.searched_windows, 0));
+  metric(stats, "TIME CONTROLS", "Rapid · Blitz · Bullet");
 
   if (data.partial) add(panel, "p", "v87-warning", "Partial review: data or time limits affected coverage.");
   sectionTitle(panel, "Review findings", "Key observations and reliability context");
