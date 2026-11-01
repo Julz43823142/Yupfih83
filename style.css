@@ -840,3 +840,19 @@ footer {
 @media (max-width:700px) {
   .below-hero-layout .sample-avatar-frame { flex-basis:48px; width:48px; height:48px; }
 }
+
+
+/* Approved white-and-cyan EloScanner artwork for the three homepage features. */
+.feature-card .feature-illustration {
+  display:block;
+  width:112px;
+  height:112px;
+  max-width:100%;
+  object-fit:contain;
+  border-radius:13px;
+  background:#031224;
+}
+.feature-card h3 { margin-top:18px; }
+@media(max-width:600px) {
+ .feature-card .feature-illustration { width:96px; height:96px; }
+}
