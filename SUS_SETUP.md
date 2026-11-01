@@ -23,3 +23,11 @@ A SUS count is **community opinion, not verified evidence or a Fair Play verdict
 The counter is shown only following a successfully completed live analysis.
 Cached sample previews do not grant vote eligibility until a fresh analysis
 has completed. The API will report 503 until D1 binding and tables are ready.
+
+## Top 100 leaderboard
+
+The Top 100 button navigates to `/top100.html` rather than opening a popup.
+Run `migrations/0002_sus_recent_reviews.sql` in the same D1 database to show
+latest completed analysis priorities. Only analyses completed after this
+migration is applied are stored; earlier results remain 'Not available'.
+The Analyze button links to `/?analyze=<username>`, starting a new review.
