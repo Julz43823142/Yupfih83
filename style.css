@@ -713,3 +713,15 @@ footer {
 @media(max-width:570px) {
  .results .section-heading .sample-options { grid-template-columns:1fr; }
 }
+
+
+/* On the landing page, use the left and right gutters instead of clustering cards in the center. */
+@media(min-width:1100px) {
+  main > .sample-section { max-width:1700px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:center; }
+  main > .sample-section .sample-heading { grid-column:2; grid-row:1; text-align:center; }
+  main > .sample-section .sample-options { display:contents; }
+  main > .sample-section .sample-button { width:100%; max-width:345px; }
+  main > .sample-section .sample-button:first-child { grid-column:1; grid-row:1; justify-self:start; }
+  main > .sample-section .sample-button:last-child { grid-column:3; grid-row:1; justify-self:end; }
+  main > .sample-section .sample-status { grid-column:1/-1; text-align:center; }
+}
