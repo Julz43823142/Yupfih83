@@ -298,8 +298,7 @@ function realCharts(parent,data){
     }
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   const measures=[
-    ["actual_score","Actual vs expected score · per game","%","expected_score"],
-    ["rolling_observed","Rolling 10-game results vs Elo expectation","%","rolling_expected"],
+    ["rolling_observed","Rolling 10-game expected / observed points","%","rolling_expected"],
     ["official_accuracy","Official Chess.com accuracy","%",null],
     ["player_elo","Player Elo rating","",null],
     ["opponent_elo","Opponent Elo rating","",null],
@@ -377,7 +376,7 @@ function realCharts(parent,data){
       buttons.set(key,btn);
     }
     if(compare)add(card,"p","timeline-legend",field==="rolling_observed"
-      ?"Orange dashed: observed rolling 10-game score · blue/cyan/purple: rolling expected Elo score"
+      ?"Orange dashed: observed rolling 10-game points · blue/cyan/purple: expected points (same ten-game window)"
       :"Orange dots: individual results (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
     if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
@@ -387,33 +386,51 @@ function realCharts(parent,data){
 
 let reviewProgressStarted=0, reviewProgressTimer=null, reviewProgressStage="queued";
 let reviewProgressPercent=0, reviewProgressReport="", reviewProgressFinishing=false;
-const analysisQuips=[
-  "Checking whether the knights are behaving suspiciously…",
-  "Counting pawns. Yes, every single pawn.",
-  "Asking the bishops to stay on their own colors…",
-  "Comparing Elo expectations with actual results…",
-  "Inspecting impressive winning streaks (without jumping to conclusions)…",
-  "Looking for patterns in Rapid, Blitz and Bullet…",
-  "Giving the rooks some space to think…",
-  "Separating coincidence from statistically unusual results…",
-  "Checking whether the queen has taken over the analysis…",
-  "Making sure the numbers, not the rumors, do the talking…"
+// Ten neutral verbs × 30 analytical subjects × six scopes = 1,800 combinations.
+// This rotating line is decorative; the separate phase line reports actual backend status.
+const analysisVerbs=[
+  "Reviewing","Checking","Comparing","Inspecting","Examining",
+  "Mapping","Summarizing","Tracing","Cross-checking","Assessing"
 ];
+const analysisSubjects=[
+  "Elo expectations","game results","opponent ratings","rating changes",
+  "opening choices","Rapid performance","Blitz performance","Bullet performance",
+  "accuracy trends","scoring trends","historical patterns","game sequences",
+  "rating differences","draw frequencies","win frequencies","loss frequencies",
+  "thinking times","move timings","time controls","result distributions",
+  "opening frequencies","game chronology","sample coverage","accuracy coverage",
+  "rating stability","opponent strength","rolling averages","recent activity",
+  "statistical variation","period comparisons"
+];
+const analysisScopes=[
+  "across the game history","in the available games","over time",
+  "within each time control","across recent periods","against earlier results"
+];
+function analysisStatusLine(){
+  const index=Math.floor(Math.max(0,Date.now()-reviewProgressStarted)/3400);
+  const total=analysisVerbs.length*analysisSubjects.length*analysisScopes.length;
+  // Coprime stride visits every combination before repeating.
+  const n=(index*427+137)%total;
+  const verb=analysisVerbs[n%analysisVerbs.length];
+  const subject=analysisSubjects[Math.floor(n/analysisVerbs.length)%analysisSubjects.length];
+  const scope=analysisScopes[Math.floor(n/(analysisVerbs.length*analysisSubjects.length))];
+  return verb+" "+subject+" "+scope+"…";
+}
 function currentReviewEstimate(){
   const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  // Fast introductory animation, then stage-based bounds from actual GitHub job steps.
-  // Per-game counts are not provided by this backend; never claim that they are.
-  const ease=80*(1-Math.exp(-elapsed/8500));
-  let estimate=Math.floor(ease);
-  if(reviewProgressStage==="queued")estimate=Math.min(estimate,22);
-  else if(reviewProgressStage==="preparing")estimate=Math.min(estimate,45);
-  else if(reviewProgressStage==="dependencies")estimate=Math.min(estimate,67);
-  else if(reviewProgressStage==="analyzing"){
-    const late=80+10*(1-Math.exp(-Math.max(0,elapsed-19000)/95000));
-    estimate=Math.min(90,Math.max(estimate,Math.floor(late)));
-  }
-  else if(reviewProgressStage==="uploading")estimate=Math.max(90,Math.min(97,90+Math.floor(7*(1-Math.exp(-elapsed/90000)))));
-  return Math.min(99,Math.max(reviewProgressPercent,estimate));
+  // Continuously animated estimate. Backend job phases may accelerate it, but
+  // never cause abrupt jumps. Real game-by-game counts aren't exposed.
+  const slow=80*(1-Math.exp(-elapsed/5800));
+  let target=elapsed<=14000?slow:80+12*(1-Math.exp(-(elapsed-14000)/85000));
+  const phaseFloor={queued:0,preparing:28,dependencies:58,analyzing:83,uploading:96};
+  target=Math.max(target,phaseFloor[reviewProgressStage]||0);
+  target=Math.min(98,target);
+  const ahead=target-reviewProgressPercent;
+  if(ahead<=0)return reviewProgressPercent;
+  // The bar may catch up more quickly when real work advances, but smoothly.
+  const step=reviewProgressPercent<80?(["analyzing","uploading"].includes(reviewProgressStage)?1.5:0.9):
+    reviewProgressStage==="uploading"?.42:.18;
+  return Math.min(98,reviewProgressPercent+Math.min(ahead,step));
 }
 function stopReviewProgress(){
   if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
@@ -443,12 +460,11 @@ function showReviewProgress(message,stage="queued",completed=false){
   const value=progress.querySelector(".v87-progress-value");
   const track=progress.querySelector(".v87-progress-track");
   const fill=progress.querySelector(".v87-progress-fill");
-  value.textContent=reviewProgressPercent+"%";
-  track.setAttribute("aria-valuenow",String(reviewProgressPercent));
+  value.textContent=Math.floor(reviewProgressPercent)+"%";
+  track.setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
   fill.style.width=reviewProgressPercent+"%";
   progress.querySelector(".v87-progress-message").textContent=reviewProgressReport;
-  const quip=completed?"All done. The pawns can go home now.":
-    analysisQuips[Math.floor((Date.now()-reviewProgressStarted)/4700)%analysisQuips.length];
+  const quip=completed?"Review complete.":analysisStatusLine();
   progress.querySelector(".v87-progress-quips").textContent=quip;
   progress.classList.toggle("v87-progress-complete",completed);
 }
