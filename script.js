@@ -283,6 +283,13 @@ function realCharts(parent,data){
   }
   sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
   if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and do not provide reliable period-level Fair Play evidence.");
+  const help=add(parent,"div","period-explanation");
+  const high=add(help,"p","");
+  add(high,"strong","period-high","HIGH period — ");
+  add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This is a review priority, not proof of cheating.");
+  const context=add(help,"p","");
+  add(context,"strong","period-context","Context — ");
+  add(context,"span","","Games from other time controls played during the same calendar period. The purple area is shown for comparison, not as an additional HIGH finding.");
   const grid=add(parent,"div","timeline-grid");
   const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
   const selected=data.method3?.selected;
@@ -418,19 +425,20 @@ function analysisStatusLine(){
 }
 function currentReviewEstimate(){
   const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  // Continuously animated estimate. Backend job phases may accelerate it, but
-  // never cause abrupt jumps. Real game-by-game counts aren't exposed.
-  const slow=80*(1-Math.exp(-elapsed/5800));
-  let target=elapsed<=14000?slow:80+12*(1-Math.exp(-(elapsed-14000)/85000));
-  const phaseFloor={queued:0,preparing:28,dependencies:58,analyzing:83,uploading:96};
-  target=Math.max(target,phaseFloor[reviewProgressStage]||0);
-  target=Math.min(98,target);
-  const ahead=target-reviewProgressPercent;
-  if(ahead<=0)return reviewProgressPercent;
-  // The bar may catch up more quickly when real work advances, but smoothly.
-  const step=reviewProgressPercent<80?(["analyzing","uploading"].includes(reviewProgressStage)?1.5:0.9):
-    reviewProgressStage==="uploading"?.42:.18;
-  return Math.min(98,reviewProgressPercent+Math.min(ahead,step));
+  // A continuous curve, not an instant jump to 80. Workflow phases influence
+  // the target but the visible value always approaches it at a bounded speed.
+  const seconds=elapsed/1000;
+  const early=80*(1-Math.exp(-seconds/15));
+  const later=seconds>37?12*(1-Math.exp(-(seconds-37)/90)):0;
+  const base=early+later;
+  const phaseBoost={queued:0,preparing:1,dependencies:3,analyzing:6,uploading:12};
+  const target=Math.min(98,base+(phaseBoost[reviewProgressStage]||0));
+  const difference=Math.max(0,target-reviewProgressPercent);
+  if(difference===0)return reviewProgressPercent;
+  // Called every 180 ms: fractional increments keep the motion smooth
+  // even when the backend advances to a later stage.
+  const limit=reviewProgressPercent<65?.65:reviewProgressPercent<80?.28:.13;
+  return Math.min(98,reviewProgressPercent+Math.min(difference,limit));
 }
 function stopReviewProgress(){
   if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
@@ -451,8 +459,7 @@ function showReviewProgress(message,stage="queued",completed=false){
     track.setAttribute("role","progressbar");track.setAttribute("aria-label","Estimated analysis progress");
     track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");
     const fill=add(track,"div","v87-progress-fill");fill.style.width="0%";
-    add(progress,"p","v87-progress-quips","");
-    add(progress,"p","v87-progress-note","Approximate progress, guided by actual workflow stages. Exact per-game counts are not available.");
+    add(progress,"p","v87-progress-note","Estimated progress · actual workflow stages are used to adjust the pace.");
   }
   if(stage)reviewProgressStage=stage;
   if(message)reviewProgressReport=message;
@@ -463,9 +470,7 @@ function showReviewProgress(message,stage="queued",completed=false){
   value.textContent=Math.floor(reviewProgressPercent)+"%";
   track.setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
   fill.style.width=reviewProgressPercent+"%";
-  progress.querySelector(".v87-progress-message").textContent=reviewProgressReport;
-  const quip=completed?"Review complete.":analysisStatusLine();
-  progress.querySelector(".v87-progress-quips").textContent=quip;
+  progress.querySelector(".v87-progress-message").textContent=completed?"Review complete.":analysisStatusLine();
   progress.classList.toggle("v87-progress-complete",completed);
 }
 function startReviewProgress(){
@@ -527,42 +532,54 @@ function renderReview(data) {
   const opening=data.opening_summary;
   const shift=data.method3?.opening_shift;
   if(opening&&typeof opening==="object"){
-    sectionTitle(panel,"Opening repertoire","Most-played opening choices · expand a time control for the full breakdown.");
-    const openingGrid=add(panel,"div","opening-grid");
-    for(const [kind,label] of [["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]]){
-      const groups=Array.isArray(opening[kind])?opening[kind]:[];
-      if(!groups.length)continue;
-      const card=add(openingGrid,"article","opening-card opening-compact");
-      add(card,"h4","",label);
-      const total=groups.reduce((sum,g)=>sum+(Number(g.total)||0),0);
-      add(card,"p","opening-subtitle",number(total,0)+" recorded opening choices");
-      const summary=[];
-      for(const group of groups){
+    // Combine all controls by the same opening choice rather than three separate cards.
+    const totals=new Map();
+    let fullTotal=0;
+    for(const kind of ["rapid","blitz","bullet"]){
+      for(const group of Array.isArray(opening[kind])?opening[kind]:[]){
         for(const choice of group.choices||[]){
-          summary.push({name:group.group.replace("White · first move","White")
-            .replace("Black · vs","Black vs")+" · "+choice.name,
-            count:choice.games});
+          const count=Number(choice.games)||0;
+          if(count<=0)continue;
+          const groupName=String(group.group||"");
+          const key=groupName+"||"+String(choice.name||"Other");
+          const old=totals.get(key);
+          totals.set(key,{group:groupName,name:String(choice.name||"Other"),
+            count:(old?.count||0)+count});
+          fullTotal+=count;
         }
       }
-      summary.sort((a,b)=>b.count-a.count);
-      function openingRow(parent,name,count,denominator){
+    }
+    if(fullTotal){
+      sectionTitle(panel,"Opening repertoire","Combined Rapid, Blitz and Bullet · most-played choices from the available game history.");
+      const card=add(panel,"article","opening-card opening-unified");
+      const summary=add(card,"div","opening-overview");
+      add(summary,"div","opening-overview-count",number(fullTotal,0));
+      add(summary,"div","opening-overview-description","recorded opening choices");
+      const ranked=[...totals.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+      function labelFor(item){
+        const color=item.group.toLowerCase().startsWith("white")?"White":"Black";
+        const opponent=item.group.includes("vs 1.e4")?" vs 1.e4":
+          item.group.includes("vs 1.d4")?" vs 1.d4":"";
+        return color+opponent+" · "+item.name;
+      }
+      function openingRow(parent,item,denom){
         const row=add(parent,"div","opening-summary-row");
         const heading=add(row,"div","opening-summary-label");
-        add(heading,"span","",name);
-        add(heading,"strong","",number(count,0));
+        add(heading,"span","",labelFor(item));
+        add(heading,"strong","",number(item.count,0)+" · "+number(item.count/denom*100,1)+"%");
         const track=add(row,"div","opening-bar-track");
         const fill=add(track,"div","opening-bar-fill");
-        fill.style.width=Math.min(100,100*count/Math.max(1,denominator)).toFixed(1)+"%";
+        fill.style.width=Math.min(100,100*item.count/denom).toFixed(1)+"%";
       }
-      const list=add(card,"div","opening-summary-list");
-      for(const choice of summary.slice(0,4))openingRow(list,choice.name,choice.count,total);
-      const details=add(card,"details","opening-details");
-      add(details,"summary","","View all openings");
-      const body=add(details,"div","opening-details-body");
-      for(const group of groups){
-        add(body,"h5","",group.group+" · "+number(group.total,0)+" games");
-        for(const choice of group.choices||[])openingRow(body,choice.name,choice.games,group.total);
+      const list=add(card,"div","opening-overview-list");
+      for(const item of ranked.slice(0,6))openingRow(list,item,fullTotal);
+      if(ranked.length>6){
+        const details=add(card,"details","opening-details");
+        add(details,"summary","","View all "+number(ranked.length,0)+" opening choices");
+        const more=add(details,"div","opening-details-body opening-extra");
+        for(const item of ranked.slice(6))openingRow(more,item,fullTotal);
       }
+      add(card,"p","opening-disclaimer","Openings are descriptive playing preferences, not Fair Play evidence.");
     }
   }
   if(shift&&typeof shift==="object"){
