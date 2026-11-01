@@ -856,3 +856,6 @@ footer {
 @media(max-width:600px) {
  .feature-card .feature-illustration { width:96px; height:96px; }
 }
+
+/* Keep the feature artwork directly on the card surface: no square tile. */
+.feature-card .feature-illustration { background:transparent; border-radius:0; }
