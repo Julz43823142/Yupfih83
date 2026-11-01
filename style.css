@@ -725,3 +725,38 @@ footer {
   main > .sample-section .sample-button:last-child { grid-column:3; grid-row:1; justify-self:end; }
   main > .sample-section .sample-status { grid-column:1/-1; text-align:center; }
 }
+
+
+/* Definitive homepage layout: BOTH example reports on the far LEFT,
+   stacked inside the empty gutter alongside the three feature cards. */
+.below-hero-layout { display:grid; grid-template-columns:minmax(0,1fr); max-width:1700px; margin:0 auto; align-items:start; }
+.below-hero-layout > .sample-section { max-width:none; width:auto; min-width:0; margin:26px 18px 0; padding:0; display:block; }
+.below-hero-layout .sample-heading { text-align:left; }
+.below-hero-layout .sample-options { display:flex; flex-direction:column; gap:13px; margin-top:16px; }
+.below-hero-layout .sample-button { width:100%; max-width:none; min-height:82px; padding:15px 17px; }
+.below-hero-layout .sample-player-name { font-size:16px; }
+.below-hero-layout .sample-status { text-align:left; }
+.below-hero-layout > .features { max-width:none; width:100%; margin:0; padding:45px 24px 80px; }
+@media(min-width:1300px) {
+ .below-hero-layout { grid-template-columns:290px minmax(0,1fr); gap:18px; padding:0 32px; }
+ .below-hero-layout > .sample-section { grid-column:1; grid-row:1; margin:43px 0 0; }
+ .below-hero-layout > .features { grid-column:2; grid-row:1; padding:45px 0 80px; }
+ .below-hero-layout .sample-options { display:flex; }
+ .below-hero-layout .sample-button:first-child,
+ .below-hero-layout .sample-button:last-child { width:100%; max-width:none; }
+}
+@media(min-width:900px) and (max-width:1299px) {
+ .below-hero-layout { grid-template-columns:240px minmax(0,1fr); gap:17px; padding:0 18px; }
+ .below-hero-layout > .sample-section { grid-column:1; grid-row:1; margin:43px 0 0; }
+ .below-hero-layout > .features { grid-column:2; grid-row:1; padding:45px 0 80px; }
+ .below-hero-layout .sample-options { display:flex; }
+}
+@media(max-width:899px) {
+ .below-hero-layout > .sample-section { margin:24px 16px 0; }
+ .below-hero-layout .sample-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .below-hero-layout > .features { padding-top:32px; }
+}
+@media(max-width:600px) {
+ .below-hero-layout .sample-options { grid-template-columns:1fr; }
+ .below-hero-layout > .features { grid-template-columns:1fr; }
+}
