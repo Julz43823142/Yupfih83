@@ -165,7 +165,14 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
   const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null,overlayField?r[overlayField]:null].filter(Number.isFinite));
   const low=Math.min(...values),high=Math.max(...values),range=high-low||1;
   const percent=["official_accuracy","actual_score","rolling_observed"].includes(field);
-  const min=percent?0:Math.max(0,low-range*.12),max=percent?100:high+range*.12;
+  // Keep the absolute per-game score on 0–100; zoom Accuracy to its observed range.
+  // Never discard genuine low observations just to make the chart prettier.
+  const accuracyZoom=field==="official_accuracy";
+  const margin=Math.max(4,range*.09);
+  const min=accuracyZoom?Math.max(0,Math.floor((low-margin)/5)*5):
+    percent?0:Math.max(0,low-range*.12);
+  const max=accuracyZoom?Math.min(100,Math.ceil((high+margin)/5)*5):
+    percent?100:high+range*.12;
   const x=v=>L+(v-xmin)/(xmax-xmin||1)*(W-L-R);
   const y=v=>T+(max-v)/(max-min||1)*(H-T-B);
   const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
@@ -216,10 +223,23 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
       }
       return d;
     }
-    const primary=pathOf(field);
-    node("path",{d:primary,fill:"none",stroke:compareField?"#f59b52":color,
-      "stroke-width":2.25,"stroke-linecap":"round","stroke-linejoin":"round",
-      "stroke-dasharray":compareField?"6 3":"none"});
+    const individual=field==="actual_score";
+    if(individual) {
+      // Outcomes are categorical (0 / 50 / 100), not a continuous quantity.
+      // Disconnected compact dots avoid the unreadable orange zigzag at high game counts.
+      const dotLayer=node("g",{"aria-label":"Individual game results"});
+      for(const r of ordered) {
+        if(!Number.isFinite(r[field]))continue;
+        const point=node("circle",{
+          cx:x(r.game),cy:y(r[field]),r:2.9,fill:"#ff9d52",
+          opacity:.67
+        },undefined,dotLayer);
+      }
+    } else {
+      node("path",{d:pathOf(field),fill:"none",stroke:compareField?"#f59b52":color,
+        "stroke-width":2.25,"stroke-linecap":"round","stroke-linejoin":"round",
+        "stroke-dasharray":compareField?"6 3":"none"});
+    }
     if(compareField)node("path",{d:pathOf(compareField),fill:"none",stroke:color,"stroke-width":2.3});
     if(overlayField)node("path",{d:pathOf(overlayField),fill:"none",stroke:"#4bdd9a",
       "stroke-width":3,"stroke-linejoin":"round"});
@@ -355,7 +375,7 @@ function realCharts(parent,data){
     }
     if(compare)add(card,"p","timeline-legend",field==="rolling_observed"
       ?"Orange dashed: observed rolling 10-game score · blue/cyan/purple: rolling expected Elo score"
-      :"Orange dashed: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
+      :"Orange dots: individual results (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
     add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
     draw();
