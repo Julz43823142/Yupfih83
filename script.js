@@ -155,96 +155,107 @@ function withPerGameScores(rows) {
 }
 
 /* Actual observations only. Overlaid controls share chronological timestamps when available. */
-function timelineChart(parent, series, field, unit, compareField = null) {
+function timelineChart(parent, series, field, unit, compareField = null, periods = [], overlayField = null) {
   const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
-  const data = series.flatMap(({key,label,rows}) => rows
-    .filter(r => Number.isFinite(r?.[field]))
-    .map((r,i) => ({...r, control:key, label, position:i+1,
-      time:Number(r.ended)>1000000000?Number(r.ended):null})));
+  const data = series.flatMap(({key,label,rows}) => rows.filter(r => Number.isFinite(r?.[field]))
+    .map((r,i) => ({...r,control:key,label,position:Number.isFinite(r.game)?r.game:i+1})));
   if(!data.length) return empty(parent,"Choose at least one time control");
-  const dated = data.every(r => r.time !== null);
-  const W=920,H=330,L=65,R=24,T=22,B=49;
-  const xs=data.map(r=>dated?r.time:r.position);
-  const xmin=Math.min(...xs), xmax=Math.max(...xs);
-  const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null].filter(Number.isFinite));
+  const W=1340,H=365,L=76,R=28,T=32,B=53;
+  const xs=data.map(r=>r.position),xmin=Math.min(1,...xs),xmax=Math.max(...xs);
+  const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null,overlayField?r[overlayField]:null].filter(Number.isFinite));
   const low=Math.min(...values),high=Math.max(...values),range=high-low||1;
-  const percent=field==="official_accuracy"||field==="actual_score";
-  const min=percent?0:Math.max(0,low-range*.13);
-  const max=percent?100:high+range*.13;
-  const x=v=>L+((v-xmin)/(xmax-xmin||1))*(W-L-R);
+  const percent=["official_accuracy","actual_score","rolling_observed"].includes(field);
+  const min=percent?0:Math.max(0,low-range*.12),max=percent?100:high+range*.12;
+  const x=v=>L+(v-xmin)/(xmax-xmin||1)*(W-L-R);
   const y=v=>T+(max-v)/(max-min||1)*(H-T-B);
-  const ns="http://www.w3.org/2000/svg";
-  const svg=document.createElementNS(ns,"svg");
+  const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
   svg.classList.add("timeline-svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  svg.setAttribute("role","img");svg.setAttribute("aria-label","Interactive "+field.replaceAll("_"," ")+" chart");
+  svg.setAttribute("role","img");svg.setAttribute("aria-label","Game-number chart: "+field.replaceAll("_"," "));
   parent.appendChild(svg);
-  function node(tag,attrs={},text,within=svg){const n=document.createElementNS(ns,tag);
+  function node(tag,attrs={},label,within=svg) {
+    const n=document.createElementNS(ns,tag);
     Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));
-    if(text!==undefined)n.textContent=text;within.appendChild(n);return n;}
+    if(label!==undefined)n.textContent=label;
+    within.appendChild(n);return n;
+  }
   for(let i=0;i<=4;i++){const v=min+(max-min)*i/4,yy=y(v);
     node("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#29405a","stroke-width":1});
-    node("text",{x:L-12,y:yy+4,"text-anchor":"end",fill:"#9bb1c6","font-size":13},`${number(v,0)}${unit}`);
+    node("text",{x:L-12,y:yy+5,"text-anchor":"end",fill:"#9bb1c6","font-size":14},`${number(v,0)}${unit}`);
   }
-  const ticks=[xmin,(xmin+xmax)/2,xmax];
-  for(const value of ticks){
-    const label=dated?new Date(value*1000).toLocaleDateString("en-GB",{month:"short",year:"2-digit"}):"Game "+Math.round(value);
-    node("text",{x:x(value),y:H-15,"text-anchor":"middle",fill:"#9bb1c6","font-size":13},label);
+  for(let i=0;i<=4;i++){const value=xmin+(xmax-xmin)*i/4;
+    node("text",{x:x(value),y:H-22,"text-anchor":"middle",fill:"#9bb1c6","font-size":14},String(Math.round(value)));}
+  node("text",{x:(W+L-R)/2,y:H-3,"text-anchor":"middle",fill:"#9bb1c6","font-size":13},"Game number (chronological · per time class)");
+  // Cross-control context uses the same dates, mapped onto each class's game numbers.
+  for(const period of periods){
+    const related=series.filter(s=>s.key===period.time_class);
+    for(const line of related){
+      const points=line.rows.filter(r=>Number.isFinite(r.ended)&&Number.isFinite(r.game));
+      if(!points.length)continue;
+      const start=points.find(r=>r.ended>=period.first_ended);
+      const end=[...points].reverse().find(r=>r.ended<=period.last_ended);
+      if(!start||!end||end.game<start.game)continue;
+      const px=Math.max(L,x(start.game)),right=Math.min(W-R,x(end.game));
+      if(right<=px)continue;
+      const priority=String(period.priority||"").toUpperCase();
+      const shade=period.context?"#ad82ff":priority==="VERY HIGH"?"#f05c70":priority==="HIGH"?"#f59b52":priority==="MODERATE"?"#f4d06f":"#5fbf93";
+      node("rect",{x:px,y:T,width:right-px,height:H-T-B,fill:shade,"fill-opacity":".16",stroke:shade,"stroke-width":1.6});
+      node("text",{x:px+5,y:T+15,fill:shade,"font-size":13,"font-weight":700},period.context?"Context":priority);
+    }
   }
   const targets=[];
   for(const {key,label,rows} of series){
     const color=palette[key];
-    const ordered=rows.filter(r=>Number.isFinite(r?.[field]))
-      .map((r,i)=>({...r,position:i+1,time:Number(r.ended)>1000000000?Number(r.ended):null}))
-      .sort((a,b)=>(dated?a.time-b.time:a.position-b.position));
-    function graphPath(measure){
-      let path="",started=false;
-      for(const r of ordered){if(!Number.isFinite(r?.[measure])){started=false;continue;}
-        const gx=x(dated?r.time:r.position),gy=y(r[measure]);
-        path+=(started?" L ":" M ")+gx.toFixed(1)+" "+gy.toFixed(1);started=true;}
-      return path;
+    const ordered=rows.filter(r=>Number.isFinite(r?.game))
+      .sort((a,b)=>a.game-b.game);
+    function pathOf(measure) {
+      let d="",started=false;
+      for(const r of ordered) {
+        if(!Number.isFinite(r?.[measure])){started=false;continue;}
+        d+=(started?" L ":" M ")+x(r.game).toFixed(2)+" "+y(r[measure]).toFixed(2);
+        started=true;
+      }
+      return d;
     }
-    node("path",{d:graphPath(field),fill:"none",stroke:compareField?"#f59b52":color,
-      "stroke-width":2.7,"stroke-linejoin":"round","stroke-linecap":"round",
-      opacity:compareField&&series.length>1?".82":"1"});
-    if(compareField) node("path",{d:graphPath(compareField),fill:"none",stroke:color,
-      "stroke-width":2.3,"stroke-dasharray":"7 5","stroke-linecap":"round"});
+    const primary=pathOf(field);
+    node("path",{d:primary,fill:"none",stroke:compareField?"#f59b52":color,
+      "stroke-width":2.25,"stroke-linecap":"round","stroke-linejoin":"round",
+      "stroke-dasharray":compareField?"6 3":"none"});
+    if(compareField)node("path",{d:pathOf(compareField),fill:"none",stroke:color,"stroke-width":2.3});
+    if(overlayField)node("path",{d:pathOf(overlayField),fill:"none",stroke:"#4bdd9a",
+      "stroke-width":3,"stroke-linejoin":"round"});
     for(const r of ordered){
-      const px=x(dated?r.time:r.position),py=y(r[field]);
-      targets.push({x:px,y:py,row:r,key,label,color});
-      if(ordered.length<=180) node("circle",{cx:px,cy:py,r:2.7,fill:compareField?"#f59b52":color,opacity:.8});
+      if(!Number.isFinite(r[field]))continue;
+      targets.push({x:x(r.game),y:y(r[field]),row:r,key,label,color});
     }
   }
-  const focus=node("circle",{cx:0,cy:0,r:7,fill:"#061b32",stroke:"#fff","stroke-width":2});
+  const focus=node("circle",{cx:0,cy:0,r:6,fill:"#061b32",stroke:"#fff","stroke-width":2});
   focus.style.display="none";
-  const tooltip=add(parent,"div","timeline-tooltip");
-  tooltip.setAttribute("role","status");tooltip.hidden=true;
-  function show(event) {
+  const tooltip=add(parent,"div","timeline-tooltip");tooltip.setAttribute("role","status");tooltip.hidden=true;
+  function show(event){
     const rect=svg.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
     const px=(event.clientX-rect.left)*W/rect.width,py=(event.clientY-rect.top)*H/rect.height;
     let best=null,distance=Infinity;
-    for(const point of targets){const dx=point.x-px,dy=(point.y-py)*.8,d=dx*dx+dy*dy;
+    for(const point of targets){const dx=point.x-px,dy=(point.y-py)*.65,d=dx*dx+dy*dy;
       if(d<distance){distance=d;best=point;}}
-    if(!best || Math.sqrt(distance)>(event.pointerType==="touch"?58:30)){
+    if(!best||Math.sqrt(distance)>(event.pointerType==="touch"?72:40)){
       tooltip.hidden=true;focus.style.display="none";return;}
     focus.setAttribute("cx",best.x);focus.setAttribute("cy",best.y);
     focus.setAttribute("stroke",best.color);focus.style.display="";
-    const r=best.row;
-    tooltip.replaceChildren();
+    const r=best.row;tooltip.replaceChildren();
     add(tooltip,"strong","",best.label);
-    const when=dated?new Date(r.time*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"Game "+(r.game??r.position);
-    add(tooltip,"span","",when+" · Game "+(r.game??r.position));
+    const when=Number.isFinite(r.ended)?new Date(r.ended*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"";
+    add(tooltip,"span","","Game "+r.game+(when?" · "+when:""));
     add(tooltip,"b","",number(r[field],2)+unit);
-    if(compareField && Number.isFinite(r[compareField]))
-      add(tooltip,"span","", "Elo expected: "+number(r[compareField],2)+unit);
+    if(compareField&&Number.isFinite(r[compareField]))add(tooltip,"span","","Elo expected: "+number(r[compareField],2)+unit);
+    if(overlayField&&Number.isFinite(r[overlayField]))add(tooltip,"span","","Rolling mean: "+number(r[overlayField],2)+unit);
     tooltip.hidden=false;
-    const left=(best.x/W)*rect.width,top=(best.y/H)*rect.height;
-    tooltip.style.left=Math.max(12,Math.min(rect.width-175,left))+"px";
-    tooltip.style.top=Math.max(12,top-14)+"px";
+    tooltip.style.left=Math.max(12,Math.min(rect.width-200,best.x/W*rect.width))+"px";
+    tooltip.style.top=Math.max(12,best.y/H*rect.height-12)+"px";
   }
-  svg.addEventListener("pointermove",show);
-  svg.addEventListener("pointerdown",show);
+  svg.addEventListener("pointermove",show);svg.addEventListener("pointerdown",show);
   svg.addEventListener("pointerleave",()=>{tooltip.hidden=true;focus.style.display="none";});
-  add(parent,"p","timeline-footnote",data.length+" measured observations · hover or tap for exact values");
+  add(parent,"p","timeline-footnote",data.length+" sampled observations · game-number axis · hover or tap for exact values");
 }
 function realCharts(parent,data){
   for(const kind of ["rapid","blitz","bullet"]){
@@ -252,6 +263,16 @@ function realCharts(parent,data){
   }
   sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
   const grid=add(parent,"div","timeline-grid");
+  const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
+  const selected=data.method3?.selected;
+  const allPeriods=marked.map(p=>({...p,context:false}));
+  if(selected?.first_ended&&selected?.last_ended&&!allPeriods.some(p=>p.first_ended===selected.first_ended&&p.last_ended===selected.last_ended))
+    allPeriods.push({...selected,priority:data.priority,context:false});
+  if(selected?.first_ended&&selected?.last_ended)
+    for(const kind of ["rapid","blitz","bullet"]){
+      if(kind!==selected.time_class)allPeriods.push({time_class:kind,
+        first_ended:selected.first_ended,last_ended:selected.last_ended,context:true});
+    }
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   const measures=[
     ["actual_score","Actual vs expected score · per game","%","expected_score"],
@@ -301,7 +322,12 @@ function realCharts(parent,data){
       const source=careerMode?careerData.charts:data.charts;
       const active=groups.filter(([key])=>selected.has(key)&&Array.isArray(source[key])&&source[key].length)
         .map(([key,label])=>({key,label,rows:source[key]}));
-      if(active.length)timelineChart(plot,active,field,unit,compare);
+      if(active.length){
+        const overlays=careerMode?[]:allPeriods;
+        const smoothing=field==="official_accuracy"?"accuracy_mean_30":
+          field==="median_think_seconds"?"timing_mean_30":null;
+        timelineChart(plot,active,field,unit,compare,overlays,smoothing);
+      }
       else empty(plot,"Select Rapid, Blitz or Bullet to show the chart");
       for(const [key,btn] of buttons){const on=selected.has(key);
         btn.disabled=careerMode?!careerData.charts[key]?.length:!available.some(([name])=>name===key);
@@ -326,7 +352,9 @@ function realCharts(parent,data){
         else selected.add(key);draw();});
       buttons.set(key,btn);
     }
-    if(compare)add(card,"p","timeline-legend","Orange: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple dashed: expected score per game");
+    if(compare)add(card,"p","timeline-legend","Orange dashed: actual result (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
+    if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
+    add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
     draw();
   }
 }
