@@ -408,7 +408,10 @@ function currentReviewEstimate(){
   if(reviewProgressStage==="queued")estimate=Math.min(estimate,22);
   else if(reviewProgressStage==="preparing")estimate=Math.min(estimate,45);
   else if(reviewProgressStage==="dependencies")estimate=Math.min(estimate,67);
-  else if(reviewProgressStage==="analyzing")estimate=Math.min(estimate,91);
+  else if(reviewProgressStage==="analyzing"){
+    const late=80+10*(1-Math.exp(-Math.max(0,elapsed-19000)/95000));
+    estimate=Math.min(90,Math.max(estimate,Math.floor(late)));
+  }
   else if(reviewProgressStage==="uploading")estimate=Math.max(90,Math.min(97,90+Math.floor(7*(1-Math.exp(-elapsed/90000)))));
   return Math.min(99,Math.max(reviewProgressPercent,estimate));
 }
@@ -452,6 +455,7 @@ function showReviewProgress(message,stage="queued",completed=false){
 function startReviewProgress(){
   stopReviewProgress();
   reviewProgressStarted=Date.now();
+  reviewProgressFinishing=false;
   reviewProgressPercent=0;reviewProgressStage="queued";reviewProgressReport="";
   showReviewProgress("Waiting for an analysis worker…","queued");
   reviewProgressTimer=setInterval(()=>{
