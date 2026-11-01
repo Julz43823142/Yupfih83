@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="EloScanner - independent engine-free Chess.com player review">
   <title>EloScanner | Chess Analysis</title>
-  <link rel="stylesheet" href="./style.css?v=20261101-top100-avatar-v18">
-  <script src="./script.js?v=20261101-top100-avatar-v18" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261101-top100-page-v19">
+  <script src="./script.js?v=20261101-top100-page-v19" defer></script>
 </head>
 <body>
   <header class="navbar">
@@ -21,20 +21,14 @@
       <aside class="hero-sus-ranking" aria-labelledby="sus-ranking-title">
         <div class="hero-sus-heading">
           <h2 id="sus-ranking-title">TOP 5 highest SUS</h2>
-          <button id="sus-top100-button" type="button" class="sus-top100-button" aria-expanded="false" aria-controls="sus-top100-panel">Top 100 →</button>
+          <a id="sus-top100-button" href="/top100.html" class="sus-top100-button">Top 100 →</a>
         </div>
         <ol id="sus-top5-list" class="sus-ranking-list">
           <li class="sus-rank-message">Loading community votes…</li>
         </ol>
         <p class="sus-ranking-disclaimer">Community opinions only — not cheating evidence.</p>
       </aside>
-      <section id="sus-top100-panel" class="sus-top100-panel" aria-labelledby="sus-top100-title" hidden>
-        <div class="sus-top100-heading"><h2 id="sus-top100-title">TOP 100 highest SUS</h2><button id="sus-top100-close" type="button" aria-label="Close Top 100">×</button></div>
-        <ol id="sus-top100-list" class="sus-ranking-list">
-          <li class="sus-rank-message">Loading community votes…</li>
-        </ol>
-        <p class="sus-ranking-disclaimer">Votes are unverified community opinions, never proof of cheating.</p>
-      </section>
+      
 
       <div class="hero-content">
         <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
@@ -68,7 +62,7 @@
           <span class="sample-player-handle">@MagnusCarlsen <span class="sample-view">View report →</span></span>
         </button>
         <button class="sample-button" type="button" data-username="Hikaru" data-name="Hikaru Nakamura">
-          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="Hikaru" alt="Hikaru Nakamura Chess.com profile picture" loading="lazy" hidden></span><span class="sample-player-name">GM Hikaru Nakamura</span></span>
+          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="Hikaru" src="https://images.chesscomfiles.com/uploads/v1/user/15448422.png" alt="Hikaru Nakamura Chess.com profile picture" loading="eager"></span><span class="sample-player-name">GM Hikaru Nakamura</span></span>
           <span class="sample-player-handle">@Hikaru <span class="sample-view">View report →</span></span>
         </button>
       </div>
