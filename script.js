@@ -425,20 +425,16 @@ function analysisStatusLine(){
 }
 function currentReviewEstimate(){
   const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  // A continuous curve, not an instant jump to 80. Workflow phases influence
-  // the target but the visible value always approaches it at a bounded speed.
   const seconds=elapsed/1000;
-  const early=80*(1-Math.exp(-seconds/15));
-  const later=seconds>37?12*(1-Math.exp(-(seconds-37)/90)):0;
-  const base=early+later;
-  const phaseBoost={queued:0,preparing:1,dependencies:3,analyzing:6,uploading:12};
-  const target=Math.min(98,base+(phaseBoost[reviewProgressStage]||0));
-  const difference=Math.max(0,target-reviewProgressPercent);
-  if(difference===0)return reviewProgressPercent;
-  // Called every 180 ms: fractional increments keep the motion smooth
-  // even when the backend advances to a later stage.
-  const limit=reviewProgressPercent<65?.65:reviewProgressPercent<80?.28:.13;
-  return Math.min(98,reviewProgressPercent+Math.min(difference,limit));
+  // One continuous decelerating curve: no 80% target or hard stop at 80.
+  // Work-phase information only lifts the target slightly, never the displayed value.
+  let target=95*(1-Math.exp(-seconds/39));
+  const phaseCaps={queued:23,preparing:45,dependencies:67,analyzing:94,uploading:98};
+  target=Math.min(phaseCaps[reviewProgressStage]??94,target);
+  if(reviewProgressStage==="uploading") target=Math.max(target,95);
+  const ahead=Math.max(0,target-reviewProgressPercent);
+  const maxStep=reviewProgressPercent<65?.42:reviewProgressPercent<85?.25:.13;
+  return Math.min(98,reviewProgressPercent+Math.min(ahead,maxStep));
 }
 function stopReviewProgress(){
   if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
@@ -486,12 +482,33 @@ function startReviewProgress(){
 }
 async function finishReviewProgress(){
   reviewProgressFinishing=true;
-  // Show the final transition visibly; do not abruptly replace 86% with results.
-  showReviewProgress("Analysis complete. Preparing your results…","complete",true);
-  await wait(1100);
+  // The analysis is actually complete, but animate the remaining distance
+  // to 100 so the indicator is never removed while showing 85 or 90.
+  const from=reviewProgressPercent;
+  const started=Date.now();
+  const duration=2600;
+  while(true){
+    const t=Math.min(1,(Date.now()-started)/duration);
+    const eased=1-Math.pow(1-t,2);
+    reviewProgressPercent=from+(100-from)*eased;
+    // UI uses a displayed integer and smooth fill width.
+    const panel=document.getElementById("v87-review");
+    const progress=panel?.querySelector(".v87-progress");
+    if(progress){
+      progress.querySelector(".v87-progress-value").textContent=Math.floor(reviewProgressPercent)+"%";
+      progress.querySelector(".v87-progress-track").setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
+      progress.querySelector(".v87-progress-fill").style.width=reviewProgressPercent+"%";
+      progress.querySelector(".v87-progress-message").textContent="Preparing the completed report…";
+    }
+    if(t===1)break;
+    await wait(75);
+  }
+  showReviewProgress("Review complete.","complete",true);
+  await wait(650);
   stopReviewProgress();
   reviewProgressFinishing=false;
 }
+
 
 function renderReview(data) {
   const panel = document.getElementById("v87-review");
