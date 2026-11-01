@@ -1,33 +1,72 @@
-♞SHARKFAIRPLAY CHESS INTELLIGENCE
-CHESS.COM PLAYER INTELLIGENCE
-Explore the Deep.
-Analyze the Game.
-Explore public Chess.com ratings and request an independent, engine-free Fair Play Review.
-
-Chess.com username 
-Enter Chess.com username
- Analyze Player →
-PLAYER PROFILE
-Analysis Overview
-Fair Play Review
-Review priority is not a probability of cheating or proof of misconduct. No chess engine is used in Method 3.
-
-◈
-Fair Play Review
-Statistical review using the original Method 3 backend when connected.
-
-BACKEND REQUIRED
-◎
-Player Intelligence
-Public Chess.com profiles and Bullet, Blitz and Rapid ratings.
-
-AVAILABLE
-◇
-Independent Analysis
-Results are review priorities, not allegations or verdicts.
-
-RESPONSIBLE RESEARCH
-Responsible Fair Play Research
-Statistical indicators are not proof of cheating. This independent project is not affiliated with Chess.com. The entered username is sent to Chess.com to retrieve public profile information; a configured review backend also receives it to perform analysis. This website does not intentionally store search history in your browser.
-
-© Shark Fair PlayIndependent Chess Research Platform
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Shark Fair Play - independent engine-free Chess.com player review">
+  <title>Shark Fair Play | Chess Analysis</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon" aria-hidden="true">🦈</span>
+      <span>SHARK<span class="brand-accent">FAIRPLAY</span></span>
+    </a>
+    <span class="nav-label">CHESS INTELLIGENCE</span>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="eyebrow">CHESS.COM PLAYER INTELLIGENCE</div>
+        <h1>Explore the <span>Deep.</span><br>Analyze the Game.</h1>
+        <p class="subtitle">Explore public Chess.com ratings and request an independent, engine-free Fair Play Review.</p>
+        <form id="searchForm" class="search-box">
+          <input id="username" name="username" type="text" aria-label="Chess.com username"
+            placeholder="Enter Chess.com username" autocomplete="off" maxlength="25" required>
+          <button type="submit" id="analyzeBtn">Analyze Player →</button>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <h2>Analysis Overview</h2>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+      <section id="v87-review" class="v87-review"></section>
+    </section>
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">◈</div>
+        <h3>Fair Play Review</h3>
+        <p>Statistical review using the original Method 3 backend when connected.</p>
+        <span class="feature-tag">BACKEND REQUIRED</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">◎</div>
+        <h3>Player Intelligence</h3>
+        <p>Public Chess.com profiles and Bullet, Blitz and Rapid ratings.</p>
+        <span class="feature-tag">AVAILABLE</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">◇</div>
+        <h3>Independent Analysis</h3>
+        <p>Results are review priorities, not allegations or verdicts.</p>
+        <span class="feature-tag">RESPONSIBLE RESEARCH</span>
+      </div>
+    </section>
+    <section class="disclaimer">
+      <h3>Responsible Fair Play Research</h3>
+      <p>Statistical indicators are not proof of cheating. This independent project is not affiliated with Chess.com. The entered username is sent to Chess.com to retrieve public profile information; a configured review backend also receives it to perform analysis.</p>
+    </section>
+  </main>
+  <footer>
+    <span>© <span id="year"></span> Shark Fair Play</span>
+    <span>Independent Chess Research Platform</span>
+  </footer>
+</body>
+</html>
