@@ -132,10 +132,10 @@ async function loadCareerRatings(username, onProgress) {
       const rows=all[kind].sort((a,b)=>a.ended-b.ended);
       total+=rows.length;
       const stride=Math.max(1,Math.ceil(rows.length/850));
-      const subset=rows.filter((_,i)=>i%stride===0).slice(0,850);
-      if (rows.length&&subset.length&&subset[subset.length-1]!==rows[rows.length-1])
-        subset[subset.length-1]=rows[rows.length-1];
-      sampled[kind]=subset.map(row=>({...row,game:rows.indexOf(row)+1}));
+      const subset=rows.map((row,i)=>({...row,game:i+1})).filter((_,i)=>i%stride===0).slice(0,850);
+      if (rows.length&&subset.length&&subset[subset.length-1].game!==rows.length)
+        subset[subset.length-1]={...rows[rows.length-1],game:rows.length};
+      sampled[kind]=subset;
     }
     if (!total) throw new Error("No rated Rapid, Blitz or Bullet history found.");
     return {charts:sampled,archives:archives.length,total};
@@ -304,6 +304,7 @@ function realCharts(parent,data){
       if(active.length)timelineChart(plot,active,field,unit,compare);
       else empty(plot,"Select Rapid, Blitz or Bullet to show the chart");
       for(const [key,btn] of buttons){const on=selected.has(key);
+        btn.disabled=careerMode?!careerData.charts[key]?.length:!available.some(([name])=>name===key);
         btn.classList.toggle("is-active",on);btn.setAttribute("aria-pressed",String(on));}
       if(allTimeButton){
         allTimeButton.classList.toggle("is-active",careerMode);
