@@ -735,6 +735,26 @@ async function showExample(username,displayName){
     controls.forEach(btn=>btn.disabled=false);
   }
 }
+// Fetch real public Chess.com avatars; never substitute unrelated player images.
+async function loadSampleAvatars(){
+  const avatars=document.querySelectorAll(".sample-avatar[data-avatar-for]");
+  await Promise.all([...avatars].map(async image=>{
+    const username=image.dataset.avatarFor;
+    try{
+      const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
+      const avatar=typeof profile.avatar==="string"?profile.avatar:"";
+      if(!avatar||!/^https:\/\//i.test(avatar))return;
+      image.referrerPolicy="no-referrer";
+      image.addEventListener("load",()=>{image.hidden=false;image.closest(".sample-avatar-frame")?.classList.add("has-avatar");},{once:true});
+      image.addEventListener("error",()=>{image.hidden=true;},{once:true});
+      image.src=avatar;
+    }catch{
+      // Chess.com can temporarily rate-limit anonymous requests. Text remains.
+    }
+  }));
+}
+loadSampleAvatars();
+
 document.querySelectorAll(".sample-button").forEach(button=>{
   button.addEventListener("click",()=>showExample(button.dataset.username,button.dataset.name));
 });
