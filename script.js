@@ -118,7 +118,7 @@ function timelineChart(parent, rows, field, unit) {
   add(parent,"p","timeline-footnote",`${valid.length} measured games · gaps represent missing data`);
 }
 function realCharts(parent,data){
-  sectionTitle(parent,"Game-by-game analysis","Actual observations from the completed v87 scan · by time control");
+  sectionTitle(parent,"Game-by-game analysis","Measured values from the completed review · by time control");
   const grid=add(parent,"div","timeline-grid");
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   for(const [key,label] of groups){
@@ -188,11 +188,11 @@ function showReviewProgress(message, stage = "queued") {
   if (!progress) {
     panel.replaceChildren();
     progress = add(panel, "div", "v87-progress");
-    add(progress, "div", "v87-progress-heading", "FAIR PLAY V87 · ANALYSIS");
+    add(progress, "div", "v87-progress-heading", "PLAYER ANALYSIS");
     add(progress, "p", "v87-progress-message", "");
     const track = add(progress, "div", "v87-progress-track");
     add(track, "div", "v87-progress-fill");
-    add(progress, "p", "v87-progress-note", "The analysis runs on GitHub. This may take several minutes.");
+    add(progress, "p", "v87-progress-note", "Reviewing public game history. This may take several minutes.");
   }
   progress.querySelector(".v87-progress-message").textContent = message;
   progress.querySelector(".v87-progress-fill").classList.toggle("v87-progress-running", stage === "running");
@@ -202,24 +202,23 @@ function renderReview(data) {
   panel.replaceChildren();
   const top = add(panel, "div", "v87-top");
   const left = add(top, "div");
-  add(left, "span", "eyebrow", "FAIR PLAY V87 · ENGINE FREE");
+  add(left, "span", "eyebrow", "FAIR PLAY REVIEW");
   add(left, "h3", "v87-priority", data.priority || "UNAVAILABLE");
   add(left, "p", "v87-muted", "Manual review priority — not a cheating probability or verdict.");
   const stats = add(panel, "div", "v87-metrics");
   metric(stats, "REVIEW CONFIDENCE", data.confidence);
   metric(stats, "GAMES REVIEWED", number(data.games, 0));
   metric(stats, "SEARCHED WINDOWS", number(data.method3?.searched_windows, 0));
-  metric(stats, "REVIEW VERSION", data.version);
+
   if (data.partial) add(panel, "p", "v87-warning", "Partial review: data or time limits affected coverage.");
-  sectionTitle(panel, "Review findings", "Original v87 assessment and reliability context");
+  sectionTitle(panel, "Review findings", "Key observations and reliability context");
   const reasons = add(panel, "ul", "v87-reasons");
   const entries = Array.isArray(data.reasons) ? data.reasons : [data.reasons];
   const readable = entries.filter(x => x != null).map(x => typeof x === "string" ? x : JSON.stringify(x));
   if (!readable.length) add(reasons, "li", "", "No additional reason text supplied.");
   else readable.slice(0, 20).forEach(reason => add(reasons, "li", "", reason));
-  sectionTitle(panel, "Statistical charts", "Chronological observations from the original v87 review. Missing values are not estimated.");
-  if (data.charts && Object.keys(data.charts).length) realCharts(panel, data);
-  else chartNine(panel, data);
+  if (data.charts && Object.values(data.charts).some(rows => Array.isArray(rows) && rows.length)) realCharts(panel, data);
+  else { sectionTitle(panel, "Game-by-game analysis", "Detailed charts are available for new completed analyses."); add(panel, "p", "v87-muted", "This result does not contain chronological game observations. Start a new analysis to generate the charts."); }
   const foot = add(panel, "p", "v87-note",
     "Charts reflect available observed game data; they are not cheating probabilities. Statistical review priority is not proof of misconduct.");
 }
@@ -247,7 +246,7 @@ async function runReview(username) {
   panel.replaceChildren();
   if (!API_URL) {
     add(panel, "p", "v87-warning",
-      "The original Python v87 backend is not deployed yet. Profile ratings are available; a real review cannot run until the API is configured.");
+      "The analysis service is currently unavailable. Please try again later.");
     return;
   }
   showReviewProgress("Preparing your Fair Play review…");
@@ -262,11 +261,11 @@ async function runReview(username) {
     const job = await getJSON(base + "/review/" + encodeURIComponent(started.job_id));
     if (job.state === "complete") {
       renderReview(job.result);
-      statusText.textContent = "Original v87 review complete.";
+      statusText.textContent = "Analysis complete.";
       return;
     }
     if (job.state === "failed") throw new Error(job.error || "Review failed.");
-    showReviewProgress(job.state === "running" ? "Analyzing games with Fair Play v87…" : "Your analysis is in the queue…", job.state);
+    showReviewProgress(job.state === "running" ? "Analyzing game history…" : "Your analysis is in the queue…", job.state);
     statusText.textContent = "";
   }
   throw new Error("Review still processing. Try again later.");
@@ -300,8 +299,8 @@ form.addEventListener("submit", async event => {
     try { await runReview(username); }
     catch (error) {
       panel.replaceChildren();
-      add(panel, "p", "v87-warning", "Fair Play v87: " + error.message);
-      statusText.textContent = "Profile loaded, but v87 review could not finish.";
+      add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
+      statusText.textContent = "Profile loaded, but the analysis could not finish.";
     }
   } catch (error) {
     statusText.textContent = error.message;
