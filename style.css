@@ -639,3 +639,33 @@ footer {
 }
 .v87-progress-message { color:#6adce5; font-style:normal; min-height:26px; }
 .v87-progress-note { margin-top:15px; }
+
+
+/* Easy-to-read priority/context guide instead of tiny chart microcopy. */
+.period-explanation { padding:24px 28px; margin:18px 0 28px; gap:17px; border-color:#3c5871; }
+.period-explanation p { font-size:16px; line-height:1.8; color:#d3e3f0; }
+.period-explanation strong { font-weight:800; font-size:17px; }
+@media(max-width:700px) {
+ .period-explanation { padding:17px 16px; gap:13px; }
+ .period-explanation p { font-size:14px; line-height:1.75; }
+ .period-explanation strong { font-size:15px; }
+}
+/* Public-player sample choices; preserve the navy hero and main layout. */
+.sample-section { max-width:1120px; margin:45px auto 40px; padding:0 24px; }
+.sample-heading h2 { color:#f1f8ff; font-size:clamp(22px,3vw,30px); margin:9px 0 9px; }
+.sample-heading p { color:#a8c4d8; font-size:14px; max-width:780px; line-height:1.7; }
+.sample-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; margin-top:22px; }
+.sample-button { appearance:none; display:flex; flex-direction:column; align-items:flex-start; gap:9px; border:1px solid #31617b; border-radius:12px; padding:23px 25px; background:linear-gradient(150deg,#112d48,#102236); text-align:left; cursor:pointer; transition: border-color .17s,transform .17s,box-shadow .17s; }
+.sample-button:hover:not(:disabled) { border-color:#54d9f5; transform:translateY(-2px); box-shadow:0 8px 28px rgba(18,153,211,.16); }
+.sample-button:focus-visible { outline:2px solid #54d9f5; outline-offset:3px; }
+.sample-button:disabled { opacity:.6; cursor:wait; }
+.sample-player-name { font-size:19px; font-weight:800; color:#f0f8ff; }
+.sample-player-handle { font-size:12px; color:#69d5ee; }
+.sample-status { min-height:20px; font-size:13px; color:#a0d2e9; line-height:1.7; }
+.sample-live-button { margin-left:9px; color:#fff; background:#076b93; border:1px solid #4fd6eb; border-radius:7px; padding:8px 11px; font:700 12px Inter,sans-serif; cursor:pointer; }
+.sample-report-note { border:1px solid #336786; background:#102b43; padding:14px 17px; border-radius:10px; margin-bottom:20px; color:#b8e6f5; line-height:1.7; font-size:13px; }
+@media(max-width:700px) {
+ .sample-section { margin:28px auto; padding:0 15px; }
+ .sample-options { grid-template-columns:1fr; }
+ .sample-button { padding:17px 20px; }
+}
