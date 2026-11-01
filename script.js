@@ -1,4 +1,4 @@
-/* Shark Fair Play — original Ocean Blue design, v87 data presentation.
+/* EloScanner — v87 statistical review.
  * Configure API_URL after deploying fairplay_web_api.py from the bot repo.
  */
 const API_URL = "/api"; // Same-origin Cloudflare Pages Functions; token remains server-side.
@@ -86,6 +86,56 @@ function listRows(items, labelKey, valueKey) {
     value: x?.[valueKey]
   })) : [];
 }
+
+/* Chronological plots use actual v87 observations, never fabricated values. */
+function timelineChart(parent, rows, field, unit) {
+  const valid = rows.filter(r => Number.isFinite(r?.[field]) && Number.isFinite(r?.game));
+  if (!valid.length) return empty(parent, "No published observations for this measure");
+  const W=760,H=238,L=54,R=19,T=18,B=39;
+  const values=valid.map(r=>r[field]), lo=Math.min(...values), hi=Math.max(...values);
+  const min=field==="official_accuracy"?0:Math.max(0,lo-(hi-lo||1)*.12);
+  const max=field==="official_accuracy"?100:hi+(hi-lo||1)*.12;
+  const end=Math.max(2,...rows.map(r=>Number(r.game)||0));
+  const x=v=>L+(v-1)/(end-1)*(W-L-R), y=v=>T+(max-v)/(max-min||1)*(H-T-B);
+  const ns="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.setAttribute("role","img");svg.setAttribute("aria-label",`${field.replaceAll("_"," ")} over ${end} games`);
+  svg.classList.add("timeline-svg");parent.appendChild(svg);
+  function node(tag,attrs={},text){const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(text!==undefined)n.textContent=text;svg.appendChild(n);return n;}
+  for(let i=0;i<=4;i++){const v=min+(max-min)*i/4, yy=y(v);
+    node("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#29405a","stroke-width":1});
+    node("text",{x:L-10,y:yy+4,"text-anchor":"end",fill:"#9bb1c6","font-size":12},`${Math.round(v)}${unit}`);
+  }
+  [1,Math.round((end+1)/2),end].forEach(g=>node("text",{x:x(g),y:H-12,"text-anchor":"middle",fill:"#9bb1c6","font-size":12},g));
+  let path="",prev=0;
+  rows.forEach(r=>{if(!Number.isFinite(r?.[field])||!Number.isFinite(r?.game)){prev=0;return;}
+    path+=(prev?" L ":" M ")+x(r.game).toFixed(1)+" "+y(r[field]).toFixed(1);prev=1;});
+  node("path",{d:path,fill:"none",stroke:"#65bbff","stroke-width":2.5,"stroke-linecap":"round","stroke-linejoin":"round"});
+  valid.forEach((r,i)=>{if(valid.length>140&&i%Math.ceil(valid.length/140)!==0)return;
+    const c=node("circle",{cx:x(r.game),cy:y(r[field]),r:valid.length>90?2.3:3.7,fill:"#a6ddff"});
+    const title=document.createElementNS(ns,"title");title.textContent=`Game ${r.game}: ${number(r[field],1)}${unit}`;c.appendChild(title);
+  });
+  add(parent,"p","timeline-footnote",`${valid.length} measured games · gaps represent missing data`);
+}
+function realCharts(parent,data){
+  sectionTitle(parent,"Game-by-game analysis","Actual observations from the completed v87 scan · by time control");
+  const grid=add(parent,"div","timeline-grid");
+  const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
+  for(const [key,label] of groups){
+    const rows=Array.isArray(data.charts?.[key])?data.charts[key]:[];
+    for(const [field,title,unit] of [
+      ["official_accuracy","Official Chess.com accuracy","%"],
+      ["player_elo","Player rating",""],
+      ["median_think_seconds","Median thinking time","s"]]){
+      const card=add(grid,"article","timeline-card");
+      add(card,"div","timeline-category",label.toUpperCase());
+      add(card,"h4","",title);
+      const plot=add(card,"div","timeline-plot");
+      timelineChart(plot,rows,field,unit);
+    }
+  }
+}
+
 function chartNine(parent, data) {
   const m = data.method3 || {};
   const chosen = m.selected || {};
@@ -167,10 +217,11 @@ function renderReview(data) {
   const readable = entries.filter(x => x != null).map(x => typeof x === "string" ? x : JSON.stringify(x));
   if (!readable.length) add(reasons, "li", "", "No additional reason text supplied.");
   else readable.slice(0, 20).forEach(reason => add(reasons, "li", "", reason));
-  sectionTitle(panel, "Nine statistical panels", "Each panel uses available original v87 diagnostics. Missing values are not estimated.");
-  chartNine(panel, data);
+  sectionTitle(panel, "Statistical charts", "Chronological observations from the original v87 review. Missing values are not estimated.");
+  if (data.charts && Object.keys(data.charts).length) realCharts(panel, data);
+  else chartNine(panel, data);
   const foot = add(panel, "p", "v87-note",
-    "These graphs visualize the original Method 3 diagnostics; they do not reproduce Discord-rendered chart images pixel-for-pixel. Statistical review priority is not proof of misconduct.");
+    "Charts reflect available observed game data; they are not cheating probabilities. Statistical review priority is not proof of misconduct.");
 }
 function renderPlayer(profile, stats, username) {
   const header = add(playerCard, "div", "player-header");
