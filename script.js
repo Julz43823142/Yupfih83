@@ -131,6 +131,7 @@ function realCharts(parent,data){
       ["player_elo","Player rating","",null],
       ["opponent_elo","Opponent rating","",null],
       ["median_think_seconds","Median thinking time","s",null]]){
+      if(!rows.some(r=>Number.isFinite(r?.[field]))) continue;
       const card=add(grid,"article","timeline-card");
       add(card,"div","timeline-category",label.toUpperCase());
       add(card,"h4","",title);
