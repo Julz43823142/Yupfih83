@@ -9,7 +9,33 @@ export async function onRequestGet({ params, env }) {
     const run = matchingRun(runs, id);
     if (!run) return json({ state: "queued", progress: "Waiting for analysis to start…" });
     if (run.status !== "completed") {
-      return json({ state: "running", progress: run.status === "queued" ? "Preparing analysis…" : "Analyzing games…" });
+      if (run.status === "queued") return json({
+        state:"queued", phase:"queued", progress:"Waiting for an available analysis worker…"
+      });
+      // GitHub Actions exposes actual job-step state, not per-game scan counts.
+      // Keep phase reporting grounded in real steps rather than fabricated game totals.
+      let phase="preparing", progress="Preparing analysis environment…";
+      try {
+        const jobsResponse = await github(env.GITHUB_TOKEN,
+          "/actions/runs/" + run.id + "/jobs?per_page=20");
+        if (jobsResponse.ok) {
+          const jobs=(await jobsResponse.json()).jobs||[];
+          const steps=jobs.flatMap(job=>job.steps||[]);
+          const active=steps.find(step=>step.status==="in_progress");
+          const done=steps.filter(step=>step.status==="completed");
+          const current=active?.name||"";
+          if (/fairplay_website_runner\.py/i.test(current)) {
+            phase="analyzing";progress="Analyzing the collected games and Fair Play periods…";
+          } else if (/upload-artifact/i.test(current)||done.some(step=>/fairplay_website_runner\.py/i.test(step.name||""))) {
+            phase="uploading";progress="Game analysis complete. Preparing your report…";
+          } else if (/pip install|requirements\.txt/i.test(current)) {
+            phase="dependencies";progress="Setting up analysis tools…";
+          } else if (/setup-python|checkout/i.test(current)) {
+            phase="preparing";progress="Preparing the analysis environment…";
+          }
+        }
+      } catch {}
+      return json({state:"running",phase,progress});
     }
     if (run.conclusion !== "success") return json({ state: "failed", error: "Analysis could not complete successfully. Please try again." });
     const artifactsResponse = await github(env.GITHUB_TOKEN, "/actions/runs/" + run.id + "/artifacts?per_page=30");
