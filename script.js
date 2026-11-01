@@ -473,24 +473,42 @@ function renderReview(data) {
   else { sectionTitle(panel, "Game-by-game analysis", "Detailed charts are available for new completed analyses."); add(panel, "p", "v87-muted", "This result does not contain chronological game observations. Start a new analysis to generate the charts."); }
   const opening=data.opening_summary;
   const shift=data.method3?.opening_shift;
-  if(opening && typeof opening==="object"){
-    sectionTitle(panel,"Opening repertoire","Public game openings by time control, based on recorded first moves and replies.");
+  if(opening&&typeof opening==="object"){
+    sectionTitle(panel,"Opening repertoire","Most-played opening choices · expand a time control for the full breakdown.");
     const openingGrid=add(panel,"div","opening-grid");
     for(const [kind,label] of [["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]]){
       const groups=Array.isArray(opening[kind])?opening[kind]:[];
       if(!groups.length)continue;
-      const card=add(openingGrid,"article","opening-card");
+      const card=add(openingGrid,"article","opening-card opening-compact");
       add(card,"h4","",label);
+      const total=groups.reduce((sum,g)=>sum+(Number(g.total)||0),0);
+      add(card,"p","opening-subtitle",number(total,0)+" recorded opening choices");
+      const summary=[];
       for(const group of groups){
-        add(card,"h5","",group.group+" · "+number(group.total,0)+" games");
-        const ul=add(card,"ul","opening-list");
         for(const choice of group.choices||[]){
-          const li=add(ul,"li","");
-          add(li,"span","",choice.name+" — "+number(choice.games,0)+" games");
-          const track=add(li,"div","opening-bar-track");
-          const fill=add(track,"div","opening-bar-fill");
-          fill.style.width=Math.min(100,100*choice.games/group.total).toFixed(1)+"%";
+          summary.push({name:group.group.replace("White · first move","White")
+            .replace("Black · vs","Black vs")+" · "+choice.name,
+            count:choice.games});
         }
+      }
+      summary.sort((a,b)=>b.count-a.count);
+      function openingRow(parent,name,count,denominator){
+        const row=add(parent,"div","opening-summary-row");
+        const heading=add(row,"div","opening-summary-label");
+        add(heading,"span","",name);
+        add(heading,"strong","",number(count,0));
+        const track=add(row,"div","opening-bar-track");
+        const fill=add(track,"div","opening-bar-fill");
+        fill.style.width=Math.min(100,100*count/Math.max(1,denominator)).toFixed(1)+"%";
+      }
+      const list=add(card,"div","opening-summary-list");
+      for(const choice of summary.slice(0,4))openingRow(list,choice.name,choice.count,total);
+      const details=add(card,"details","opening-details");
+      add(details,"summary","","View all openings");
+      const body=add(details,"div","opening-details-body");
+      for(const group of groups){
+        add(body,"h5","",group.group+" · "+number(group.total,0)+" games");
+        for(const choice of group.choices||[])openingRow(body,choice.name,choice.games,group.total);
       }
     }
   }
