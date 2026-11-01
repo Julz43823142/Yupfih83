@@ -1,37 +1,96 @@
 
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shark Fair Play</title>
-  <style>
-    body {
-      background: #06182c;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 80px 20px;
-    }
-    h1 { color: #38bdf8; }
-    input, button {
-      padding: 14px;
-      border-radius: 8px;
-      border: none;
-      margin: 6px;
-    }
-    button {
-      background: #0284c7;
-      color: white;
-      cursor: pointer;
-    }
-  </style>
+  <meta name="description" content="Shark Fair Play - Chess.com player analysis">
+  <title>Shark Fair Play | Chess Analysis</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
 </head>
 <body>
-  <h1>🦈 Shark Fair Play</h1>
-  <p>Analyseer een Chess.com-account</p>
-  <input type="text" placeholder="Chess.com gebruikersnaam">
-  <button>Analyseer</button>
-  <p>Website in ontwikkeling</p>
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon">🦈</span>
+      <span>SHARK<span class="brand-accent">FAIRPLAY</span></span>
+    </a>
+    <span class="nav-label">CHESS INTELLIGENCE</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-glow"></div>
+
+      <div class="hero-content">
+        <div class="eyebrow">CHESS.COM PLAYER INTELLIGENCE</div>
+
+        <h1>Explore the <span>Deep.</span><br>Analyze the Game.</h1>
+
+        <p class="subtitle">
+          Explore public Chess.com player information.
+          Fair Play analysis is coming soon.
+        </p>
+
+        <form id="searchForm" class="search-box">
+          <input
+            id="username"
+            type="text"
+            placeholder="Enter Chess.com username"
+            autocomplete="off"
+            maxlength="50"
+            required
+          >
+          <button type="submit" id="analyzeBtn">Analyze Player →</button>
+        </form>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <h2>Analysis Overview</h2>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">◈</div>
+        <h3>Fair Play Review</h3>
+        <p>Advanced Fair Play assessment is under development.</p>
+        <span class="feature-tag">COMING SOON</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">◎</div>
+        <h3>Player Intelligence</h3>
+        <p>Explore public player profiles and available ratings.</p>
+        <span class="feature-tag">AVAILABLE</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">◇</div>
+        <h3>Independent Analysis</h3>
+        <p>Built for transparent and responsible chess research.</p>
+        <span class="feature-tag">IN DEVELOPMENT</span>
+      </div>
+    </section>
+
+    <section class="disclaimer">
+      <h3>Responsible Fair Play Research</h3>
+      <p>
+        Statistical indicators are not proof of cheating.
+        This independent project is not affiliated with Chess.com.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <span>© <span id="year"></span> Shark Fair Play</span>
+    <span>Independent Chess Research Platform</span>
+  </footer>
 </body>
 </html>
