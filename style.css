@@ -881,3 +881,21 @@ footer {
    min-width:0;
  }
 }
+
+
+/* Community voting: appears only after analysis, immediately to right of username. */
+.player-identity { display:grid; grid-template-columns:max-content max-content; column-gap:22px; row-gap:5px; align-items:center; max-width:100%; }
+.player-identity .player-name { grid-column:1; grid-row:1; margin:0; overflow-wrap:anywhere; }
+.player-identity .player-link { grid-column:1; grid-row:2; }
+.sus-widget { grid-column:2; grid-row:1 / span 2; display:flex; align-items:center; gap:9px; flex-wrap:wrap; max-width:340px; }
+.sus-button { border:1px solid #f2a35c; background:linear-gradient(135deg,#c96828,#a84723); color:#fff; font:800 13px Inter,sans-serif; padding:10px 16px; border-radius:9px; cursor:pointer; white-space:nowrap; }
+.sus-button:hover:not(:disabled) { background:linear-gradient(135deg,#e57a31,#bd552c); }
+.sus-button:disabled { opacity:.7; cursor:default; }
+.sus-count { color:#ffc191; font-size:13px; font-weight:750; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.sus-description { color:#91a8c0; flex-basis:100%; font-size:11px; line-height:1.45; }
+@media(max-width:760px) {
+ .player-identity { grid-template-columns:minmax(0,1fr); }
+ .player-identity .player-name { grid-column:1; grid-row:1; }
+ .player-identity .player-link { grid-column:1; grid-row:2; }
+ .sus-widget { grid-column:1; grid-row:3; margin-top:8px; }
+}
