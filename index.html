@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="EloScanner - independent engine-free Chess.com player review">
   <title>EloScanner | Chess Analysis</title>
-  <link rel="stylesheet" href="./style.css?v=20261101-overview-sidecards-duration-v10">
-  <script src="./script.js?v=20261101-overview-sidecards-duration-v10" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261101-left-previews-v11">
+  <script src="./script.js?v=20261101-left-previews-v11" defer></script>
 </head>
 <body>
   <header class="navbar">
@@ -30,6 +30,15 @@
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </div>
     </section>
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+      <section id="v87-review" class="v87-review"></section>
+    </section>
+    <div class="below-hero-layout">
     <section class="sample-section" aria-labelledby="sample-title">
       <div class="sample-heading">
         <span class="eyebrow">EXPLORE AN EXAMPLE</span>
@@ -46,14 +55,6 @@
         </button>
       </div>
       <p id="sampleStatus" class="sample-status" role="status" aria-live="polite"></p>
-    </section>
-    <section id="results" class="results hidden" aria-live="polite">
-      <div class="section-heading">
-        <span class="eyebrow">PLAYER PROFILE</span>
-        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
-      </div>
-      <div id="playerCard" class="player-card"></div>
-      <section id="v87-review" class="v87-review"></section>
     </section>
     <section class="features">
       <div class="feature-card">
@@ -75,6 +76,7 @@
         <span class="feature-tag">RESPONSIBLE RESEARCH</span>
       </div>
     </section>
+    </div>
     <section class="disclaimer">
       <h3>Responsible Fair Play Research</h3>
       <p>Statistical indicators are not proof of cheating. This independent project is not affiliated with Chess.com. The entered username is sent to Chess.com to retrieve public profile information; a configured review backend also receives it to perform analysis.</p>
