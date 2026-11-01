@@ -859,3 +859,25 @@ footer {
 
 /* Keep the feature artwork directly on the card surface: no square tile. */
 .feature-card .feature-illustration { background:transparent; border-radius:0; }
+
+
+/* Final verified transparent SVG assets need no rectangular background or filter. */
+.feature-card .feature-illustration {
+  background: none !important;
+  border-radius: 0;
+  filter: none !important;
+  opacity: 1;
+}
+/* Do not allow sample report labels/cards to spill outside the left viewport. */
+@media (min-width:1050px) {
+ main > .below-hero-layout {
+   box-sizing:border-box;
+   padding-left: clamp(40px, 3vw, 62px) !important;
+   padding-right: clamp(24px, 3vw, 50px);
+ }
+ main > .below-hero-layout > .sample-section {
+   margin-left:0 !important;
+   transform:none !important;
+   min-width:0;
+ }
+}
