@@ -606,3 +606,11 @@ footer {
 .opening-details-body { padding:8px 3px; display:grid; gap:12px; }
 .opening-details-body h5 { margin:12px 0 0; font-size:12px; color:#8ccdec; }
 .v87-progress-fill { transition:width .17s linear; }
+
+
+/* Accurate stage-driven loading presentation and rotating lighthearted messages. */
+.v87-progress-quips { color:#6adce5; font-size:13px; line-height:1.65; font-style:italic; min-height:21px; margin:15px 0 4px; }
+.v87-progress-message { margin-bottom:18px; }
+.v87-progress-track { height:17px; }
+.v87-progress-fill { transition:width .19s linear; }
+.v87-sample-warning { background:rgba(245,174,83,.075); border:1px solid rgba(245,174,83,.4); border-radius:10px; padding:13px 16px; color:#edc797; font-size:13px; line-height:1.6; }
