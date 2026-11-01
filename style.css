@@ -824,3 +824,19 @@ footer {
   }
   main > .below-hero-layout > .features { gap:12px; }
 }
+
+
+/* Fine-tune sample cards: 24px rightward from the previous far-left position. */
+@media (min-width:1050px) {
+  main > .below-hero-layout { padding-left:40px; }
+}
+/* Real Chess.com profile avatars, visually integrated with the existing navy cards. */
+.below-hero-layout .sample-card-main { display:flex; align-items:center; gap:14px; min-width:0; }
+.below-hero-layout .sample-avatar-frame { display:none; flex:0 0 60px; width:60px; height:60px; overflow:hidden; border:1px solid #387da2; border-radius:12px; background:#092039; }
+.below-hero-layout .sample-avatar-frame.has-avatar { display:flex; }
+.below-hero-layout .sample-avatar { width:100%; height:100%; object-fit:cover; }
+.below-hero-layout .sample-avatar[hidden] { display:none; }
+.below-hero-layout .sample-card-main .sample-player-name { min-width:0; line-height:1.3; }
+@media (max-width:700px) {
+  .below-hero-layout .sample-avatar-frame { flex-basis:48px; width:48px; height:48px; }
+}
