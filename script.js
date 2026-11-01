@@ -385,8 +385,11 @@ function realCharts(parent,data){
 let reviewProgressStarted=0, reviewProgressTimer=null, reviewProgressStage="queued";
 function currentReviewEstimate() {
   const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  // Displayed as an estimate: fast at first, then asymptotically approaches 90%.
-  return Math.min(90, Math.floor(7+84*(1-Math.exp(-elapsed/85000))));
+  // Estimated animation, deliberately never claims completion ahead of the backend.
+  // Starts at zero, rises quickly to 80, eases to 90, then slowly approaches 99.
+  if(elapsed<=16000)return Math.floor(80*(1-Math.pow(1-elapsed/16000,1.65)));
+  if(elapsed<=60000)return 80+Math.floor(10*(1-Math.pow(1-(elapsed-16000)/44000,1.5)));
+  return Math.min(99,90+Math.floor(9*(1-Math.exp(-(elapsed-60000)/105000))));
 }
 function stopReviewProgress() {
   if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
@@ -414,8 +417,7 @@ function showReviewProgress(message, stage="queued") {
   const value=progress.querySelector(".v87-progress-value");
   const track=progress.querySelector(".v87-progress-track");
   const fill=progress.querySelector(".v87-progress-fill");
-  const fraction=stage==="complete"?100:stage==="queued"
-    ?Math.min(12,currentReviewEstimate()):currentReviewEstimate();
+  const fraction=stage==="complete"?100:currentReviewEstimate();
   value.textContent=fraction+"%";
   track.setAttribute("aria-valuenow",String(fraction));
   fill.style.width=fraction+"%";
@@ -430,7 +432,7 @@ function startReviewProgress() {
     const panel=document.getElementById("v87-review");
     const progress=panel?.querySelector(".v87-progress");
     if(progress)showReviewProgress(progress.querySelector(".v87-progress-message").textContent,reviewProgressStage);
-  },850);
+  },140);
 }
 
 function renderReview(data) {
