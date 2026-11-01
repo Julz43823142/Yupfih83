@@ -899,3 +899,44 @@ footer {
  .player-identity .player-link { grid-column:1; grid-row:2; }
  .sus-widget { grid-column:1; grid-row:3; margin-top:8px; }
 }
+
+
+/* SUS leaderboard: floats in existing unused upper-left hero space.
+   Existing Magnus/Hikaru examples remain in their original lower-left section. */
+.hero .hero-sus-ranking {
+  position:absolute; z-index:3; left:clamp(30px,3vw,60px); top:32px;
+  width:clamp(245px,17vw,294px); box-sizing:border-box;
+  padding:16px 17px 13px; background:rgba(6,24,43,.78);
+  border:1px solid #24516c; border-radius:13px;
+  box-shadow:0 8px 30px rgba(0,0,0,.12);
+  text-align:left;
+}
+.hero-sus-heading,.sus-top100-heading {display:flex;align-items:center;justify-content:space-between;gap:9px;}
+.hero-sus-heading h2,.sus-top100-heading h2 {margin:0;color:#3fe8f6;font-size:14px;font-weight:850;line-height:1.3;}
+.sus-top100-button,.sus-top100-heading button {background:#102a44;color:#fff;border:1px solid #37b7de;border-radius:7px;padding:7px 9px;cursor:pointer;font-size:11px;font-weight:750;white-space:nowrap;}
+.sus-top100-button:hover,.sus-top100-heading button:hover {background:#164a64;}
+.sus-ranking-list {list-style:none;margin:11px 0 0;padding:0;counter-reset:sus-rank;}
+.sus-ranking-list li:not(.sus-rank-message) {counter-increment:sus-rank;display:flex;align-items:center;gap:10px;min-height:32px;border-top:1px solid rgba(84,164,206,.16);font-size:12px;color:#edf6ff;font-weight:650;}
+.sus-ranking-list li:not(.sus-rank-message)::before {content:counter(sus-rank) ".";color:#a2c4d9;width:21px;flex-shrink:0;}
+.sus-rank-name {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;color:#eef8ff;text-decoration:none;}
+.sus-rank-name:hover {color:#40e8f3;text-decoration:underline;}
+.sus-rank-count {margin-left:auto;flex-shrink:0;background:#123c57;border:1px solid #205a79;padding:4px 7px;border-radius:6px;color:#fff;font-variant-numeric:tabular-nums;}
+.sus-rank-message {color:#a3b9cd;font-size:12px;padding:12px 0;line-height:1.5;}
+.sus-ranking-disclaimer {font-size:10px;color:#8eabc1;line-height:1.5;margin:10px 0 0;}
+.sus-top100-panel[hidden] {display:none!important;}
+.sus-top100-panel {position:fixed;z-index:100;top:50%;left:50%;transform:translate(-50%,-50%);
+ width:min(520px,calc(100vw - 30px));max-height:min(82vh,700px);overflow:auto;box-sizing:border-box;
+ padding:24px;background:#071c31;border:1px solid #2990b5;border-radius:16px;
+ box-shadow:0 0 0 100vmax rgba(0,7,16,.82),0 20px 80px rgba(0,0,0,.45);}
+.sus-top100-heading h2 {font-size:20px;}
+.sus-top100-heading button {font-size:21px;width:36px;height:36px;line-height:1;}
+.sus-top100-panel .sus-ranking-list li:not(.sus-rank-message) {min-height:38px;font-size:13px;}
+@media(min-width:1100px) and (max-width:1450px) {
+ .hero .hero-sus-ranking {left:20px;top:23px;width:235px;padding:12px;}
+ .hero-sus-heading h2 {font-size:12px;}
+}
+@media(max-width:1099px) {
+ .hero {flex-direction:column;}
+ .hero .hero-sus-ranking {position:relative;order:2;left:auto;top:auto;width:min(480px,calc(100% - 34px));margin:0 auto 24px;}
+ .hero .hero-content {order:1;}
+}
