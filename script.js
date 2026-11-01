@@ -282,13 +282,16 @@ function realCharts(parent,data){
     if(Array.isArray(data.charts?.[kind]))data.charts[kind]=withPerGameScores(data.charts[kind]);
   }
   sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
+  if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and do not provide reliable period-level Fair Play evidence.");
   const grid=add(parent,"div","timeline-grid");
   const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
   const selected=data.method3?.selected;
-  const allPeriods=marked.map(p=>({...p,context:false}));
-  if(selected?.first_ended&&selected?.last_ended&&!allPeriods.some(p=>p.first_ended===selected.first_ended&&p.last_ended===selected.last_ended))
+  const significant=p=>["MODERATE","HIGH","VERY HIGH"].includes(String(p.priority||"").toUpperCase());
+  const enoughGames=Number(data.games)>=20;
+  const allPeriods=enoughGames?marked.filter(significant).map(p=>({...p,context:false})):[];
+  if(enoughGames&&selected?.first_ended&&selected?.last_ended&&["MODERATE","HIGH","VERY HIGH"].includes(String(data.priority||"").toUpperCase())&&!allPeriods.some(p=>p.first_ended===selected.first_ended&&p.last_ended===selected.last_ended))
     allPeriods.push({...selected,priority:data.priority,context:false});
-  if(selected?.first_ended&&selected?.last_ended)
+  if(enoughGames&&selected?.first_ended&&selected?.last_ended&&["MODERATE","HIGH","VERY HIGH"].includes(String(data.priority||"").toUpperCase()))
     for(const kind of ["rapid","blitz","bullet"]){
       if(kind!==selected.time_class)allPeriods.push({time_class:kind,
         first_ended:selected.first_ended,last_ended:selected.last_ended,context:true});
@@ -377,7 +380,7 @@ function realCharts(parent,data){
       ?"Orange dashed: observed rolling 10-game score · blue/cyan/purple: rolling expected Elo score"
       :"Orange dots: individual results (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
-    add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
+    if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
     draw();
   }
 }
