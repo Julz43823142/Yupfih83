@@ -1,7 +1,7 @@
 /* Shark Fair Play — original Ocean Blue design, v87 data presentation.
  * Configure API_URL after deploying fairplay_web_api.py from the bot repo.
  */
-const API_URL = ""; // Example: "https://your-python-service.example.com"
+const API_URL = "/api"; // Same-origin Cloudflare Pages Functions; token remains server-side.
 const form = document.getElementById("searchForm");
 const usernameInput = document.getElementById("username");
 const button = document.getElementById("analyzeBtn");
@@ -36,7 +36,9 @@ async function getJSON(url, options) {
   if (!response.ok) {
     if (response.status === 404) throw new Error("Player or review not found.");
     if (response.status === 429) throw new Error("Rate limit reached. Try again later.");
-    throw new Error("Service request failed (" + response.status + ").");
+    let message = "Service request failed (" + response.status + ").";
+    try { const details = await response.json(); if (details.error) message = details.error; } catch {}
+    throw new Error(message);
   }
   return response.json();
 }
@@ -187,7 +189,7 @@ async function runReview(username) {
     method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({username})
   });
-  for (let i = 0; i < 105; i++) {
+  for (let i = 0; i < 240; i++) {
     await wait(3000);
     const job = await getJSON(base + "/review/" + encodeURIComponent(started.job_id));
     if (job.state === "complete") {
