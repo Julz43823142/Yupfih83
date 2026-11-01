@@ -131,6 +131,22 @@ function chartNine(parent, data) {
   plot = chartCard(grid, "09 · Period context", "Additional original Method 3 period measurements");
   bars(plot, objectRows(context, ["games","wins","draws","losses","score_excess","accuracy","average_accuracy","rating_change"]));
 }
+function showReviewProgress(message, stage = "queued") {
+  const panel = document.getElementById("v87-review");
+  if (!panel) return;
+  let progress = panel.querySelector(".v87-progress");
+  if (!progress) {
+    panel.replaceChildren();
+    progress = add(panel, "div", "v87-progress");
+    add(progress, "div", "v87-progress-heading", "FAIR PLAY V87 · ANALYSIS");
+    add(progress, "p", "v87-progress-message", "");
+    const track = add(progress, "div", "v87-progress-track");
+    add(track, "div", "v87-progress-fill");
+    add(progress, "p", "v87-progress-note", "The analysis runs on GitHub. This may take several minutes.");
+  }
+  progress.querySelector(".v87-progress-message").textContent = message;
+  progress.querySelector(".v87-progress-fill").classList.toggle("v87-progress-running", stage === "running");
+}
 function renderReview(data) {
   const panel = document.getElementById("v87-review");
   panel.replaceChildren();
@@ -183,7 +199,8 @@ async function runReview(username) {
       "The original Python v87 backend is not deployed yet. Profile ratings are available; a real review cannot run until the API is configured.");
     return;
   }
-  statusText.textContent = "Starting original Fair Play v87 review…";
+  showReviewProgress("Preparing your Fair Play review…");
+  statusText.textContent = "";
   const base = API_URL.replace(/\/$/, "");
   const started = await getJSON(base + "/review", {
     method:"POST", headers:{"Content-Type":"application/json"},
@@ -198,7 +215,8 @@ async function runReview(username) {
       return;
     }
     if (job.state === "failed") throw new Error(job.error || "Review failed.");
-    statusText.textContent = job.progress || "Analyzing games with v87…";
+    showReviewProgress(job.state === "running" ? "Analyzing games with Fair Play v87…" : "Your analysis is in the queue…", job.state);
+    statusText.textContent = "";
   }
   throw new Error("Review still processing. Try again later.");
 }
@@ -211,7 +229,7 @@ form.addEventListener("submit", async event => {
   }
   button.disabled = true;
   button.textContent = "Analyzing…";
-  statusText.textContent = "Fetching public Chess.com profile…";
+  statusText.textContent = "Loading player profile…";
   results.classList.add("hidden");
   playerCard.replaceChildren();
   try {
