@@ -492,3 +492,22 @@ footer {
 .timeline-footnote{font-size:11px;color:#9eaec0;margin:12px 0 0}
 @media(min-width:1100px){.timeline-card:nth-child(3n + 1){grid-column:1/-1}}
 @media(max-width:720px){.timeline-grid{grid-template-columns:1fr}.timeline-card:nth-child(3n + 1){grid-column:auto}}
+
+
+/* Fixed branded artwork, identical on desktop and mobile. */
+.brand-logo { display: block; width: 225px; max-width: min(54vw, 225px); height: auto; }
+@media (max-width: 700px) { .brand-logo { width: 190px; max-width: 70vw; } }
+/* Compact per-metric charts with accessible time-control selectors. */
+.timeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.timeline-card:nth-child(3n + 1) { grid-column: auto; }
+.timeline-card { display: flex; flex-direction: column; gap: 0; }
+.timeline-card h4 { margin-bottom: 12px; }
+.timeline-plot { flex: 1; }
+.timeline-controls { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.timeline-control { appearance: none; cursor: pointer; border: 1px solid #34627e; border-radius: 7px; background: #0c2138; color: #b7cfe1; padding: 8px 16px; font: 700 12px Inter, sans-serif; transition: border-color .15s, background .15s, color .15s; }
+.timeline-control:hover:not(:disabled) { border-color: #53d8ee; color: #fff; }
+.timeline-control.is-active { background: #096890; color: #fff; border-color: #45d6ed; }
+.timeline-control:focus-visible { outline: 2px solid #6ae5ff; outline-offset: 2px; }
+.timeline-control:disabled { opacity: .34; cursor: not-allowed; }
+.timeline-legend { margin: 12px 0 0; text-align: center; color: #a8c5d9; font-size: 11px; line-height: 1.6; }
+@media (max-width: 720px) { .timeline-grid { grid-template-columns: 1fr; } .timeline-control { flex: 1; padding: 9px 8px; } }
