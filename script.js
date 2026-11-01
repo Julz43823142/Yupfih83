@@ -386,23 +386,41 @@ function realCharts(parent,data){
 }
 
 let reviewProgressStarted=0, reviewProgressTimer=null, reviewProgressStage="queued";
-function currentReviewEstimate() {
+let reviewProgressPercent=0, reviewProgressReport="", reviewProgressFinishing=false;
+const analysisQuips=[
+  "Checking whether the knights are behaving suspiciously…",
+  "Counting pawns. Yes, every single pawn.",
+  "Asking the bishops to stay on their own colors…",
+  "Comparing Elo expectations with actual results…",
+  "Inspecting impressive winning streaks (without jumping to conclusions)…",
+  "Looking for patterns in Rapid, Blitz and Bullet…",
+  "Giving the rooks some space to think…",
+  "Separating coincidence from statistically unusual results…",
+  "Checking whether the queen has taken over the analysis…",
+  "Making sure the numbers, not the rumors, do the talking…"
+];
+function currentReviewEstimate(){
   const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  // Estimated animation, deliberately never claims completion ahead of the backend.
-  // Starts at zero, rises quickly to 80, eases to 90, then slowly approaches 99.
-  if(elapsed<=16000)return Math.floor(80*(1-Math.pow(1-elapsed/16000,1.65)));
-  if(elapsed<=60000)return 80+Math.floor(10*(1-Math.pow(1-(elapsed-16000)/44000,1.5)));
-  return Math.min(99,90+Math.floor(9*(1-Math.exp(-(elapsed-60000)/105000))));
+  // Fast introductory animation, then stage-based bounds from actual GitHub job steps.
+  // Per-game counts are not provided by this backend; never claim that they are.
+  const ease=80*(1-Math.exp(-elapsed/8500));
+  let estimate=Math.floor(ease);
+  if(reviewProgressStage==="queued")estimate=Math.min(estimate,22);
+  else if(reviewProgressStage==="preparing")estimate=Math.min(estimate,45);
+  else if(reviewProgressStage==="dependencies")estimate=Math.min(estimate,67);
+  else if(reviewProgressStage==="analyzing")estimate=Math.min(estimate,91);
+  else if(reviewProgressStage==="uploading")estimate=Math.max(90,Math.min(97,90+Math.floor(7*(1-Math.exp(-elapsed/90000)))));
+  return Math.min(99,Math.max(reviewProgressPercent,estimate));
 }
-function stopReviewProgress() {
+function stopReviewProgress(){
   if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
   reviewProgressStarted=0;
 }
-function showReviewProgress(message, stage="queued") {
+function showReviewProgress(message,stage="queued",completed=false){
   const panel=document.getElementById("v87-review");
   if(!panel)return;
   let progress=panel.querySelector(".v87-progress");
-  if(!progress) {
+  if(!progress){
     panel.replaceChildren();
     progress=add(panel,"div","v87-progress");
     add(progress,"div","v87-progress-heading","PLAYER ANALYSIS");
@@ -410,32 +428,44 @@ function showReviewProgress(message, stage="queued") {
     value.setAttribute("aria-label","Estimated analysis progress");
     add(progress,"p","v87-progress-message","");
     const track=add(progress,"div","v87-progress-track");
-    track.setAttribute("role","progressbar");
-    track.setAttribute("aria-label","Estimated analysis progress");
+    track.setAttribute("role","progressbar");track.setAttribute("aria-label","Estimated analysis progress");
     track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");
-    const fill=add(track,"div","v87-progress-fill");
-    fill.style.width="0%";
-    add(progress,"p","v87-progress-note","Estimated progress. The exact completion time depends on the game history; 100% appears only when analysis finishes.");
+    const fill=add(track,"div","v87-progress-fill");fill.style.width="0%";
+    add(progress,"p","v87-progress-quips","");
+    add(progress,"p","v87-progress-note","Approximate progress, guided by actual workflow stages. Exact per-game counts are not available.");
   }
+  if(stage)reviewProgressStage=stage;
+  if(message)reviewProgressReport=message;
+  reviewProgressPercent=completed?100:currentReviewEstimate();
   const value=progress.querySelector(".v87-progress-value");
   const track=progress.querySelector(".v87-progress-track");
   const fill=progress.querySelector(".v87-progress-fill");
-  const fraction=stage==="complete"?100:currentReviewEstimate();
-  value.textContent=fraction+"%";
-  track.setAttribute("aria-valuenow",String(fraction));
-  fill.style.width=fraction+"%";
-  progress.querySelector(".v87-progress-message").textContent=message;
-  progress.classList.toggle("v87-progress-complete",stage==="complete");
+  value.textContent=reviewProgressPercent+"%";
+  track.setAttribute("aria-valuenow",String(reviewProgressPercent));
+  fill.style.width=reviewProgressPercent+"%";
+  progress.querySelector(".v87-progress-message").textContent=reviewProgressReport;
+  const quip=completed?"All done. The pawns can go home now.":
+    analysisQuips[Math.floor((Date.now()-reviewProgressStarted)/4700)%analysisQuips.length];
+  progress.querySelector(".v87-progress-quips").textContent=quip;
+  progress.classList.toggle("v87-progress-complete",completed);
 }
-function startReviewProgress() {
+function startReviewProgress(){
   stopReviewProgress();
   reviewProgressStarted=Date.now();
-  showReviewProgress("Preparing your Fair Play review…","queued");
+  reviewProgressPercent=0;reviewProgressStage="queued";reviewProgressReport="";
+  showReviewProgress("Waiting for an analysis worker…","queued");
   reviewProgressTimer=setInterval(()=>{
-    const panel=document.getElementById("v87-review");
-    const progress=panel?.querySelector(".v87-progress");
-    if(progress)showReviewProgress(progress.querySelector(".v87-progress-message").textContent,reviewProgressStage);
-  },140);
+    if(!reviewProgressFinishing&&document.querySelector("#v87-review .v87-progress"))
+      showReviewProgress(reviewProgressReport,reviewProgressStage);
+  },180);
+}
+async function finishReviewProgress(){
+  reviewProgressFinishing=true;
+  // Show the final transition visibly; do not abruptly replace 86% with results.
+  showReviewProgress("Analysis complete. Preparing your results…","complete",true);
+  await wait(1100);
+  stopReviewProgress();
+  reviewProgressFinishing=false;
 }
 
 function renderReview(data) {
@@ -565,15 +595,14 @@ async function runReview(username) {
     await wait(3000);
     const job = await getJSON(base + "/review/" + encodeURIComponent(started.job_id));
     if (job.state === "complete") {
-      showReviewProgress("Analysis complete.","complete");
-      stopReviewProgress();
+      await finishReviewProgress();
       renderReview(job.result);
       statusText.textContent = "Analysis complete.";
       return;
     }
     if (job.state === "failed") {stopReviewProgress();throw new Error(job.error || "Review failed.");}
-    reviewProgressStage=job.state;
-    showReviewProgress(job.state === "running" ? "Analyzing game history…" : "Your analysis is in the queue…", job.state);
+    reviewProgressStage=job.phase||job.state;
+    showReviewProgress(job.progress||"Analyzing public game history…",reviewProgressStage);
     statusText.textContent = "";
   }
   stopReviewProgress();
