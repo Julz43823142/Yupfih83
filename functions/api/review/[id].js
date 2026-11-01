@@ -47,6 +47,13 @@ export async function onRequestGet({ params, env }) {
     const zipResponse = await github(env.GITHUB_TOKEN, "/actions/artifacts/" + artifact.id + "/zip");
     if (!zipResponse.ok) throw new Error("Cannot download review result");
     const result = parseStoredZip(await zipResponse.arrayBuffer());
+    const name=String(result.username||"").toLowerCase();
+    const priority=String(result.priority||"").toUpperCase().replace(/[-_]/g," ");
+    if(env.SUS_DB&&/^[a-z0-9_-]{3,25}$/.test(name)&&["LOW","MODERATE","HIGH","VERY HIGH"].includes(priority)){
+      try{
+        await env.SUS_DB.prepare("INSERT INTO sus_recent_reviews(username,priority,updated_at) VALUES(?,?,datetime('now')) ON CONFLICT(username) DO UPDATE SET priority=excluded.priority,updated_at=excluded.updated_at").bind(name,priority).run();
+      }catch(error){ console.warn("SUS ranking score save failed",error); }
+    }
     const sus_proof=await issueReviewProof(result.username,env.GITHUB_TOKEN);
     return json({ state: "complete", result, sus_proof });
   } catch {
