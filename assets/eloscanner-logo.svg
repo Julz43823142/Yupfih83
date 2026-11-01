@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 285" role="img" aria-labelledby="title">
+<title id="title">EloScanner — chess knight and rising Elo graph</title>
+<defs><linearGradient id="elo-line" x1="0" x2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".24" stop-color="#35d9ed"/><stop offset="1" stop-color="#00e0ed"/></linearGradient></defs>
+<g fill="none" stroke="#fff" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+<path d="M48 244 C63 211 90 184 123 158 C133 147 138 132 137 116 C126 133 109 138 93 133 C77 143 62 155 47 154 C34 153 28 143 27 132 L24 126 C37 108 61 90 75 66 L95 50 L92 24 L111 32 L116 14 C156 29 185 51 200 88 C222 128 224 168 202 202"/>
+</g>
+<path d="M84 85 l10 -5" stroke="#fff" stroke-width="7"/>
+<path d="M48 244 H270 L344 244 L395 226 L458 241 L520 218 L578 239 L646 221 L715 233 L779 216 L847 228 L910 210 L967 226 L1028 203" stroke="url(#elo-line)" stroke-width="10" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<path d="M1010 179 L1055 188 L1032 231 L1028 203 Z" fill="#00e0ed"/>
+<text x="232" y="155" font-family="Arial Black, Inter, Arial, sans-serif" font-size="106" font-style="italic" font-weight="900" letter-spacing="-5" fill="#fff">ELO</text>
+<text x="463" y="155" font-family="Arial Black, Inter, Arial, sans-serif" font-size="106" font-style="italic" font-weight="900" letter-spacing="-5" fill="#00dced">SCANNER</text>
+</svg>
