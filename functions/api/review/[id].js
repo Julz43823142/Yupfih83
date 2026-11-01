@@ -1,4 +1,5 @@
 import { json, github, listRuns, matchingRun, parseStoredZip } from "../../../lib/v87-github.js";
+import {issueReviewProof} from "../../../lib/sus-auth.js";
 
 export async function onRequestGet({ params, env }) {
   if (!env.GITHUB_TOKEN) return json({ error: "Server secret GITHUB_TOKEN is missing." }, 503);
@@ -46,7 +47,8 @@ export async function onRequestGet({ params, env }) {
     const zipResponse = await github(env.GITHUB_TOKEN, "/actions/artifacts/" + artifact.id + "/zip");
     if (!zipResponse.ok) throw new Error("Cannot download review result");
     const result = parseStoredZip(await zipResponse.arrayBuffer());
-    return json({ state: "complete", result });
+    const sus_proof=await issueReviewProof(result.username,env.GITHUB_TOKEN);
+    return json({ state: "complete", result, sus_proof });
   } catch {
     return json({ state: "failed", error: "Unable to retrieve the analysis. Please try again later." }, 502);
   }
