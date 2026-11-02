@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[];
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
-let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0;
+let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
@@ -19,6 +19,24 @@ countSelect.setAttribute('aria-label','Number of best moves');
 for(const n of [3,4,5]){const option=document.createElement('option');option.value=String(n);option.textContent=String(n);countSelect.append(option)}
 countSelect.value='3';engineSettings.append(countSelect);
 engineInfo.insertAdjacentElement('beforebegin',engineSettings);
+const depthControl=document.createElement('div');
+depthControl.className='engine-depth-control';
+const depthLabel=document.createElement('span');
+depthLabel.textContent='Depth 14–18';
+const depthPlus=document.createElement('button');
+depthPlus.type='button';depthPlus.className='engine-depth-plus';
+depthPlus.textContent='+';depthPlus.title='Continue analysing without a depth limit';
+depthPlus.setAttribute('aria-label','Enable unlimited depth');
+depthControl.append(depthLabel,depthPlus);
+engineSettings.insertAdjacentElement('afterend',depthControl);
+depthPlus.addEventListener('click',()=>{
+ unlimitedDepth=!unlimitedDepth;
+ depthLabel.textContent=unlimitedDepth?'Depth unlimited':'Depth 14–18';
+ depthPlus.textContent=unlimitedDepth?'−':'+';
+ depthPlus.title=unlimitedDepth?'Return to depth 18 limit':'Continue analysing without a depth limit';
+ depthPlus.setAttribute('aria-label',unlimitedDepth?'Disable unlimited depth':'Enable unlimited depth');
+ if(engineReady&&engineSwitch.checked)requestAnalysis();
+});
 function sanMove(uci){
  try{const test=new Chess(engineFen);const move=test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});return move?.san||uci}catch{return uci}
 }
@@ -56,7 +74,7 @@ function requestAnalysis(){
  engine.postMessage('stop');
  engine.postMessage('setoption name MultiPV value '+multiPV);
  engine.postMessage('position fen '+engineFen);
- engine.postMessage('go depth 14');
+ engine.postMessage(unlimitedDepth?'go infinite':'go depth 18');
  engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · calculating…';
 }
 function cleanupEngine(){
@@ -100,7 +118,7 @@ function launchEngine(useCdn){
      const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/);
      const pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/),rank=line.match(/\bmultipv (\d+)/);
      const n=rank?Number(rank[1]):1;
-     if(score&&pv&&n>=1&&n<=multiPV){
+     if(score&&pv&&n>=1&&n<=multiPV&&Number(depth?.[1]||0)>=14){
       const d=Number(depth?.[1]||0),previous=engineLines.get(n);
       if(!previous||d>=previous.depth){
        engineLines.set(n,{uci:pv[1],type:score[1],value:score[2],depth:d});
