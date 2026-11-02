@@ -16,3 +16,11 @@
 }
 
 @media(max-width:1099px){.tool-page>.tool-nav{display:none!important}}
+
+/* Compact mobile chess tool pages: heading directly below the sticky header. */
+@media(max-width:1099px){
+ .tool-page{margin-top:0!important;padding-top:12px!important}
+ .tool-page>h1{margin-top:0!important;margin-bottom:12px!important}
+ .tool-page>.tool-lead{display:none!important}
+ .tool-page>.tool-card:first-of-type{margin-top:12px!important}
+}
