@@ -1,13 +1,14 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id), opponent=$('opponent'), board=$('board');
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
-let games=[],path=[],color='b',loading=false;
+let games=[],path=[],color='b',loading=false,selectedSquare=null,manualArrows=[],blueSquares=new Set(),candidateMoves=[];
 function setupDateWheels(){for(const group of document.querySelectorAll('.date-wheels')){const id=group.dataset.date;const today=new Date();const parts=[{name:'Day',values:Array.from({length:31},(_,i)=>i+1),initial:id==='from'?1:today.getDate()},{name:'Month',values:Array.from({length:12},(_,i)=>i+1),initial:id==='from'?1:today.getMonth()+1},{name:'Year',values:Array.from({length:20},(_,i)=>today.getFullYear()-19+i),initial:id==='from'?today.getFullYear()-2:today.getFullYear()}];const selects=parts.map(part=>{const label=document.createElement('label');label.className='wheel-column';const name=document.createElement('small');name.textContent=part.name;const sel=document.createElement('select');sel.setAttribute('aria-label',id+' '+part.name);for(const n of part.values){const opt=document.createElement('option');opt.value=n;opt.textContent=String(n).padStart(2,'0');sel.append(opt)}sel.value=part.initial;label.append(name,sel);group.append(label);return sel});function update(){const [d,m,y]=selects.map(s=>Number(s.value));const dt=new Date(Date.UTC(y,m-1,d));$(''+id).value=dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0')}selects.forEach(s=>s.addEventListener('change',update));update()}}setupDateWheels();
 function status(t){$('fetch-status').textContent=t}
-function renderBoard(){const game=new Chess();for(const m of path)game.move(m);board.replaceChildren();const squares=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){const cell=document.createElement('button');cell.type='button';cell.className=(r+f)%2?'dark':'light';const p=squares[r][f];cell.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.onerror=()=>{piece.remove();cell.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};cell.append(piece)}cell.setAttribute('aria-label',String.fromCharCode(97+f)+(8-r)+(p?' '+p.color+' '+p.type:''));cell.disabled=true;board.append(cell)}$('position-label').textContent=path.length?path.join(' '):'Starting position';}
+function renderBoard(){const game=new Chess();for(const m of path)game.move(m);board.replaceChildren();const squares=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){const cell=document.createElement('button');cell.type='button';cell.className=(r+f)%2?'dark':'light';const p=squares[r][f];cell.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.onerror=()=>{piece.remove();cell.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};cell.append(piece)}cell.setAttribute('aria-label',String.fromCharCode(97+f)+(8-r)+(p?' '+p.color+' '+p.type:''));cell.dataset.square=String.fromCharCode(97+f)+(8-r);cell.onclick=()=>clickSquare(cell.dataset.square);board.append(cell)}$('position-label').textContent=path.length?path.join(' '):'Starting position';}
+function clickSquare(sq){const game=new Chess();for(const m of path)game.move(m);const piece=game.get(sq);if(selectedSquare){const found=game.moves({square:selectedSquare,verbose:true}).find(m=>m.to===sq);if(found){path.push(found.san);selectedSquare=null;manualArrows=[];render();return}}selectedSquare=piece&&piece.color===game.turn()?sq:null;render()}
 function drawCandidateArrows(options){
  const old=board.querySelector('svg.prep-arrows');old?.remove();
- if(!options.length)return;
+ candidateMoves=options;
  const pos=new Chess();for(const m of path)pos.move(m);
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  svg.setAttribute('class','prep-arrows');svg.setAttribute('viewBox','0 0 800 800');
@@ -27,7 +28,7 @@ function drawCandidateArrows(options){
    line.setAttribute('marker-end','url(#prep-arrowhead)');svg.append(line);
   }catch{}
  });
- board.style.position='relative';board.append(svg);
+ const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}for(const [from,to] of manualArrows){const [x1,y1]=pt(from),[x2,y2]=pt(to),line=document.createElementNS(svg.namespaceURI,'line');for(const [k,v] of Object.entries({x1,y1,x2,y2,stroke:'#328aff','stroke-opacity':'.65','stroke-width':10}))line.setAttribute(k,v);svg.append(line)}if(selectedSquare){const [x,y]=pt(selectedSquare),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#f4c64c','fill-opacity':'.28'}))rect.setAttribute(k,v);svg.append(rect)}board.style.position='relative';board.append(svg);
 }
 function parsePgn(text){const game=new Chess();try{game.loadPgn(text);return game.history()}catch{return null}}
 function outcome(pgn,user){const m=pgn.match(/\[White\s+"([^"]+)"\]/i),n=pgn.match(/\[Black\s+"([^"]+)"\]/i),result=pgn.match(/\[Result\s+"([^"]+)"\]/);const white=m?.[1]?.toLowerCase()===user,black=n?.[1]?.toLowerCase()===user;if(!(white||black))return null;const res=result?.[1];return res==='1/2-1/2'?'draw':res==='1-0'?(white?'win':'loss'):res==='0-1'?(black?'win':'loss'):'unknown'}
@@ -40,12 +41,12 @@ function render(){
  drawCandidateArrows(options);
  const list=$('moves');list.replaceChildren();
  for(const x of options.slice(0,30)){
-  const row=document.createElement('div');row.className='move-option';row.style.cssText='display:grid;gap:6px;padding:8px 0';
+  const row=document.createElement('div');row.className='move-option';
   const btn=document.createElement('button');btn.textContent=x.move+' · '+x.total+' games ('+(100*x.total/subset.length).toFixed(1)+'%)';
   btn.onclick=()=>{path.push(x.move);render()};row.append(btn);
   const known=x.win+x.draw+x.loss;
   const bar=document.createElement('div');bar.setAttribute('aria-label','Opponent results: '+x.win+' wins, '+x.draw+' draws, '+x.loss+' losses');
-  bar.style.cssText='display:flex;height:19px;overflow:hidden;border-radius:5px;background:#52677b';
+  bar.style.cssText='display:flex;height:28px;width:100%;overflow:hidden;border-radius:5px;background:#52677b';
   for(const [count,shade] of [[x.win,'#27865d'],[x.draw,'#aab4bd'],[x.loss,'#c44d55']]){
    if(!count||!known)continue;
    const part=document.createElement('span');part.style.cssText='width:'+(100*count/known)+'%;background:'+shade+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px';
