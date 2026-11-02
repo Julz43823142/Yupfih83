@@ -7,6 +7,34 @@ let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimite
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+const evalWrap=document.createElement('div');
+evalWrap.className='board-eval-wrap';
+evalWrap.setAttribute('role','meter');
+evalWrap.setAttribute('aria-label','Stockfish position evaluation');
+evalWrap.setAttribute('aria-valuemin','-10');
+evalWrap.setAttribute('aria-valuemax','10');
+const evalTrack=document.createElement('div');evalTrack.className='board-eval-track';
+const evalWhite=document.createElement('div');evalWhite.className='board-eval-white';
+const evalText=document.createElement('span');evalText.className='board-eval-text';evalText.textContent='0.00';
+evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
+board.insertAdjacentElement('beforebegin',evalWrap);
+function updateEvalBar(){
+ const item=engineLines.get(1);
+ if(!engineSwitch.checked||!engineReady||!item){
+  evalWrap.classList.add('eval-inactive');evalWhite.style.width='50%';evalText.textContent='—';
+  evalWrap.setAttribute('aria-valuenow','0');evalWrap.setAttribute('aria-valuetext','Analysis disabled or calculating');return;
+ }
+ evalWrap.classList.remove('eval-inactive');
+ const sign=engineFen.split(' ')[1]==='b'?-1:1;
+ const cp=item.type==='mate'?(Number(item.value)>0?10000:-10000)*sign:Number(item.value)*sign;
+ const pawns=cp/100;
+ const whitePercent=Math.max(3,Math.min(97,50+50*(2/Math.PI)*Math.atan(pawns/2.2)));
+ evalWhite.style.width=whitePercent+'%';
+ const label=item.type==='mate'?'M'+(Number(item.value)*sign):((pawns>=0?'+':'')+pawns.toFixed(2));
+ evalText.textContent=label;
+ evalWrap.setAttribute('aria-valuenow',String(Math.max(-10,Math.min(10,pawns))));
+ evalWrap.setAttribute('aria-valuetext','White evaluation '+label);
+}
 const enginePanel=document.createElement('div');
 enginePanel.className='engine-lines-panel';
 enginePanel.setAttribute('aria-live','polite');
@@ -70,7 +98,7 @@ function requestAnalysis(){
  engineFen=history[cursor];
  analysisEpoch++;
  engineLines.clear();bestEngineMove=null;
- renderEngineLines();drawArrows();
+ renderEngineLines();updateEvalBar();drawArrows();
  engine.postMessage('stop');
  engine.postMessage('setoption name MultiPV value '+multiPV);
  engine.postMessage('position fen '+engineFen);
@@ -80,7 +108,7 @@ function requestAnalysis(){
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
  if(engine){try{engine.postMessage('quit')}catch{}engine.terminate()}
- engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;renderEngineLines();drawArrows();
+ engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;renderEngineLines();updateEvalBar();drawArrows();
  if(engineWorkerUrl){URL.revokeObjectURL(engineWorkerUrl);engineWorkerUrl=null}
 }
 function engineFailed(message){
@@ -125,7 +153,7 @@ function launchEngine(useCdn){
        if(n===1){
         bestEngineMove=pv[1];
         engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d+' · best '+sanMove(pv[1]);
-        drawArrows();
+        updateEvalBar();drawArrows();
        }
        renderEngineLines();
       }
@@ -155,7 +183,29 @@ board.addEventListener('pointerdown',e=>{const sq=squareAt(e.clientX,e.clientY);
 board.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>6){drag.active=true;const img=drag.source.querySelector('img');drag.ghost=img?img.cloneNode(true):document.createElement('span');if(!img)drag.ghost.textContent=drag.source.textContent;drag.ghost.className='dragging-chess-piece';deselectDraggedSource(drag.source);document.body.append(drag.ghost)}if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}});
 window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.startsWith(to));target?.click()});
 
-function drawArrows(){let svg=board.querySelector('svg.arrows');if(svg)svg.remove();svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('class','arrows');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';const defs=document.createElementNS(svg.namespaceURI,'defs');defs.innerHTML='<marker id="arrowhead" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#4de2ff"/></marker>';const engineMarker=document.createElementNS(svg.namespaceURI,'marker');engineMarker.setAttribute('id','engine-arrowhead');engineMarker.setAttribute('markerWidth','5');engineMarker.setAttribute('markerHeight','5');engineMarker.setAttribute('refX','3');engineMarker.setAttribute('refY','2.5');engineMarker.setAttribute('orient','auto');const engineTip=document.createElementNS(svg.namespaceURI,'path');engineTip.setAttribute('d','M0 0 L5 2.5 L0 5Z');engineTip.setAttribute('fill','#facc15');engineMarker.append(engineTip);defs.append(engineMarker);svg.append(defs);for(const [a,b] of arrows){const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',(a.charCodeAt(0)-97)*100+50);line.setAttribute('y1',(8-Number(a[1]))*100+50);line.setAttribute('x2',(b.charCodeAt(0)-97)*100+50);line.setAttribute('y2',(8-Number(b[1]))*100+50);line.setAttribute('stroke','#4de2ff');line.setAttribute('stroke-opacity','.82');line.setAttribute('stroke-width','13');line.setAttribute('marker-end','url(#arrowhead)');svg.append(line)}if(bestEngineMove&&engineSwitch.checked&&engineReady){const a=bestEngineMove.slice(0,2),b=bestEngineMove.slice(2,4);const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',(a.charCodeAt(0)-97)*100+50);line.setAttribute('y1',(8-Number(a[1]))*100+50);line.setAttribute('x2',(b.charCodeAt(0)-97)*100+50);line.setAttribute('y2',(8-Number(b[1]))*100+50);line.setAttribute('stroke','#facc15');line.setAttribute('stroke-width','16');line.setAttribute('stroke-linecap','round');line.setAttribute('marker-end','url(#engine-arrowhead)');svg.append(line)}board.append(svg)}
+function drawArrows(){
+ let svg=board.querySelector('svg.arrows');if(svg)svg.remove();
+ svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('class','arrows');
+ svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible';
+ const ns=svg.namespaceURI,make=(tag,attrs)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el};
+ const defs=make('defs',{});
+ const marker=(id,color)=>{const m=make('marker',{id,markerWidth:5,markerHeight:5,refX:3.2,refY:2.5,orient:'auto',markerUnits:'strokeWidth'});m.append(make('path',{d:'M0 0.3 L4.7 2.5 L0 4.7 Q0.8 2.5 0 0.3Z',fill:color}));defs.append(m)};
+ marker('arrowhead','#4de2ff');marker('engine-arrowhead','#f7c948');svg.append(defs);
+ const coords=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
+ function arrow(a,b,color,width,markerId,opacity){
+  const [x1,y1]=coords(a),[x2,y2]=coords(b),dx=x2-x1,dy=y2-y1,dist=Math.hypot(dx,dy);
+  if(dist<1)return;
+  const ux=dx/dist,uy=dy/dist,endX=x2-ux*30,endY=y2-uy*30;
+  const shadow=make('line',{x1,y1,x2:endX,y2:endY,stroke:'#09131e','stroke-opacity':'.48','stroke-width':width+7,'stroke-linecap':'round'});
+  svg.append(shadow);
+  const shaft=make('line',{x1,y1,x2:endX,y2:endY,stroke:color,'stroke-opacity':opacity,'stroke-width':width,'stroke-linecap':'round','marker-end':'url(#'+markerId+')'});
+  svg.append(shaft);
+ }
+ for(const [a,b] of arrows)arrow(a,b,'#4de2ff',11,'arrowhead',.8);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#f7c948',13,'engine-arrowhead',.94);
+ board.append(svg);
+}
 function render(){const pos=new Chess(history[cursor]);board.replaceChildren();board.style.position='relative';for(let r=0;r<8;r++)for(let f=0;f<8;f++){const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));if(selected===sq)b.style.outline='3px solid #facc15';b.draggable=false;b.onclick=()=>{if(!selected){if(p&&p.color===pos.turn()){selected=sq;render()}return}try{pos.move({from:selected,to:sq,promotion:'q'});history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{selected=null;render()}};board.append(b)}$('turn').textContent=(pos.turn()==='w'?'White':'Black')+' to move · '+cursor+'/'+(history.length-1);drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1}
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];cursor=0;selected=null;render();requestAnalysis()};
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
