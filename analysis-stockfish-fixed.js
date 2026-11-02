@@ -21,6 +21,7 @@ evalTrack.append(evalWhite);evalWrap.append(evalTrack,evalText);
 const boardLayout=document.createElement('div');boardLayout.className='board-with-eval';
 board.parentNode.insertBefore(boardLayout,board);
 boardLayout.append(evalWrap,board);
+const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
@@ -367,6 +368,7 @@ function renderNotation(){
   boardLayout.insertAdjacentElement('afterend',panel);
   panel.insertBefore(enginePanel,panel.firstChild);
   panel.insertBefore(engineSettings,enginePanel);
+  panel.insertBefore(depthControl,enginePanel);
  }
  $('opening-name').textContent=openingName();
  const list=$('notation-moves');list.replaceChildren();
