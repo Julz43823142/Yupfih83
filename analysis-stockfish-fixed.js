@@ -3,13 +3,58 @@ const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[];
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
+let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0;
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+const enginePanel=document.createElement('div');
+enginePanel.className='engine-lines-panel';
+enginePanel.setAttribute('aria-live','polite');
+engineInfo.insertAdjacentElement('afterend',enginePanel);
+const engineSettings=document.createElement('label');
+engineSettings.className='engine-lines-settings';
+engineSettings.textContent='Best moves to show: ';
+const countSelect=document.createElement('select');
+countSelect.setAttribute('aria-label','Number of best moves');
+for(const n of [3,4,5]){const option=document.createElement('option');option.value=String(n);option.textContent=String(n);countSelect.append(option)}
+countSelect.value='3';engineSettings.append(countSelect);
+engineInfo.insertAdjacentElement('beforebegin',engineSettings);
+function sanMove(uci){
+ try{const test=new Chess(engineFen);const move=test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});return move?.san||uci}catch{return uci}
+}
+function scoreLabel(type,value){
+ if(type==='mate')return 'Mate '+value;
+ const cp=Number(value)*(engineFen.split(' ')[1]==='b'?-1:1);
+ return (cp>=0?'+':'')+(cp/100).toFixed(2);
+}
+function renderEngineLines(){
+ enginePanel.replaceChildren();
+ if(!engineSwitch.checked||!engineReady)return;
+ for(let i=1;i<=multiPV;i++){
+  const item=engineLines.get(i);
+  if(!item)continue;
+  const row=document.createElement('div');row.className='engine-line';
+  const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent='#'+i;
+  const move=document.createElement('strong');move.textContent=sanMove(item.uci);
+  const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
+  const depth=document.createElement('span');depth.className='engine-line-depth';depth.textContent='Depth '+item.depth;
+  row.append(rank,move,score,depth);
+  enginePanel.append(row);
+ }
+}
+countSelect.addEventListener('change',()=>{
+ multiPV=Number(countSelect.value);
+ if(engineReady&&engineSwitch.checked)requestAnalysis();
+});
+
 function requestAnalysis(){
  if(!engine||!engineReady||!engineSwitch.checked)return;
  engineFen=history[cursor];
+ analysisEpoch++;
+ engineLines.clear();bestEngineMove=null;
+ renderEngineLines();drawArrows();
  engine.postMessage('stop');
+ engine.postMessage('setoption name MultiPV value '+multiPV);
  engine.postMessage('position fen '+engineFen);
  engine.postMessage('go depth 14');
  engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · calculating…';
@@ -17,7 +62,7 @@ function requestAnalysis(){
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
  if(engine){try{engine.postMessage('quit')}catch{}engine.terminate()}
- engine=null;engineReady=false;
+ engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;renderEngineLines();drawArrows();
  if(engineWorkerUrl){URL.revokeObjectURL(engineWorkerUrl);engineWorkerUrl=null}
 }
 function engineFailed(message){
@@ -52,10 +97,20 @@ function launchEngine(useCdn){
      requestAnalysis();
     }
     if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){
-     const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
-     if(score&&pv){
-      const value=score[1]==='mate'?'Mate '+score[2]:(Number(score[2])/100).toFixed(2);
-      engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
+     const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/);
+     const pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/),rank=line.match(/\bmultipv (\d+)/);
+     const n=rank?Number(rank[1]):1;
+     if(score&&pv&&n>=1&&n<=multiPV){
+      const d=Number(depth?.[1]||0),previous=engineLines.get(n);
+      if(!previous||d>=previous.depth){
+       engineLines.set(n,{uci:pv[1],type:score[1],value:score[2],depth:d});
+       if(n===1){
+        bestEngineMove=pv[1];
+        engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d+' · best '+sanMove(pv[1]);
+        drawArrows();
+       }
+       renderEngineLines();
+      }
      }
     }
    }
@@ -70,7 +125,7 @@ function startEngine(){
  engineInfo.textContent='Loading Stockfish 19 Lite…';
  launchEngine(false);
 }
-function stopEngine(){cleanupEngine()}
+function stopEngine(){cleanupEngine();enginePanel.replaceChildren()}
 engineSwitch.addEventListener('change',()=>{
  if(engineSwitch.checked)startEngine();
  else{stopEngine();engineInfo.textContent='Engine disabled.'}
@@ -82,7 +137,7 @@ board.addEventListener('pointerdown',e=>{const sq=squareAt(e.clientX,e.clientY);
 board.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>6){drag.active=true;const img=drag.source.querySelector('img');drag.ghost=img?img.cloneNode(true):document.createElement('span');if(!img)drag.ghost.textContent=drag.source.textContent;drag.ghost.className='dragging-chess-piece';deselectDraggedSource(drag.source);document.body.append(drag.ghost)}if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}});
 window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.startsWith(to));target?.click()});
 
-function drawArrows(){let svg=board.querySelector('svg.arrows');if(svg)svg.remove();svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('class','arrows');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';const defs=document.createElementNS(svg.namespaceURI,'defs');defs.innerHTML='<marker id="arrowhead" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#4de2ff"/></marker>';svg.append(defs);for(const [a,b] of arrows){const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',(a.charCodeAt(0)-97)*100+50);line.setAttribute('y1',(8-Number(a[1]))*100+50);line.setAttribute('x2',(b.charCodeAt(0)-97)*100+50);line.setAttribute('y2',(8-Number(b[1]))*100+50);line.setAttribute('stroke','#4de2ff');line.setAttribute('stroke-opacity','.82');line.setAttribute('stroke-width','13');line.setAttribute('marker-end','url(#arrowhead)');svg.append(line)}board.append(svg)}
+function drawArrows(){let svg=board.querySelector('svg.arrows');if(svg)svg.remove();svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('class','arrows');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';const defs=document.createElementNS(svg.namespaceURI,'defs');defs.innerHTML='<marker id="arrowhead" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#4de2ff"/></marker>';const engineMarker=document.createElementNS(svg.namespaceURI,'marker');engineMarker.setAttribute('id','engine-arrowhead');engineMarker.setAttribute('markerWidth','5');engineMarker.setAttribute('markerHeight','5');engineMarker.setAttribute('refX','3');engineMarker.setAttribute('refY','2.5');engineMarker.setAttribute('orient','auto');const engineTip=document.createElementNS(svg.namespaceURI,'path');engineTip.setAttribute('d','M0 0 L5 2.5 L0 5Z');engineTip.setAttribute('fill','#facc15');engineMarker.append(engineTip);defs.append(engineMarker);svg.append(defs);for(const [a,b] of arrows){const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',(a.charCodeAt(0)-97)*100+50);line.setAttribute('y1',(8-Number(a[1]))*100+50);line.setAttribute('x2',(b.charCodeAt(0)-97)*100+50);line.setAttribute('y2',(8-Number(b[1]))*100+50);line.setAttribute('stroke','#4de2ff');line.setAttribute('stroke-opacity','.82');line.setAttribute('stroke-width','13');line.setAttribute('marker-end','url(#arrowhead)');svg.append(line)}if(bestEngineMove&&engineSwitch.checked&&engineReady){const a=bestEngineMove.slice(0,2),b=bestEngineMove.slice(2,4);const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',(a.charCodeAt(0)-97)*100+50);line.setAttribute('y1',(8-Number(a[1]))*100+50);line.setAttribute('x2',(b.charCodeAt(0)-97)*100+50);line.setAttribute('y2',(8-Number(b[1]))*100+50);line.setAttribute('stroke','#facc15');line.setAttribute('stroke-width','16');line.setAttribute('stroke-linecap','round');line.setAttribute('marker-end','url(#engine-arrowhead)');svg.append(line)}board.append(svg)}
 function render(){const pos=new Chess(history[cursor]);board.replaceChildren();board.style.position='relative';for(let r=0;r<8;r++)for(let f=0;f<8;f++){const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));if(selected===sq)b.style.outline='3px solid #facc15';b.draggable=false;b.onclick=()=>{if(!selected){if(p&&p.color===pos.turn()){selected=sq;render()}return}try{pos.move({from:selected,to:sq,promotion:'q'});history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{selected=null;render()}};board.append(b)}$('turn').textContent=(pos.turn()==='w'?'White':'Black')+' to move · '+cursor+'/'+(history.length-1);drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1}
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];cursor=0;selected=null;render();requestAnalysis()};
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
