@@ -204,6 +204,7 @@ engineSwitch.addEventListener('change',()=>{
  if(engineSwitch.checked)startEngine();
  else{stopEngine();engineInfo.textContent='Engine disabled.'}
 });
+let lastPointerAction=0;
 function squareAt(x,y){
  const rect=board.getBoundingClientRect();
  if(x<rect.left||x>=rect.right||y<rect.top||y>=rect.bottom)return null;
@@ -241,6 +242,7 @@ board.addEventListener('pointerdown',e=>{
  if(!source)return;
  drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null,pointerId:e.pointerId};
  e.preventDefault();
+ try{board.setPointerCapture(e.pointerId)}catch{}
 });
 board.addEventListener('pointermove',e=>{
  if(!drag||drag.pointerId!==e.pointerId)return;
@@ -255,13 +257,14 @@ board.addEventListener('pointermove',e=>{
  }
  if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}
 });
-window.addEventListener('pointerup',e=>{
+board.addEventListener('pointerup',e=>{
  if(e.button===2&&rightStart){
   const to=squareAt(e.clientX,e.clientY);
   if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
   rightStart=null;return;
  }
  if(!drag||drag.pointerId!==e.pointerId)return;
+ lastPointerAction=Date.now();
  const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');
  const to=squareAt(e.clientX,e.clientY);
  if(d.active){
@@ -272,7 +275,7 @@ window.addEventListener('pointerup',e=>{
   selectBoardSquare(d.from);
  }
 });
-window.addEventListener('pointercancel',()=>{if(!drag)return;drag.ghost?.remove();drag.source.classList.remove('drag-source');drag=null;render()});
+board.addEventListener('pointercancel',()=>{if(!drag)return;drag.ghost?.remove();drag.source.classList.remove('drag-source');drag=null;render()});
 
 function drawArrows(){
  const old=board.querySelector('svg.arrows');if(old)old.remove();
@@ -320,7 +323,7 @@ function render(){
    b.append(indicator);
   }
   b.draggable=false;
-  b.onclick=()=>selectBoardSquare(sq);
+  b.onclick=e=>{if(Date.now()-lastPointerAction<450)return;selectBoardSquare(sq)};
   board.append(b);
  }
  $('turn').textContent='';
