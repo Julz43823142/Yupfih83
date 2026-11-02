@@ -26,7 +26,7 @@ jobs:
           cp /tmp/package/bin/stockfish-19-lite-single.wasm vendor/stockfish/
           test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.js)" -gt 10000
           test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.wasm)" -gt 100000
-          test "$(od -An -tx1 -N4 vendor/stockfish/stockfish-19-lite-single.wasm | tr -d ' \\n')" = 0061736d
+          test "$(od -An -tx1 -N4 vendor/stockfish/stockfish-19-lite-single.wasm | tr -d '[:space:]')" = 0061736d
       - name: Commit self-hosted engine binaries
         shell: bash
         run: |
