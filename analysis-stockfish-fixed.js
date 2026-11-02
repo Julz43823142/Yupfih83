@@ -4,6 +4,7 @@ let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arro
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
 let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
+let sanMoves=[],reviewResults=[],reviewBusy=false;const boardCells=new Map();
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
@@ -113,7 +114,7 @@ function renderEngineLines(){
   const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
   row.append(rank,moves,score);
   row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]?.san||item.uci);
-  const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{}};
+  const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(played.san);cursor++;selected=null;arrows=[];reviewResults=[];render();requestAnalysis()}catch{}};
   row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
   enginePanel.append(row);
  }
@@ -220,8 +221,8 @@ function playBoardMove(from,to){
   if(!legal)return false;
   const moved=position.move({from,to,promotion:'q'});
   if(!moved)return false;
-  history=history.slice(0,cursor+1);history.push(position.fen());cursor++;
-  selected=null;arrows=[];render();requestAnalysis();
+  history=history.slice(0,cursor+1);history.push(position.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(moved.san);cursor++;
+  selected=null;arrows=[];reviewResults=[];render();requestAnalysis();
   return true;
  }catch{return false}
 }
@@ -238,6 +239,7 @@ board.addEventListener('pointerdown',e=>{
  if(!sq)return;
  if(e.button===2){rightStart=sq;e.preventDefault();return}
  if(e.button!==0)return;
+ if(arrows.length){arrows=[];drawArrows()}
  const pos=new Chess(history[cursor]),piece=pos.get(sq);
  if(!piece||piece.color!==pos.turn())return;
  const source=e.target.closest('button');
@@ -301,40 +303,87 @@ function drawArrows(){
  if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#ffd23f',.94);
  board.append(svg);
 }
-function render(){
- const pos=new Chess(history[cursor]);
- const possible=selected?pos.moves({square:selected,verbose:true}):[];
+function ensureBoardCells(){
+ if(boardCells.size)return;
  board.replaceChildren();board.style.position='relative';
  for(let r=0;r<8;r++)for(let f=0;f<8;f++){
-  const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');
-  b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';
-  if(p){
-   const piece=document.createElement('img');piece.className='chess-piece';
-   piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';
-   piece.alt=p.color+' '+p.type;piece.draggable=false;
-   piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};
-   b.append(piece);
-  }
-  b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));
-  if(selected===sq)b.classList.add('selected-square');
-  const target=possible.find(m=>m.to===sq);
-  if(target){
-   const indicator=document.createElement('span');
-   indicator.className=(p||target.flags.includes('e'))?'legal-capture-ring':'legal-move-dot';
-   indicator.setAttribute('aria-hidden','true');
-   b.append(indicator);
-  }
-  b.draggable=false;
-  b.onclick=e=>{if(Date.now()-lastPointerAction<450)return;selectBoardSquare(sq)};
-  board.append(b);
+  const sq=String.fromCharCode(97+f)+(8-r),b=document.createElement('button');
+  b.type='button';b.className=(r+f)%2?'dark':'light';b.draggable=false;
+  b.dataset.square=sq;b.onclick=()=>{if(Date.now()-lastPointerAction<450)return;selectBoardSquare(sq)};
+  boardCells.set(sq,b);board.append(b);
  }
- $('turn').textContent='';
- drawArrows();
- $('back').disabled=cursor===0;
- $('forward').disabled=cursor===history.length-1;
 }
-$('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];cursor=0;selected=null;render();requestAnalysis()};
+function render(){
+ ensureBoardCells();
+ const pos=new Chess(history[cursor]),possible=selected?pos.moves({square:selected,verbose:true}):[];
+ for(const [sq,b] of boardCells){
+  const p=pos.get(sq),key=p?p.color+p.type:'';
+  if(b.dataset.piece!==key){
+   b.dataset.piece=key;b.replaceChildren();
+   if(p){const img=document.createElement('img');img.className='chess-piece';img.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';img.alt=p.color+' '+p.type;img.draggable=false;img.onerror=()=>{img.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(img)}
+  }else b.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
+  b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));
+  b.classList.toggle('selected-square',selected===sq);
+  const target=possible.find(m=>m.to===sq);
+  if(target){const indicator=document.createElement('span');indicator.className=(p||target.flags.includes('e'))?'legal-capture-ring':'legal-move-dot';indicator.setAttribute('aria-hidden','true');b.append(indicator)}
+ }
+ drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1;
+ renderNotation();
+}
+const OPENINGS=[
+ ['e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6','Sicilian Defense: Najdorf Variation'],
+ ['e4 c5 Nf3 Nc6 d4 cxd4 Nxd4','Sicilian Defense: Open Variation'],
+ ['e4 c5','Sicilian Defense'],['e4 e5 Nf3 Nc6 Bb5','Ruy Lopez'],
+ ['e4 e5 Nf3 Nc6 Bc4 Bc5','Italian Game: Giuoco Piano'],
+ ['e4 e5 Nf3 Nc6 Bc4 Nf6','Italian Game: Two Knights Defense'],
+ ['e4 e5 Nf3 Nc6 Bc4','Italian Game'],
+ ['e4 e5 Nf3 Nc6','King’s Pawn Game: Three Knights Setup'],
+ ['e4 e5 Nf3 Nf6','Petrov Defense'],['e4 e5 Nf3','King’s Knight Opening'],
+ ['e4 e5','King’s Pawn Game'],['e4 e6 d4 d5','French Defense'],['e4 e6','French Defense'],
+ ['e4 c6 d4 d5','Caro-Kann Defense'],['e4 c6','Caro-Kann Defense'],
+ ['e4 d5','Scandinavian Defense'],['e4 Nf6','Alekhine Defense'],
+ ['e4 d6 d4 Nf6 Nc3 g6','Pirc Defense'],['e4 d6','Pirc Defense'],
+ ['d4 d5 c4 e6','Queen’s Gambit Declined'],['d4 d5 c4 c6','Slav Defense'],
+ ['d4 d5 c4 dxc4','Queen’s Gambit Accepted'],['d4 d5 c4','Queen’s Gambit'],
+ ['d4 Nf6 c4 g6 Nc3 Bg7','King’s Indian Defense'],['d4 Nf6 c4 g6','King’s Indian Defense'],
+ ['d4 Nf6 c4 e6 Nc3 Bb4','Nimzo-Indian Defense'],['d4 Nf6 c4 e6 Nf3 b6','Queen’s Indian Defense'],
+ ['d4 Nf6 c4 e6','Indian Defense'],['d4 Nf6','Indian Defense'],
+ ['d4 d5','Queen’s Pawn Game'],['c4 e5','English Opening: Reversed Sicilian'],
+ ['c4','English Opening'],['Nf3','Réti Opening'],['b3','Nimzowitsch-Larsen Attack'],
+ ['b4','Sokolsky Opening'],['f4','Bird Opening'],['g3','Hungarian Opening'],
+ ['e3','Van’t Kruijs Opening'],['d4','Queen’s Pawn Opening'],['e4','King’s Pawn Opening']
+];
+function openingName(){
+ const played=sanMoves.slice(0,cursor).join(' ');
+ for(const [line,name] of OPENINGS)if(played===line||played.startsWith(line+' '))return name;
+ return cursor?'Unclassified opening':'Starting position';
+}
+function renderNotation(){
+ let panel=$('live-notation');
+ if(!panel){
+  panel=document.createElement('section');panel.id='live-notation';panel.className='live-notation';
+  panel.innerHTML='<h3>Opening & moves</h3><div id="opening-name"></div><div id="notation-moves"></div>';
+  boardLayout.insertAdjacentElement('afterend',panel);
+ }
+ $('opening-name').textContent=openingName();
+ const list=$('notation-moves');list.replaceChildren();
+ for(let i=0;i<sanMoves.length;i++){
+  if(i%2===0){const number=document.createElement('span');number.textContent=Math.floor(i/2)+1+'.';number.className='notation-number';list.append(number)}
+  const button=document.createElement('button');button.type='button';
+  button.textContent=sanMoves[i]+(reviewResults[i]?' '+reviewResults[i].symbol:'');
+  button.title=reviewResults[i]?.label||'Go to move';
+  button.className='notation-move'+(cursor===i+1?' active':'');
+  button.onclick=()=>{cursor=i+1;selected=null;render();requestAnalysis()};list.append(button);
+  if(i===sanMoves.length-1&&i%2===0)list.append(document.createElement('span'));
+ }
+}
+document.addEventListener('keydown',e=>{
+ if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.altKey||e.ctrlKey||e.metaKey)return;
+ if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
+ e.preventDefault();const btn=e.key==='ArrowLeft'?$('back'):$('forward');if(!btn.disabled)btn.click();
+});
+$('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];render();requestAnalysis()};
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
-$('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;cursor=0;selected=null;status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
+$('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];reviewResults=[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
 
 render();
