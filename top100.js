@@ -1,5 +1,6 @@
 document.getElementById("year").textContent=new Date().getFullYear();
 const tbody=document.getElementById("top100-rows");
+const performanceLabels={"LOW":"Within Typical Performance Range","MODERATE":"Moderate Performance Variation","HIGH":"Notable Performance","VERY HIGH":"Strongly Notable Performance"};
 const validUser=name=>/^[a-z0-9_-]{3,25}$/i.test(name);
 function cell(row,value,className){
   const td=document.createElement("td");
@@ -26,7 +27,7 @@ async function load(){
       cell(row,Number(item.votes||0).toLocaleString("en-US"),"top100-votes");
       const raw=String(item.priority||"").toUpperCase().replace(/[-_]/g," ");
       const priority=["LOW","MODERATE","HIGH","VERY HIGH"].includes(raw)?raw:"Not available";
-      const score=cell(row,priority,"top100-priority");
+      const score=cell(row,performanceLabels[priority]||priority,"top100-priority");
       if(priority!=="Not available"){
         score.classList.add("priority-"+priority.toLowerCase().replaceAll(" ","-"));
         if(item.has_report){
@@ -34,7 +35,7 @@ async function load(){
           const reviewLink=document.createElement("a");
           reviewLink.className="top100-review-link";
           reviewLink.href="/?review="+encodeURIComponent(item.username);
-          reviewLink.textContent=priority+" ↗";
+          reviewLink.textContent=performanceLabels[priority]+" ↗";
           reviewLink.title="Open the latest saved Fair Play Review";
           score.appendChild(reviewLink);
         }else{
