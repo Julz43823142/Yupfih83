@@ -888,6 +888,22 @@ form.addEventListener("submit", async event => {
   }
 });
 
+const requestedSavedReview=new URLSearchParams(location.search).get("review");
+if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
+  usernameInput.value=requestedSavedReview;
+  const panel=document.getElementById("v87-review");
+  add(panel,"p","v87-muted","Loading latest saved Fair Play Review…");
+  getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview))
+    .then(async saved=>{
+      renderReview(saved.result);
+      const playerName=saved.result.username||requestedSavedReview;
+      panel.scrollIntoView({behavior:"smooth",block:"start"});
+    })
+    .catch(error=>{
+      panel.replaceChildren();
+      add(panel,"p","v87-warning","Saved review unavailable: "+error.message);
+    });
+}
 const requestedAnalysis=new URLSearchParams(location.search).get("analyze");
 if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
   usernameInput.value=requestedAnalysis;
