@@ -1,0 +1,21 @@
+/* Chess tools visual polish */
+.tool-page{padding-top:20px}
+.chess-board{margin:24px auto!important;width:min(100%,540px)!important;position:relative;overflow:hidden}
+.chess-board button{font-family:Arial,sans-serif}
+.chess-piece{width:88%;height:88%;object-fit:contain;pointer-events:none;user-select:none}
+.tool-head{align-items:center}
+.switch-label{display:inline-flex;align-items:center;gap:12px;color:#c6e8f7;font-weight:700;cursor:pointer}
+.switch-label input{appearance:none;width:54px;height:30px;border-radius:30px;border:1px solid #327393;background:#102b44;position:relative;cursor:pointer;transition:background .2s}
+.switch-label input:before{content:'';position:absolute;width:22px;height:22px;top:3px;left:3px;border-radius:50%;background:#8caec3;transition:transform .2s,background .2s}
+.switch-label input:checked{background:#007cbd;border-color:#4de2ff}
+.switch-label input:checked:before{transform:translateX(24px);background:#4de2ff}
+.tool-page .tool-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:0 auto 22px;padding:0}
+.tool-page .tool-nav a{display:inline-flex;padding:12px 20px;background:#102c45;border:1px solid #2d6385;border-radius:10px;color:#dff5ff;text-decoration:none;font-weight:750}
+.tool-page .tool-nav a:hover{border-color:#4de2ff;background:#174466}
+.navbar .tool-nav{display:none!important}
+.date-wheels{display:flex;gap:9px;align-items:stretch}
+.date-wheels .wheel-column{min-width:0;flex:1;display:grid;gap:7px;text-align:center}
+.date-wheels .wheel-column small{font-size:11px;color:#69cde7;text-transform:uppercase;letter-spacing:1px}
+.tool-page .date-wheels select{font-size:19px;font-weight:800;text-align:center;text-align-last:center;border:1px solid #2b729c;border-radius:11px;background:linear-gradient(180deg,#164363,#071d34 45%,#0e3856);color:#e8f9ff;padding:13px 2px;cursor:pointer;appearance:none}
+.tool-page .date-wheels select:focus{outline:2px solid #4de2ff}
+@media(max-width:600px){.date-wheels{gap:5px}.tool-page .date-wheels select{font-size:15px}.tool-page .tool-nav a{padding:10px}}
