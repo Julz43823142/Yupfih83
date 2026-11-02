@@ -12,7 +12,7 @@ function requestAnalysis(){
  engine.postMessage('stop');
  engine.postMessage('position fen '+engineFen);
  engine.postMessage('go depth 14');
- engineInfo.textContent='Stockfish 19 Lite · calculating…';
+ engineInfo.textContent=(engineFallback?'Stockfish 19 ASM':'Stockfish 19 Lite')+' · calculating…';
 }
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
@@ -24,7 +24,7 @@ function engineFailed(message){
  cleanupEngine();
  if(!engineFallback){
   engineFallback=true;
-  engineInfo.textContent='Trying Stockfish CDN fallback…';
+  engineInfo.textContent='Trying Stockfish 19 JavaScript fallback…';
   launchEngine(true);
  }else{
   engineSwitch.checked=false;
@@ -36,7 +36,7 @@ function launchEngine(useCdn){
   cleanupEngine();
   if(useCdn){
    // Blob URL creates a same-origin Worker that can load the official CDN engine.
-   const source="self.Module={locateFile:function(path){return '"+CDN_BASE+"'+path;}};importScripts('"+CDN_BASE+"stockfish-19-lite-single.js');";
+   const source="self.Module={locateFile:function(path){return '"+CDN_BASE+"'+path;}};importScripts('/engine/stockfish-19-asm.js');";
    engineWorkerUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
    engine=new Worker(engineWorkerUrl);
   }else{
@@ -44,7 +44,7 @@ function launchEngine(useCdn){
    engine=new Worker(ENGINE_JS);
   }
   engine.onmessage=e=>{
-   for(const line of String(e.data).split('\\n')){
+   for(const line of String(e.data).split('\n')){
     if(line.includes('uciok'))engine.postMessage('isready');
     if(line.includes('readyok')){
      engineReady=true;
@@ -52,10 +52,10 @@ function launchEngine(useCdn){
      requestAnalysis();
     }
     if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){
-     const depth=line.match(/\\bdepth (\\d+)/),score=line.match(/\\bscore (cp|mate) (-?\\d+)/),pv=line.match(/\\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+     const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
      if(score&&pv){
       const value=score[1]==='mate'?'Mate '+score[2]:(Number(score[2])/100).toFixed(2);
-      engineInfo.textContent='Stockfish 19 Lite · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
+      engineInfo.textContent=(engineFallback?'Stockfish 19 ASM':'Stockfish 19 Lite')+' · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
      }
     }
    }
