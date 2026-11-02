@@ -1,0 +1,38 @@
+name: Vendor Stockfish 19 browser engine
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vendor-stockfish.yml'
+      - 'analysis.html'
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download and validate official Stockfish engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p vendor/stockfish
+          base=https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin
+          curl --fail --location --retry 5 --retry-all-errors "$base/stockfish-19-lite-single.js" -o vendor/stockfish/stockfish-19-lite-single.js
+          curl --fail --location --retry 5 --retry-all-errors "$base/stockfish-19-lite-single.wasm" -o vendor/stockfish/stockfish-19-lite-single.wasm
+          test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.js)" -gt 20000
+          test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.wasm)" -gt 100000
+          test "$(od -An -tx1 -N4 vendor/stockfish/stockfish-19-lite-single.wasm | tr -d ' \n')" = 0061736d
+      - name: Commit self-hosted engine binaries
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add vendor/stockfish
+          if ! git diff --cached --quiet; then
+            git commit -m "Vendor official Stockfish 19 Lite JS and WASM assets"
+            git push
+          fi
