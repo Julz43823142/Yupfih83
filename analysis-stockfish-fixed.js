@@ -79,6 +79,17 @@ function scoreLabel(type,value){
  const cp=Number(value)*(engineFen.split(' ')[1]==='b'?-1:1);
  return (cp>=0?'+':'')+(cp/100).toFixed(2);
 }
+function variationText(pv){
+ const gameLine=new Chess(engineFen),moves=[];
+ for(const uci of pv.slice(0,2)){
+  try{
+   const move=gameLine.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
+   if(!move)break;
+   moves.push(move.san);
+  }catch{break}
+ }
+ return moves;
+}
 function renderEngineLines(){
  enginePanel.replaceChildren();
  if(!engineSwitch.checked||!engineReady)return;
@@ -86,11 +97,17 @@ function renderEngineLines(){
   const item=engineLines.get(i);
   if(!item)continue;
   const row=document.createElement('div');row.className='engine-line';
-  const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent='#'+i;
-  const move=document.createElement('strong');move.textContent=sanMove(item.uci);
+  const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent=i+'.';
+  const moves=document.createElement('span');moves.className='engine-line-moves';
+  const variation=variationText(item.pv||[item.uci]);
+  const first=document.createElement('strong');first.textContent=variation[0]||sanMove(item.uci);
+  moves.append(first);
+  if(variation[1]){
+   const reply=document.createElement('span');reply.className='engine-line-reply';reply.textContent=' '+variation[1];
+   moves.append(reply);
+  }
   const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
-  const depth=document.createElement('span');depth.className='engine-line-depth';depth.textContent='Depth '+item.depth;
-  row.append(rank,move,score,depth);
+  row.append(rank,moves,score);
   enginePanel.append(row);
  }
 }
@@ -155,9 +172,9 @@ function launchEngine(useCdn){
      if(score&&pv&&n>=1&&n<=multiPV&&Number(depth?.[1]||0)>=14){
       const d=Number(depth?.[1]||0),previous=engineLines.get(n);
       if(!previous||d>=previous.depth){
-       engineLines.set(n,{uci:pv[1],type:score[1],value:score[2],depth:d});
+       const pvMoves=pv[1].trim().split(/\\s+/);engineLines.set(n,{uci:pvMoves[0],pv:pvMoves,type:score[1],value:score[2],depth:d});
        if(n===1){
-        bestEngineMove=pv[1];
+        bestEngineMove=pvMoves[0];
         engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d;
         updateEvalBar();drawArrows();
        }
