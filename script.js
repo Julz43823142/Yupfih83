@@ -538,7 +538,56 @@ function showMeasuredDuration(result) {
   target.textContent="Analysis time: "+(minutes?minutes+"m ":"")+remainder+"s";
   target.hidden=false;
 }
+function renderIntegratedInsights(data) {
+  const target=document.getElementById("insights-embedded");
+  if(!target)return;
+  target.replaceChildren();
+  const groups=["rapid","blitz","bullet"].map(key=>({
+    key,rows:Array.isArray(data.charts?.[key])?data.charts[key]:[]
+  }));
+  const valid=groups.flatMap(({key,rows})=>rows.map(row=>({...row,time_control:key})))
+    .filter(row=>[0,0.5,1].includes(Number(row.score))&&row.rated===true);
+  const title=add(target,"p","insights-intro","Additional insights calculated from the games included in this review.");
+  if(!valid.length){
+    add(target,"p","insights-intro","Result-by-result statistics were not included in this report. The existing analysis and opening findings remain available.");
+    return;
+  }
+  const grid=add(target,"div","homepage-insights-grid");
+  function card(name,sets){
+    const box=add(grid,"article","homepage-insight-card");
+    add(box,"h3","",name);
+    for(const [label,rows] of sets){
+      const wins=rows.filter(r=>Number(r.score)===1).length;
+      const draws=rows.filter(r=>Number(r.score)===0.5).length;
+      const losses=rows.filter(r=>Number(r.score)===0).length;
+      const pct=rows.length?(" · "+number((wins+draws/2)/rows.length*100,1)+"% score"):"";
+      const line=add(box,"p");
+      add(line,"strong","",label+": ");
+      line.append(document.createTextNode(rows.length+" games · "+wins+" W / "+draws+" D / "+losses+" L"+pct));
+    }
+  }
+  card("Overall performance",[["Reviewed games",valid]]);
+  card("Time controls",groups.map(({key})=>[key[0].toUpperCase()+key.slice(1),valid.filter(r=>r.time_control===key)]));
+  const ordered=valid.filter(r=>Number.isFinite(Number(r.ended))).sort((a,b)=>Number(b.ended)-Number(a.ended));
+  if(ordered.length){
+    card("Recent form",[["Last 10",ordered.slice(0,10)],["Last 20",ordered.slice(0,20)],["Last 50",ordered.slice(0,50)]]);
+  }
+  const ratings=groups.map(({key,rows})=>{
+    const xs=rows.filter(r=>Number.isFinite(Number(r.player_elo))&&Number(r.player_elo)>0);
+    if(xs.length<2)return null;
+    const ordered=xs.slice().sort((a,b)=>Number(a.ended)-Number(b.ended));
+    return [key,ordered[0].player_elo,ordered[ordered.length-1].player_elo];
+  }).filter(Boolean);
+  if(ratings.length){
+    const box=add(grid,"article","homepage-insight-card");
+    add(box,"h3","","Rating movement in review");
+    for(const [key,first,last] of ratings) add(box,"p","",key[0].toUpperCase()+key.slice(1)+": "+number(Number(first),0)+" → "+number(Number(last),0)+" ("+(Number(last)-Number(first)>=0?"+":"")+number(Number(last)-Number(first),0)+")");
+  }
+  add(target,"p","insights-intro","These are descriptive public-game statistics, not Stockfish assessments or evidence of cheating.");
+}
+
 function renderReview(data) {
+  renderIntegratedInsights(data);
   placeExampleCardsNearOverview();
   showMeasuredDuration(data);
   const panel = document.getElementById("v87-review");
