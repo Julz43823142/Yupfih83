@@ -62,9 +62,9 @@ engineSettings.insertAdjacentElement('afterend',depthControl);
 const analysisControls=document.createElement('div');
 analysisControls.className='analysis-compact-controls';
 analysisControls.append(engineSettings,depthControl);
-board.insertAdjacentElement('beforebegin',analysisControls);
-board.insertAdjacentElement('beforebegin',engineInfo);
-board.insertAdjacentElement('beforebegin',enginePanel);
+boardLayout.insertAdjacentElement('beforebegin',analysisControls);
+boardLayout.insertAdjacentElement('beforebegin',engineInfo);
+boardLayout.insertAdjacentElement('beforebegin',enginePanel);
 depthPlus.addEventListener('click',()=>{
  unlimitedDepth=!unlimitedDepth;
  depthLabel.textContent=unlimitedDepth?'Depth unlimited':'Depth 14–18';
