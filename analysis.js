@@ -2,11 +2,79 @@ import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[];
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
+let engineFallback=false,engineWorkerUrl=null;
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
-function requestAnalysis(){if(!engine||!engineReady||!engineSwitch.checked)return;engineFen=history[cursor];engine.postMessage('stop');engine.postMessage('position fen '+engineFen);engine.postMessage('go depth 14');engineInfo.textContent='Stockfish 19 Lite · calculating…'}
-function startEngine(){try{engineInfo.textContent='Loading Stockfish 19 Lite…';engine=new Worker('/stockfish-worker.js?v=2');engine.onmessage=e=>{for(const line of String(e.data).split('\n')){if(line.includes('uciok')){engine.postMessage('isready')}if(line.includes('readyok')){engineReady=true;clearTimeout(engineTimer);requestAnalysis()}if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);if(score&&pv){const value=score[1]==='mate'?'Mate '+score[2]:(Number(score[2])/100).toFixed(2);engineInfo.textContent='Stockfish 19 Lite · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1]}}}};engine.onerror=()=>{engineInfo.textContent='Unable to load Stockfish 19. Try again later.';engineSwitch.checked=false;stopEngine()};engine.postMessage('uci');engineTimer=setTimeout(()=>{if(!engineReady){engineInfo.textContent='Stockfish 19 did not respond. Please retry.';engineSwitch.checked=false;stopEngine()}},25000)}catch{engineInfo.textContent='This browser cannot start Stockfish 19.';engineSwitch.checked=false;stopEngine()}}
-function stopEngine(){clearTimeout(engineTimer);if(engine){engine.postMessage('quit');engine.terminate()}engine=null;engineReady=false}
-engineSwitch.addEventListener('change',()=>{if(engineSwitch.checked)startEngine();else{stopEngine();engineInfo.textContent='Engine disabled.'}});
+const ENGINE_JS='/engine/stockfish-19-lite-single.js';
+const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+function requestAnalysis(){
+ if(!engine||!engineReady||!engineSwitch.checked)return;
+ engineFen=history[cursor];
+ engine.postMessage('stop');
+ engine.postMessage('position fen '+engineFen);
+ engine.postMessage('go depth 14');
+ engineInfo.textContent='Stockfish 19 Lite · calculating…';
+}
+function cleanupEngine(){
+ clearTimeout(engineTimer);engineTimer=null;
+ if(engine){try{engine.postMessage('quit')}catch{}engine.terminate()}
+ engine=null;engineReady=false;
+ if(engineWorkerUrl){URL.revokeObjectURL(engineWorkerUrl);engineWorkerUrl=null}
+}
+function engineFailed(message){
+ cleanupEngine();
+ if(!engineFallback){
+  engineFallback=true;
+  engineInfo.textContent='Trying Stockfish CDN fallback…';
+  launchEngine(true);
+ }else{
+  engineSwitch.checked=false;
+  engineInfo.textContent='Stockfish could not start: '+message;
+ }
+}
+function launchEngine(useCdn){
+ try{
+  cleanupEngine();
+  if(useCdn){
+   // Blob URL creates a same-origin Worker that can load the official CDN engine.
+   const source="self.Module={locateFile:function(path){return '"+CDN_BASE+"'+path;}};importScripts('"+CDN_BASE+"stockfish-19-lite-single.js');";
+   engineWorkerUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+   engine=new Worker(engineWorkerUrl);
+  }else{
+   // The engine JS and WASM live side-by-side at /engine/, as required by Stockfish.js.
+   engine=new Worker(ENGINE_JS);
+  }
+  engine.onmessage=e=>{
+   for(const line of String(e.data).split('\\n')){
+    if(line.includes('uciok'))engine.postMessage('isready');
+    if(line.includes('readyok')){
+     engineReady=true;
+     clearTimeout(engineTimer);engineTimer=null;
+     requestAnalysis();
+    }
+    if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){
+     const depth=line.match(/\\bdepth (\\d+)/),score=line.match(/\\bscore (cp|mate) (-?\\d+)/),pv=line.match(/\\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+     if(score&&pv){
+      const value=score[1]==='mate'?'Mate '+score[2]:(Number(score[2])/100).toFixed(2);
+      engineInfo.textContent='Stockfish 19 Lite · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
+     }
+    }
+   }
+  };
+  engine.onerror=e=>{e.preventDefault?.();engineFailed('engine worker failed to load')};
+  engine.postMessage('uci');
+  engineTimer=setTimeout(()=>{if(!engineReady&&engineSwitch.checked)engineFailed('engine did not respond in time')},20000);
+ }catch(e){engineFailed(e.message||'Worker unavailable')}
+}
+function startEngine(){
+ engineFallback=false;
+ engineInfo.textContent='Loading Stockfish 19 Lite…';
+ launchEngine(false);
+}
+function stopEngine(){cleanupEngine()}
+engineSwitch.addEventListener('change',()=>{
+ if(engineSwitch.checked)startEngine();
+ else{stopEngine();engineInfo.textContent='Engine disabled.'}
+});
 function deselectDraggedSource(source){source.classList.add('drag-source');}
 function squareAt(x,y){const rect=board.getBoundingClientRect();const file=Math.floor((x-rect.left)/rect.width*8),rank=Math.floor((y-rect.top)/rect.height*8);return file>=0&&file<8&&rank>=0&&rank<8?String.fromCharCode(97+file)+(8-rank):null}
 board.addEventListener('contextmenu',e=>e.preventDefault());
