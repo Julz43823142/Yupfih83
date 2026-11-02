@@ -21,7 +21,8 @@ evalTrack.append(evalWhite);evalWrap.append(evalTrack,evalText);
 const boardLayout=document.createElement('div');boardLayout.className='board-with-eval';
 board.parentNode.insertBefore(boardLayout,board);
 boardLayout.append(evalWrap,board);
-const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
+const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);
+const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats';sidePanel.className='review-side-stats';boardTop.insertAdjacentElement('beforebegin',sidePanel);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
@@ -490,12 +491,14 @@ $('review-start').onclick=async()=>{
    const row=document.createElement('div');row.className='review-stat';row.textContent=({Brilliant:'💎',Great:'❗',Book:'📖',Best:'⭐',Excellent:'✨',Good:'✔️',Inaccuracy:'⚠️',Mistake:'❓',Miss:'🎯',Blunder:'‼️'}[name]||'')+' '+name+': '+(counts[name]||0);summary.append(row);
   }
   const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy';summary.prepend(accuracyTitle);
+  const sideStats=[];
   for(const [side,label] of [[0,'White'],[1,'Black']]){
    const rows=categories.filter((x,i)=>i%2===side&&x.label!=='Book');
    const avg=reviewAccuracy(categories,evaluations.map(x=>reviewWin(x.white)),side);
-   const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);
+   const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);sideStats.push({label,accuracy:avg});
   }
 
+  const statsPanel=$('review-side-stats');if(statsPanel){statsPanel.replaceChildren();const heading=document.createElement('h3');heading.textContent='Game statistics';statsPanel.append(heading);for(const [side,label] of [[0,'White'],[1,'Black']]){const rows=categories.filter((x,i)=>i%2===side);const score=sideStats.find(x=>x.label===label)?.accuracy;const mean=rows.length?rows.reduce((a,x)=>a+x.loss,0)/rows.length:0;const grade=score===null||score===undefined?'—':score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'F';for(const [key,value] of [['Accuracy',score==null?'—':score.toFixed(1)+'%'],['Variance',mean.toFixed(1)+' pp'],['Grade',grade]]){const item=document.createElement('div');item.className='review-side-item';item.textContent=label+' '+key+' · '+value;statsPanel.append(item)}}}
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
