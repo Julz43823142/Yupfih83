@@ -4,7 +4,7 @@ import {json} from "../../../lib/v87-github.js";
 export async function onRequestGet({request,env}) {
   if(!env.SUS_DB)return json({error:"SUS leaderboard is not available yet."},503);
   try {
-    const limit=new URL(request.url).searchParams.get("limit")==="100"?100:5;
+    const limit=new URL(request.url).searchParams.get("limit")==="100"?100:get("limit")==="10"?10:5;
     let data;
     try{
       data=await env.SUS_DB.prepare("SELECT v.username, COUNT(*) AS votes, (SELECT r.priority FROM sus_recent_reviews r WHERE r.username=v.username LIMIT 1) AS priority, (SELECT 1 FROM sus_latest_reports l WHERE l.username=v.username LIMIT 1) AS has_report FROM sus_votes v GROUP BY v.username ORDER BY votes DESC, v.username ASC LIMIT ?").bind(limit).all();
