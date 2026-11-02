@@ -267,7 +267,7 @@ board.addEventListener('pointermove',e=>{
 board.addEventListener('pointerup',e=>{
  if(e.button===2&&rightStart){
   const to=squareAt(e.clientX,e.clientY);
-  if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
+  if(to&&to===rightStart){if(highlightedSquares.has(to))highlightedSquares.delete(to);else highlightedSquares.add(to);drawArrows()}else if(to){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
   rightStart=null;return;
  }
  if(!drag||drag.pointerId!==e.pointerId)return;
@@ -302,8 +302,9 @@ function drawArrows(){
   svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':'.35','stroke-width':1,'stroke-linejoin':'round'}));
   svg.append(make('circle',{cx:tail[0],cy:tail[1],r:5,fill:color,'fill-opacity':'.5'}));
  }
+ for(const sq of highlightedSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#318cff','fill-opacity':'.3',stroke:'#318cff','stroke-width':4}))}
  for(const [a,b] of arrows)arrow(a,b,'#328aff',.55);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.55);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.32);
  board.append(svg);
 }
 function ensureBoardCells(){
