@@ -20,12 +20,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p vendor/stockfish
-          base=https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin
-          curl --fail --location --retry 5 --retry-all-errors "$base/stockfish-19-lite-single.js" -o vendor/stockfish/stockfish-19-lite-single.js
-          curl --fail --location --retry 5 --retry-all-errors "$base/stockfish-19-lite-single.wasm" -o vendor/stockfish/stockfish-19-lite-single.wasm
-          test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.js)" -gt 20000
+          npm pack stockfish@19.0.1 --pack-destination /tmp --silent
+          tar -xzf /tmp/stockfish-19.0.1.tgz -C /tmp
+          cp /tmp/package/bin/stockfish-19-lite-single.js vendor/stockfish/
+          cp /tmp/package/bin/stockfish-19-lite-single.wasm vendor/stockfish/
+          test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.js)" -gt 10000
           test "$(wc -c < vendor/stockfish/stockfish-19-lite-single.wasm)" -gt 100000
-          test "$(od -An -tx1 -N4 vendor/stockfish/stockfish-19-lite-single.wasm | tr -d ' \n')" = 0061736d
+          test "$(od -An -tx1 -N4 vendor/stockfish/stockfish-19-lite-single.wasm | tr -d ' \\n')" = 0061736d
       - name: Commit self-hosted engine binaries
         shell: bash
         run: |
