@@ -41,3 +41,17 @@ main>.below-hero-layout>.features>*{min-width:0}
 .hero-tool-links a>.tool-label{flex:1 1 auto!important;min-width:0!important;color:#dff8ff!important;white-space:nowrap!important}
 .hero-tool-links a>span:last-child{flex:0 0 auto!important}
 @media(max-width:1099px){main>.below-hero-layout>.features{padding-top:0!important}}
+
+/* Compact sample header and align feature cards with the first sample. */
+main>.below-hero-layout>.sample-section .sample-header{margin-bottom:12px!important;padding-bottom:0!important}
+main>.below-hero-layout>.sample-section #sample-title{margin-top:0!important}
+@media(min-width:1100px){main>.below-hero-layout>.features{padding-top:46px!important}}
+/* Three feature illustrations: slightly smaller and horizontally centered. */
+main>.below-hero-layout>.features .feature-illustration{
+ display:block!important;width:100px!important;height:100px!important;
+ max-width:100px!important;max-height:100px!important;
+ margin-left:auto!important;margin-right:auto!important;
+ object-fit:contain!important;flex-shrink:0!important;
+ align-self:center!important;
+}
+@media(max-width:720px){main>.below-hero-layout>.features .feature-illustration{width:94px!important;height:94px!important}}
