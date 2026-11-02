@@ -54,3 +54,16 @@ export async function onRequestPost({request,params,env}){
     return json({error:"Unable to register the vote"},503);
   }
 }
+
+export async function onRequestDelete({request,params,env}){
+  const username=usernameFrom(params);
+  if(!username)return json({error:"Invalid username"},400);
+  if(!env.SUS_DB||!env.GITHUB_TOKEN)return json({error:"Voting database not configured"},503);
+  const origin=request.headers.get("Origin");
+  if(origin&&origin!==new URL(request.url).origin)return json({error:"Invalid origin"},403);
+  try{
+    const voter=await getVoter(request,env.GITHUB_TOKEN);
+    await env.SUS_DB.prepare("DELETE FROM sus_votes WHERE username = ? AND voter_id = ?").bind(username,voter.id).run();
+    return guardedResponse(await state(env,username,voter.id),200,voter.cookie);
+  }catch{return json({error:"Unable to remove vote"},503);}
+}
