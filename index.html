@@ -1,40 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#030d1b">
-<meta name="robots" content="noindex, nofollow">
-<meta name="description" content="EloScanner is being upgraded. We'll be back soon.">
-<title>EloScanner | Under Construction</title>
-<style>
-:root{color-scheme:dark;--bg:#030d1b;--cyan:#4de2ff;--muted:#91a8c0;--border:#1b3955}
-*{box-sizing:border-box}
-html{min-height:100%;background:var(--bg)}
-body{min-height:100vh;margin:0;color:#f0f7ff;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(ellipse at 50% 5%,#0d5481 0%,transparent 55%),radial-gradient(ellipse at 95% 85%,#073958 0%,transparent 45%),linear-gradient(180deg,#061b32,#030d1b)}
-header{height:82px;padding:0 clamp(22px,7vw,100px);display:flex;align-items:center;border-bottom:1px solid var(--border);background:rgba(3,13,27,.7)}
-.logo{width:225px;max-width:70vw;height:auto;display:block}
-main{min-height:calc(100vh - 146px);display:grid;place-items:center;padding:65px 22px}
-.panel{position:relative;width:min(780px,100%);padding:clamp(32px,6vw,72px) clamp(24px,6vw,68px);text-align:center;border:1px solid #24618a;border-radius:22px;background:linear-gradient(145deg,rgba(14,43,68,.88),rgba(6,20,37,.96));box-shadow:0 28px 95px rgba(0,0,0,.28),0 0 90px rgba(0,170,255,.08)}
-.eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 17px rgba(77,226,255,.65)}
-h1{margin:26px 0 20px;font-size:clamp(42px,7vw,78px);line-height:1.05;letter-spacing:-2.5px;font-weight:900}
-h1 span{color:var(--cyan)}
-p{max-width:540px;margin:0 auto;color:#b0c9dc;font-size:clamp(15px,2vw,18px);line-height:1.8}
-.divider{height:1px;max-width:360px;margin:35px auto;background:linear-gradient(90deg,transparent,#2c7198,transparent)}
-.caption{font-size:12px;color:var(--muted);letter-spacing:.7px}
-footer{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(22px,7vw,100px);border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
-@media(max-width:550px){header{height:72px}.logo{width:180px}main{min-height:calc(100vh - 136px);padding:35px 16px}.panel{border-radius:16px}h1{letter-spacing:-1.5px}footer{flex-direction:column;justify-content:center;text-align:center}}
-</style>
-</head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="EloScanner - independent engine-free Chess.com player review">
+  <title>EloScanner | Chess Analysis</title>
+  <link rel="stylesheet" href="./style.css?v=20261102-performance-v26">
+  <script src="./script.js?v=20261102-performance-v26" defer></script>
+  <link rel="stylesheet" href="./layout-fix.css?v=1">
+<style>.navbar .tool-nav{display:flex;align-items:center;gap:clamp(8px,2vw,24px);flex-wrap:wrap;margin-left:auto}.navbar .tool-nav a{color:#c7eaff;text-decoration:none;font-size:clamp(11px,1.2vw,15px);font-weight:700}.navbar .tool-nav a:hover{color:#54e4ff}@media(max-width:650px){.navbar{height:auto;min-height:75px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.navbar .tool-nav{width:100%;justify-content:center}}</style></head>
 <body>
-<header><a href="/" aria-label="EloScanner home"><img class="logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
-<main><section class="panel" aria-labelledby="page-title">
-<div class="eyebrow"><span class="dot" aria-hidden="true"></span> We're upgrading EloScanner</div>
-<h1 id="page-title">Under<br><span>Construction.</span></h1>
-<p>We're building a better chess analysis experience with deeper insights, smarter preparation, and more powerful game reviews.</p>
-<div class="divider" aria-hidden="true"></div>
-<p class="caption">EloScanner is temporarily unavailable. Check back soon.</p>
-</section></main>
-<footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
-</body></html>
+  <header class="navbar">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="./assets/eloscanner-logo.svg" alt="EloScanner">
+    </a>
+    <nav class="tool-nav" aria-label="Chess tools"><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/insights.html">Chess Insights</a></nav>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <aside class="hero-sus-ranking" aria-labelledby="sus-ranking-title">
+        <div class="hero-sus-heading">
+          <h2 id="sus-ranking-title">TOP 5 highest CIP</h2>
+          <a id="sus-top100-button" href="/top100.html" class="sus-top100-button">Top 100 →</a>
+        </div>
+        <ol id="sus-top5-list" class="sus-ranking-list">
+          <li class="sus-rank-message">Loading community votes…</li>
+        </ol>
+        <p class="sus-ranking-disclaimer">CIP = Community Interest Points — interest in analysis, not cheating evidence.</p>
+      </aside>
+      
+
+      <div class="hero-content">
+        <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
+        <h1>Analyze up to 5,000 games.<br><span>Discover the patterns.</span></h1>
+        <p class="subtitle">Explore up to 5,000 of a player’s most recent available Chess.com games, with rating trends, accuracy and performance analysis.</p>
+        <form id="searchForm" class="search-box">
+          <input id="username" name="username" type="text" aria-label="Chess.com username"
+            placeholder="Enter Chess.com username" autocomplete="off" maxlength="25" required>
+          <button type="submit" id="analyzeBtn">Analyze Player →</button>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+      <section id="v87-review" class="v87-review"></section>
+    </section>
+    <div class="below-hero-layout">
+    <section class="sample-section" aria-labelledby="sample-title">
+      <div class="sample-heading">
+        <span class="eyebrow">EXPLORE AN EXAMPLE</span>
+        <h2 id="sample-title">Example reports</h2>
+      </div>
+      <div class="sample-options">
+        <button class="sample-button" type="button" data-username="MagnusCarlsen" data-name="Magnus Carlsen">
+          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="MagnusCarlsen" alt="Magnus Carlsen Chess.com profile picture" loading="eager" hidden></span><span class="sample-player-name">GM Magnus Carlsen</span></span>
+          <span class="sample-player-handle">@MagnusCarlsen <span class="sample-view">View report →</span></span>
+        </button>
+        <button class="sample-button" type="button" data-username="Hikaru" data-name="Hikaru Nakamura">
+          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="Hikaru" src="https://images.chesscomfiles.com/uploads/v1/user/15448422.png" alt="Hikaru Nakamura Chess.com profile picture" loading="eager"></span><span class="sample-player-name">GM Hikaru Nakamura</span></span>
+          <span class="sample-player-handle">@Hikaru <span class="sample-view">View report →</span></span>
+        </button>
+      </div>
+      <p id="sampleStatus" class="sample-status" role="status" aria-live="polite"></p>
+    </section>
+    <section class="features">
+      <div class="feature-card">
+        <img class="feature-illustration" src="./assets/feature-fairplay.svg?v=native-svg-16" alt="Fair Play Review icon" width="112" height="112" loading="lazy">
+        <h3>Fair Play Review</h3>
+        <p>Review public game histories, performance patterns and periods of unusual results.</p>
+        <span class="feature-tag">PLAYER REVIEW</span>
+      </div>
+      <div class="feature-card">
+        <img class="feature-illustration" src="./assets/feature-intelligence.svg?v=native-svg-16" alt="Player Intelligence icon" width="112" height="112" loading="lazy">
+        <h3>Player Intelligence</h3>
+        <p>Public Chess.com profiles and Bullet, Blitz and Rapid ratings.</p>
+        <span class="feature-tag">AVAILABLE</span>
+      </div>
+      <div class="feature-card">
+        <img class="feature-illustration" src="./assets/feature-independent.svg?v=white-minimal-18" alt="Independent Analysis icon" width="112" height="112" loading="lazy">
+        <h3>Independent Analysis</h3>
+        <p>Results are review priorities, not allegations or verdicts.</p>
+        <span class="feature-tag">RESPONSIBLE RESEARCH</span>
+      </div>
+    </section>
+    </div>
+    <section class="disclaimer">
+      <h3>Responsible Fair Play Research</h3>
+      <p>Statistical indicators are not proof of cheating. This independent project is not affiliated with Chess.com. The entered username is sent to Chess.com to retrieve public profile information; a configured review backend also receives it to perform analysis.</p>
+    </section>
+  </main>
+  <footer>
+    <span>© <span id="year"></span> EloScanner</span>
+    <span>Independent chess analysis</span>
+  </footer>
+</body>
+</html>
