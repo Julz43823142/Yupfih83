@@ -639,20 +639,20 @@ async function showSusVoting(username,proof){
   if(!/^[a-z0-9_-]{3,25}$/.test(normalized))return;
   playerCard.querySelector(".sus-widget")?.remove();
   const widget=add(identity,"div","sus-widget");
-  const action=add(widget,"button","sus-button","SUS +1");
+  const action=add(widget,"button","sus-button","CIP +1");
   action.type="button";action.disabled=true;
-  const count=add(widget,"span","sus-count","— SUS votes");
-  const hint=add(widget,"span","sus-description","Community opinions, not evidence of cheating.");
+  const count=add(widget,"span","sus-count","— CIP points");
+  const hint=add(widget,"span","sus-description","CIP means Community Interest Points — interest in analysis, not evidence of cheating.");
   hint.setAttribute("role","status");
   let voted=false;
   function renderState(state){
     voted=!!state.voted;
-    count.textContent=number(state.count,0)+" SUS votes";
-    action.textContent=voted?"Voted ✓":"SUS +1";
+    count.textContent=number(state.count,0)+" CIP points";
+    action.textContent=voted?"Voted ✓":"CIP +1";
     action.setAttribute("aria-pressed",String(voted));
-    action.setAttribute("aria-label",voted?"Undo your SUS vote":"Vote SUS +1");
+    action.setAttribute("aria-label",voted?"Undo your CIP point":"Add one CIP point");
     action.disabled=false;
-    hint.textContent=voted?"Click Voted ✓ to undo your vote.":"Community opinions, not evidence of cheating.";
+    hint.textContent=voted?"Click Voted ✓ to remove your CIP point.":"CIP means Community Interest Points — interest in analysis, not evidence of cheating.";
   }
   action.addEventListener("click",async()=>{
     const wasVoted=voted;
