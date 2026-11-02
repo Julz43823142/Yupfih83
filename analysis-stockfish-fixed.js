@@ -16,7 +16,7 @@ evalWrap.setAttribute('aria-valuemax','10');
 const evalTrack=document.createElement('div');evalTrack.className='board-eval-track';
 const evalWhite=document.createElement('div');evalWhite.className='board-eval-white';
 const evalText=document.createElement('span');evalText.className='board-eval-text';evalText.textContent='0.00';
-evalTrack.append(evalWhite);evalWrap.append(evalText,evalTrack);
+evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
 board.insertAdjacentElement('beforebegin',evalWrap);
 function updateEvalBar(){
  const item=engineLines.get(1);
@@ -57,6 +57,12 @@ depthPlus.textContent='+';depthPlus.title='Continue analysing without a depth li
 depthPlus.setAttribute('aria-label','Enable unlimited depth');
 depthControl.append(depthLabel,depthPlus);
 engineSettings.insertAdjacentElement('afterend',depthControl);
+const analysisControls=document.createElement('div');
+analysisControls.className='analysis-compact-controls';
+analysisControls.append(engineSettings,depthControl);
+board.insertAdjacentElement('beforebegin',analysisControls);
+board.insertAdjacentElement('beforebegin',engineInfo);
+board.insertAdjacentElement('beforebegin',enginePanel);
 depthPlus.addEventListener('click',()=>{
  unlimitedDepth=!unlimitedDepth;
  depthLabel.textContent=unlimitedDepth?'Depth unlimited':'Depth 14–18';
@@ -152,7 +158,7 @@ function launchEngine(useCdn){
        engineLines.set(n,{uci:pv[1],type:score[1],value:score[2],depth:d});
        if(n===1){
         bestEngineMove=pv[1];
-        engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d+' · best '+sanMove(pv[1]);
+        engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d;
         updateEvalBar();drawArrows();
        }
        renderEngineLines();
@@ -205,7 +211,7 @@ function drawArrows(){
  if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#ffd23f',.94);
  board.append(svg);
 }
-function render(){const pos=new Chess(history[cursor]);board.replaceChildren();board.style.position='relative';for(let r=0;r<8;r++)for(let f=0;f<8;f++){const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));if(selected===sq)b.style.outline='3px solid #facc15';b.draggable=false;b.onclick=()=>{if(!selected){if(p&&p.color===pos.turn()){selected=sq;render()}return}try{pos.move({from:selected,to:sq,promotion:'q'});history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{selected=null;render()}};board.append(b)}$('turn').textContent=(pos.turn()==='w'?'White':'Black')+' to move · '+cursor+'/'+(history.length-1);drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1}
+function render(){const pos=new Chess(history[cursor]);board.replaceChildren();board.style.position='relative';for(let r=0;r<8;r++)for(let f=0;f<8;f++){const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));if(selected===sq)b.style.outline='3px solid #facc15';b.draggable=false;b.onclick=()=>{if(!selected){if(p&&p.color===pos.turn()){selected=sq;render()}return}try{pos.move({from:selected,to:sq,promotion:'q'});history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{selected=null;render()}};board.append(b)}$('turn').textContent='';drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1}
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];cursor=0;selected=null;render();requestAnalysis()};
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
 $('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;cursor=0;selected=null;status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
