@@ -386,4 +386,85 @@ $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysi
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
 $('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];reviewResults=[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
 
+const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
+reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
+boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
+let reviewWorker=null,reviewCancelled=false;
+function reviewCategory(loss,book,best,move){
+ if(book)return {label:'Book',symbol:'📖'};
+ if(loss<=12&&best)return {label:'Best',symbol:'★'};
+ if(loss<=22)return {label:'Good',symbol:'✓'};
+ if(loss<=48)return {label:'Good',symbol:'✓'};
+ if(loss<=95)return {label:'Inaccuracy',symbol:'?!'};
+ if(loss<=210)return {label:'Mistake',symbol:'?'};
+ return {label:'Blunder',symbol:'??'};
+}
+function stopReview(){
+ reviewCancelled=true;
+ if(reviewWorker){reviewWorker.terminate();reviewWorker=null}
+ reviewBusy=false;$('review-start').disabled=false;$('review-cancel').disabled=true;
+}
+$('review-cancel').onclick=()=>{stopReview();$('review-status').textContent='Review cancelled.'};
+$('review-start').onclick=async()=>{
+ if(reviewBusy||history.length<2){$('review-status').textContent='Play or import a game first.';return}
+ reviewBusy=true;reviewCancelled=false;$('review-start').disabled=true;$('review-cancel').disabled=false;
+ const snapshot=history.slice(),moves=sanMoves.slice();
+ const status=$('review-status'),summary=$('review-summary');summary.replaceChildren();
+ const worker=new Worker(ENGINE_JS);reviewWorker=worker;
+ const waitFor=(predicate,timeout=45000)=>new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timed out'))},timeout);
+  function listener(e){const lines=String(e.data).split(/\r?\n/);if(lines.some(predicate)){clearTimeout(timer);worker.removeEventListener('message',listener);resolve(lines)}}
+  worker.addEventListener('message',listener);
+ });
+ try{
+  worker.postMessage('uci');await waitFor(line=>line.includes('uciok'));
+  worker.postMessage('setoption name MultiPV value 1');
+  worker.postMessage('isready');await waitFor(line=>line.includes('readyok'));
+  const evaluations=[];
+  for(let i=0;i<snapshot.length;i++){
+   if(reviewCancelled)throw Error('Cancelled');
+   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, depth 12)…';
+   let lastScore=null,lastPv=null;
+   const result=new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
+    function listener(e){
+     for(const line of String(e.data).split(/\r?\n/)){
+      if(line.startsWith('info ')&&line.includes(' score ')){
+       const score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+       if(score){lastScore=score;lastPv=pv?.[1]||lastPv}
+      }
+      if(line.startsWith('bestmove ')){clearTimeout(timer);worker.removeEventListener('message',listener);resolve({score:lastScore,pv:lastPv})}
+     }
+    }
+    worker.addEventListener('message',listener);
+   });
+   worker.postMessage('position fen '+snapshot[i]);worker.postMessage('go depth 12');
+   const info=await result;
+   if(!info.score)throw Error('Engine returned no evaluation');
+   const side=snapshot[i].split(' ')[1]==='w'?1:-1;
+   const value=info.score[1]==='mate'?(Number(info.score[2])>0?1200:-1200):Number(info.score[2]);
+   evaluations.push({white:value*side,pv:info.pv});
+  }
+  const categories=[],counts={};
+  for(let i=0;i<moves.length;i++){
+   const mover=i%2===0?1:-1;
+   const loss=Math.max(0,(evaluations[i].white-evaluations[i+1].white)*mover);
+   let best=false;
+   try{const before=new Chess(snapshot[i]),played=before.move(moves[i]);best=!!played&&evaluations[i].pv===played.from+played.to+(played.promotion||'')}catch{}
+   const book=i<8&&loss<=30;
+   const category=reviewCategory(loss,book,best,moves[i]);
+   categories.push({...category,loss:Math.round(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
+  }
+  reviewResults=categories;
+  status.textContent='Review complete: '+moves.length+' half-moves analyzed at depth 12.';
+  const title=document.createElement('h3');title.textContent='Move classifications';summary.append(title);
+  for(const name of ['Brilliant','Great','Book','Best','Good','Inaccuracy','Mistake','Blunder']){
+   const row=document.createElement('div');row.className='review-stat';row.textContent=name+': '+(counts[name]||0);summary.append(row);
+  }
+  const note=document.createElement('p');note.textContent='Brilliant and Great require additional tactical validation; this review does not award them automatically. Book is an opening-phase estimate, not a verified opening-book match.';summary.append(note);
+  renderNotation();
+ }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
+ finally{if(reviewWorker===worker)stopReview()}
+};
+
 render();
