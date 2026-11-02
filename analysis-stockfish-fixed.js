@@ -97,11 +97,12 @@ function variationText(pv){
 }
 function renderEngineLines(){
  enginePanel.replaceChildren();
- if(!engineSwitch.checked||!engineReady)return;
+ if(!engineSwitch.checked||!engineReady){enginePanel.style.visibility='hidden';return;}
+ enginePanel.style.visibility='visible';
  for(let i=1;i<=multiPV;i++){
   const item=engineLines.get(i);
-  if(!item)continue;
   const row=document.createElement('div');row.className='engine-line';
+  if(!item){row.classList.add('engine-line-pending');row.textContent=i+'.  Calculating…';enginePanel.append(row);continue;}
   const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent=i+'.';
   const moves=document.createElement('span');moves.className='engine-line-moves';
   const variation=variationText(item.pv||[item.uci]);
@@ -129,7 +130,7 @@ function requestAnalysis(){
  engineFen=history[cursor];
  analysisEpoch++;
  engineLines.clear();bestEngineMove=null;
- renderEngineLines();updateEvalBar();drawArrows();
+ renderEngineLines();drawArrows();
  engine.postMessage('stop');
  engine.postMessage('setoption name MultiPV value '+multiPV);
  engine.postMessage('position fen '+engineFen);
@@ -364,6 +365,8 @@ function renderNotation(){
   panel=document.createElement('section');panel.id='live-notation';panel.className='live-notation';
   panel.innerHTML='<h3>Opening & moves</h3><div id="opening-name"></div><div id="notation-moves"></div>';
   boardLayout.insertAdjacentElement('afterend',panel);
+  panel.insertBefore(enginePanel,panel.firstChild);
+  panel.insertBefore(engineSettings,enginePanel);
  }
  $('opening-name').textContent=openingName();
  const list=$('notation-moves');list.replaceChildren();
