@@ -14,7 +14,7 @@ function drawCandidateArrows(options){
  svg.setAttribute('class','prep-arrows');svg.setAttribute('viewBox','0 0 800 800');
  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';
  const defs=document.createElementNS(svg.namespaceURI,'defs');
- defs.innerHTML='<marker id="prep-arrowhead" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#f26a6a"/></marker>';svg.append(defs);
+ defs.innerHTML='<marker id="prep-arrowhead" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#30b978"/></marker>';svg.append(defs);
  options.slice(0,3).forEach((option,i)=>{
   try{
    const next=new Chess(pos.fen()),m=next.move(option.move);
@@ -23,8 +23,8 @@ function drawCandidateArrows(options){
    const [x1,y1]=coord(m.from),[x2,y2]=coord(m.to);
    const line=document.createElementNS(svg.namespaceURI,'line');
    for(const [k,v] of Object.entries({x1,y1,x2,y2}))line.setAttribute(k,v);
-   line.setAttribute('stroke','#f26a6a');line.setAttribute('stroke-opacity','.85');
-   line.setAttribute('stroke-width',String([19,14,10][i]));
+   line.setAttribute('stroke',i===0?'#30b978':'#a0adb8');line.setAttribute('stroke-opacity',String([.9,.48,.26][i]));
+   line.setAttribute('stroke-width','12');
    line.setAttribute('marker-end','url(#prep-arrowhead)');svg.append(line);
   }catch{}
  });
