@@ -1,0 +1,35 @@
+/* Chess tools visual polish */
+.tool-page{padding-top:20px}
+.chess-board{margin:24px auto!important;width:min(100%,540px)!important;position:relative;overflow:hidden}
+.chess-board button{font-family:Arial,sans-serif}
+.chess-piece{width:88%;height:88%;object-fit:contain;pointer-events:none;user-select:none}
+.tool-head{align-items:center}
+.switch-label{display:inline-flex;align-items:center;gap:12px;color:#c6e8f7;font-weight:700;cursor:pointer}
+.switch-label input{appearance:none;width:54px;height:30px;border-radius:30px;border:1px solid #327393;background:#102b44;position:relative;cursor:pointer;transition:background .2s}
+.switch-label input:before{content:'';position:absolute;width:22px;height:22px;top:3px;left:3px;border-radius:50%;background:#8caec3;transition:transform .2s,background .2s}
+.switch-label input:checked{background:#007cbd;border-color:#4de2ff}
+.switch-label input:checked:before{transform:translateX(24px);background:#4de2ff}
+.tool-page .tool-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:0 auto 22px;padding:0}
+.tool-page .tool-nav a{display:inline-flex;padding:12px 20px;background:#102c45;border:1px solid #2d6385;border-radius:10px;color:#dff5ff;text-decoration:none;font-weight:750}
+.tool-page .tool-nav a:hover{border-color:#4de2ff;background:#174466}
+.navbar .tool-nav{display:none!important}
+.date-wheels{display:flex;gap:9px;align-items:stretch}
+.date-wheels .wheel-column{min-width:0;flex:1;display:grid;gap:7px;text-align:center}
+.date-wheels .wheel-column small{font-size:11px;color:#69cde7;text-transform:uppercase;letter-spacing:1px}
+.tool-page .date-wheels select{font-size:19px;font-weight:800;text-align:center;text-align-last:center;border:1px solid #2b729c;border-radius:11px;background:linear-gradient(180deg,#164363,#071d34 45%,#0e3856);color:#e8f9ff;padding:13px 2px;cursor:pointer;appearance:none}
+.tool-page .date-wheels select:focus{outline:2px solid #4de2ff}
+@media(max-width:600px){.date-wheels{gap:5px}.tool-page .date-wheels select{font-size:15px}.tool-page .tool-nav a{padding:10px}}
+
+/* Drag only the piece, not its board square. */
+.chess-board{touch-action:none;user-select:none;-webkit-user-select:none}
+.chess-board button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.chess-board .chess-piece{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none}
+.dragging-chess-piece{position:fixed!important;z-index:99999!important;pointer-events:none!important;transform:translate(-50%,-50%);width:clamp(35px,8vw,65px)!important;height:clamp(35px,8vw,65px)!important;object-fit:contain;filter:drop-shadow(0 6px 5px rgba(0,0,0,.5))}
+
+/* Analysis / prep: layered midnight-blue atmosphere, restrained cyan accents. */
+body:has(.tool-page){background:radial-gradient(ellipse 70% 48% at 88% 17%,rgba(7,104,149,.24),transparent 75%),radial-gradient(ellipse 58% 52% at 8% 75%,rgba(11,65,122,.29),transparent 78%),linear-gradient(135deg,#030d1b 0%,#06172c 48%,#03101f 100%)!important;background-attachment:fixed!important}
+body:has(.tool-page) .tool-card{background:linear-gradient(155deg,rgba(14,42,68,.95),rgba(5,23,42,.96))!important;border:1px solid rgba(69,155,196,.28)!important;box-shadow:0 15px 48px rgba(0,0,0,.19),inset 0 1px 0 rgba(125,213,247,.055)!important}
+body:has(.tool-page) .tool-page{padding-top:28px!important}
+body:has(.tool-page) .tool-page>h1{position:relative;z-index:1}
+.chess-board button.drag-source>.chess-piece{visibility:hidden!important}
+.chess-board button.drag-source{color:transparent!important}
