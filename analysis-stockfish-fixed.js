@@ -204,12 +204,75 @@ engineSwitch.addEventListener('change',()=>{
  if(engineSwitch.checked)startEngine();
  else{stopEngine();engineInfo.textContent='Engine disabled.'}
 });
-function deselectDraggedSource(source){source.classList.add('drag-source');}
-function squareAt(x,y){const rect=board.getBoundingClientRect();const file=Math.floor((x-rect.left)/rect.width*8),rank=Math.floor((y-rect.top)/rect.height*8);return file>=0&&file<8&&rank>=0&&rank<8?String.fromCharCode(97+file)+(8-rank):null}
+function squareAt(x,y){
+ const rect=board.getBoundingClientRect();
+ if(x<rect.left||x>=rect.right||y<rect.top||y>=rect.bottom)return null;
+ const file=Math.floor((x-rect.left)/rect.width*8),rank=Math.floor((y-rect.top)/rect.height*8);
+ return String.fromCharCode(97+file)+(8-rank);
+}
+function playBoardMove(from,to){
+ try{
+  const position=new Chess(history[cursor]);
+  const legal=position.moves({square:from,verbose:true}).some(m=>m.to===to);
+  if(!legal)return false;
+  const moved=position.move({from,to,promotion:'q'});
+  if(!moved)return false;
+  history=history.slice(0,cursor+1);history.push(position.fen());cursor++;
+  selected=null;arrows=[];render();requestAnalysis();
+  return true;
+ }catch{return false}
+}
+function selectBoardSquare(sq){
+ const position=new Chess(history[cursor]),piece=position.get(sq);
+ if(selected===sq){selected=null;render();return}
+ if(selected&&playBoardMove(selected,sq))return;
+ selected=piece&&piece.color===position.turn()?sq:null;
+ render();
+}
 board.addEventListener('contextmenu',e=>e.preventDefault());
-board.addEventListener('pointerdown',e=>{const sq=squareAt(e.clientX,e.clientY);if(!sq)return;if(e.button===2){rightStart=sq;e.preventDefault();return}if(e.button!==0)return;const pos=new Chess(history[cursor]),piece=pos.get(sq);if(!piece||piece.color!==pos.turn())return;const source=e.target.closest('button');if(!source)return;drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null};e.preventDefault()});
-board.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>6){drag.active=true;const img=drag.source.querySelector('img');drag.ghost=img?img.cloneNode(true):document.createElement('span');if(!img)drag.ghost.textContent=drag.source.textContent;drag.ghost.className='dragging-chess-piece';deselectDraggedSource(drag.source);document.body.append(drag.ghost)}if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}});
-window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;if(!d.active){selected=selected===d.from?null:d.from;render();return}selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.slice(0,2)===to);if(target&&to!==d.from)target.click();else render()});
+board.addEventListener('pointerdown',e=>{
+ const sq=squareAt(e.clientX,e.clientY);
+ if(!sq)return;
+ if(e.button===2){rightStart=sq;e.preventDefault();return}
+ if(e.button!==0)return;
+ const pos=new Chess(history[cursor]),piece=pos.get(sq);
+ if(!piece||piece.color!==pos.turn())return;
+ const source=e.target.closest('button');
+ if(!source)return;
+ drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null,pointerId:e.pointerId};
+ e.preventDefault();
+});
+board.addEventListener('pointermove',e=>{
+ if(!drag||drag.pointerId!==e.pointerId)return;
+ if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>8){
+  drag.active=true;
+  const img=drag.source.querySelector('img');
+  drag.ghost=img?img.cloneNode(true):document.createElement('span');
+  if(!img)drag.ghost.textContent=drag.source.textContent;
+  drag.ghost.className='dragging-chess-piece';
+  drag.source.classList.add('drag-source');
+  document.body.append(drag.ghost);
+ }
+ if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}
+});
+window.addEventListener('pointerup',e=>{
+ if(e.button===2&&rightStart){
+  const to=squareAt(e.clientX,e.clientY);
+  if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
+  rightStart=null;return;
+ }
+ if(!drag||drag.pointerId!==e.pointerId)return;
+ const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');
+ const to=squareAt(e.clientX,e.clientY);
+ if(d.active){
+  if(to&&!playBoardMove(d.from,to)){selected=d.from;render()}
+  else if(!to){selected=d.from;render()}
+ }else{
+  if(selected&&selected!==d.from&&playBoardMove(selected,d.from))return;
+  selectBoardSquare(d.from);
+ }
+});
+window.addEventListener('pointercancel',()=>{if(!drag)return;drag.ghost?.remove();drag.source.classList.remove('drag-source');drag=null;render()});
 
 function drawArrows(){
  const old=board.querySelector('svg.arrows');if(old)old.remove();
@@ -257,19 +320,7 @@ function render(){
    b.append(indicator);
   }
   b.draggable=false;
-  b.onclick=()=>{
-   if(selected===sq){selected=null;render();return}
-   if(selected&&possible.some(m=>m.to===sq)){
-    try{
-     pos.move({from:selected,to:sq,promotion:'q'});
-     history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;
-     selected=null;arrows=[];render();requestAnalysis();
-    }catch{selected=null;render()}
-    return;
-   }
-   selected=p&&p.color===pos.turn()?sq:null;
-   render();
-  };
+  b.onclick=()=>selectBoardSquare(sq);
   board.append(b);
  }
  $('turn').textContent='';
