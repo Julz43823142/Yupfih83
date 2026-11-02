@@ -465,7 +465,7 @@ function showReviewProgress(message,stage="queued",completed=false){
     track.setAttribute("role","progressbar");track.setAttribute("aria-label","Estimated analysis progress");
     track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");
     const fill=add(track,"div","v87-progress-fill");fill.style.width="0%";
-    add(progress,"p","v87-progress-note","Estimated progress · actual workflow stages are used to adjust the pace.");
+
   }
   if(stage)reviewProgressStage=stage;
   if(message)reviewProgressReport=message;
