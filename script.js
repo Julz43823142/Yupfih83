@@ -812,34 +812,42 @@ async function loadSampleAvatars(){
   const avatars=document.querySelectorAll(".sample-avatar[data-avatar-for]");
   await Promise.all([...avatars].map(async image=>{
     const username=image.dataset.avatarFor;
+    const frame=image.closest(".sample-avatar-frame");
+    image.loading="eager";
+    image.referrerPolicy="no-referrer";
+    let fallback=username.toLowerCase()==="hikaru"?
+      "https://images.chesscomfiles.com/uploads/v1/user/15448422.png":"";
+    let sources=[];
     try{
       const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
-      const avatar=typeof profile.avatar==="string"&&profile.avatar.startsWith("https://")?profile.avatar:"";
-      const fallback=username.toLowerCase()==="hikaru"?"https://images.chesscomfiles.com/uploads/v1/user/15448422.png":"";
-      if(!avatar&&!fallback)return;
-      image.referrerPolicy="no-referrer";
-      image.addEventListener("load",()=>{
-        image.hidden=false;
-        image.closest(".sample-avatar-frame")?.classList.add("has-avatar");
-      });
-      image.addEventListener("error",()=>{
-        if(fallback&&image.src!==fallback){image.src=fallback;return;}
+      if(typeof profile.avatar==="string"&&profile.avatar.startsWith("https://"))
+        sources.push(profile.avatar);
+    }catch(error){console.warn("Chess.com sample avatar lookup failed",username,error);}
+    if(fallback&&!sources.includes(fallback))sources.push(fallback);
+    if(image.getAttribute("src")&&!sources.includes(image.getAttribute("src")))
+      sources.push(image.getAttribute("src"));
+    if(!sources.length)return;
+    let attempt=0;
+    image.addEventListener("load",()=>{
+      image.hidden=false;
+      frame?.classList.add("has-avatar");
+    });
+    image.addEventListener("error",()=>{
+      if(++attempt<sources.length){
+        image.src=sources[attempt];
+      }else{
         image.hidden=true;
-        image.closest(".sample-avatar-frame")?.classList.remove("has-avatar");
-      });
-      image.src=avatar||fallback;
-    }catch{
-      if(username.toLowerCase()==="hikaru"){
-        image.referrerPolicy="no-referrer";
-        image.addEventListener("load",()=>{
-          image.hidden=false;
-          image.closest(".sample-avatar-frame")?.classList.add("has-avatar");
-        },{once:true});
-        image.src="https://images.chesscomfiles.com/uploads/v1/user/15448422.png";
+        frame?.classList.remove("has-avatar");
       }
+    });
+    image.src=sources[0];
+    if(image.complete&&image.naturalWidth>0){
+      image.hidden=false;
+      frame?.classList.add("has-avatar");
     }
   }));
 }
+
 loadSampleAvatars();
 
 document.querySelectorAll(".sample-button").forEach(button=>{
@@ -900,7 +908,6 @@ if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
     results.classList.remove("hidden");
     panel.replaceChildren();
     add(panel,"p","v87-muted","Loading latest saved Fair Play Review…");
-    results.scrollIntoView({behavior:"smooth",block:"start"});
     try{
       const saved=await getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview),{cache:"no-store"});
       // The saved report opens immediately without starting another GitHub analysis.
@@ -920,7 +927,7 @@ if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
       }
       renderReview(saved.result);
       statusText.textContent="Showing latest saved Fair Play Review — no new analysis started.";
-      panel.scrollIntoView({behavior:"smooth",block:"start"});
+      // Keep the homepage layout and example cards at their original position.
     }catch(error){
       panel.replaceChildren();
       add(panel,"p","v87-warning","Saved review unavailable: "+error.message);
