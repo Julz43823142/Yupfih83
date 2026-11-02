@@ -19,3 +19,9 @@
 .tool-page .date-wheels select{font-size:19px;font-weight:800;text-align:center;text-align-last:center;border:1px solid #2b729c;border-radius:11px;background:linear-gradient(180deg,#164363,#071d34 45%,#0e3856);color:#e8f9ff;padding:13px 2px;cursor:pointer;appearance:none}
 .tool-page .date-wheels select:focus{outline:2px solid #4de2ff}
 @media(max-width:600px){.date-wheels{gap:5px}.tool-page .date-wheels select{font-size:15px}.tool-page .tool-nav a{padding:10px}}
+
+/* Drag only the piece, not its board square. */
+.chess-board{touch-action:none;user-select:none;-webkit-user-select:none}
+.chess-board button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.chess-board .chess-piece{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none}
+.dragging-chess-piece{position:fixed!important;z-index:99999!important;pointer-events:none!important;transform:translate(-50%,-50%);width:clamp(35px,8vw,65px)!important;height:clamp(35px,8vw,65px)!important;object-fit:contain;filter:drop-shadow(0 6px 5px rgba(0,0,0,.5))}
