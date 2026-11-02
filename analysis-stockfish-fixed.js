@@ -83,11 +83,13 @@ function scoreLabel(type,value){
 }
 function variationText(pv){
  const gameLine=new Chess(engineFen),moves=[];
- for(const uci of pv.slice(0,2)){
+ for(const uci of pv.slice(0,10)){
   try{
    const move=gameLine.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
    if(!move)break;
-   moves.push(move.san);
+   const number=Math.floor((gameLine.history().length-1+Number(engineFen.split(' ')[5]||1)*2-2)/2)+1;
+   const prefix=gameLine.turn()==='b'?number+'.':number+'...';
+   moves.push({prefix,san:move.san});
   }catch{break}
  }
  return moves;
@@ -102,15 +104,15 @@ function renderEngineLines(){
   const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent=i+'.';
   const moves=document.createElement('span');moves.className='engine-line-moves';
   const variation=variationText(item.pv||[item.uci]);
-  const first=document.createElement('strong');first.textContent=variation[0]||sanMove(item.uci);
-  moves.append(first);
-  if(variation[1]){
-   const reply=document.createElement('span');reply.className='engine-line-reply';reply.textContent=' '+variation[1];
-   moves.append(reply);
-  }
+  variation.forEach((move,j)=>{
+   const span=document.createElement('span');
+   span.className='engine-variation-move'+(j===0?' engine-variation-first':'');
+   span.textContent=move.prefix+' '+move.san;
+   moves.append(span);
+  });
   const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
   row.append(rank,moves,score);
-  row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]||item.uci);
+  row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]?.san||item.uci);
   const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{}};
   row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
   enginePanel.append(row);
@@ -172,12 +174,12 @@ function launchEngine(useCdn){
     }
     if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){
      const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/);
-     const pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/),rank=line.match(/\bmultipv (\d+)/);
+     const pv=line.match(/\bpv ((?:[a-h][1-8][a-h][1-8][qrbn]?(?:\s+|$))+)/),rank=line.match(/\bmultipv (\d+)/);
      const n=rank?Number(rank[1]):1;
      if(score&&pv&&n>=1&&n<=multiPV&&Number(depth?.[1]||0)>=14){
       const d=Number(depth?.[1]||0),previous=engineLines.get(n);
       if(!previous||d>=previous.depth){
-       const pvMoves=pv[1].trim().split(/\\s+/);engineLines.set(n,{uci:pvMoves[0],pv:pvMoves,type:score[1],value:score[2],depth:d});
+       const pvMoves=pv[1].trim().split(/\s+/);engineLines.set(n,{uci:pvMoves[0],pv:pvMoves,type:score[1],value:score[2],depth:d});
        if(n===1){
         bestEngineMove=pvMoves[0];
         engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+d;
