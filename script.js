@@ -813,7 +813,7 @@ function showSusRanking(target,players){
 }
 async function refreshSusTop5(){
   try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=10")).players);}
-  catch{susTop5.replaceChildren();add(susTop5,"li","sus-rank-message","Ranking temporarily unavailable.");}
+  catch{showSusRanking(susTop5,[]);}
 }
 refreshSusTop5();
 
