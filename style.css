@@ -969,3 +969,6 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
 .top100-note {font-size:12px;color:#93b4c9;line-height:1.6;margin-top:19px;}
 /* Keep Hikaru's image frame visible even when the profile API is rate limited. */
 .sample-button[data-username="Hikaru"] .sample-avatar-frame {display:flex;}
+
+.top100-priority .top100-review-link{display:inline-block;color:inherit!important;text-decoration:underline;text-underline-offset:4px;border-radius:6px;padding:5px 7px;background:rgba(255,255,255,.06)}
+.top100-priority .top100-review-link:hover,.top100-priority .top100-review-link:focus-visible{background:rgba(255,255,255,.17);outline:2px solid currentColor;outline-offset:2px}
