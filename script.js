@@ -891,18 +891,42 @@ form.addEventListener("submit", async event => {
 const requestedSavedReview=new URLSearchParams(location.search).get("review");
 if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
   usernameInput.value=requestedSavedReview;
-  const panel=document.getElementById("v87-review");
-  add(panel,"p","v87-muted","Loading latest saved Fair Play Review…");
-  getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview))
-    .then(async saved=>{
+  (async()=>{
+    let panel=document.getElementById("v87-review");
+    if(!panel){
+      panel=add(results,"section","v87-review");
+      panel.id="v87-review";
+    }
+    results.classList.remove("hidden");
+    panel.replaceChildren();
+    add(panel,"p","v87-muted","Loading latest saved Fair Play Review…");
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+    try{
+      const saved=await getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview),{cache:"no-store"});
+      // The saved report opens immediately without starting another GitHub analysis.
+      try{
+        const encoded=encodeURIComponent(requestedSavedReview);
+        const [profile,stats]=await Promise.all([
+          getJSON("https://api.chess.com/pub/player/"+encoded),
+          getJSON("https://api.chess.com/pub/player/"+encoded+"/stats")
+        ]);
+        playerCard.replaceChildren();
+        renderPlayer(profile,stats,requestedSavedReview);
+      }catch(error){
+        playerCard.replaceChildren();
+        const header=add(playerCard,"div","player-header");
+        const identity=add(header,"div","player-identity");
+        add(identity,"h3","player-name",saved.result.username||requestedSavedReview);
+      }
       renderReview(saved.result);
-      const playerName=saved.result.username||requestedSavedReview;
+      statusText.textContent="Showing latest saved Fair Play Review — no new analysis started.";
       panel.scrollIntoView({behavior:"smooth",block:"start"});
-    })
-    .catch(error=>{
+    }catch(error){
       panel.replaceChildren();
       add(panel,"p","v87-warning","Saved review unavailable: "+error.message);
-    });
+      statusText.textContent="Unable to load saved review.";
+    }
+  })();
 }
 const requestedAnalysis=new URLSearchParams(location.search).get("analyze");
 if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
