@@ -14,7 +14,7 @@ async function load(){
     const data=await response.json();
     tbody.replaceChildren();
     if(!data.players?.length){
-      const row=document.createElement("tr");cell(row,"No SUS votes yet.").colSpan=5;tbody.appendChild(row);return;
+      const row=document.createElement("tr");cell(row,"No CIP points yet.").colSpan=5;tbody.appendChild(row);return;
     }
     for(const [index,item] of data.players.entries()){
       if(!validUser(item.username))continue;
