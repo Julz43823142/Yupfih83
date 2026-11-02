@@ -16,7 +16,7 @@ evalWrap.setAttribute('aria-valuemax','10');
 const evalTrack=document.createElement('div');evalTrack.className='board-eval-track';
 const evalWhite=document.createElement('div');evalWhite.className='board-eval-white';
 const evalText=document.createElement('span');evalText.className='board-eval-text';evalText.textContent='0.00';
-evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
+evalTrack.append(evalWhite);evalWrap.append(evalText,evalTrack);
 board.insertAdjacentElement('beforebegin',evalWrap);
 function updateEvalBar(){
  const item=engineLines.get(1);
@@ -184,26 +184,25 @@ board.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.active&&Math.h
 window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.startsWith(to));target?.click()});
 
 function drawArrows(){
- let svg=board.querySelector('svg.arrows');if(svg)svg.remove();
- svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
- svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('class','arrows');
- svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible';
- const ns=svg.namespaceURI,make=(tag,attrs)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el};
- const defs=make('defs',{});
- const marker=(id,color)=>{const m=make('marker',{id,markerWidth:5,markerHeight:5,refX:3.2,refY:2.5,orient:'auto',markerUnits:'strokeWidth'});m.append(make('path',{d:'M0 0.3 L4.7 2.5 L0 4.7 Q0.8 2.5 0 0.3Z',fill:color}));defs.append(m)};
- marker('arrowhead','#4de2ff');marker('engine-arrowhead','#f7c948');svg.append(defs);
- const coords=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
- function arrow(a,b,color,width,markerId,opacity){
-  const [x1,y1]=coords(a),[x2,y2]=coords(b),dx=x2-x1,dy=y2-y1,dist=Math.hypot(dx,dy);
-  if(dist<1)return;
-  const ux=dx/dist,uy=dy/dist,endX=x2-ux*30,endY=y2-uy*30;
-  const shadow=make('line',{x1,y1,x2:endX,y2:endY,stroke:'#09131e','stroke-opacity':'.48','stroke-width':width+7,'stroke-linecap':'round'});
-  svg.append(shadow);
-  const shaft=make('line',{x1,y1,x2:endX,y2:endY,stroke:color,'stroke-opacity':opacity,'stroke-width':width,'stroke-linecap':'round','marker-end':'url(#'+markerId+')'});
-  svg.append(shaft);
+ const old=board.querySelector('svg.arrows');if(old)old.remove();
+ const ns='http://www.w3.org/2000/svg';
+ const make=(tag,attrs={})=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el};
+ const svg=make('svg',{viewBox:'0 0 800 800',class:'arrows','aria-hidden':'true'});
+ svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';
+ const point=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
+ function arrow(a,b,color,opacity){
+  const [x1,y1]=point(a),[x2,y2]=point(b),dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy);
+  if(d<1)return;
+  const ux=dx/d,uy=dy/d,px=-uy,py=ux;
+  const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
+  const coords=[[tail[0]+px*8,tail[1]+py*8],[base[0]+px*8,base[1]+py*8],[base[0]+px*23,base[1]+py*23],tip,[base[0]-px*23,base[1]-py*23],[base[0]-px*8,base[1]-py*8],[tail[0]-px*8,tail[1]-py*8]];
+  const points=coords.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
+  svg.append(make('polygon',{points,fill:'#152231','fill-opacity':'.45',stroke:'#152231','stroke-opacity':'.3','stroke-width':8,'stroke-linejoin':'round',transform:'translate(2 3)'}));
+  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:'#fff1a3','stroke-opacity':'.65','stroke-width':2,'stroke-linejoin':'round'}));
+  svg.append(make('circle',{cx:tail[0],cy:tail[1],r:10,fill:color,'fill-opacity':'.65'}));
  }
- for(const [a,b] of arrows)arrow(a,b,'#4de2ff',11,'arrowhead',.8);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#f7c948',13,'engine-arrowhead',.94);
+ for(const [a,b] of arrows)arrow(a,b,'#4de2ff',.73);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#ffd23f',.94);
  board.append(svg);
 }
 function render(){const pos=new Chess(history[cursor]);board.replaceChildren();board.style.position='relative';for(let r=0;r<8;r++)for(let f=0;f<8;f++){const sq=String.fromCharCode(97+f)+(8-r),p=pos.get(sq),b=document.createElement('button');b.type='button';b.className=(r+f)%2?'dark':'light';b.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));if(selected===sq)b.style.outline='3px solid #facc15';b.draggable=false;b.onclick=()=>{if(!selected){if(p&&p.color===pos.turn()){selected=sq;render()}return}try{pos.move({from:selected,to:sq,promotion:'q'});history=history.slice(0,cursor+1);history.push(pos.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{selected=null;render()}};board.append(b)}$('turn').textContent=(pos.turn()==='w'?'White':'Black')+' to move · '+cursor+'/'+(history.length-1);drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1}
