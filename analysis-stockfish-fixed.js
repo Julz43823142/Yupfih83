@@ -295,14 +295,14 @@ function drawArrows(){
   if(d<1)return;
   const ux=dx/d,uy=dy/d,px=-uy,py=ux;
   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
-  const coords=[[tail[0]+px*8,tail[1]+py*8],[base[0]+px*8,base[1]+py*8],[base[0]+px*23,base[1]+py*23],tip,[base[0]-px*23,base[1]-py*23],[base[0]-px*8,base[1]-py*8],[tail[0]-px*8,tail[1]-py*8]];
+  const coords=[[tail[0]+px*4,tail[1]+py*4],[base[0]+px*4,base[1]+py*4],[base[0]+px*14,base[1]+py*14],tip,[base[0]-px*14,base[1]-py*14],[base[0]-px*4,base[1]-py*4],[tail[0]-px*4,tail[1]-py*4]];
   const points=coords.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
   svg.append(make('polygon',{points,fill:'#152231','fill-opacity':'.45',stroke:'#152231','stroke-opacity':'.3','stroke-width':8,'stroke-linejoin':'round',transform:'translate(2 3)'}));
-  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:'#fff1a3','stroke-opacity':'.65','stroke-width':2,'stroke-linejoin':'round'}));
-  svg.append(make('circle',{cx:tail[0],cy:tail[1],r:10,fill:color,'fill-opacity':'.65'}));
+  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':'.35','stroke-width':1,'stroke-linejoin':'round'}));
+  svg.append(make('circle',{cx:tail[0],cy:tail[1],r:5,fill:color,'fill-opacity':'.5'}));
  }
- for(const [a,b] of arrows)arrow(a,b,'#4de2ff',.73);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#ffd23f',.94);
+ for(const [a,b] of arrows)arrow(a,b,'#328aff',.55);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.55);
  board.append(svg);
 }
 function ensureBoardCells(){
@@ -364,7 +364,7 @@ function renderNotation(){
  let panel=$('live-notation');
  if(!panel){
   panel=document.createElement('section');panel.id='live-notation';panel.className='live-notation';
-  panel.innerHTML='<h3>Opening & moves</h3><div id="opening-name"></div><div id="notation-moves"></div>';
+  panel.innerHTML='<div id="opening-name"></div><div id="notation-moves"></div>';
   boardLayout.insertAdjacentElement('afterend',panel);
   panel.insertBefore(enginePanel,panel.firstChild);
   panel.insertBefore(engineSettings,enginePanel);
@@ -394,7 +394,7 @@ $('load').onclick=async()=>{const value=$('import-value').value.trim();const sta
 const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
 reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
-const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (1 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
+const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (0.12 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
 function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
 function reviewMoveAccuracy(loss){return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669))}
 function reviewAccuracy(rows,positions,side){
@@ -417,15 +417,15 @@ function reviewOfferedMaterial(board,played,captured){
 }
 function reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin){
  if(book)return {label:'Book',symbol:'📖'};
- if(brilliant)return {label:'Brilliant',symbol:'!!'};
- if(great)return {label:'Great',symbol:'!'};
- if(best)return {label:'Best',symbol:'★'};
+ if(brilliant)return {label:'Brilliant',symbol:'💎'};
+ if(great)return {label:'Great',symbol:'❗'};
+ if(best)return {label:'Best',symbol:'⭐'};
  if(bestWin>=70&&actualWin>=35&&actualWin<62&&loss>=12&&loss<30)return {label:'Miss',symbol:'🎯'};
  if(loss<=2)return {label:'Excellent',symbol:'✨'};
- if(loss<=5)return {label:'Good',symbol:'✓'};
- if(loss<=10)return {label:'Inaccuracy',symbol:'?!'};
- if(loss<=20)return {label:'Mistake',symbol:'?'};
- return {label:'Blunder',symbol:'??'};
+ if(loss<=5)return {label:'Good',symbol:'✔️'};
+ if(loss<=10)return {label:'Inaccuracy',symbol:'⚠️'};
+ if(loss<=20)return {label:'Mistake',symbol:'❓'};
+ return {label:'Blunder',symbol:'‼️'};
 }
 function stopReview(){
  reviewCancelled=true;
@@ -451,7 +451,7 @@ $('review-start').onclick=async()=>{
   const evaluations=[];
   for(let i=0;i<snapshot.length;i++){
    if(reviewCancelled)throw Error('Cancelled');
-   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+(reviewSpeedSelect.value==='fast'?'1 second':'depth 12')+')…';
+   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+(reviewSpeedSelect.value==='fast'?'0.12 second':'depth 12')+')…';
    let lastScore=null,lastPv=null,secondScore=null;
    const result=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
@@ -466,7 +466,7 @@ $('review-start').onclick=async()=>{
     }
     worker.addEventListener('message',listener);
    });
-   worker.postMessage('position fen '+snapshot[i]);worker.postMessage(reviewSpeedSelect.value==='fast'?'go movetime 1000':'go depth 12');
+   worker.postMessage('position fen '+snapshot[i]);worker.postMessage(reviewSpeedSelect.value==='fast'?'go movetime 120':'go depth 12');
    const info=await result;
    if(!info.score)throw Error('Engine returned no evaluation');
    const side=snapshot[i].split(' ')[1]==='w'?1:-1;
@@ -484,18 +484,18 @@ $('review-start').onclick=async()=>{
    categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
-  status.textContent='Review complete: '+moves.length+' half-moves analyzed ('+(reviewSpeedSelect.value==='fast'?'1 second per position':'depth 12')+').';
+  status.textContent='';
   const title=document.createElement('h3');title.textContent='Move classifications';summary.append(title);
   for(const name of ['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Miss','Blunder']){
-   const row=document.createElement('div');row.className='review-stat';row.textContent=name+': '+(counts[name]||0);summary.append(row);
+   const row=document.createElement('div');row.className='review-stat';row.textContent=({Brilliant:'💎',Great:'❗',Book:'📖',Best:'⭐',Excellent:'✨',Good:'✔️',Inaccuracy:'⚠️',Mistake:'❓',Miss:'🎯',Blunder:'‼️'}[name]||'')+' '+name+': '+(counts[name]||0);summary.append(row);
   }
-  const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy (estimated)';summary.prepend(accuracyTitle);
+  const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy';summary.prepend(accuracyTitle);
   for(const [side,label] of [[0,'White'],[1,'Black']]){
    const rows=categories.filter((x,i)=>i%2===side&&x.label!=='Book');
    const avg=reviewAccuracy(categories,evaluations.map(x=>reviewWin(x.white)),side);
    const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);
   }
-  const note=document.createElement('p');note.textContent='Estimated using a published win-chance accuracy curve, not Chess.com CAPS2. Labels use win-chance loss and conservative tactical rules. Book is not awarded without a verified opening database. Fast mode uses approximately one second per position; analysis settings can change results.';summary.append(note);
+
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
