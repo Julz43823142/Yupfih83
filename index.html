@@ -8,18 +8,18 @@
   <link rel="stylesheet" href="./style.css?v=20261102-performance-v26">
   <script src="./script.js?v=20261102-performance-v26" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
-<style>.navbar .tool-nav{display:flex;align-items:center;gap:clamp(8px,2vw,24px);flex-wrap:wrap;margin-left:auto}.navbar .tool-nav a{color:#c7eaff;text-decoration:none;font-size:clamp(11px,1.2vw,15px);font-weight:700}.navbar .tool-nav a:hover{color:#54e4ff}@media(max-width:650px){.navbar{height:auto;min-height:75px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.navbar .tool-nav{width:100%;justify-content:center}}</style></head>
+<link rel="stylesheet" href="/homepage-polish.css?v=3"></head>
 <body>
   <header class="navbar">
     <a class="brand" href="/">
       <img class="brand-logo" src="./assets/eloscanner-logo.svg" alt="EloScanner">
     </a>
-    <nav class="tool-nav" aria-label="Chess tools"><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/insights.html">Chess Insights</a></nav>
+    
   </header>
   <main>
     <section class="hero">
       <div class="hero-glow"></div>
-      <aside class="hero-sus-ranking" aria-labelledby="sus-ranking-title">
+      <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/analysis.html">Analyse <span>→</span></a><a href="/player-prep.html">Player Prep <span>→</span></a></aside><aside class="hero-sus-ranking" aria-labelledby="sus-ranking-title">
         <div class="hero-sus-heading">
           <h2 id="sus-ranking-title">TOP 5 highest CIP</h2>
           <a id="sus-top100-button" href="/top100.html" class="sus-top100-button">Top 100 →</a>
@@ -49,7 +49,7 @@
         <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
       </div>
       <div id="playerCard" class="player-card"></div>
-      <section id="v87-review" class="v87-review"></section>
+      <section id="v87-review" class="v87-review"></section><section class="insights-integrated"><h2>Chess Insights</h2><p>Detailed game statistics and trends are available alongside your player review.</p><div id="insights-embedded"></div></section>
     </section>
     <div class="below-hero-layout">
     <section class="sample-section" aria-labelledby="sample-title">
