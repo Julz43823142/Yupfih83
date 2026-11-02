@@ -27,7 +27,20 @@ async function load(){
       const raw=String(item.priority||"").toUpperCase().replace(/[-_]/g," ");
       const priority=["LOW","MODERATE","HIGH","VERY HIGH"].includes(raw)?raw:"Not available";
       const score=cell(row,priority,"top100-priority");
-      if(priority!=="Not available")score.classList.add("priority-"+priority.toLowerCase().replaceAll(" ","-"));
+      if(priority!=="Not available"){
+        score.classList.add("priority-"+priority.toLowerCase().replaceAll(" ","-"));
+        if(item.has_report){
+          score.textContent="";
+          const reviewLink=document.createElement("a");
+          reviewLink.className="top100-review-link";
+          reviewLink.href="/?review="+encodeURIComponent(item.username);
+          reviewLink.textContent=priority+" ↗";
+          reviewLink.title="Open the latest saved Fair Play Review";
+          score.appendChild(reviewLink);
+        }else{
+          score.title="Saved report not yet available; run a new analysis to enable this link";
+        }
+      }
       const action=cell(row,"");const link=document.createElement("a");
       link.className="top100-analyze";link.href="/?analyze="+encodeURIComponent(item.username);
       link.textContent="Analyze →";action.appendChild(link);
