@@ -390,15 +390,18 @@ const reviewPanel=document.createElement('section');reviewPanel.id='game-review'
 reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 let reviewWorker=null,reviewCancelled=false;
-function reviewCategory(loss,book,best,move,brilliant=false,great=false){
+function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
+function reviewMoveAccuracy(loss){return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669))}
+function reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin){
+ if(book)return {label:'Book',symbol:'📖'};
  if(brilliant)return {label:'Brilliant',symbol:'!!'};
  if(great)return {label:'Great',symbol:'!'};
- if(book)return {label:'Book',symbol:'📖'};
- if(loss<=12&&best)return {label:'Best',symbol:'★'};
- if(loss<=22)return {label:'Good',symbol:'✓'};
- if(loss<=48)return {label:'Good',symbol:'✓'};
- if(loss<=95)return {label:'Inaccuracy',symbol:'?!'};
- if(loss<=210)return {label:'Mistake',symbol:'?'};
+ if(best)return {label:'Best',symbol:'★'};
+ if(bestWin>=70&&actualWin>=35&&actualWin<62&&loss>=12&&loss<30)return {label:'Miss',symbol:'🎯'};
+ if(loss<=2)return {label:'Excellent',symbol:'✨'};
+ if(loss<=5)return {label:'Good',symbol:'✓'};
+ if(loss<=10)return {label:'Inaccuracy',symbol:'?!'};
+ if(loss<=20)return {label:'Mistake',symbol:'?'};
  return {label:'Blunder',symbol:'??'};
 }
 function stopReview(){
@@ -450,20 +453,26 @@ $('review-start').onclick=async()=>{
   const categories=[],counts={};
   for(let i=0;i<moves.length;i++){
    const mover=i%2===0?1:-1;
-   const loss=Math.max(0,(evaluations[i].white-evaluations[i+1].white)*mover);
+   const bestWin=reviewWin(evaluations[i].white*mover),actualWin=reviewWin(evaluations[i+1].white*mover);const loss=Math.max(0,bestWin-actualWin);
    let best=false;
    try{const before=new Chess(snapshot[i]),played=before.move(moves[i]);best=!!played&&evaluations[i].pv===played.from+played.to+(played.promotion||'')}catch{}
-   const book=i<8&&loss<=30;
-   const second=evaluations[i].second;const win=cp=>100/(1+Math.exp(-.00368208*cp));const moverSide=i%2===0?'w':'b';const before=new Chess(snapshot[i]);const material=b=>b.board().flat().reduce((v,p)=>v+(p?(p.color===moverSide?1:-1)*({p:100,n:320,b:330,r:500,q:900,k:0}[p.type]):0),0);const beforeMat=material(before);before.move(moves[i]);const sacrifice=beforeMat-material(before);const brilliant=best&&!book&&sacrifice>=250&&win(evaluations[i+1].white*mover)>=50&&before.moves().length>1;const great=best&&!book&&!brilliant&&second!==null&&win(evaluations[i].white*mover)-win(second*mover)>=8;const category=reviewCategory(loss,book,best,moves[i],brilliant,great);
-   categories.push({...category,loss:Math.round(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
+   const book=i<8&&loss<=2;
+   const second=evaluations[i].second;const win=cp=>100/(1+Math.exp(-.00368208*cp));const moverSide=i%2===0?'w':'b';const before=new Chess(snapshot[i]);const material=b=>b.board().flat().reduce((v,p)=>v+(p?(p.color===moverSide?1:-1)*({p:100,n:320,b:330,r:500,q:900,k:0}[p.type]):0),0);const alternatives=before.moves().length;const beforeMat=material(before);before.move(moves[i]);const sacrifice=beforeMat-material(before);const brilliant=best&&!book&&sacrifice>=250&&actualWin>=50&&alternatives>1&&(second===null||reviewWin(second*mover)<90);const great=best&&!book&&!brilliant&&second!==null&&win(evaluations[i].white*mover)-win(second*mover)>=8;const category=reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin);
+   categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
   status.textContent='Review complete: '+moves.length+' half-moves analyzed at depth 12.';
   const title=document.createElement('h3');title.textContent='Move classifications';summary.append(title);
-  for(const name of ['Brilliant','Great','Book','Best','Good','Inaccuracy','Mistake','Blunder']){
+  for(const name of ['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Miss','Blunder']){
    const row=document.createElement('div');row.className='review-stat';row.textContent=name+': '+(counts[name]||0);summary.append(row);
   }
-  const note=document.createElement('p');note.textContent='Brilliant and Great require additional tactical validation; this review does not award them automatically. Book is an opening-phase estimate, not a verified opening-book match.';summary.append(note);
+  const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy (estimated)';summary.prepend(accuracyTitle);
+  for(const [side,label] of [[0,'White'],[1,'Black']]){
+   const rows=categories.filter((x,i)=>i%2===side&&x.label!=='Book');
+   const avg=rows.length?rows.reduce((sum,x)=>sum+x.accuracy,0)/rows.length:null;
+   const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);
+  }
+  const note=document.createElement('p');note.textContent='Estimated using a published win-chance accuracy curve, not Chess.com CAPS2. Labels use win-chance loss and conservative tactical rules. Book moves are estimated, not verified. Engine depth 12 may change results.';summary.append(note);
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
