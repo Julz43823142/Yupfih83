@@ -389,7 +389,7 @@ $('load').onclick=async()=>{const value=$('import-value').value.trim();const sta
 const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
 reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
-let reviewWorker=null,reviewCancelled=false;
+const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (1 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
 function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
 function reviewMoveAccuracy(loss){return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669))}
 function reviewAccuracy(rows,positions,side){
@@ -446,7 +446,7 @@ $('review-start').onclick=async()=>{
   const evaluations=[];
   for(let i=0;i<snapshot.length;i++){
    if(reviewCancelled)throw Error('Cancelled');
-   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, depth 12)…';
+   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+(reviewSpeedSelect.value==='fast'?'1 second':'depth 12')+')…';
    let lastScore=null,lastPv=null,secondScore=null;
    const result=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
@@ -461,7 +461,7 @@ $('review-start').onclick=async()=>{
     }
     worker.addEventListener('message',listener);
    });
-   worker.postMessage('position fen '+snapshot[i]);worker.postMessage('go depth 12');
+   worker.postMessage('position fen '+snapshot[i]);worker.postMessage(reviewSpeedSelect.value==='fast'?'go movetime 1000':'go depth 12');
    const info=await result;
    if(!info.score)throw Error('Engine returned no evaluation');
    const side=snapshot[i].split(' ')[1]==='w'?1:-1;
@@ -479,7 +479,7 @@ $('review-start').onclick=async()=>{
    categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
-  status.textContent='Review complete: '+moves.length+' half-moves analyzed at depth 12.';
+  status.textContent='Review complete: '+moves.length+' half-moves analyzed ('+(reviewSpeedSelect.value==='fast'?'1 second per position':'depth 12')+').';
   const title=document.createElement('h3');title.textContent='Move classifications';summary.append(title);
   for(const name of ['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Miss','Blunder']){
    const row=document.createElement('div');row.className='review-stat';row.textContent=name+': '+(counts[name]||0);summary.append(row);
@@ -490,7 +490,7 @@ $('review-start').onclick=async()=>{
    const avg=reviewAccuracy(categories,evaluations.map(x=>reviewWin(x.white)),side);
    const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);
   }
-  const note=document.createElement('p');note.textContent='Estimated using a published win-chance accuracy curve, not Chess.com CAPS2. Labels use win-chance loss and conservative tactical rules. Book is not awarded without a verified opening database. Engine depth 12 may change results.';summary.append(note);
+  const note=document.createElement('p');note.textContent='Estimated using a published win-chance accuracy curve, not Chess.com CAPS2. Labels use win-chance loss and conservative tactical rules. Book is not awarded without a verified opening database. Fast mode uses approximately one second per position; analysis settings can change results.';summary.append(note);
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
