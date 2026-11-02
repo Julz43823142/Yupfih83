@@ -797,7 +797,7 @@ async function showExample(username,displayName){
   }
 }
 // Real D1 SUS vote leaderboard; never display fictional example totals.
-const susTop5=document.getElementById("sus-top5-list");
+const susTop5=document.getElementById("sus-top10-list");
 function showSusRanking(target,players){
   target.replaceChildren();
   if(!Array.isArray(players)||!players.length){add(target,"li","sus-rank-message","No votes yet.");return;}
@@ -812,7 +812,7 @@ function showSusRanking(target,players){
   }
 }
 async function refreshSusTop5(){
-  try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=5")).players);}
+  try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=10")).players);}
   catch{susTop5.replaceChildren();add(susTop5,"li","sus-rank-message","Ranking temporarily unavailable.");}
 }
 refreshSusTop5();
