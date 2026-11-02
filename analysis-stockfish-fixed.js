@@ -417,9 +417,9 @@ $('review-start').onclick=async()=>{
   worker.addEventListener('message',listener);
  });
  try{
-  worker.postMessage('uci');await waitFor(line=>line.includes('uciok'));
+  const uciReady=waitFor(line=>line.includes('uciok'));worker.postMessage('uci');await uciReady;
   worker.postMessage('setoption name MultiPV value 1');
-  worker.postMessage('isready');await waitFor(line=>line.includes('readyok'));
+  const ready=waitFor(line=>line.includes('readyok'));worker.postMessage('isready');await ready;
   const evaluations=[];
   for(let i=0;i<snapshot.length;i++){
    if(reviewCancelled)throw Error('Cancelled');
