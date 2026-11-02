@@ -54,6 +54,14 @@ export async function onRequestGet({ params, env }) {
         await env.SUS_DB.prepare("INSERT INTO sus_recent_reviews(username,priority,updated_at) VALUES(?,?,datetime('now')) ON CONFLICT(username) DO UPDATE SET priority=excluded.priority,updated_at=excluded.updated_at").bind(name,priority).run();
       }catch(error){ console.warn("SUS ranking score save failed",error); }
     }
+    // Retain only the latest completed report per player, not historical reports.
+    if(env.SUS_DB&&/^[a-z0-9_-]{3,25}$/.test(name)){
+      try{
+        await env.SUS_DB.prepare(
+          "INSERT INTO sus_latest_reports(username,report_json,run_started_at) VALUES(?,?,?) ON CONFLICT(username) DO UPDATE SET report_json=excluded.report_json,run_started_at=excluded.run_started_at WHERE excluded.run_started_at >= sus_latest_reports.run_started_at"
+        ).bind(name,JSON.stringify(result),run.created_at||new Date().toISOString()).run();
+      }catch(error){console.warn("Latest review storage unavailable",error);}
+    }
     const sus_proof=await issueReviewProof(result.username,env.GITHUB_TOKEN);
     return json({ state: "complete", result, sus_proof });
   } catch {
