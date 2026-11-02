@@ -972,3 +972,21 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
 
 .top100-priority .top100-review-link{display:inline-block;color:inherit!important;text-decoration:underline;text-underline-offset:4px;border-radius:6px;padding:5px 7px;background:rgba(255,255,255,.06)}
 .top100-priority .top100-review-link:hover,.top100-priority .top100-review-link:focus-visible{background:rgba(255,255,255,.17);outline:2px solid currentColor;outline-offset:2px}
+
+/* Keep the sample reports anchored on the left; center the three feature cards
+   more closely above the Responsible Fair Play Research panel. */
+@media (min-width:1300px) {
+  main > .below-hero-layout > .features {
+    position:relative;
+    left:-55px;
+    width:calc(100% + 35px);
+    max-width:1100px;
+  }
+}
+@media (min-width:1050px) and (max-width:1299px) {
+  main > .below-hero-layout > .features {
+    position:relative;
+    left:-18px;
+    width:calc(100% + 12px);
+  }
+}
