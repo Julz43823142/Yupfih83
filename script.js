@@ -799,17 +799,17 @@ async function showExample(username,displayName){
 // Real D1 SUS vote leaderboard; never display fictional example totals.
 const susTop5=document.getElementById("sus-top10-list");
 function showSusRanking(target,players){
-  target.replaceChildren();
-  if(!Array.isArray(players)||!players.length){add(target,"li","sus-rank-message","No votes yet.");return;}
-  for(const entry of players){
-    const name=String(entry.username||"");
-    if(!/^[a-z0-9_-]{3,25}$/i.test(name))continue;
-    const row=add(target,"li","");
-    const link=add(row,"a","sus-rank-name",name);
-    link.href="https://www.chess.com/member/"+encodeURIComponent(name);
-    link.target="_blank";link.rel="noopener noreferrer";
-    add(row,"span","sus-rank-count",number(Number(entry.votes)||0,0));
-  }
+ target.replaceChildren();
+ const valid=(Array.isArray(players)?players:[]).filter(entry=>/^[a-z0-9_-]{3,25}$/i.test(String(entry.username||''))).slice(0,10);
+ for(let i=0;i<10;i++){
+  const row=add(target,'li','');
+  if(i>=valid.length){add(row,'span','sus-rank-name','·');continue}
+  const entry=valid[i],name=String(entry.username);
+  const link=add(row,'a','sus-rank-name',name);
+  link.href='https://www.chess.com/member/'+encodeURIComponent(name);
+  link.target='_blank';link.rel='noopener noreferrer';
+  add(row,'span','sus-rank-count',number(Number(entry.votes)||0,0));
+ }
 }
 async function refreshSusTop5(){
   try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=10")).players);}
