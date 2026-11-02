@@ -4,7 +4,7 @@ let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arro
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
-const ENGINE_JS='/engine/stockfish-19-lite-single.js';
+const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
 function requestAnalysis(){
  if(!engine||!engineReady||!engineSwitch.checked)return;
@@ -12,7 +12,7 @@ function requestAnalysis(){
  engine.postMessage('stop');
  engine.postMessage('position fen '+engineFen);
  engine.postMessage('go depth 14');
- engineInfo.textContent=(engineFallback?'Stockfish 19 ASM':'Stockfish 19 Lite')+' · calculating…';
+ engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · calculating…';
 }
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
@@ -24,7 +24,7 @@ function engineFailed(message){
  cleanupEngine();
  if(!engineFallback){
   engineFallback=true;
-  engineInfo.textContent='Trying Stockfish 19 JavaScript fallback…';
+  engineInfo.textContent='Local engine unavailable; trying Stockfish CDN…';
   launchEngine(true);
  }else{
   engineSwitch.checked=false;
@@ -36,7 +36,7 @@ function launchEngine(useCdn){
   cleanupEngine();
   if(useCdn){
    // Blob URL creates a same-origin Worker that can load the official CDN engine.
-   const source="self.Module={locateFile:function(path){return '"+CDN_BASE+"'+path;}};importScripts('/engine/stockfish-19-asm.js');";
+   const source="self.Module={locateFile:function(path){return '"+CDN_BASE+"'+path;}};importScripts('"+CDN_BASE+"stockfish-19-lite-single.js');";
    engineWorkerUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
    engine=new Worker(engineWorkerUrl);
   }else{
@@ -55,12 +55,12 @@ function launchEngine(useCdn){
      const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
      if(score&&pv){
       const value=score[1]==='mate'?'Mate '+score[2]:(Number(score[2])/100).toFixed(2);
-      engineInfo.textContent=(engineFallback?'Stockfish 19 ASM':'Stockfish 19 Lite')+' · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
+      engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · depth '+(depth?.[1]||'?')+' · '+value+' (side to move) · best move '+pv[1];
      }
     }
    }
   };
-  engine.onerror=e=>{e.preventDefault?.();engineFailed('engine worker failed to load')};
+  engine.onerror=e=>{e.preventDefault?.();engineFailed(e.message||'worker script failed')};
   engine.postMessage('uci');
   engineTimer=setTimeout(()=>{if(!engineReady&&engineSwitch.checked)engineFailed('engine did not respond in time')},20000);
  }catch(e){engineFailed(e.message||'Worker unavailable')}
