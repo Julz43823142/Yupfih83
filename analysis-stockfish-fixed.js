@@ -108,6 +108,9 @@ function renderEngineLines(){
   }
   const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
   row.append(rank,moves,score);
+  row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]||item.uci);
+  const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());cursor++;selected=null;arrows=[];render();requestAnalysis()}catch{}};
+  row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
   enginePanel.append(row);
  }
 }
@@ -204,7 +207,7 @@ function squareAt(x,y){const rect=board.getBoundingClientRect();const file=Math.
 board.addEventListener('contextmenu',e=>e.preventDefault());
 board.addEventListener('pointerdown',e=>{const sq=squareAt(e.clientX,e.clientY);if(!sq)return;if(e.button===2){rightStart=sq;e.preventDefault();return}if(e.button!==0)return;const pos=new Chess(history[cursor]),piece=pos.get(sq);if(!piece||piece.color!==pos.turn())return;const source=e.target.closest('button');if(!source)return;drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null};e.preventDefault()});
 board.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>6){drag.active=true;const img=drag.source.querySelector('img');drag.ghost=img?img.cloneNode(true):document.createElement('span');if(!img)drag.ghost.textContent=drag.source.textContent;drag.ghost.className='dragging-chess-piece';deselectDraggedSource(drag.source);document.body.append(drag.ghost)}if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}});
-window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.startsWith(to));target?.click()});
+window.addEventListener('pointerup',e=>{if(e.button===2&&rightStart){const to=squareAt(e.clientX,e.clientY);if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}rightStart=null;return}if(!drag)return;const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');const to=squareAt(e.clientX,e.clientY);if(!to)return;if(!d.active){selected=selected===d.from?null:d.from;render();return}selected=d.from;const target=[...board.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')?.slice(0,2)===to);if(target&&to!==d.from)target.click();else render()});
 
 function drawArrows(){
  const old=board.querySelector('svg.arrows');if(old)old.remove();
