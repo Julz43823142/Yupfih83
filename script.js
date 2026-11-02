@@ -1,3 +1,13 @@
+const PERFORMANCE_LABELS = Object.freeze({
+  "LOW":"Within Typical Performance Range",
+  "MODERATE":"Moderate Performance Variation",
+  "HIGH":"Notable Performance",
+  "VERY HIGH":"Strongly Notable Performance"
+});
+function performanceLabel(value){
+  const key=String(value||"").toUpperCase().replace(/[-_]/g," ").trim();
+  return PERFORMANCE_LABELS[key] || value || "Unavailable";
+}
 /* EloScanner — v87 statistical review.
  * Configure API_URL after deploying fairplay_web_api.py from the bot repo.
  */
@@ -206,7 +216,7 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
       const priority=String(period.priority||"").toUpperCase();
       const shade=period.context?"#ad82ff":priority==="VERY HIGH"?"#f05c70":priority==="HIGH"?"#f59b52":priority==="MODERATE"?"#f4d06f":"#5fbf93";
       node("rect",{x:px,y:T,width:right-px,height:H-T-B,fill:shade,"fill-opacity":".16",stroke:shade,"stroke-width":1.6});
-      node("text",{x:px+5,y:T+15,fill:shade,"font-size":13,"font-weight":700},period.context?"Context":priority);
+      node("text",{x:px+5,y:T+15,fill:shade,"font-size":13,"font-weight":700},period.context?"Context":performanceLabel(priority));
     }
   }
   const targets=[];
@@ -285,7 +295,7 @@ function realCharts(parent,data){
   if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and do not provide reliable period-level Fair Play evidence.");
   const help=add(parent,"div","period-explanation");
   const high=add(help,"p","");
-  add(high,"strong","period-high","HIGH period — ");
+  add(high,"strong","period-high","Notable Performance period — ");
   add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This is a review priority, not proof of cheating.");
   const context=add(help,"p","");
   add(context,"strong","period-context","Context — ");
@@ -386,7 +396,7 @@ function realCharts(parent,data){
       ?"Orange dashed: observed rolling 10-game points · blue/cyan/purple: expected points (same ten-game window)"
       :"Orange dots: individual results (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
-    if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange HIGH · red VERY HIGH · yellow MODERATE · purple same-date context. Not proof of cheating.");
+    if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange Notable Performance · red Strongly Notable Performance · yellow Moderate Performance Variation · purple same-date context. Not proof of cheating.");
     draw();
   }
 }
@@ -536,7 +546,7 @@ function renderReview(data) {
   const top = add(panel, "div", "v87-top");
   const left = add(top, "div");
   add(left, "span", "eyebrow", "FAIR PLAY REVIEW");
-  const priorityHeading=add(left, "h3", "v87-priority", data.priority || "UNAVAILABLE");
+  const priorityHeading=add(left, "h3", "v87-priority", performanceLabel(data.priority));
   const level=String(data.priority||"").toUpperCase().replaceAll(" ","-");
   if(["LOW","MODERATE","HIGH","VERY-HIGH"].includes(level))
     priorityHeading.classList.add("v87-priority-"+level.toLowerCase());
@@ -648,11 +658,11 @@ async function showSusVoting(username,proof){
   function renderState(state){
     voted=!!state.voted;
     count.textContent=number(state.count,0)+" CIP points";
-    action.textContent=voted?"Voted ✓":"CIP +1";
+    action.textContent=voted?"CIP added ✓":"CIP +1";
     action.setAttribute("aria-pressed",String(voted));
     action.setAttribute("aria-label",voted?"Undo your CIP point":"Add one CIP point");
     action.disabled=false;
-    hint.textContent=voted?"Click Voted ✓ to remove your CIP point.":"CIP means Community Interest Points — interest in analysis, not evidence of cheating.";
+    hint.textContent=voted?"Click CIP added ✓ to remove your CIP point.":"CIP means Community Interest Points — interest in analysis, not evidence of cheating.";
   }
   action.addEventListener("click",async()=>{
     const wasVoted=voted;
