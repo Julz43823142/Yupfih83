@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS sus_redeemed_proofs (proof_id TEXT PRIMARY KEY, username TEXT NOT NULL, redeemed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);

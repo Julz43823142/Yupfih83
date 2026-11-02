@@ -43,6 +43,13 @@ export async function onRequestPost({request,params,env}){
   if(!await validateReviewProof(body?.proof,username,env.GITHUB_TOKEN))
     return json({error:"Finish a player analysis before voting"},403);
   try {
+    // A signed report proof may be redeemed only once, including after cookie deletion.
+    const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(body.proof));
+    const proofId=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
+    const redeemed=await env.SUS_DB.prepare(
+      "INSERT OR IGNORE INTO sus_redeemed_proofs (proof_id, username) VALUES (?, ?)"
+    ).bind(proofId,username).run();
+    if(!(redeemed.meta?.changes>0)) return json({error:"This review has already been used to vote"},409);
     const voter=await getVoter(request,env.GITHUB_TOKEN);
     // Unique composite key prevents duplicate clicks or simultaneous requests.
     const insert=await env.SUS_DB.prepare(
