@@ -83,11 +83,11 @@ function scoreLabel(type,value){
 }
 function variationText(pv){
  const gameLine=new Chess(engineFen),moves=[];
- for(const uci of pv.slice(0,10)){
+ for(const [j,uci] of pv.slice(0,10).entries()){
   try{
    const move=gameLine.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
    if(!move)break;
-   const number=Math.floor((gameLine.history().length-1+Number(engineFen.split(' ')[5]||1)*2-2)/2)+1;
+   const number=Number(engineFen.split(' ')[5]||1)+Math.floor((j+(engineFen.split(' ')[1]==='b'?1:0))/2);
    const prefix=gameLine.turn()==='b'?number+'.':number+'...';
    moves.push({prefix,san:move.san});
   }catch{break}
