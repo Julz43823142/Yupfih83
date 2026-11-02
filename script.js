@@ -633,49 +633,50 @@ function renderReview(data) {
 // The SUS control is not constructed until the server confirms a finished analysis.
 let activeSusProof=null;
 async function showSusVoting(username,proof){
-  const header=playerCard.querySelector(".player-header");
   const identity=playerCard.querySelector(".player-identity");
-  if(!header||!identity||!proof)return;
+  if(!identity||!proof)return;
   const normalized=String(username||"").trim().toLowerCase();
   if(!/^[a-z0-9_-]{3,25}$/.test(normalized))return;
-  // Remove any previous control when a new report is displayed.
   playerCard.querySelector(".sus-widget")?.remove();
   const widget=add(identity,"div","sus-widget");
   const action=add(widget,"button","sus-button","SUS +1");
   action.type="button";action.disabled=true;
-  action.setAttribute("aria-label","Mark this player's results as suspicious (community opinion)");
   const count=add(widget,"span","sus-count","— SUS votes");
   const hint=add(widget,"span","sus-description","Community opinions, not evidence of cheating.");
   hint.setAttribute("role","status");
-  async function update(){
-    const state=await getJSON("/api/sus/"+encodeURIComponent(normalized));
+  let voted=false;
+  function renderState(state){
+    voted=!!state.voted;
     count.textContent=number(state.count,0)+" SUS votes";
-    action.disabled=!!state.voted;
-    action.textContent=state.voted?"Voted ✓":"SUS +1";
-    if(state.voted)hint.textContent="You already voted for this player · community opinion only.";
+    action.textContent=voted?"Voted ✓":"SUS +1";
+    action.setAttribute("aria-pressed",String(voted));
+    action.setAttribute("aria-label",voted?"Undo your SUS vote":"Vote SUS +1");
+    action.disabled=false;
+    hint.textContent=voted?"Click Voted ✓ to undo your vote.":"Community opinions, not evidence of cheating.";
   }
   action.addEventListener("click",async()=>{
+    const wasVoted=voted;
     action.disabled=true;
-    hint.textContent="Recording your vote…";
+    hint.textContent=wasVoted?"Removing your vote…":"Recording your vote…";
     try{
-      const reply=await getJSON("/api/sus/"+encodeURIComponent(normalized),{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({proof})
-      });
-      count.textContent=number(reply.count,0)+" SUS votes";
-      action.textContent="Voted ✓";action.disabled=true;
+      const reply=await getJSON("/api/sus/"+encodeURIComponent(normalized),
+        wasVoted?{method:"DELETE"}:{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({proof})
+        });
+      renderState(reply);
       refreshSusTop5();
-      hint.textContent=reply.new_vote?"Vote recorded · not a cheating verdict.":
-        "You have already voted for this player.";
     }catch(error){
       action.disabled=false;
-      hint.textContent="Vote unavailable: "+error.message;
+      hint.textContent=(wasVoted?"Unable to undo vote: ":"Vote unavailable: ")+error.message;
     }
   });
-  try{await update();}catch(error){
+  try{
+    renderState(await getJSON("/api/sus/"+encodeURIComponent(normalized)));
+  }catch(error){
     action.disabled=true;
     count.textContent="Voting unavailable";
-    hint.textContent="The community voting service is not configured yet.";
+    hint.textContent="The community voting service is temporarily unavailable.";
   }
 }
 
