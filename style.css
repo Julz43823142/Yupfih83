@@ -990,3 +990,39 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
     width:calc(100% + 12px);
   }
 }
+
+/* Homepage desktop layout: the example reports are anchored immediately below
+   the hero, independently of the dynamically inserted analysis results.
+   Feature cards are centered against the full page, not the sidebar column. */
+@media (min-width:1050px) {
+  main { position:relative; }
+  main > .below-hero-layout {
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+  main > .below-hero-layout > .sample-section {
+    position:absolute !important;
+    top:calc(580px + 28px);
+    left:clamp(24px,3vw,56px);
+    width:clamp(240px,18vw,300px) !important;
+    max-width:300px !important;
+    margin:0 !important;
+    padding:0 !important;
+    transform:none !important;
+    z-index:2;
+  }
+  main > .below-hero-layout > .features {
+    position:static !important;
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    width:min(1050px,calc(100% - 390px)) !important;
+    max-width:1050px !important;
+    margin:0 auto !important;
+    padding:45px 0 60px !important;
+    gap:18px;
+    transform:none !important;
+  }
+}
