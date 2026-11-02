@@ -1000,17 +1000,24 @@ async function load(user){
   if(!res.ok)throw Error('Chess.com returned '+res.status);
   const urls=((await res.json()).archives||[]).slice(-24);
   const games=[];let failed=0;
-  // Limit concurrent requests to avoid excessive traffic and keep the main report responsive.
-  for(let i=0;i<urls.length;i+=4){
-   const batch=await Promise.all(urls.slice(i,i+4).map(async url=>{
-    try{const r=await fetch(url);if(!r.ok)throw Error(String(r.status));return (await r.json()).games||[]}
-    catch{return null}
-   }));
+  // Chess.com's PubAPI recommends serial requests; parallel archive fetches can trigger HTTP 429.
+  for(let i=0;i<urls.length;i++){
    if(current!==generation)return;
-   for(const items of batch){if(!items){failed++;continue}for(const g of items){const item=classify(g,user);if(item)games.push(item)}}
+   try{
+    const response=await fetch(urls[i]);
+    if(!response.ok)throw Error('Archive returned '+response.status);
+    const payload=await response.json();
+    for(const raw of payload.games||[]){const item=classify(raw,user);if(item)games.push(item)}
+   }catch{failed++}
+   if(current!==generation)return;
+   // Show usable insights early, even if a complete multi-month load is still in progress.
+   if((i+1)%3===0||i===urls.length-1){
+    games.sort((a,b)=>b.date-a.date);
+    render(user,games,i+1,failed);
+    if(i<urls.length-1)target.prepend(node('p','insights-intro','Loading additional months: '+(i+1)+' / '+urls.length));
+   }
   }
-  if(current!==generation)return;
-  games.sort((a,b)=>b.date-a.date);render(user,games,urls.length,failed);
+  if(!urls.length)render(user,[],0,0);
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
 }
 form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
