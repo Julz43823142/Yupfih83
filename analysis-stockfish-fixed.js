@@ -16,8 +16,10 @@ evalWrap.setAttribute('aria-valuemax','10');
 const evalTrack=document.createElement('div');evalTrack.className='board-eval-track';
 const evalWhite=document.createElement('div');evalWhite.className='board-eval-white';
 const evalText=document.createElement('span');evalText.className='board-eval-text';evalText.textContent='0.00';
-evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
-board.insertAdjacentElement('beforebegin',evalWrap);
+evalTrack.append(evalWhite);evalWrap.append(evalTrack,evalText);
+const boardLayout=document.createElement('div');boardLayout.className='board-with-eval';
+board.parentNode.insertBefore(boardLayout,board);
+boardLayout.append(evalWrap,board);
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
