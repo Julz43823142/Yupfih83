@@ -390,7 +390,9 @@ const reviewPanel=document.createElement('section');reviewPanel.id='game-review'
 reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 let reviewWorker=null,reviewCancelled=false;
-function reviewCategory(loss,book,best,move){
+function reviewCategory(loss,book,best,move,brilliant=false,great=false){
+ if(brilliant)return {label:'Brilliant',symbol:'!!'};
+ if(great)return {label:'Great',symbol:'!'};
  if(book)return {label:'Book',symbol:'📖'};
  if(loss<=12&&best)return {label:'Best',symbol:'★'};
  if(loss<=22)return {label:'Good',symbol:'✓'};
@@ -418,22 +420,22 @@ $('review-start').onclick=async()=>{
  });
  try{
   const uciReady=waitFor(line=>line.includes('uciok'));worker.postMessage('uci');await uciReady;
-  worker.postMessage('setoption name MultiPV value 1');
+  worker.postMessage('setoption name MultiPV value 2');
   const ready=waitFor(line=>line.includes('readyok'));worker.postMessage('isready');await ready;
   const evaluations=[];
   for(let i=0;i<snapshot.length;i++){
    if(reviewCancelled)throw Error('Cancelled');
    status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, depth 12)…';
-   let lastScore=null,lastPv=null;
+   let lastScore=null,lastPv=null,secondScore=null;
    const result=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
     function listener(e){
      for(const line of String(e.data).split(/\r?\n/)){
       if(line.startsWith('info ')&&line.includes(' score ')){
        const score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
-       if(score){lastScore=score;lastPv=pv?.[1]||lastPv}
+       if(score){if(line.includes('multipv 2'))secondScore=Number(score[2]);else{lastScore=score;lastPv=pv?.[1]||lastPv}}
       }
-      if(line.startsWith('bestmove ')){clearTimeout(timer);worker.removeEventListener('message',listener);resolve({score:lastScore,pv:lastPv})}
+      if(line.startsWith('bestmove ')){clearTimeout(timer);worker.removeEventListener('message',listener);resolve({score:lastScore,pv:lastPv,second:secondScore})}
      }
     }
     worker.addEventListener('message',listener);
@@ -443,7 +445,7 @@ $('review-start').onclick=async()=>{
    if(!info.score)throw Error('Engine returned no evaluation');
    const side=snapshot[i].split(' ')[1]==='w'?1:-1;
    const value=info.score[1]==='mate'?(Number(info.score[2])>0?1200:-1200):Number(info.score[2]);
-   evaluations.push({white:value*side,pv:info.pv});
+   evaluations.push({white:value*side,pv:info.pv,second:info.second===null?null:info.second*side});
   }
   const categories=[],counts={};
   for(let i=0;i<moves.length;i++){
@@ -452,7 +454,7 @@ $('review-start').onclick=async()=>{
    let best=false;
    try{const before=new Chess(snapshot[i]),played=before.move(moves[i]);best=!!played&&evaluations[i].pv===played.from+played.to+(played.promotion||'')}catch{}
    const book=i<8&&loss<=30;
-   const category=reviewCategory(loss,book,best,moves[i]);
+   const second=evaluations[i].second;const win=cp=>100/(1+Math.exp(-.00368208*cp));const moverSide=i%2===0?'w':'b';const before=new Chess(snapshot[i]);const material=b=>b.board().flat().reduce((v,p)=>v+(p?(p.color===moverSide?1:-1)*({p:100,n:320,b:330,r:500,q:900,k:0}[p.type]):0),0);const beforeMat=material(before);before.move(moves[i]);const sacrifice=beforeMat-material(before);const brilliant=best&&!book&&sacrifice>=250&&win(evaluations[i+1].white*mover)>=50&&before.moves().length>1;const great=best&&!book&&!brilliant&&second!==null&&win(evaluations[i].white*mover)-win(second*mover)>=8;const category=reviewCategory(loss,book,best,moves[i],brilliant,great);
    categories.push({...category,loss:Math.round(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
