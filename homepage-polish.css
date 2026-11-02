@@ -82,3 +82,5 @@ main>.below-hero-layout>.features .feature-illustration{
 @media(min-width:1100px){.hero .hero-sus-ranking{width:clamp(375px,30vw,525px)!important}}
 
 @media(min-width:1100px){.hero .hero-sus-ranking{width:clamp(370px,29.6vw,518px)!important}}
+
+@media(min-width:1100px){.hero .hero-sus-ranking{width:clamp(368px,29.4vw,515px)!important}}
