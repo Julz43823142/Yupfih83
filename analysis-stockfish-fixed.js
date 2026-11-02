@@ -23,7 +23,7 @@ boardLayout.append(evalWrap,board);
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
-  evalWrap.classList.add('eval-inactive');evalWhite.style.width='50%';evalText.textContent='—';
+  evalWrap.classList.add('eval-inactive');evalWhite.style.height='50%';evalText.textContent='—';
   evalWrap.setAttribute('aria-valuenow','0');evalWrap.setAttribute('aria-valuetext','Analysis disabled or calculating');return;
  }
  evalWrap.classList.remove('eval-inactive');
@@ -31,7 +31,7 @@ function updateEvalBar(){
  const cp=item.type==='mate'?(Number(item.value)>0?10000:-10000)*sign:Number(item.value)*sign;
  const pawns=cp/100;
  const whitePercent=Math.max(3,Math.min(97,50+50*(2/Math.PI)*Math.atan(pawns/2.2)));
- evalWhite.style.width=whitePercent+'%';
+ evalWhite.style.height=whitePercent+'%';
  const label=item.type==='mate'?'M'+(Number(item.value)*sign):((pawns>=0?'+':'')+pawns.toFixed(2));
  evalText.textContent=label;
  evalWrap.setAttribute('aria-valuenow',String(Math.max(-10,Math.min(10,pawns))));
