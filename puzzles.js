@@ -8,6 +8,45 @@ let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=n
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
 let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,lastRun=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
+
+let soundOn=true,audioCtx=null;
+function unlockAudio(){
+ if(!soundOn)return;
+ try{
+  const Ctor=window.AudioContext||window.webkitAudioContext;
+  if(!Ctor)return;
+  if(!audioCtx)audioCtx=new Ctor();
+  if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+ }catch{}
+}
+// Short synthesised sounds — no third-party audio files.
+function playSound(kind){
+ if(!soundOn||!audioCtx||audioCtx.state!=='running')return;
+ const patterns={
+  move:[[420,.048,.08,'triangle']],
+  capture:[[230,.068,.16,'triangle'],[145,.052,.10,'sine']],
+  check:[[660,.075,.12,'triangle'],[940,.11,.11,'sine']],
+  mate:[[520,.070,.14,'triangle'],[780,.085,.14,'triangle'],[1040,.17,.14,'sine']],
+  end:[[390,.11,.12,'sine'],[260,.17,.12,'sine']]
+ };
+ let offset=0;
+ for(const [frequency,duration,volume,wave] of patterns[kind]||patterns.move){
+  const at=audioCtx.currentTime+offset,osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+  osc.type=wave;osc.frequency.setValueAtTime(frequency,at);
+  gain.gain.setValueAtTime(.0001,at);
+  gain.gain.exponentialRampToValueAtTime(volume,at+.008);
+  gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start(at);osc.stop(at+duration+.015);
+  offset+=duration*.85;
+ }
+}
+function soundForMove(move){
+ if(position.isCheckmate())playSound('mate');
+ else if(position.isCheck())playSound('check');
+ else playSound(move?.captured||move?.flags?.includes('e')?'capture':'move');
+}
+
 function clock(){return Math.max(0,Math.ceil((deadline-Date.now())/1000))}
 function stats(){
  $('puzzle-elo').textContent=puzzle?.rating||'—';$('puzzle-solved').textContent=solved;
@@ -168,13 +207,14 @@ async function load(kind=mode){
  stats();buttons();draw();
 }
 function finish(){
- ready=false;solved++;say('Correct! Puzzle solved.','success');stats();buttons();
+ ready=false;solved++;if(!position.isCheckmate())playSound('mate');say('Correct! Puzzle solved.','success');stats();buttons();
  if(runActive){
   const activeMode=mode;auto=setTimeout(()=>{if(runActive&&mode===activeMode)load(mode)},850);
  }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
  const recordedMode=mode,score=solved,duration=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
+ playSound('end');
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
  lastRun={mode:recordedMode,score,duration};
  $('puzzle-save-run').hidden=false;
@@ -204,14 +244,14 @@ function play(from,to,promotion=null){
  const actual=from+to+(legal.promotion||'');
  const copy=new Chess(position.fen());copy.move({from,to,promotion:chosen});
  if(actual!==expected&&!copy.isCheckmate()){mistake(to);return false}
- position.move({from,to,promotion:chosen});closePromotion();
+ const completedMove=position.move({from,to,promotion:chosen});unlockAudio();soundForMove(completedMove);closePromotion();
  lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;draw();
  if(step>=solution.length||position.isCheckmate()){finish();return true}
  busy=true;buttons();const current=requestId;
  auto=setTimeout(()=>{
   if(current!==requestId)return;
   const response=solution[step];
-  try{position.move({from:response.slice(0,2),to:response.slice(2,4),promotion:response[4]||'q'})}
+  try{const reply=position.move({from:response.slice(0,2),to:response.slice(2,4),promotion:response[4]||'q'});soundForMove(reply)}
   catch{busy=false;ready=false;say('Cannot play the automatic reply. Please load a new puzzle.','error');buttons();return}
   lastMove={from:response.slice(0,2),to:response.slice(2,4)};step++;busy=false;draw();
   if(step>=solution.length)finish();
@@ -254,6 +294,7 @@ $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.sl
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
  stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();lastRun=null;$('puzzle-save-run').hidden=true;
+ unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
   tick=setInterval(()=>{if(!runActive)return;stats();if(clock()<=0)finishRun('Time is up!')},250);
@@ -261,6 +302,10 @@ $('puzzle-start').onclick=()=>{
  stats();buttons();load(mode);
 };
 $('puzzle-stop').onclick=()=>{if(runActive)finishRun('Run ended.')};
+$('puzzle-sound-toggle').addEventListener('click',()=>{
+ soundOn=!soundOn;const button=$('puzzle-sound-toggle');button.textContent=soundOn?'Sound: On':'Sound: Off';button.setAttribute('aria-pressed',String(soundOn));button.setAttribute('aria-label',soundOn?'Mute chess move sounds':'Enable chess move sounds');
+ if(soundOn)unlockAudio();
+});
 document.querySelectorAll('[data-duration]').forEach(button=>button.addEventListener('click',()=>{
  if(runActive)return;sprintMinutes=Number(button.dataset.duration)===3?3:5;stats();buttons();
 }));
