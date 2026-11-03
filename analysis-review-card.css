@@ -310,3 +310,7 @@
 .review-key-count:hover:not(:disabled){background:#356c8c;border-color:#69b3d3}
 .review-key-count:focus-visible{outline:2px solid #8fe2ff;outline-offset:2px}
 .review-key-count:disabled{opacity:.5;cursor:default}
+
+/* Slightly larger classification labels, without changing icon/count spacing. */
+.review-side-stats .review-classification{font-size:15.5px}
+.review-side-stats .review-key-moments{font-size:15.5px}
