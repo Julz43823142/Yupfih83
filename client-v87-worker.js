@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261103-local-v87-1";
+const REVISION = "20261103-local-v87-2";
 const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/";
 const PYTHON_FILES = [
   "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -104,9 +104,13 @@ async function run(username){
   const months=[...new Set(manifest.archives.filter(url=>typeof url==="string"&&pattern.test(url)))]
     .sort().reverse().slice(0,240);
   const input={profile,manifest,archives:{}};
-  let index=0,candidates=0;
+  let index=0,candidates=0,lastArchiveRequest=0;
   async function nextArchive(){
     if(index>=months.length)return false;
+    // Match the upstream collector's half-second pacing to reduce 429s.
+    const pause=Math.max(0,500-(Date.now()-lastArchiveRequest));
+    if(pause)await new Promise(done=>setTimeout(done,pause));
+    lastArchiveRequest=Date.now();
     const url=months[index++];
     const suffix=url.slice(prefix.length);
     progress("Downloading game archive "+index+"/"+months.length+"…","collecting");
