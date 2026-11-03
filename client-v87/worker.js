@@ -138,6 +138,7 @@ function eligibleCandidate(row, username) {
   if (typeof row.rated !== "boolean") return false;
   if (!(Number.isFinite(row.end_time) && row.end_time > 0)) return false;
   if (typeof row.pgn !== "string" || !row.pgn.trim()) return false;
+  if (!row.white || !row.black || typeof row.white !== "object" || typeof row.black !== "object") return false;
   const white = row.white && String(row.white.username || "").toLowerCase() === username;
   const black = row.black && String(row.black.username || "").toLowerCase() === username;
   if (white === black) return false;
