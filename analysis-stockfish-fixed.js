@@ -25,8 +25,12 @@ board.parentNode.insertBefore(boardLayout,board);
 boardLayout.append(evalWrap,board);
 // The evaluation meter is measured from the actual board, not from the panel.
 const syncAnalysisMeter=()=>{
- const h=board.getBoundingClientRect().height;
- if(h>0)evalWrap.style.setProperty('--chess-board-height',h+'px');
+ const rect=board.getBoundingClientRect();
+ if(rect.height>0){
+  evalWrap.style.setProperty('--chess-board-height',rect.height+'px');
+  const row=evalWrap.parentElement.getBoundingClientRect();
+  evalWrap.style.top=(rect.top-row.top)+'px';
+ }
 };
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncAnalysisMeter).observe(board);
 window.addEventListener('resize',syncAnalysisMeter);
