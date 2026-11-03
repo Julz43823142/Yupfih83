@@ -450,7 +450,13 @@ function renderNotation(){
   panel=document.createElement('section');panel.id='live-notation';panel.className='live-notation';
   panel.innerHTML='<div id="opening-name"></div><div id="notation-moves"></div>';
   boardLayout.insertAdjacentElement('afterend',panel);
-  panel.insertBefore(enginePanel,panel.firstChild);
+  const engineHeader=document.createElement('div');
+  engineHeader.className='analysis-engine-header';
+  engineHeader.append(arrowToggleLabel);
+  if(engineToggle)engineHeader.append(engineToggle);
+  panel.prepend(engineHeader);
+  boardTop.remove();
+  panel.insertBefore(enginePanel,$('opening-name'));
   panel.insertBefore(engineSettings,enginePanel);
   panel.insertBefore(depthControl,enginePanel);
  }
