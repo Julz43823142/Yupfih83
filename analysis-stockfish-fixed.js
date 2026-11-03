@@ -298,12 +298,12 @@ function drawArrows(){
   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
   const coords=[[tail[0]+px*4,tail[1]+py*4],[base[0]+px*4,base[1]+py*4],[base[0]+px*14,base[1]+py*14],tip,[base[0]-px*14,base[1]-py*14],[base[0]-px*4,base[1]-py*4],[tail[0]-px*4,tail[1]-py*4]];
   const points=coords.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
-  svg.append(make('polygon',{points,fill:'#152231','fill-opacity':'.45',stroke:'#152231','stroke-opacity':'.3','stroke-width':8,'stroke-linejoin':'round',transform:'translate(2 3)'}));
-  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':'.35','stroke-width':1,'stroke-linejoin':'round'}));
-  svg.append(make('circle',{cx:tail[0],cy:tail[1],r:5,fill:color,'fill-opacity':'.5'}));
+  const glow=make('polygon',{points,fill:color,'fill-opacity':opacity*.16,stroke:color,'stroke-opacity':opacity*.13,'stroke-width':7,'stroke-linejoin':'round'});
+  svg.append(glow);
+  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':opacity*.8,'stroke-width':1,'stroke-linejoin':'round'}));
  }
- for(const [a,b] of arrows)arrow(a,b,'#328aff',.55);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.55);
+ for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#23e65d',.7);
  board.append(svg);
 }
 function ensureBoardCells(){
