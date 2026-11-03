@@ -673,16 +673,46 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
   ['Brilliant','!!'],['Great','!'],['Book','▣'],['Best','★'],['Excellent','◆'],
   ['Good','✓'],['Inaccuracy','?!'],['Mistake','?'],['Miss','×'],['Blunder','??']
  ];
- const bySide=[{},{}];
- categories.forEach((c,i)=>{const side=i%2;bySide[side][c.label]=(bySide[side][c.label]||0)+1});
+ const bySide=[{},{}],moveIndexes=[{},{}];
+ categories.forEach((c,i)=>{
+  const side=i%2;
+  bySide[side][c.label]=(bySide[side][c.label]||0)+1;
+  (moveIndexes[side][c.label]??=[]).push(i);
+ });
+ // Clicking a classification count jumps to the first matching move;
+ // repeated clicks cycle through that player's matching moves.
+ const jumpToClass=(side,name)=>{
+  const indexes=moveIndexes[side][name]||[];
+  if(!indexes.length)return;
+  const current=indexes.indexOf(cursor-1);
+  const next=indexes[current<0?0:(current+1)%indexes.length];
+  cursor=next+1;
+  selected=null;
+  render();
+  requestAnalysis();
+  $('notation-moves')?.querySelector('.notation-move.active')
+   ?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
+ };
  const head=document.createElement('div');head.className='review-breakdown-head';head.textContent='Move classifications';panel.append(head);
  for(const [name,symbol] of groups){
   const row=document.createElement('div');row.className='review-classification';
   const label=document.createElement('span');label.textContent=name;
-  const left=document.createElement('strong');left.textContent=bySide[0][name]||0;
+  const countButton=side=>{
+   const count=bySide[side][name]||0;
+   const button=document.createElement('button');
+   button.type='button';
+   button.className='review-class-count';
+   button.textContent=String(count);
+   button.disabled=count===0;
+   button.setAttribute('aria-label',(side===0?'White':'Black')+': '+count+' '+name+' moves. Jump to move');
+   button.title=count?'Go to '+name+' move ('+(side===0?'White':'Black')+'). Click again for the next.':'No '+name+' moves';
+   button.onclick=()=>jumpToClass(side,name);
+   return button;
+  };
+  const left=countButton(0);
   const marker=document.createElement('span');marker.className='review-class-icon review-class-'+name.toLowerCase();
   marker.textContent=symbol;
-  const right=document.createElement('strong');right.textContent=bySide[1][name]||0;
+  const right=countButton(1);
   row.append(label,left,marker,right);panel.append(row);
  }
  const performances=estimateGamePerformance(categories,accuracyBySide);
