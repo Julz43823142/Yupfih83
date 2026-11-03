@@ -23,11 +23,11 @@ async function load(){
       cell(row,index+1,"top100-position");
       const player=cell(row,"");const profile=document.createElement("a");
       profile.href="https://www.chess.com/member/"+encodeURIComponent(item.username);
-      profile.textContent=item.username;profile.target="_blank";profile.rel="noopener noreferrer";player.appendChild(profile);
+      profile.textContent=String(item.username).charAt(0).toUpperCase()+String(item.username).slice(1);profile.target="_blank";profile.rel="noopener noreferrer";player.appendChild(profile);
       // Resolve official display capitalization without changing case-insensitive player identity.
       fetch("https://api.chess.com/pub/player/"+encodeURIComponent(item.username)).then(response=>response.ok?response.json():null).then(info=>{
-        const official=String(info?.username||"");
-        if(official.toLowerCase()===String(item.username).toLowerCase())profile.textContent=official;
+        const official=[info?.name,info?.username].find(value=>typeof value==="string"&&value.toLowerCase()===String(item.username).toLowerCase()&&/[A-Z]/.test(value));
+        if(official)profile.textContent=official;
       }).catch(()=>{});
       cell(row,Number(item.votes||0).toLocaleString("en-US"),"top100-votes");
       const raw=String(item.priority||"").toUpperCase().replace(/[-_]/g," ");
