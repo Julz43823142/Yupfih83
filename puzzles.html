@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=4">
+<link rel="stylesheet" href="/puzzles.css?v=5">
 </head>
 <body>
 <header class="navbar puzzles-navbar">
@@ -51,8 +51,8 @@
       </div>
       <div class="puzzle-mode-extra">
         <div id="puzzle-custom-controls" hidden class="puzzle-controls">
-          <label>Target Puzzle Elo <input id="puzzle-target" type="number" min="400" max="3000" step="50" value="1200" inputmode="numeric"></label>
-          <p class="puzzle-footnote">The closest available puzzle is selected. Its actual rating may differ from your target.</p>
+          <label>Target Puzzle Elo <input id="puzzle-target" type="number" min="100" max="4000" step="1" value="1200" inputmode="numeric"></label>
+          <p class="puzzle-footnote">Choose a target Elo from 100 to 4000. The actual puzzle rating may differ.</p>
         </div>
         <p id="puzzle-sprint-guide" hidden>5-minute countdown · 3 mistakes allowed · score increases with each solved puzzle.</p>
         <p id="puzzle-survival-guide" hidden>No countdown · 3 mistakes allowed · solve as many as possible.</p>
@@ -75,6 +75,6 @@
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=4"></script>
+<script type="module" src="/puzzles.js?v=5"></script>
 </body>
 </html>
