@@ -40,8 +40,10 @@ function ratingSparkline(box,rows){
  const W=200,H=64,pad=7,vals=valid.map(r=>r.player_elo),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
  const pts=valid.map((r,i)=>[pad+i*(W-2*pad)/(valid.length-1),H-pad-(r.player_elo-min)/span*(H-2*pad)]);
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('class','rating-sparkline');svg.setAttribute('viewBox','0 0 200 64');svg.setAttribute('role','img');svg.setAttribute('aria-label','Historical rating trend');
- const duration=12000,segments=pts.length-1;
- pts.slice(1).forEach((pt,i)=>{const prev=pts[i],line=document.createElementNS(ns,'line');for(const [k,v] of Object.entries({x1:prev[0],y1:prev[1],x2:pt[0],y2:pt[1]}))line.setAttribute(k,v);const delta=valid[i+1].player_elo-valid[i].player_elo;line.setAttribute('stroke',delta>0?'#3be78c':delta<0?'#ff6278':'#f6faff');line.setAttribute('stroke-width','2.6');line.setAttribute('stroke-linecap','round');const len=Math.hypot(pt[0]-prev[0],pt[1]-prev[1]);line.style.strokeDasharray=String(len);line.style.strokeDashoffset=String(len);line.style.animation='elo-segment-draw '+(duration/segments)+'ms linear '+(i*duration/segments)+'ms forwards';svg.append(line)});
+ const segments=pts.length-1;
+ pts.slice(1).forEach((pt,i)=>{const prev=pts[i],line=document.createElementNS(ns,'line');for(const [k,v] of Object.entries({x1:prev[0],y1:prev[1],x2:pt[0],y2:pt[1]}))line.setAttribute(k,v);const delta=valid[i+1].player_elo-valid[i].player_elo;line.setAttribute('stroke',delta>0?'#3be78c':delta<0?'#ff6278':'#f6faff');line.setAttribute('stroke-width','2.6');line.setAttribute('stroke-linecap','round');svg.append(line)});
+ svg.style.clipPath='inset(0 '+(100-Math.min(100,reviewProgressPercent))+'% 0 0)';svg.style.transition='clip-path .22s linear';
+
  box.append(svg);
 }
 async function loadRatingSparklines(username,boxes){
@@ -489,6 +491,7 @@ function showReviewProgress(message,stage="queued",completed=false){
   value.textContent=Math.floor(reviewProgressPercent)+"%";
   track.setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
   fill.style.width=reviewProgressPercent+"%";
+  document.querySelectorAll(".rating-sparkline").forEach(svg=>{svg.style.clipPath="inset(0 "+(100-reviewProgressPercent)+"% 0 0)"});
   progress.querySelector(".v87-progress-message").textContent=completed?"Review complete.":analysisStatusLine();
   progress.classList.toggle("v87-progress-complete",completed);
 }
