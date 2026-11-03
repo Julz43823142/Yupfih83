@@ -224,3 +224,37 @@
   width:100%!important;
  }
 }
+
+/* Game Review: clickable classification counts navigate to matching moves. */
+.review-classification .review-class-count{
+ appearance:none;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:25px;
+ min-height:27px;
+ padding:2px 0;
+ margin:0;
+ border:1px solid transparent;
+ border-radius:5px;
+ background:transparent;
+ color:#e5f4ff;
+ font:800 15px/1 inherit;
+ font-size:15px;
+ font-weight:800;
+ font-variant-numeric:tabular-nums;
+ cursor:pointer;
+}
+.review-classification .review-class-count:not(:disabled):hover{
+ background:#214a67;
+ border-color:#5ba6cc;
+ color:#fff;
+}
+.review-classification .review-class-count:not(:disabled):focus-visible{
+ outline:2px solid #76d9ff;
+ outline-offset:1px;
+}
+.review-classification .review-class-count:disabled{
+ opacity:.58;
+ cursor:default;
+}
