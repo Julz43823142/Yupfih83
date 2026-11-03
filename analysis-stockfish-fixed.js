@@ -311,7 +311,7 @@ function reviewCurrentMove(){
  if(!cursor||!reviewResults[cursor-1])return null;
  const classification=reviewResults[cursor-1];
  const visual=reviewMoveDecorations[classification.label];
- if(!visual)return null;
+ if(!visual||(classification.label==='Best'&&classification.complexity<.7))return null;
  try{
   const pos=new Chess(history[cursor-1]),move=pos.move(sanMoves[cursor-1]);
   return move?{square:move.to,label:classification.label,...visual}:null;
@@ -390,7 +390,7 @@ function renderNotation(){
   button.textContent=sanMoves[i];
   const category=reviewResults[i];
   const decoration=category&&reviewMoveDecorations[category.label];
-  if(decoration){
+  if(decoration&&(category.label!=='Best'||category.complexity>=.7)){
    button.classList.add('notation-highlight-'+category.label.toLowerCase());
    const glyph=document.createElement('span');
    glyph.className='notation-review-glyph';
