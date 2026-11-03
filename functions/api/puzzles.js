@@ -27,14 +27,14 @@ export async function onRequestGet({request,env}){
   try{
    const count=await db.prepare("SELECT COUNT(*) n FROM puzzle_pool").first();
    if(Number(count?.n||0)>0){
-    const shouldRefill=Number(count.n)<12||Math.random()<.06;
+    const shouldRefill=Number(count.n)<12?Math.random()<.28:Math.random()<.06;
     if(!shouldRefill){
      const exclude=(url.searchParams.get("exclude")||"").slice(0,150);
      const query=desired!==null?
       "SELECT json FROM puzzle_pool WHERE id != ? ORDER BY ABS(rating-?) ASC, RANDOM() LIMIT 1":
       "SELECT json FROM puzzle_pool WHERE id != ? ORDER BY RANDOM() LIMIT 1";
      let row=await db.prepare(query).bind(...(desired!==null?[exclude,desired]:[exclude])).first();
-     if(!row)row=await db.prepare("SELECT json FROM puzzle_pool ORDER BY RANDOM() LIMIT 1").first();
+
      if(row)return reply(JSON.parse(row.json));
     }
    }
@@ -81,7 +81,7 @@ export async function onRequestGet({request,env}){
      "SELECT json FROM puzzle_pool WHERE id != ? ORDER BY ABS(rating-?) ASC,RANDOM() LIMIT 1":
      "SELECT json FROM puzzle_pool WHERE id != ? ORDER BY RANDOM() LIMIT 1";
     let row=await db.prepare(query).bind(...(desired!==null?[exclude,desired]:[exclude])).first();
-    if(!row)row=await db.prepare("SELECT json FROM puzzle_pool ORDER BY RANDOM() LIMIT 1").first();
+
     if(row)return reply({...JSON.parse(row.json),cached:true});
    }catch{}
   }
