@@ -1,6 +1,6 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
-let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[];
+let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[],blueSquares=new Set();
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
 let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
@@ -117,7 +117,7 @@ function renderEngineLines(){
   const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
   row.append(rank,moves,score);
   row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]?.san||item.uci);
-  const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(played.san);cursor++;selected=null;arrows=[];reviewResults=[];render();requestAnalysis()}catch{}};
+  const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(played.san);cursor++;selected=null;arrows=[];blueSquares.clear();reviewResults=[];render();requestAnalysis()}catch{}};
   row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
   enginePanel.append(row);
  }
@@ -242,7 +242,7 @@ board.addEventListener('pointerdown',e=>{
  if(!sq)return;
  if(e.button===2){rightStart=sq;e.preventDefault();return}
  if(e.button!==0)return;
- if(arrows.length){arrows=[];drawArrows()}
+ if(arrows.length||blueSquares.size){arrows=[];blueSquares.clear();drawArrows()}
  const pos=new Chess(history[cursor]),piece=pos.get(sq);
  if(!piece||piece.color!==pos.turn())return;
  const source=e.target.closest('button');
@@ -267,7 +267,8 @@ board.addEventListener('pointermove',e=>{
 board.addEventListener('pointerup',e=>{
  if(e.button===2&&rightStart){
   const to=squareAt(e.clientX,e.clientY);
-  if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
+  if(to&&to===rightStart){if(blueSquares.has(to))blueSquares.delete(to);else blueSquares.add(to);drawArrows()}
+  else if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
   rightStart=null;return;
  }
  if(!drag||drag.pointerId!==e.pointerId)return;
@@ -279,7 +280,7 @@ board.addEventListener('pointerup',e=>{
   else if(!to){selected=d.from;render()}
  }else{
   if(selected&&selected!==d.from&&playBoardMove(selected,d.from))return;
-  selectBoardSquare(d.from);
+  selected=d.from;render();
  }
 });
 board.addEventListener('pointercancel',()=>{if(!drag)return;drag.ghost?.remove();drag.source.classList.remove('drag-source');drag=null;render()});
@@ -311,6 +312,7 @@ function drawArrows(){
   svg.append(glow);
   svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':opacity*.8,'stroke-width':1,'stroke-linejoin':'round'}));
  }
+ for(const sq of blueSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':.32}))}
  for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
  if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#23e65d',.7);
  board.append(svg);
