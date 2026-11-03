@@ -307,11 +307,11 @@ function realCharts(parent,data){
     if(Array.isArray(data.charts?.[kind]))data.charts[kind]=withPerGameScores(data.charts[kind]);
   }
   sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
-  if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and do not provide reliable period-level Fair Play evidence.");
+  if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and less reliable for small samples.");
   const help=add(parent,"div","period-explanation");
   const high=add(help,"p","");
   add(high,"strong","period-high","Notable Performance period — ");
-  add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This is a review priority, not proof of cheating.");
+  add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This period is highlighted for closer statistical analysis.");
   const context=add(help,"p","");
   add(context,"strong","period-context","Context — ");
   add(context,"span","","Games from other time controls played during the same calendar period. The purple area is shown for comparison, not as an additional HIGH finding.");
@@ -411,7 +411,7 @@ function realCharts(parent,data){
       ?"Orange dashed: observed rolling 10-game points · blue/cyan/purple: expected points (same ten-game window)"
       :"Orange dots: individual results (win 100%, draw 50%, loss 0%) · blue/cyan/purple: Elo expected per game");
     if(field==="official_accuracy"||field==="median_think_seconds")add(card,"p","timeline-legend","Green: rolling 30-game mean (available observations only)");
-    if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange Notable Performance · red Strongly Notable Performance · yellow Moderate Performance Variation · purple same-date context. Not proof of cheating.");
+    if(allPeriods.length)add(card,"p","timeline-legend","Shaded periods: orange Notable Performance · red Strongly Notable Performance · yellow Moderate Performance Variation · purple same-date context.");
     draw();
   }
 }
@@ -561,7 +561,7 @@ function renderReview(data) {
   panel.replaceChildren();
   const top = add(panel, "div", "v87-top");
   const left = add(top, "div");
-  add(left, "span", "eyebrow", "FAIR PLAY REVIEW");
+  add(left, "span", "eyebrow", "PERFORMANCE REVIEW");
   const priorityHeading=add(left, "h3", "v87-priority", performanceLabel(data.priority));
   const level=String(data.priority||"").toUpperCase().replaceAll(" ","-");
   if(["LOW","MODERATE","HIGH","VERY-HIGH"].includes(level))
@@ -576,7 +576,7 @@ function renderReview(data) {
   if (highlightedIndex !== -1) {
     add(left, "p", "v87-priority-finding", cleanedReasons[highlightedIndex]);
   }
-  add(left, "p", "v87-muted", "Manual review priority — not a cheating probability or verdict.");
+  add(left, "p", "v87-muted", "Statistical review priority based on available game data.");
   const stats = add(panel, "div", "v87-metrics");
   metric(stats, "REVIEW CONFIDENCE", data.confidence);
   metric(stats, "GAMES REVIEWED", number(data.games, 0));
@@ -642,7 +642,7 @@ function renderReview(data) {
         const more=add(details,"div","opening-details-body opening-extra");
         for(const item of ranked.slice(6))openingRow(more,item,fullTotal);
       }
-      add(card,"p","opening-disclaimer","Openings are descriptive playing preferences, not Fair Play evidence.");
+      add(card,"p","opening-disclaimer","Openings describe observed playing preferences.");
     }
   }
   if(shift&&typeof shift==="object"){
@@ -651,10 +651,10 @@ function renderReview(data) {
     add(wrap,"p","","In "+String(shift.time_class||"")+" ("+String(shift.color||"")+
       ", "+String(shift.opponent_opening||"")+"): "+String(shift.before||"")+" → "+
       String(shift.during||"")+" → "+String(shift.after||"")+
-      ". A temporary change in openings is not evidence of misconduct.");
+      ". Opening changes can have many explanations.");
   }
   const foot = add(panel, "p", "v87-note",
-    "Charts reflect available observed game data; they are not cheating probabilities. Statistical review priority is not proof of misconduct.");
+    "Charts summarize patterns in the available game data.");
 }
 // The SUS control is not constructed until the server confirms a finished analysis.
 let activeSusProof=null;
@@ -668,7 +668,7 @@ async function showSusVoting(username,proof){
   const action=add(widget,"button","sus-button","CIP +1");
   action.type="button";action.disabled=true;
   const count=add(widget,"span","sus-count","— CIP points");
-  const hint=add(widget,"span","sus-description","CIP means Community Interest Points — interest in analysis, not evidence of cheating.");
+  const hint=add(widget,"span","sus-description","CIP means Community Interest Points — community interest in analysis.");
   hint.setAttribute("role","status");
   let voted=false;
   function renderState(state){
@@ -678,7 +678,7 @@ async function showSusVoting(username,proof){
     action.setAttribute("aria-pressed",String(voted));
     action.setAttribute("aria-label",voted?"Undo your CIP point":"Add one CIP point");
     action.disabled=false;
-    hint.textContent=voted?"Click CIP added ✓ to remove your CIP point.":"CIP means Community Interest Points — interest in analysis, not evidence of cheating.";
+    hint.textContent=voted?"Click CIP added ✓ to remove your CIP point.":"CIP means Community Interest Points — community interest in analysis.";
   }
   action.addEventListener("click",async()=>{
     const wasVoted=voted;
@@ -796,7 +796,7 @@ async function showExample(username,displayName){
     const duration=Number.isFinite(elapsed)&&elapsed>0?
       " · actual analysis time: "+Math.floor(elapsed/60)+"m "+Math.round(elapsed%60)+"s":"";
     intro.textContent="Saved public example · "+displayName+duration+
-      " · the runtime is historical and does not predict current waiting time. Statistical review labels are not cheating allegations.";
+      " · the runtime is historical and does not predict current waiting time. ";
     report.prepend(intro);
     results.classList.remove("hidden");
     placeExampleCardsNearOverview();
@@ -933,7 +933,7 @@ if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
     }
     results.classList.remove("hidden");
     panel.replaceChildren();
-    add(panel,"p","v87-muted","Loading latest saved Fair Play Review…");
+    add(panel,"p","v87-muted","Loading latest saved performance review…");
     try{
       const saved=await getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview),{cache:"no-store"});
       // The saved report opens immediately without starting another GitHub analysis.
@@ -952,7 +952,7 @@ if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
         add(identity,"h3","player-name",saved.result.username||requestedSavedReview);
       }
       renderReview(saved.result);
-      statusText.textContent="Showing latest saved Fair Play Review — no new analysis started.";
+      statusText.textContent="Showing latest saved performance review — no new analysis started.";
       // Keep the homepage layout and example cards at their original position.
     }catch(error){
       panel.replaceChildren();
@@ -1006,7 +1006,7 @@ function render(user,games,months,failed){
   for(const [label,items] of rows){const row=node('p','');row.append(node('strong','',label+': '),document.createTextNode(summary(items)));card.append(row)}
   grid.append(card);
  }
- target.append(node('p','insights-intro','Results describe recorded public games; they are not engine accuracy measurements or Fair Play evidence.'));
+ target.append(node('p','insights-intro','Results describe recorded public games; they are not engine accuracy measurements.'));
 }
 async function load(user){
  const current=++generation;
