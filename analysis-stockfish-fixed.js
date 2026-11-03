@@ -416,7 +416,7 @@ async function importGame(){
   const moves=mode==='fen'?[]:next.history();
   for(const san of moves){replay.move(san);states.push(replay.fen())}
   history=states;sanMoves=moves;reviewResults=[];cursor=0;selected=null;arrows=[];blueSquares.clear();
-  status.textContent=mode==='fen'?'Position imported. Make moves to review a game.':'Imported '+moves.length+' half-moves.';
+  status.textContent=mode==='fen'?'Position imported. Make moves to review a game.':'';
   render();requestAnalysis();
   renderReviewPlaceholder();
   return true;
@@ -604,19 +604,10 @@ $('review-start').onclick=async()=>{
   }
   reviewResults=categories;
   status.textContent='';
-  const title=document.createElement('h3');title.textContent='Move classifications';summary.append(title);
-  for(const name of ['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Miss','Blunder']){
-   const row=document.createElement('div');row.className='review-stat';row.textContent=({Brilliant:'💎',Great:'❗',Book:'📖',Best:'⭐',Excellent:'✨',Good:'✔️',Inaccuracy:'⚠️',Mistake:'❓',Miss:'🎯',Blunder:'‼️'}[name]||'')+' '+name+': '+(counts[name]||0);summary.append(row);
-  }
-  const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy';summary.prepend(accuracyTitle);
-  const sideStats=[];
-  for(const [side,label] of [[0,'White'],[1,'Black']]){
-   const rows=categories.filter((x,i)=>i%2===side&&x.label!=='Book');
-   const avg=reviewAccuracy(categories,evaluations.map(x=>reviewWin(x.white)),side);
-   const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);sideStats.push({label,accuracy:avg});
-  }
-
-  renderReviewScorecard(categories,evaluations,sideStats.map(x=>x.accuracy));
+  // All metrics are displayed once, in the left Game Review scorecard.
+  const sideStats=[0,1].map(side=>reviewAccuracy(
+   categories,evaluations.map(x=>reviewWin(x.white)),side));
+  renderReviewScorecard(categories,evaluations,sideStats);
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
