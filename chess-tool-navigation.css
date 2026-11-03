@@ -1,0 +1,17 @@
+/* Identical tool-page menu on Analysis and Player Prep. */
+body:has(.tool-page) .mobile-chess-menu nav a[aria-current="page"]{
+ background:#1676a7!important;
+ border-color:#4de2ff!important;
+ color:#fff!important;
+ box-shadow:inset 3px 0 0 #4de2ff;
+ font-weight:850;
+}
+body:has(.tool-page) .mobile-chess-menu nav a[aria-current="page"]:hover,
+body:has(.tool-page) .mobile-chess-menu nav a[aria-current="page"]:focus-visible{
+ background:#2188bb!important;
+}
+body:has(.tool-page) .mobile-chess-menu nav a:not([aria-current="page"]):hover,
+body:has(.tool-page) .mobile-chess-menu nav a:not([aria-current="page"]):focus-visible{
+ background:#1a4c6a!important;
+ border-color:#4de2ff!important;
+}
