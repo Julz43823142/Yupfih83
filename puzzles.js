@@ -41,6 +41,8 @@ function playSound(kind){
   offset+=duration*.85;
  }
 }
+board.addEventListener('pointerdown',unlockAudio);
+board.addEventListener('keydown',unlockAudio);
 function soundForMove(move){
  if(position.isCheckmate())playSound('mate');
  else if(position.isCheck())playSound('check');
