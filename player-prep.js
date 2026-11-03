@@ -33,7 +33,7 @@ function drawCandidateArrows(options){
 }
 let dragStart=null,dragGhost=null,dragMoved=false,suppressPrepClick=false;
 board.addEventListener('click',e=>{if(suppressPrepClick){e.stopImmediatePropagation();e.preventDefault();suppressPrepClick=false}},true);
-board.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragStart=prepSquareAt(e);dragMoved=false;if(!dragStart)return;
+board.addEventListener('pointerdown',e=>{if(e.button!==0)return;if(manualArrows.length||blueSquares.size){manualArrows=[];blueSquares.clear();drawCandidateArrows(candidateMoves)}dragStart=prepSquareAt(e);dragMoved=false;if(!dragStart)return;
  const current=new Chess();for(const m of path)current.move(m);
  if(current.get(dragStart)?.color===current.turn()){
   selectedSquare=dragStart;renderBoard();drawCandidateArrows(candidateMoves);
@@ -43,7 +43,7 @@ board.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragStart=prepSq
 });
 board.addEventListener('pointermove',e=>{if(!dragStart||!dragGhost)return;const rect=board.getBoundingClientRect();if(Math.abs(e.clientX-(rect.left+(dragStart.charCodeAt(0)-97+.5)*rect.width/8))>12||Math.abs(e.clientY-(rect.top+(8-Number(dragStart[1])+.5)*rect.height/8))>12)dragMoved=true;if(dragMoved){dragGhost.style.display='block';const source=board.querySelector('[data-square="'+dragStart+'"] img');if(source)source.style.visibility='hidden';dragGhost.style.left=(e.clientX-dragGhost.clientWidth/2)+'px';dragGhost.style.top=(e.clientY-dragGhost.clientHeight/2)+'px'}});
 board.addEventListener('pointerup',e=>{if(e.button!==0||!dragStart)return;const from=dragStart,to=prepSquareAt(e);dragStart=null;dragGhost?.remove();dragGhost=null;board.querySelectorAll('.chess-piece').forEach(piece=>piece.style.visibility='');if(!to)return;
- if(from===to){clickSquare(to);suppressPrepClick=true;return;}
+ if(from===to){selectedSquare=from;renderBoard();drawCandidateArrows(candidateMoves);suppressPrepClick=true;return;}
  const pos=new Chess();for(const m of path)pos.move(m);const move=pos.moves({square:from,verbose:true}).find(m=>m.to===to);
  if(move){path.push(move.san);selectedSquare=null;manualArrows=[];blueSquares.clear();render();suppressPrepClick=true}
  else if(dragMoved){suppressPrepClick=true}
