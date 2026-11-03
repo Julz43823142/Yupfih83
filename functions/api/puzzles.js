@@ -43,7 +43,9 @@ export async function onRequestGet({request,env}){
  const type=daily?"daily":"next",endpoint=new URL("https://lichess.org/api/puzzle/"+type);
  if(!daily&&difficulty)endpoint.searchParams.set("difficulty",difficulty);
  const cache=typeof caches!=="undefined"?caches.default:null;
- const cacheRequest=new Request("https://eloscanner.com/__puzzle_cache/"+type+(difficulty?"-"+difficulty:""));
+ const cacheFamily="https://eloscanner.com/__puzzle_cache/"+type+(difficulty?"-"+difficulty:"");
+ const cacheSlot=daily?0:Math.floor(Math.random()*12);
+ const cacheRequest=new Request(cacheFamily+"-"+cacheSlot);
  if(daily&&cache){try{const hit=await cache.match(cacheRequest);if(hit)return hit}catch{}}
  try{
   const upstream=await fetch(endpoint.toString(),{headers:{"Accept":"application/json","User-Agent":"EloScanner/1.0"}});
@@ -57,9 +59,21 @@ export async function onRequestGet({request,env}){
     await db.prepare("DELETE FROM puzzle_pool WHERE id NOT IN (SELECT id FROM puzzle_pool ORDER BY created_at DESC LIMIT 600)").run();
    }catch{}
   }
-  if(daily&&cache){try{await cache.put(cacheRequest,new Response(JSON.stringify(data),{headers:{"Content-Type":"application/json","Cache-Control":"public,max-age=21600"}}))}catch{}}
+  if(cache){try{await cache.put(cacheRequest,new Response(JSON.stringify(data),{headers:{"Content-Type":"application/json","Cache-Control":"public,max-age="+(daily?21600:7200)}}))}catch{}}
   return reply(data);
  }catch{
+  // A shared Cloudflare edge cache survives upstream 429s and D1 outages.
+  if(cache){
+   try{
+    for(let i=0;i<12;i++){
+     const slot=daily?0:(cacheSlot+i)%12;
+     const hit=await cache.match(new Request(cacheFamily+"-"+slot));
+     if(!hit)continue;
+     const cached=await hit.json();
+     if(cached?.puzzle?.solution?.length&&cached.puzzle.id!==url.searchParams.get("exclude"))return reply({...cached,cached:true});
+    }
+   }catch{}
+  }
   if(db){
    try{
     const exclude=(url.searchParams.get("exclude")||"").slice(0,150);
