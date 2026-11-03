@@ -371,7 +371,7 @@ function drawArrows(){
    if(last)arrow(last.from,last.to,'#ff962f',.84);
   }catch{}
  }
- for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
+ for(const [a,b,color] of arrows)arrow(a,b,color||'#0a9cff',.78);
  const shownEngineMove=engineSwitch.checked&&engineReady?(previewEngineMove||(arrowToggle.checked?bestEngineMove:null)):null;
  if(shownEngineMove)arrow(shownEngineMove.slice(0,2),shownEngineMove.slice(2,4),'#23e65d',.7);
  board.append(svg);
