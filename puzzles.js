@@ -63,16 +63,44 @@ function draw(){
 }
 attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selected,setSelected:x=>{selected=x},
  playMove:(from,to)=>play(from,to),repaint:draw,getArrows:()=>arrows,getHighlights:()=>highlights});
+// Static, curated CC0 puzzle bank served by EloScanner itself.
+// No Lichess API calls are needed for standard play, including timed runs.
+let bankPromise=null;
 async function getPuzzle(which,target=null){
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
- try{
-  const url='/api/puzzles?mode='+encodeURIComponent(which)+(Number.isFinite(target)?'&target='+encodeURIComponent(Math.round(target)):'')+(puzzle?.id?'&exclude='+encodeURIComponent(puzzle.id):'');
-  const response=await fetch(url,{signal:controller.signal,cache:'no-store'});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(data.error||'Puzzle provider unavailable');
-  if(!data?.puzzle?.solution?.length||!data?.game?.pgn)throw Error('Incomplete puzzle data');
-  return data;
- }finally{clearTimeout(timeout)}
+ if(!bankPromise){
+  bankPromise=fetch('/assets/puzzle-bank.json?v=1',{cache:'force-cache'}).then(async response=>{
+   if(!response.ok)throw Error('Puzzle library is not available on this deployment.');
+   const data=await response.json();
+   if(!Array.isArray(data)||data.length<100)throw Error('Puzzle library is incomplete.');
+   return data;
+  }).catch(error=>{bankPromise=null;throw error});
+ }
+ const bank=await bankPromise;
+ let candidates=bank.filter(row=>!seen.has(row[0]));
+ if(!candidates.length){seen.clear();candidates=bank;}
+ const desired=Number.isFinite(target)&&target>=100?target:null;
+ if(desired!==null){
+  // A broad rating band gives variety while staying close to the target.
+  candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
+  candidates=candidates.slice(0,Math.min(80,candidates.length));
+ }
+ for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
+  const index=Math.floor(Math.random()*candidates.length);
+  const [id,fen,moves,rating]=candidates.splice(index,1)[0];
+  try{
+   const fullLine=String(moves).split(' ').filter(Boolean);
+   if(fullLine.length<2)continue;
+   const setup=fullLine.shift();
+   const chess=new Chess(fen);
+   chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
+   // The API-style shape keeps the same legality checks and board renderer.
+   return {game:{pgn:'offline puzzle'},puzzle:{
+    id,initialPly:1,fen:chess.fen(),lastMove:setup,
+    rating,solution:fullLine
+   },source:'Lichess CC0 offline dataset'};
+  }catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
+ }
+ throw Error('No playable puzzle was found in the local puzzle library.');
 }
 function decode(data){
  let chess,setup=null;
@@ -110,7 +138,7 @@ async function load(kind=mode){
   position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
-  $('puzzle-source').href=p.id?'https://lichess.org/training/'+encodeURIComponent(p.id):'https://lichess.org/training';
+
   say(kind==='custom'?'Selected an available puzzle rated '+p.rating+'. Find the best move.':'Find the best move. Opponent replies are automatic.');
  }catch(e){
   if(generation!==requestId)return;
