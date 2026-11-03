@@ -1,4 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {appendChessArrow} from './chess-board-arrows.js';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[],blueSquares=new Set();
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
@@ -292,26 +293,7 @@ function drawArrows(){
  const svg=make('svg',{viewBox:'0 0 800 800',class:'arrows','aria-hidden':'true'});
  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';
  const point=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
- function arrow(a,b,color,opacity){
-  const [x1,y1]=point(a),[x2,y2]=point(b),dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy);
-  if(d<1)return;
-  const fileDistance=Math.abs(a.charCodeAt(0)-b.charCodeAt(0)),rankDistance=Math.abs(Number(a[1])-Number(b[1]));
-  if((fileDistance===1&&rankDistance===2)||(fileDistance===2&&rankDistance===1)){
-   const bend=fileDistance===2?[x2,y1]:[x1,y2];
-   const shaftEnd=[x2-(x2-bend[0])*.42,y2-(y2-bend[1])*.42];
-   const line=make('polyline',{points:[[x1,y1],bend,shaftEnd].map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-opacity':opacity,'stroke-width':13,'stroke-linejoin':'round','stroke-linecap':'butt'});
-   svg.append(line);
-   const vx=x2-bend[0],vy=y2-bend[1],vd=Math.hypot(vx,vy),ux2=vx/vd,uy2=vy/vd;
-   svg.append(make('polygon',{points:[[x2-ux2*10,y2-uy2*10],[x2-ux2*42-uy2*20,y2-uy2*42+ux2*20],[x2-ux2*42+uy2*20,y2-uy2*42-ux2*20]].map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':opacity}));return;
-  }
-  const ux=dx/d,uy=dy/d,px=-uy,py=ux;
-  const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
-  const coords=[[tail[0]+px*6,tail[1]+py*6],[base[0]+px*6,base[1]+py*6],[base[0]+px*18,base[1]+py*18],tip,[base[0]-px*18,base[1]-py*18],[base[0]-px*6,base[1]-py*6],[tail[0]-px*6,tail[1]-py*6]];
-  const points=coords.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
-  const glow=make('polygon',{points,fill:color,'fill-opacity':opacity*.16,stroke:color,'stroke-opacity':opacity*.13,'stroke-width':7,'stroke-linejoin':'round'});
-  svg.append(glow);
-  svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':opacity*.8,'stroke-width':1,'stroke-linejoin':'round'}));
- }
+ const arrow=(a,b,color,opacity)=>appendChessArrow(svg,a,b,color,opacity);
  for(const sq of blueSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':.32}))}
  for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
  if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#23e65d',.7);
