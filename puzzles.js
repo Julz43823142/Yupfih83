@@ -6,7 +6,7 @@ const MODES={daily:['Daily Puzzle','A new puzzle every day.'],random:['Random Pu
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='daily',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
-let deadline=0,tick=null,auto=null;const seen=new Set(),cells=new Map();
+let deadline=0,tick=null,auto=null,pendingPromotion=null;const seen=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 function clock(){return Math.max(0,Math.ceil((deadline-Date.now())/1000))}
 function stats(){
@@ -19,6 +19,7 @@ function stats(){
  $('puzzle-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
 }
 function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null}
+function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';
  $('puzzle-start').hidden=!challenge||runActive;$('puzzle-stop').hidden=!challenge||!runActive;
@@ -94,7 +95,7 @@ function decode(data){
  return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0)};
 }
 async function load(kind=mode){
- const generation=++requestId;busy=true;ready=false;selected=null;wrongSquare=null;buttons();say('Loading puzzle…');
+ const generation=++requestId;busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();say('Loading puzzle…');
  try{
   let p;
   if(kind==='custom'){
@@ -127,7 +128,7 @@ function finish(){
  }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
- stopTimers();runActive=false;ready=false;busy=false;requestId++;
+ stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
  say(text+' Final score: '+solved+' solved.','success');stats();buttons();draw();
 }
 function mistake(to){
@@ -138,15 +139,21 @@ function mistake(to){
  ready=false;busy=true;say('Incorrect. '+(3-misses)+' lives remaining.','error');buttons();
  auto=setTimeout(()=>{if(runActive)load(mode)},700);
 }
-function play(from,to){
+function play(from,to,promotion=null){
  if(!ready||busy)return false;
  const expected=solution[step];if(!expected)return false;
+ const pawn=position.get(from);
+ if(promotion===null&&pawn?.type==='p'&&(to[1]==='1'||to[1]==='8')){
+  pendingPromotion={from,to};$('puzzle-promotion').hidden=false;
+  say('Choose a piece to promote your pawn.');return false;
+ }
+ const chosen=promotion||'q';
  let legal;
- try{legal=new Chess(position.fen()).move({from,to,promotion:'q'})}catch{return false}
+ try{legal=new Chess(position.fen()).move({from,to,promotion:chosen})}catch{return false}
  const actual=from+to+(legal.promotion||'');
- const copy=new Chess(position.fen());copy.move({from,to,promotion:legal.promotion||'q'});
+ const copy=new Chess(position.fen());copy.move({from,to,promotion:chosen});
  if(actual!==expected&&!copy.isCheckmate()){mistake(to);return false}
- position.move({from,to,promotion:legal.promotion||'q'});
+ position.move({from,to,promotion:chosen});closePromotion();
  lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;draw();
  if(step>=solution.length||position.isCheckmate()){finish();return true}
  busy=true;buttons();const current=requestId;
@@ -163,7 +170,7 @@ function play(from,to){
 }
 function switchMode(next){
  if(!MODES[next])return;
- requestId++;stopTimers();runActive=false;ready=false;busy=false;solved=0;misses=0;
+ requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
  $('puzzle-custom-controls').hidden=mode!=='custom';
@@ -185,6 +192,10 @@ document.querySelectorAll('[data-puzzle-mode]').forEach(tab=>{
   const next=tabs[(index+delta+tabs.length)%tabs.length];next.focus();next.click();
  });
 });
+document.querySelectorAll('[data-promote]').forEach(button=>button.addEventListener('click',()=>{
+ if(!pendingPromotion)return;const move={...pendingPromotion};closePromotion();play(move.from,move.to,button.dataset.promote);
+}));
+$('puzzle-promotion-cancel').onclick=()=>{closePromotion();selected=null;draw();say('Promotion cancelled. Choose a move.')};
 $('puzzle-next').onclick=()=>load(mode);
 $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='custom')load('custom')});
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
