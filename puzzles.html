@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=5">
+<link rel="stylesheet" href="/puzzles.css?v=6">
 </head>
 <body>
 <header class="navbar puzzles-navbar">
@@ -38,6 +38,7 @@
       <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
       <div class="puzzle-board-controls">
         <button type="button" id="puzzle-hint" disabled>Hint</button>
+        <button type="button" id="puzzle-sound-toggle" aria-pressed="true" aria-label="Mute chess move sounds" title="Mute chess sounds">Sound: On</button>
       </div>
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
@@ -53,8 +54,9 @@
           <label>Target Puzzle Elo <input id="puzzle-target" type="number" min="100" max="4000" step="1" value="1200" inputmode="numeric"></label>
           <p class="puzzle-footnote">Choose a target Elo from 100 to 4000. The actual puzzle rating may differ.</p>
         </div>
-        <p id="puzzle-sprint-guide" hidden>5-minute countdown · 3 mistakes allowed · score increases with each solved puzzle.</p>
-        <p id="puzzle-survival-guide" hidden>No countdown · 3 mistakes allowed · solve as many as possible.</p>
+        <div id="puzzle-sprint-settings" hidden class="puzzle-sprint-settings"><label for="puzzle-sprint-duration">Sprint duration</label><div class="puzzle-duration-options" role="group" aria-label="Sprint time control"><button type="button" class="duration-option" data-duration="3" aria-pressed="false">3 minutes</button><button type="button" class="duration-option" data-duration="5" aria-pressed="true">5 minutes</button></div></div>
+        <p id="puzzle-sprint-guide" hidden>Choose 3 or 5 minutes · 3 mistakes allowed · each solved puzzle gets harder.</p>
+        <p id="puzzle-survival-guide" hidden>No countdown · 3 mistakes allowed · each solved puzzle gets harder.</p>
       </div>
       <div id="puzzle-status" class="puzzle-status" role="status" aria-live="polite">Loading puzzle…</div>
       <div class="puzzle-controls">
@@ -72,6 +74,6 @@
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=6"></script>
+<script type="module" src="/puzzles.js?v=7"></script>
 </body>
 </html>
