@@ -1,0 +1,133 @@
+/* Player name, rating and recorded clocks around the Analysis chessboard.
+   Keep the chessboard and the evaluation meter in their existing grid column.
+   Only the two information rows are added. */
+.tool-page .tool-card:first-of-type .board-with-eval{
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr)!important;
+  grid-template-rows:38px minmax(0,auto) 38px!important;
+  column-gap:8px!important;
+  row-gap:4px!important;
+  align-items:start!important;
+  max-height:none!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval #board{
+  grid-column:2!important;
+  grid-row:2!important;
+  align-self:start!important;
+  margin:0!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .board-eval-wrap{
+  grid-column:1!important;
+  grid-row:2!important;
+  align-self:start!important;
+  top:0!important;
+  margin:0!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .analysis-player-strip{
+  grid-column:2!important;
+  display:flex!important;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:space-between;
+  column-gap:12px;
+  padding:0!important;
+  margin:0!important;
+  min-width:0!important;
+  width:100%!important;
+  height:38px!important;
+  box-sizing:border-box;
+  color:#eaf5fd;
+  background:transparent;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .analysis-player-black{grid-row:1!important}
+.tool-page .tool-card:first-of-type .board-with-eval .analysis-player-white{grid-row:3!important}
+.analysis-player-identity{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  flex:1 1 auto;
+}
+.analysis-player-initial{
+  display:inline-flex;
+  flex:0 0 30px;
+  width:30px;
+  height:30px;
+  border-radius:6px;
+  align-items:center;
+  justify-content:center;
+  font-weight:850;
+  font-size:14px;
+  color:#143447;
+  background:#e9f4f8;
+  border:1px solid #7ba5b9;
+}
+.analysis-player-black .analysis-player-initial{
+  background:#2b3b48;
+  color:#f0f8fc;
+  border-color:#56758b;
+}
+.analysis-player-label{
+  font-weight:750;
+  font-size:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+.analysis-player-elo{
+  font-size:12px;
+  font-weight:550;
+  color:#b5cddd;
+  white-space:nowrap;
+}
+.analysis-player-clock{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  min-width:85px;
+  height:32px;
+  padding:0 10px;
+  box-sizing:border-box;
+  border-radius:5px;
+  background:#3a4751;
+  border:1px solid #53636d;
+  color:#c2cbd1;
+  font-size:19px;
+  font-weight:650;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+  opacity:.85;
+}
+.analysis-player-clock.is-active{
+  opacity:1;
+  background:#f5f8fa;
+  color:#24303b;
+  border-color:#e7f2fa;
+}
+.analysis-player-black .analysis-player-clock.is-active{
+  color:#f6f8fa;
+  background:#202429;
+  border-color:#82929c;
+}
+.analysis-player-clock:not(.has-time){
+  background:transparent!important;
+  color:#8197a9!important;
+  border:1px dashed #4d6474!important;
+  font-size:16px;
+  opacity:.55;
+}
+@media(max-width:650px){
+ .tool-page .tool-card:first-of-type .board-with-eval{
+   grid-template-rows:34px minmax(0,auto) 34px!important;
+   row-gap:3px!important;
+ }
+ .tool-page .tool-card:first-of-type .board-with-eval .analysis-player-strip{
+   height:34px!important;gap:5px;
+ }
+ .analysis-player-initial{width:25px;height:25px;flex-basis:25px;font-size:12px}
+ .analysis-player-label{font-size:12px}
+ .analysis-player-elo{font-size:10px}
+ .analysis-player-clock{min-width:66px;height:27px;font-size:15px;padding:0 5px}
+}
