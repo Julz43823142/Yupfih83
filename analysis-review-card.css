@@ -314,3 +314,13 @@
 /* Slightly larger classification labels, without changing icon/count spacing. */
 .review-side-stats .review-classification{font-size:15.5px}
 .review-side-stats .review-key-moments{font-size:15.5px}
+
+/* Game Review GIF export - appears only after analysis succeeds. */
+.game-review .review-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:15px 0}
+.game-review #review-gif{background:#086b90;border:1px solid #21d4ee;color:#fff;font-weight:800;letter-spacing:.2px;padding:11px 17px;border-radius:9px;cursor:pointer}
+.game-review #review-gif:hover:not(:disabled){background:#0a89ac}
+.game-review #review-gif:disabled{opacity:.6;cursor:progress}
+.game-review #review-gif-download{color:#79edff;font-size:14px;text-decoration:underline;text-underline-offset:3px;font-weight:650}
+.game-review #review-gif-status{color:#a9d3e4;font-size:13px;line-height:1.5;min-height:0}
+.game-review #review-gif-status:not(:empty){margin:6px 0 10px}
+.game-review [hidden]{display:none!important}
