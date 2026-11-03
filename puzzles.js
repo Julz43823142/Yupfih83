@@ -2,11 +2,11 @@ import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('puzzle-board'),status=$('puzzle-status');
-const MODES={random:['Random Puzzle','Train with a random position.'],custom:['Custom Puzzle','Choose your target puzzle Elo.'],sprint:['Puzzle Sprint','Five minutes, three mistakes. How many can you solve?'],survival:['Puzzle Survival','Three mistakes, no time limit. Keep your streak alive.']};
+const MODES={random:['Random Puzzle','Train with a random position.'],custom:['Custom Puzzle','Choose your target puzzle Elo.'],sprint:['Puzzle Sprint','Three or five minutes, three mistakes. How many can you solve?'],survival:['Puzzle Survival','Three mistakes, no time limit. Keep your streak alive.']};
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
-let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,lastRun=null;const seen=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,lastRun=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 function clock(){return Math.max(0,Math.ceil((deadline-Date.now())/1000))}
 function stats(){
@@ -15,7 +15,7 @@ function stats(){
  $('puzzle-lives-box').hidden=mode!=='sprint'&&mode!=='survival';
  $('puzzle-time-box').hidden=mode!=='sprint';
  $('puzzle-lives').textContent='♥'.repeat(Math.max(0,3-misses))+'♡'.repeat(Math.min(3,misses));
- const sec=mode==='sprint'?(runActive?clock():300):0;
+ const sec=mode==='sprint'?(runActive?clock():sprintMinutes*60):0;
  $('puzzle-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
 }
 function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null}
@@ -26,7 +26,9 @@ function buttons(){
  $('puzzle-next').hidden=challenge;$('puzzle-next').disabled=busy;
  $('puzzle-hint').hidden=challenge;
  $('puzzle-hint').disabled=!ready||busy;
- $('puzzle-start').textContent=mode==='sprint'?'Start 5-minute Sprint':'Start Survival';
+ $('puzzle-start').textContent=mode==='sprint'?'Start '+sprintMinutes+'-minute Sprint':'Start Survival';
+ $('puzzle-sprint-settings').hidden=mode!=='sprint';
+ document.querySelectorAll('[data-duration]').forEach(b=>{b.disabled=runActive;b.setAttribute('aria-pressed',String(Number(b.dataset.duration)===sprintMinutes));});
 }
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),button=document.createElement('button');
@@ -46,6 +48,8 @@ function draw(){
     cell.append(img);
    }
   }else cell.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
+  const whiteIndex=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
+  cell.style.order=orientation==='black'?63-whiteIndex:whiteIndex;
   cell.classList.toggle('selected-square',selected===sq);
   cell.classList.toggle('recent-square',!!lastMove&&(lastMove.from===sq||lastMove.to===sq));
   cell.classList.toggle('wrong-square',wrongSquare===sq);
@@ -57,6 +61,7 @@ function draw(){
  board.querySelector('.arrows')?.remove();
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('arrows');
  svg.setAttribute('viewBox','0 0 800 800');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+ if(orientation==='black')svg.style.transform='rotate(180deg)';
  if(lastMove)appendChessArrow(svg,lastMove.from,lastMove.to,'#ff962f',.7);
  for(const [a,b,c] of arrows)appendChessArrow(svg,a,b,c,.72);
  board.append(svg);
@@ -76,13 +81,19 @@ async function getPuzzle(which,target=null){
   }).catch(error=>{bankPromise=null;throw error});
  }
  const bank=await bankPromise;
- let candidates=bank.filter(row=>!seen.has(row[0]));
- if(!candidates.length){seen.clear();candidates=bank;}
- const desired=Number.isFinite(target)&&target>=100?target:null;
+ let candidates=bank.filter(row=>!seen.has(row[0])&&!seenPositions.has(row[1]+'|'+row[2].split(' ')[0]));
+ if(!candidates.length)throw Error('All local puzzles have been played during this session. Reload to start a new collection.');
+ const desired=Number.isFinite(target)&&target>=100?Math.min(3166,target):null;
  if(desired!==null){
-  // A broad rating band gives variety while staying close to the target.
+  if(which==='sprint'||which==='survival'){
+   const minimum=Math.max(lastChallengeRating,desired-35);
+   const harder=candidates.filter(row=>row[3]>=minimum);
+   if(harder.length)candidates=harder;
+   else candidates=candidates.filter(row=>row[3]>=lastChallengeRating);
+   if(!candidates.length)throw Error('No harder unused puzzles remain in this session.');
+  }
   candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
-  candidates=candidates.slice(0,Math.min(80,candidates.length));
+  candidates=candidates.slice(0,Math.min(which==='custom'?25:12,candidates.length));
  }
  for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
   const index=Math.floor(Math.random()*candidates.length);
@@ -96,7 +107,7 @@ async function getPuzzle(which,target=null){
    // The API-style shape keeps the same legality checks and board renderer.
    return {game:{pgn:'offline puzzle'},puzzle:{
     id,initialPly:1,fen:chess.fen(),lastMove:setup,
-    rating,solution:fullLine
+    rating,originalKey:fen+'|'+setup,solution:fullLine
    },source:'Lichess CC0 offline dataset'};
   }catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
  }
@@ -122,7 +133,7 @@ function decode(data){
   if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))throw Error('Invalid puzzle move');
   test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
  }
- return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0)};
+ return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen())};
 }
 async function load(kind=mode){
  const generation=++requestId;busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();say('Loading puzzle…');
@@ -132,10 +143,13 @@ async function load(kind=mode){
    const target=Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200));
    p=decode(await getPuzzle('next',target));
   }else{
-   p=decode(await getPuzzle('next',kind==='sprint'?1200+40*solved:kind==='survival'?1200+75*solved:null));
+   p=decode(await getPuzzle(kind,kind==='sprint'?750+125*solved:kind==='survival'?650+145*solved:null));
   }
   if(generation!==requestId)return;
   position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
+  seenPositions.add(p.puzzleKey);
+  if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
+  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
 
@@ -207,7 +221,7 @@ function play(from,to,promotion=null){
 }
 function switchMode(next){
  if(!MODES[next])return;
- requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastRun=null;
+ requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastRun=null;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
  $('puzzle-save-run').hidden=true;
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
@@ -239,14 +253,17 @@ $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='cu
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();solved=0;misses=0;runActive=true;startedAt=Date.now();lastRun=null;$('puzzle-save-run').hidden=true;
+ stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();lastRun=null;$('puzzle-save-run').hidden=true;
  if(mode==='sprint'){
-  deadline=Date.now()+300000;
+  deadline=Date.now()+sprintMinutes*60000;
   tick=setInterval(()=>{if(!runActive)return;stats();if(clock()<=0)finishRun('Time is up!')},250);
  }
  stats();buttons();load(mode);
 };
 $('puzzle-stop').onclick=()=>{if(runActive)finishRun('Run ended.')};
+document.querySelectorAll('[data-duration]').forEach(button=>button.addEventListener('click',()=>{
+ if(runActive)return;sprintMinutes=Number(button.dataset.duration)===3?3:5;stats();buttons();
+}));
 document.addEventListener('visibilitychange',()=>{if(runActive&&mode==='sprint'){stats();if(clock()<=0)finishRun('Time is up!')}});
 window.addEventListener('beforeunload',stopTimers);
 switchMode('random');
