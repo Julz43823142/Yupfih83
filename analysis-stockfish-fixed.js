@@ -17,7 +17,7 @@ evalWrap.setAttribute('aria-valuemax','10');
 const evalTrack=document.createElement('div');evalTrack.className='board-eval-track';
 const evalWhite=document.createElement('div');evalWhite.className='board-eval-white';
 const evalText=document.createElement('span');evalText.className='board-eval-text';evalText.textContent='0.00';
-evalTrack.append(evalWhite);evalWrap.append(evalTrack,evalText);
+evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
 const boardLayout=document.createElement('div');boardLayout.className='board-with-eval';
 board.parentNode.insertBefore(boardLayout,board);
 boardLayout.append(evalWrap,board);
@@ -300,7 +300,7 @@ function drawArrows(){
    const line=make('polyline',{points:[[x1,y1],bend,[x2,y2]].map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-opacity':opacity,'stroke-width':13,'stroke-linejoin':'round','stroke-linecap':'round'});
    svg.append(line);
    const vx=x2-bend[0],vy=y2-bend[1],vd=Math.hypot(vx,vy),ux2=vx/vd,uy2=vy/vd;
-   svg.append(make('polygon',{points:[[x2,y2],[x2-ux2*32-uy2*18,y2-uy2*32+ux2*18],[x2-ux2*32+uy2*18,y2-uy2*32-ux2*18]].map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':opacity}));return;
+   svg.append(make('polygon',{points:[[x2-ux2*7,y2-uy2*7],[x2-ux2*31-uy2*17,y2-uy2*31+ux2*17],[x2-ux2*31+uy2*17,y2-uy2*31-ux2*17]].map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':opacity}));return;
   }
   const ux=dx/d,uy=dy/d,px=-uy,py=ux;
   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
@@ -401,7 +401,7 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.datase
 $('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];reviewResults=[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
 
 const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
-reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
+reviewPanel.innerHTML='<h2>GAME REVIEW</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (0.12 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
 function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
