@@ -46,8 +46,12 @@ const prepBoardControls=attachChessBoardControls({
 let prepWorker=null,prepBest=null,prepLines=new Map();
 const prepMeter=document.querySelector('.prep-board-row .prep-eval-bar');
 const syncPrepMeter=()=>{
- const h=board.getBoundingClientRect().height;
- if(h>0&&prepMeter)prepMeter.style.setProperty('--chess-board-height',h+'px');
+ const rect=board.getBoundingClientRect();
+ if(rect.height>0&&prepMeter){
+  prepMeter.style.setProperty('--chess-board-height',rect.height+'px');
+  const row=prepMeter.parentElement.getBoundingClientRect();
+  prepMeter.style.top=(rect.top-row.top)+'px';
+ }
 };
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(syncPrepMeter).observe(board)}
 window.addEventListener('resize',syncPrepMeter);
