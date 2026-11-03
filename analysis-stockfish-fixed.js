@@ -482,6 +482,29 @@ function reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin){
  return {label:'Blunder',symbol:'‼️'};
 }
 // Compact, screenshot-inspired review scorecard in the EloScanner palette.
+// Experimental EloScanner performance estimate. Uses move quality, consistency,
+// tactical complexity and sample size, never the player's account rating.
+// Not a statistically calibrated Elo or a Chess.com Game Rating.
+function estimateGamePerformance(categories,accuracyBySide){
+ return [0,1].map(side=>{
+  const moves=categories.filter((_,i)=>i%2===side);
+  if(moves.length<8||accuracyBySide[side]==null)return null;
+  const n=moves.length;
+  const accuracy=accuracyBySide[side];
+  const avgLoss=moves.reduce((sum,m)=>sum+m.loss,0)/n;
+  const excellent=moves.filter(m=>['Brilliant','Great','Best','Excellent'].includes(m.label)).length/n;
+  const serious=moves.filter(m=>['Mistake','Miss','Blunder'].includes(m.label)).length/n;
+  const challenging=moves.filter(m=>m.complexity>=.38).length/n;
+  const variation=moves.reduce((sum,m)=>sum+(m.loss-avgLoss)**2,0)/n;
+  const stability=1-Math.min(1,Math.sqrt(variation)/18);
+  const raw=620+16.5*(accuracy-55)+365*excellent-450*serious+
+   125*challenging+110*stability;
+  // Short games contain much less evidence; shrink towards an uncertain center.
+  const confidence=Math.min(1,Math.sqrt(n/30));
+  const estimate=1300+(raw-1300)*confidence;
+  return Math.round(Math.max(400,Math.min(2800,estimate))/25)*25;
+ });
+}
 function renderReviewScorecard(categories,evaluations,accuracyBySide){
  const panel=$('review-side-stats');
  if(!panel)return;
@@ -539,9 +562,10 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
  const note=document.createElement('p');note.className='review-scoring-note';
  note.textContent='Accuracy and classifications are EloScanner engine-based estimates, not official Chess.com scores.';
  panel.append(note);
- addMetric('Game Rating',['—','—'],'review-rating');
+ const performances=estimateGamePerformance(categories,accuracyBySide);
+ addMetric('Game Rating',performances.map(x=>x===null?'—':x),'review-rating');
  const caption=document.createElement('p');caption.className='review-rating-note';
- caption.textContent='Game Rating is unavailable without a validated rating model.';
+ caption.textContent='Experimental EloScanner performance estimate (400–2800), based on move accuracy, serious errors, difficult decisions and consistency—not your account Elo. Uncalibrated; short games are less reliable.';
  panel.append(caption);
 }
 function stopReview(){
@@ -600,7 +624,7 @@ $('review-start').onclick=async()=>{
    try{const before=new Chess(snapshot[i]),played=before.move(moves[i]);best=!!played&&evaluations[i].pv===played.from+played.to+(played.promotion||'')}catch{}
    const book=false; // Never invent verified opening-book matches from move number alone.
    const second=evaluations[i].second;const before=new Chess(snapshot[i]);const alternatives=before.moves().length;const played=before.move(moves[i]);const captured=played?.captured?({p:100,n:320,b:330,r:500,q:900}[played.captured]||0):0;const sacrifice=played?reviewOfferedMaterial(before,played,captured):0;const brilliant=best&&!book&&sacrifice>=250&&actualWin>=50&&alternatives>1&&(second===null||reviewWin(second*mover)<90);const great=best&&!book&&!brilliant&&second!==null&&reviewWin(evaluations[i].white*mover)-reviewWin(second*mover)>=8;const category=reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin);
-   categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
+   categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),complexity:Math.min(1,Math.max(0,(alternatives-1)/24))*(bestWin>20&&bestWin<80?1:.55),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
   status.textContent='';
