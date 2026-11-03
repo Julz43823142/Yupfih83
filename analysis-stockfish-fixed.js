@@ -6,7 +6,7 @@ let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arro
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
 let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
-let sanMoves=[],reviewResults=[],reviewBusy=false;const boardCells=new Map();
+let sanMoves=[],reviewResults=[],reviewEvaluations=[],reviewBusy=false;const boardCells=new Map();
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
@@ -565,7 +565,7 @@ async function importGame(){
   const moves=mode==='fen'?[]:next.history();
   for(const san of moves){replay.move(san);states.push(replay.fen())}
   positionClocks=mode==='fen'?[]:clocksFromPgn(next,states,headers);
-  history=states;sanMoves=moves;reviewResults=[];cursor=0;selected=null;arrows=[];blueSquares.clear();
+  history=states;sanMoves=moves;reviewResults=[];reviewEvaluations=[];$('review-gif')?.setAttribute('hidden','');cursor=0;selected=null;arrows=[];blueSquares.clear();
   status.textContent=mode==='fen'?'Position imported. Make moves to review a game.':'';
   render();requestAnalysis();
   renderReviewPlaceholder();
@@ -575,7 +575,7 @@ async function importGame(){
 
 const reviewPanel=document.createElement('section');
 reviewPanel.id='game-review';reviewPanel.className='game-review';
-reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Import a position or game</h3><div id="review-import-slot"></div><div class="review-actions"><button id="review-start" type="button" hidden>Review Game</button><button id="review-cancel" type="button" disabled hidden>Cancel</button></div><div id="review-status" role="status"></div><div id="review-summary"></div>';
+reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Import a position or game</h3><div id="review-import-slot"></div><div class="review-actions"><button id="review-start" type="button" hidden>Review Game</button><button id="review-cancel" type="button" disabled hidden>Cancel</button><button id="review-gif" type="button" hidden>Make GIF</button><a id="review-gif-download" hidden download="eloscanner-game-review.gif">Download GIF</a></div><div id="review-status" role="status"></div><div id="review-gif-status" role="status" aria-live="polite"></div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 const importCard=$('import-value').closest('.tool-card');
 const importSlot=$('review-import-slot');
@@ -786,7 +786,7 @@ $('review-start').onclick=async()=>{
  if(reviewBusy)return;
  if(importBox.value.trim()&&!await importGame())return;
  if(history.length<2){$('review-status').textContent='Import a PGN with moves or play some moves to review. A FEN alone has no move history.';return}
- reviewBusy=true;reviewCancelled=false;$('review-start').disabled=true;$('review-cancel').disabled=false;
+ reviewBusy=true;reviewCancelled=false;reviewEvaluations=[];$('review-gif').hidden=true;$('review-gif-download').hidden=true;$('review-gif-status').textContent='';$('review-start').disabled=true;$('review-cancel').disabled=false;
  const snapshot=history.slice(),moves=sanMoves.slice();
  const status=$('review-status'),summary=$('review-summary');summary.replaceChildren();
  const worker=new Worker(ENGINE_JS);reviewWorker=worker;
@@ -888,7 +888,8 @@ $('review-start').onclick=async()=>{
    const second=evaluations[i].second;const before=new Chess(snapshot[i]);const alternatives=before.moves().length;const played=before.move(moves[i]);const captured=played?.captured?({p:100,n:320,b:330,r:500,q:900}[played.captured]||0):0;const sacrifice=played?reviewOfferedMaterial(before,played,captured):0;const brilliant=best&&!book&&sacrifice>=250&&actualWin>=50&&alternatives>1&&(second===null||reviewWin(second*mover)<90);const great=best&&!book&&!brilliant&&second!==null&&reviewWin(evaluations[i].white*mover)-reviewWin(second*mover)>=8;const category=reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin);
    categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),complexity:Math.min(1,Math.max(0,(alternatives-1)/24))*(bestWin>20&&bestWin<80?1:.55),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
-  reviewResults=categories;
+  reviewResults=categories;reviewEvaluations=evaluations;
+  $('review-gif').hidden=false;
   status.textContent='Reviewed '+moves.length+' half-moves in '+reviewElapsed+' s · '+priorityOrder.length+' critical positions refined.';
   // All metrics are displayed once, in the left Game Review scorecard.
   const sideStats=[0,1].map(side=>reviewAccuracy(
@@ -898,5 +899,32 @@ $('review-start').onclick=async()=>{
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
 };
+
+let reviewGifUrl=null;
+$('review-gif').addEventListener('click',async()=>{
+ const button=$('review-gif'),message=$('review-gif-status'),download=$('review-gif-download');
+ if(reviewBusy||!reviewResults.length||reviewEvaluations.length!==history.length)return;
+ button.disabled=true;download.hidden=true;
+ message.textContent='Preparing GIF…';
+ // Snapshot the finished review so later navigation cannot change the frames.
+ const options={
+  history:history.slice(),moves:sanMoves.slice(),categories:reviewResults.slice(),
+  evaluations:reviewEvaluations.slice(),players:structuredClone(playerMeta),
+  clocks:positionClocks.map(c=>({...c})),Chess,
+  onProgress:(done,total)=>{message.textContent='Creating GIF '+done+'/'+total+' frames…';}
+ };
+ try{
+  const {exportReviewGif}=await import('./analysis-review-gif.js?v=1');
+  const blob=await exportReviewGif(options);
+  if(reviewGifUrl)URL.revokeObjectURL(reviewGifUrl);
+  reviewGifUrl=URL.createObjectURL(blob);
+  download.href=reviewGifUrl;
+  download.hidden=false;
+  download.textContent='Download GIF ('+(blob.size/1048576).toFixed(1)+' MB)';
+  download.click();
+  message.textContent='GIF ready. The download link is available above.';
+ }catch(e){message.textContent='GIF export failed: '+(e?.message||'Unknown error');}
+ finally{button.disabled=false}
+});
 
 render();
