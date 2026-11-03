@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261103-local-v87-2";
+const REVISION = "20261103-local-v87-4";
 const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/";
 const PYTHON_FILES = [
   "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -12,6 +12,10 @@ const PYTHON_FILES = [
   "fairplay_method3_opening_shift.py", "fairplay_website_runner.py",
   "fairplay_data.py", "fairplay_config.py", "fairplay_outcome_study.py",
   "fairplay_timing.py", "fairplay_opening.py", "fairplay_analysis.py",
+  "fairplay_periods.py", "fairplay_accuracy_reference.py",
+  "fairplay_clusters.py", "fairplay_local_timing.py",
+  "fairplay_calibration.py", "fairplay_convergence.py",
+  "fairplay_positions.py", "fairplay_results.py",
   "browser_adapter.py", "assets/fairplay/opening-lines.json",
   "chess/__init__.py", "chess/pgn.py", "chess/engine.py", "chess/svg.py", "chess/variant.py"
 ];
