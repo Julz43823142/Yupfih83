@@ -103,3 +103,6 @@ main>.below-hero-layout>.features .feature-illustration{
    Reserve an identical icon slot so the four labels remain aligned. */
 .hero-tool-links a .tool-icon{display:block!important;width:32px!important;height:32px!important;flex:0 0 32px!important;object-fit:contain!important}
 .hero-tool-links a[href="/puzzles.html"] .tool-icon{width:26px!important;height:26px!important;flex:0 0 26px!important;margin-inline:3px!important}
+
+/* Chess Tools: increase only the visible symbol size; preserve the existing 32px alignment slot. */
+.hero-tool-links a:is([href="/analysis.html"],[href="/player-prep.html"],[href="/minigames.html"]) .tool-icon{transform:scale(1.26)!important;transform-origin:center center!important}
