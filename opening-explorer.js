@@ -3,6 +3,23 @@ const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('openin
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 const format=n=>Intl.NumberFormat('en-US',{notation:n>=100000?'compact':'standard',maximumFractionDigits:1}).format(n);
+function describeOpening(name){
+ const n=String(name||'').toLowerCase();
+ if(n.includes('sicilian'))return 'The Sicilian is an asymmetric response to 1.e4. Black challenges the centre with ...c5, often creating active counterplay on the queenside. White frequently develops quickly and looks for central or kingside initiative. The exact plans depend on the variation.';
+ if(n.includes('caro-kann'))return 'Black supports ...d5 with ...c6, aiming for a solid pawn structure and sound development. White can choose space, central exchanges or sharper attacking setups. Watch the central pawn tension.';
+ if(n.includes('queen\'s gambit')||n.includes('queens gambit'))return 'White uses 1.d4 and 2.c4 to challenge Black’s central d5 pawn. Typical themes include central tension, development of the light-squared bishop and pressure on the queenside.';
+ if(n.includes('italian'))return 'White develops the bishop to c4, targets the sensitive f7 square and aims for fast development. Both sides need to pay attention to central breaks with d4 or ...d5.';
+ if(n.includes('ruy lopez')||n.includes('spanish'))return 'White puts pressure on the knight defending e5, often leading to a strategic fight for the centre. Typical themes include pawn breaks, piece manoeuvres and kingside pressure.';
+ if(n.includes('french'))return 'Black challenges White’s e4 pawn with ...e6 and ...d5. The pawn chains often lead to plans based on attacking their base, fighting for key squares and finding play for Black’s light-squared bishop.';
+ if(n.includes('king\'s indian'))return 'Black permits White a broad pawn centre and looks for dynamic counterplay. Common themes are central pawn breaks and opposing-side attacking plans.';
+ if(n.includes('english'))return 'White begins with 1.c4, often controlling d5 from the flank. The opening can transpose into many other systems, so move order and central structure matter.';
+ if(n.includes('scandinavian'))return 'Black immediately challenges e4 with ...d5. The centre opens early and both sides must balance development, queen activity and pawn structure.';
+ if(n.includes('london'))return 'White usually develops the dark-squared bishop to f4 and builds a compact setup. The key questions are when to play c4 or e4 and how to respond to Black’s central breaks.';
+ return 'Follow the moves on the board and compare the most frequent continuations below. The move statistics show what players have chosen, not which move is objectively best. Use Stockfish analysis for tactical evaluation.';
+}
+function setTheory(name){
+ const out=$('opening-theory-text');if(out)out.textContent=describeOpening(name);
+}
 function draw(){
  board.replaceChildren();
  const matrix=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){
@@ -12,10 +29,13 @@ function draw(){
   board.append(sq);
  }
  $('opening-back').disabled=line.length===0;
+ $('opening-move-counter').textContent='Move '+Math.ceil(line.length/2);
+ $('board-opening-name').textContent=line.length?'Position after '+line[line.length-1]:'Starting position';
  $('opening-path').textContent=line.length?line.map((m,i)=>(i%2===0?(Math.floor(i/2)+1)+'. ':'')+m).join(' '):'Starting position';
  const path=game.history().join(' ');
  const match=[...catalog].filter(x=>x.sanLine&&path.startsWith(x.sanLine)&&(!path[x.sanLine.length]||path[x.sanLine.length]===' ')).sort((a,b)=>b.sanLine.length-a.sanLine.length)[0];
- $('opening-name').textContent=chosen?.sanLine===path?chosen.name:(match?.name||'Opening Explorer');
+ $('opening-name').textContent=chosen?.sanLine===path?chosen.name:(match?.name||'Starting position');
+ setTheory(chosen?.name||match?.name||'');
  fetchStats();
 }
 function reset(){game.reset();line.length=0;chosen=null;draw()}
@@ -27,7 +47,7 @@ function renderMoves(data){
  const root=$('opening-moves');root.replaceChildren();currentResults=data.moves||[];
  const total=(data.white||0)+(data.draws||0)+(data.black||0);
  $('opening-stat').textContent=total?format(total)+' games · White '+(100*data.white/total).toFixed(1)+'% · Draw '+(100*data.draws/total).toFixed(1)+'% · Black '+(100*data.black/total).toFixed(1)+'%':'No games for this position in the selected Lichess explorer pool.';
- if(data.opening?.name&&!chosen)$('opening-name').textContent=data.opening.name;
+ if(data.opening?.name&&!chosen){$('opening-name').textContent=data.opening.name;setTheory(data.opening.name)}
  for(const move of currentResults){
   const count=move.white+move.draws+move.black,b=document.createElement('button');b.type='button';b.className='opening-move';
   const san=document.createElement('strong');san.textContent=move.san;
@@ -53,7 +73,7 @@ function parseLine(pgn){
  return stripped?stripped.split(' ').filter(x=>!/^\d+\.*$/.test(x)):[]}
 function choose(entry){
  reset();for(const san of entry.moves){try{game.move(san);line.push(san)}catch{break}}
- chosen=entry;draw();$('opening-name').textContent=entry.name+' ('+entry.eco+')';$('opening-results').replaceChildren();
+ chosen=entry;draw();$('opening-name').textContent=entry.name+' ('+entry.eco+')';setTheory(entry.name);$('opening-results').replaceChildren();
  $('opening-query').value=entry.name;
 }
 function search(){
@@ -66,6 +86,9 @@ function search(){
  $('catalog-status').textContent=results.length+' matches shown'+(results.length===55?' (refine your search)':'');
 }
 $('opening-search').addEventListener('submit',e=>{e.preventDefault();search()});
+document.querySelectorAll('[data-opening]').forEach(button=>button.addEventListener('click',()=>{
+ $('opening-query').value=button.dataset.opening;search();$('opening-query').focus();
+}));
 $('opening-query').addEventListener('input',()=>{clearTimeout(window.eloOpeningSearchDelay);window.eloOpeningSearchDelay=setTimeout(search,180)});
 async function loadCatalog(){
  try{
