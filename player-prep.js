@@ -3,7 +3,7 @@ import {appendChessArrow} from './chess-board-arrows.js';
 import {attachChessBoardControls} from './chess-board-controls.js?v=2';
 const $=id=>document.getElementById(id), opponent=$('opponent'), board=$('board');
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
-let games=[],path=[],color='b',loading=false,selectedSquare=null,manualArrows=[],blueSquares=new Set(),candidateMoves=[];
+let games=[],path=[],color='b',loading=false,selectedSquare=null,manualArrows=[],blueSquares=new Set(),candidateMoves=[],redoMoves=[];
 function setupDateWheels(){for(const group of document.querySelectorAll('.date-wheels')){const id=group.dataset.date;const today=new Date();const parts=[{name:'Day',values:Array.from({length:31},(_,i)=>i+1),initial:id==='from'?1:today.getDate()},{name:'Month',values:Array.from({length:12},(_,i)=>i+1),initial:id==='from'?1:today.getMonth()+1},{name:'Year',values:Array.from({length:20},(_,i)=>today.getFullYear()-19+i),initial:id==='from'?today.getFullYear()-2:today.getFullYear()}];const selects=parts.map(part=>{const label=document.createElement('label');label.className='wheel-column';const name=document.createElement('small');name.textContent=part.name;const sel=document.createElement('select');sel.setAttribute('aria-label',id+' '+part.name);for(const n of part.values){const opt=document.createElement('option');opt.value=n;opt.textContent=String(n).padStart(2,'0');sel.append(opt)}sel.value=part.initial;label.append(name,sel);group.append(label);return sel});function update(){const [d,m,y]=selects.map(s=>Number(s.value));const dt=new Date(Date.UTC(y,m-1,d));$(''+id).value=dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0')}selects.forEach(s=>s.addEventListener('change',update));update()}}setupDateWheels();
 const prepSetup=document.querySelector('.prep-setup');const filterShell=document.createElement('div');filterShell.className='prep-filter-shell';const filterInner=document.createElement('div');filterInner.className='prep-filter-inner';filterShell.append(filterInner);prepSetup.querySelector('.prep-actions').before(filterShell);for(const element of [...prepSetup.querySelectorAll('.prep-advanced')])filterInner.append(element);const prepColorLabel=prepSetup.querySelector('.prep-color');const updatePrepColor=()=>{const name=opponent.value.trim();prepColorLabel.firstChild.textContent=name?'Your color (opponent: '+name+')':'Your color'};opponent.addEventListener('input',updatePrepColor);$('prep-back').onclick=()=>{prepSetup.classList.remove('prep-step-2','prep-show-advanced');prepSetup.querySelector('.prep-wizard-head h2').textContent='Chess.com player'};$('prep-continue').onclick=()=>{if(!/^[a-zA-Z0-9_-]{2,25}$/.test(opponent.value.trim())){status('Enter a valid Chess.com username.');return}prepSetup.classList.add('prep-step-2');prepSetup.querySelector('.prep-wizard-head h2').textContent='Games where '+opponent.value.trim()+' is playing as';};opponent.addEventListener('keydown',e=>{if(e.key==='Enter'){$('prep-continue').click();e.preventDefault()}});$('prep-advanced-toggle').onclick=()=>prepSetup.classList.toggle('prep-show-advanced');
 function status(t){$('fetch-status').textContent=t}
@@ -24,7 +24,15 @@ function drawCandidateArrows(options){
    appendChessArrow(svg,m.from,m.to,'#a640f5',[.92,.62,.38][i]);
   }catch{}
  });
- const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}for(const [from,to] of manualArrows)appendChessArrow(svg,from,to,'#0a9cff',.78);board.style.position='relative';board.append(svg);
+ const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}if(path.length){
+  try{
+   const before=new Chess();
+   for(const san of path.slice(0,-1))before.move(san);
+   const last=before.move(path[path.length-1]);
+   if(last)appendChessArrow(svg,last.from,last.to,'#ff962f',.84);
+  }catch{}
+ }
+ for(const [from,to] of manualArrows)appendChessArrow(svg,from,to,'#0a9cff',.78);board.style.position='relative';board.append(svg);
 }
 const prepBoardControls=attachChessBoardControls({
  board,
@@ -35,7 +43,7 @@ const prepBoardControls=attachChessBoardControls({
   const chess=new Chess();for(const san of path)chess.move(san);
   const move=chess.moves({square:from,verbose:true}).find(m=>m.to===to);
   if(!move)return false;
-  path.push(move.san);selectedSquare=null;manualArrows=[];blueSquares.clear();
+  redoMoves=[];path.push(move.san);selectedSquare=null;manualArrows=[];blueSquares.clear();
   render();
   return true;
  },
@@ -73,7 +81,7 @@ function render(){
  for(const x of options.slice(0,30)){
   const row=document.createElement('div');row.className='move-option';
   const btn=document.createElement('button');btn.textContent=x.move+' · '+x.total+' games ('+(100*x.total/subset.length).toFixed(1)+'%)';
-  btn.onclick=()=>{path.push(x.move);selectedSquare=null;manualArrows=[];blueSquares.clear();render()};row.append(btn);
+  btn.onclick=()=>{redoMoves=[];path.push(x.move);selectedSquare=null;manualArrows=[];blueSquares.clear();render()};row.append(btn);
   const known=x.win+x.draw+x.loss;
   const bar=document.createElement('div');bar.setAttribute('aria-label','Opponent results: '+x.win+' wins, '+x.draw+' draws, '+x.loss+' losses');
   bar.style.cssText='display:flex;height:28px;width:100%;overflow:hidden;border-radius:5px;background:#52677b';
@@ -91,6 +99,23 @@ function render(){
  $('recommendations').textContent=candidate?'Consider exploring '+[...path,candidate.move].join(' ')+'. Opponent lost '+candidate.loss+' of '+candidate.total+' games after this move. Verify that this line is suitable for your side before choosing it.':'No statistically supported recommendation at this position.';
  $('head-to-head').textContent='Opponent games loaded: '+games.length+'. Head-to-head comparison is not yet available.';
 }
-$('back').onclick=()=>{path.pop();selectedSquare=null;manualArrows=[];blueSquares.clear();render()};$('reset').onclick=()=>{path=[];selectedSquare=null;manualArrows=[];blueSquares.clear();render()};
-$('fetch').onclick=async()=>{if(loading)return;const user=opponent.value.trim();if(!/^[a-zA-Z0-9_-]{2,25}$/.test(user)){status('Enter a valid Chess.com username.');return}const types=new Set([...document.querySelectorAll('input[name=tc]:checked')].map(x=>x.value));if(!types.size){status('Select at least one time control.');return}const from=$('from').value,to=$('to').value;if($('period').value==='custom'&&from&&to&&from>to){status('Start date must be before end date.');return}color=$('my-color').value==='white'?'b':'w';loading=true;$('fetch').disabled=true;games=[];path=[];selectedSquare=null;manualArrows=[];blueSquares.clear();try{status('Loading archive list…');const base='https://api.chess.com/pub/player/'+encodeURIComponent(user.toLowerCase());const res=await fetch(base+'/games/archives');if(!res.ok)throw Error('Could not load archives ('+res.status+').');const archives=(await res.json()).archives||[];const selectedArchives=archives.filter(url=>{const month=url.match(/(\d{4})\/(\d{2})$/);if(!month||$('period').value!=='custom')return true;const ym=month[1]+'-'+month[2];return (!from||ym>=from.slice(0,7))&&(!to||ym<=to.slice(0,7))}).reverse();let scanned=0;for(const url of selectedArchives){status('Reading month '+(++scanned)+' of '+selectedArchives.length+' · '+games.length+' games');const response=await fetch(url);if(!response.ok)continue;const payload=await response.json();for(const g of payload.games||[]){if(!types.has(g.time_class)||g.rules&&g.rules!=='chess')continue;const rated=$('prep-rated').value;if(rated!=='all'&&Boolean(g.rated)!==(rated==='rated'))continue;const other=g[color==='w'?'black':'white'];const min=Number($('prep-min-rating').value)||0,max=Number($('prep-max-rating').value)||Infinity;if((other?.rating||0)<min||(other?.rating||0)>max)continue;const otherName=$('prep-opponent-name').value.trim().toLowerCase();if(otherName&&other?.username?.toLowerCase()!==otherName)continue;if(g[color==='w'?'white':'black']?.username?.toLowerCase()!==user.toLowerCase())continue;const d=new Date((g.end_time||0)*1000).toISOString().slice(0,10);if($('period').value==='custom'&&((from&&d<from)||(to&&d>to)))continue;const moves=parsePgn(g.pgn||'');if(!moves)continue;games.push({moves,outcome:outcome(g.pgn||'',user.toLowerCase()),end:g.end_time||0})}if(games.length>=5000)break}status('Loaded '+games.length+' games. Results are from the opponent’s perspective.');render()}catch(e){status(e.message+' Check your connection or Chess.com API access.')}finally{loading=false;$('fetch').disabled=false}};
+function navigatePrep(direction){
+ if(direction<0){
+  if(!path.length)return;
+  redoMoves.push(path.pop());
+ }else{
+  if(!redoMoves.length)return;
+  path.push(redoMoves.pop());
+ }
+ selectedSquare=null;manualArrows=[];blueSquares.clear();render();
+}
+$('back').onclick=()=>navigatePrep(-1);
+window.addEventListener('keydown',e=>{
+ if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.altKey||e.ctrlKey||e.metaKey)return;
+ const target=e.target instanceof Element?e.target:null;
+ if(target?.closest('input,textarea,select,[contenteditable="true"],[role="slider"],[role="spinbutton"]'))return;
+ e.preventDefault();e.stopPropagation();
+ navigatePrep(e.key==='ArrowLeft'?-1:1);
+},true);$('reset').onclick=()=>{path=[];redoMoves=[];selectedSquare=null;manualArrows=[];blueSquares.clear();render()};
+$('fetch').onclick=async()=>{if(loading)return;const user=opponent.value.trim();if(!/^[a-zA-Z0-9_-]{2,25}$/.test(user)){status('Enter a valid Chess.com username.');return}const types=new Set([...document.querySelectorAll('input[name=tc]:checked')].map(x=>x.value));if(!types.size){status('Select at least one time control.');return}const from=$('from').value,to=$('to').value;if($('period').value==='custom'&&from&&to&&from>to){status('Start date must be before end date.');return}color=$('my-color').value==='white'?'b':'w';loading=true;$('fetch').disabled=true;games=[];path=[];redoMoves=[];selectedSquare=null;manualArrows=[];blueSquares.clear();try{status('Loading archive list…');const base='https://api.chess.com/pub/player/'+encodeURIComponent(user.toLowerCase());const res=await fetch(base+'/games/archives');if(!res.ok)throw Error('Could not load archives ('+res.status+').');const archives=(await res.json()).archives||[];const selectedArchives=archives.filter(url=>{const month=url.match(/(\d{4})\/(\d{2})$/);if(!month||$('period').value!=='custom')return true;const ym=month[1]+'-'+month[2];return (!from||ym>=from.slice(0,7))&&(!to||ym<=to.slice(0,7))}).reverse();let scanned=0;for(const url of selectedArchives){status('Reading month '+(++scanned)+' of '+selectedArchives.length+' · '+games.length+' games');const response=await fetch(url);if(!response.ok)continue;const payload=await response.json();for(const g of payload.games||[]){if(!types.has(g.time_class)||g.rules&&g.rules!=='chess')continue;const rated=$('prep-rated').value;if(rated!=='all'&&Boolean(g.rated)!==(rated==='rated'))continue;const other=g[color==='w'?'black':'white'];const min=Number($('prep-min-rating').value)||0,max=Number($('prep-max-rating').value)||Infinity;if((other?.rating||0)<min||(other?.rating||0)>max)continue;const otherName=$('prep-opponent-name').value.trim().toLowerCase();if(otherName&&other?.username?.toLowerCase()!==otherName)continue;if(g[color==='w'?'white':'black']?.username?.toLowerCase()!==user.toLowerCase())continue;const d=new Date((g.end_time||0)*1000).toISOString().slice(0,10);if($('period').value==='custom'&&((from&&d<from)||(to&&d>to)))continue;const moves=parsePgn(g.pgn||'');if(!moves)continue;games.push({moves,outcome:outcome(g.pgn||'',user.toLowerCase()),end:g.end_time||0})}if(games.length>=5000)break}status('Loaded '+games.length+' games. Results are from the opponent’s perspective.');render()}catch(e){status(e.message+' Check your connection or Chess.com API access.')}finally{loading=false;$('fetch').disabled=false}};
 render();
