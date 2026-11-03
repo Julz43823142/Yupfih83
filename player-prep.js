@@ -25,7 +25,7 @@ function drawCandidateArrows(options){
    const dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy);if(d<1)return;
    const ux=dx/d,uy=dy/d,px=-uy,py=ux;
    const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
-   const coords=[[tail[0]+px*5,tail[1]+py*5],[base[0]+px*5,base[1]+py*5],[base[0]+px*15,base[1]+py*15],tip,[base[0]-px*15,base[1]-py*15],[base[0]-px*5,base[1]-py*5],[tail[0]-px*5,tail[1]-py*5]];
+   const coords=[[tail[0]+px*7,tail[1]+py*7],[base[0]+px*7,base[1]+py*7],[base[0]+px*19,base[1]+py*19],tip,[base[0]-px*19,base[1]-py*19],[base[0]-px*7,base[1]-py*7],[tail[0]-px*7,tail[1]-py*7]];
    const polygon=document.createElementNS(svg.namespaceURI,'polygon');polygon.setAttribute('points',coords.map(p=>p.join(',')).join(' '));polygon.setAttribute('fill','#a640f5');polygon.setAttribute('opacity',String([.92,.62,.38][i]));polygon.setAttribute('stroke','#c18bff');polygon.setAttribute('stroke-width','1');polygon.setAttribute('stroke-linejoin','round');svg.append(polygon);
   }catch{}
  });
