@@ -1,19 +1,20 @@
 // EloScanner analysis database switch; actual move statistics from Lichess.
 export function createOpeningIntegration({Chess,getState,onMove}){
- const label=document.createElement('label');label.className='elo-db-toggle';
+ const label=document.createElement('label');label.className='elo-db-toggle';label.title='Toggle game database';
  const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.setAttribute('role','switch');checkbox.setAttribute('aria-label','Database');
  const caption=document.createElement('span');caption.textContent='Database';label.append(checkbox,caption);
  const panel=document.createElement('section');panel.id='elo-db-panel';panel.className='elo-db-panel';panel.hidden=true;panel.setAttribute('aria-live','polite');
- const title=document.createElement('div');title.className='elo-db-title';title.textContent='Lichess Database';
+ const title=document.createElement('div');title.className='elo-db-title';title.textContent='Database';
  const info=document.createElement('p');info.className='elo-db-info';info.textContent='Loading opening statistics…';
  const moves=document.createElement('div');moves.className='elo-db-moves';
- const credit=document.createElement('a');credit.href='https://lichess.org/analysis#explorer';credit.target='_blank';credit.rel='noopener noreferrer';credit.className='elo-db-credit';credit.textContent='Data: Lichess Opening Explorer';
- panel.append(title,info,moves,credit);
+ panel.append(title,info,moves);
  let requestIndex=0,controller=null,lastFen='';
  const notation=document.getElementById('notation-moves');
  const heading=document.getElementById('opening-name');
  const header=document.querySelector('#live-notation .analysis-engine-header');
- header?.append(label);
+ const stockfishLabel=header?.querySelector('.switch-label');
+ if(stockfishLabel)stockfishLabel.insertAdjacentElement('afterend',label);
+ else header?.append(label);
  notation?.insertAdjacentElement('afterend',panel);
  const format=n=>Intl.NumberFormat('en-US',{notation:n>=100000?'compact':'standard',maximumFractionDigits:1}).format(n);
  function toggle(){
