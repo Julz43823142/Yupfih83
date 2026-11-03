@@ -60,7 +60,11 @@ async function getJSON(url, options) {
   const response = await fetch(url, options);
   if (!response.ok) {
     if (response.status === 404) throw new Error("Player or review not found.");
-    if (response.status === 429) throw new Error("Rate limit reached. Try again later.");
+    if (response.status === 429) {
+      let message="Rate limit reached. Try again later.";
+      try{const details=await response.json();if(details.error)message=details.error;}catch{}
+      throw new Error(message);
+    }
     let message = "Service request failed (" + response.status + ").";
     try { const details = await response.json(); if (details.error) message = details.error; } catch {}
     throw new Error(message);
@@ -500,7 +504,7 @@ function startReviewProgress(){
   reviewProgressStarted=Date.now();
   reviewProgressFinishing=false;
   reviewProgressPercent=0;reviewProgressStage="queued";reviewProgressReport="";
-  showReviewProgress("Waiting for an analysis worker…","queued");
+  showReviewProgress("Preparing local analysis on this device…","queued");
   reviewProgressTimer=setInterval(()=>{
     if(!reviewProgressFinishing&&document.querySelector("#v87-review .v87-progress"))
       showReviewProgress(reviewProgressReport,reviewProgressStage);
