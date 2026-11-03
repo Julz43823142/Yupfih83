@@ -296,7 +296,7 @@ function drawArrows(){
   if(d<1)return;
   const ux=dx/d,uy=dy/d,px=-uy,py=ux;
   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
-  const coords=[[tail[0]+px*4,tail[1]+py*4],[base[0]+px*4,base[1]+py*4],[base[0]+px*14,base[1]+py*14],tip,[base[0]-px*14,base[1]-py*14],[base[0]-px*4,base[1]-py*4],[tail[0]-px*4,tail[1]-py*4]];
+  const coords=[[tail[0]+px*6,tail[1]+py*6],[base[0]+px*6,base[1]+py*6],[base[0]+px*18,base[1]+py*18],tip,[base[0]-px*18,base[1]-py*18],[base[0]-px*6,base[1]-py*6],[tail[0]-px*6,tail[1]-py*6]];
   const points=coords.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
   const glow=make('polygon',{points,fill:color,'fill-opacity':opacity*.16,stroke:color,'stroke-opacity':opacity*.13,'stroke-width':7,'stroke-linejoin':'round'});
   svg.append(glow);
