@@ -1,5 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
-import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
+import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('puzzle-board'),status=$('puzzle-status');
 const MODES={random:['Random Puzzle','Train with a random position.'],custom:['Custom Puzzle','Choose your target puzzle Elo.'],sprint:['Puzzle Sprint','Three or five minutes, three mistakes. How many can you solve?'],survival:['Puzzle Survival','Three mistakes, no time limit. Keep your streak alive.']};
@@ -195,6 +195,9 @@ async function load(kind=mode){
   say(kind==='custom'?'Selected an available puzzle rated '+p.rating+'. Find the best move.':'Find the best move. Opponent replies are automatic.');
  }catch(e){
   if(generation!==requestId)return;
+  if(runActive&&/no harder unused puzzles|all local puzzles have been played/i.test(e.message||'')){
+   finishRun('The available puzzle library has been completed.');return;
+  }
   busy=false;ready=false;say('Puzzle unavailable: '+e.message+'. '+(runActive?'Retrying automatically…':'Try again.'),'error');
   if(runActive){
    // A temporary provider outage must not count as a mistake.
