@@ -95,6 +95,12 @@ const whiteStrip=makePlayerStrip('white');
 boardLayout.prepend(blackStrip.root);
 boardLayout.append(whiteStrip.root);
 function updatePlayerStrips(){
+ // Player identities and clocks belong to a completed Game Review only.
+ const visible=reviewResults.length>0;
+ boardLayout.classList.toggle('has-reviewed-players',visible);
+ blackStrip.root.hidden=!visible;
+ whiteStrip.root.hidden=!visible;
+ if(!visible)return;
  const active=history[cursor]?.split(' ')[1]||'w';
  for(const [side,strip] of [['black',blackStrip],['white',whiteStrip]]){
   const id=side==='black'?'b':'w',meta=playerMeta[side];
@@ -110,7 +116,7 @@ const boardTop=document.createElement('div');boardTop.className='board-top-switc
 const arrowToggleLabel=document.createElement('label');
 arrowToggleLabel.className='analysis-arrow-toggle';
 const arrowToggle=document.createElement('input');
-arrowToggle.type='checkbox';arrowToggle.checked=true;arrowToggle.setAttribute('aria-label','Show Arrow');
+arrowToggle.type='checkbox';arrowToggle.checked=true;arrowToggle.setAttribute('role','switch');arrowToggle.setAttribute('aria-label','Show Arrow');
 const arrowToggleText=document.createElement('span');arrowToggleText.textContent='Show Arrow';
 arrowToggleLabel.append(arrowToggle,arrowToggleText);
 boardTop.prepend(arrowToggleLabel);
@@ -323,6 +329,7 @@ function stopEngine(){cleanupEngine();enginePanel.replaceChildren()}
 engineSwitch.addEventListener('change',()=>{
  if(engineSwitch.checked)startEngine();
  else{stopEngine();engineInfo.textContent='Engine disabled.'}
+ renderNotation();
 });
 function playBoardMove(from,to){
  try{
@@ -460,6 +467,7 @@ function renderNotation(){
   panel.insertBefore(engineSettings,enginePanel);
   panel.insertBefore(depthControl,enginePanel);
  }
+ panel.classList.toggle('engine-off',!engineSwitch.checked);
  $('opening-name').textContent=openingName();
  const list=$('notation-moves');list.replaceChildren();
  for(let i=0;i<sanMoves.length;i++){
@@ -677,14 +685,8 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
   const right=document.createElement('strong');right.textContent=bySide[1][name]||0;
   row.append(label,left,marker,right);panel.append(row);
  }
- const note=document.createElement('p');note.className='review-scoring-note';
- note.textContent='Accuracy and classifications are EloScanner estimates; Book uses our limited opening list. Not official Chess.com scores.';
- panel.append(note);
  const performances=estimateGamePerformance(categories,accuracyBySide);
  addMetric('Game Rating',performances.map(x=>x===null?'—':x),'review-rating');
- const caption=document.createElement('p');caption.className='review-rating-note';
- caption.textContent='Experimental EloScanner performance estimate (400–2800), based on non-book move quality, serious errors, difficult decisions and consistency—not account Elo. Uncalibrated; short games are less reliable.';
- panel.append(caption);
 }
 function stopReview(){
  reviewCancelled=true;
