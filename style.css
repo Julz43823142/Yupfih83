@@ -1026,3 +1026,14 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
     transform:none !important;
   }
 }
+
+/* All-time rating mini-charts */
+.rating-grid .rating-box{position:relative;min-height:105px;padding-right:clamp(125px,55%,235px)}
+.rating-grid .rating-label,.rating-grid .rating-value{position:relative;z-index:1}
+.rating-sparkline{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:53%;height:70px;overflow:visible}
+.rating-sparkline-path{stroke-dasharray:1100;stroke-dashoffset:1100;animation:elo-spark-draw 2.3s ease-out forwards}
+.rating-sparkline-tip{opacity:0;animation:elo-spark-tip .25s ease forwards;animation-delay:2.15s}
+@keyframes elo-spark-draw{to{stroke-dashoffset:0}}
+@keyframes elo-spark-tip{to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.rating-sparkline-path{animation:none;stroke-dashoffset:0}.rating-sparkline-tip{animation:none;opacity:1}}
+@media(max-width:680px){.rating-grid .rating-box{padding-right:46%}.rating-sparkline{width:42%;right:10px}}
