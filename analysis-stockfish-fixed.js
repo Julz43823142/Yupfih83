@@ -598,7 +598,7 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
   row.append(label,left,marker,right);panel.append(row);
  }
  const note=document.createElement('p');note.className='review-scoring-note';
- note.textContent='Accuracy and classifications are EloScanner engine-based estimates, not official Chess.com scores.';
+ note.textContent='Accuracy and classifications are EloScanner estimates; Book uses our limited opening list. Not official Chess.com scores.';
  panel.append(note);
  const performances=estimateGamePerformance(categories,accuracyBySide);
  addMetric('Game Rating',performances.map(x=>x===null?'—':x),'review-rating');
@@ -660,7 +660,10 @@ $('review-start').onclick=async()=>{
    const bestWin=reviewWin(evaluations[i].white*mover),actualWin=reviewWin(evaluations[i+1].white*mover);const loss=Math.max(0,bestWin-actualWin);
    let best=false;
    try{const before=new Chess(snapshot[i]),played=before.move(moves[i]);best=!!played&&evaluations[i].pv===played.from+played.to+(played.promotion||'')}catch{}
-   const book=false; // Never invent verified opening-book matches from move number alone.
+   // Mark Book only when the move follows a named line in EloScanner's
+   // limited built-in opening list; not merely because it is an early move.
+   const prefix=moves.slice(0,i+1).join(' ');
+   const book=OPENINGS.some(([line])=>line===prefix||line.startsWith(prefix+' '));
    const second=evaluations[i].second;const before=new Chess(snapshot[i]);const alternatives=before.moves().length;const played=before.move(moves[i]);const captured=played?.captured?({p:100,n:320,b:330,r:500,q:900}[played.captured]||0):0;const sacrifice=played?reviewOfferedMaterial(before,played,captured):0;const brilliant=best&&!book&&sacrifice>=250&&actualWin>=50&&alternatives>1&&(second===null||reviewWin(second*mover)<90);const great=best&&!book&&!brilliant&&second!==null&&reviewWin(evaluations[i].white*mover)-reviewWin(second*mover)>=8;const category=reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin);
    categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),complexity:Math.min(1,Math.max(0,(alternatives-1)/24))*(bestWin>20&&bestWin<80?1:.55),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
