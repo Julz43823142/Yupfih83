@@ -129,3 +129,98 @@
 @media(max-width:1249px){
  .review-side-stats{max-width:680px}
 }
+
+/* Review annotation follows the selected move, rather than annotating
+   every square of a game. Ordinary Good/Excellent moves stay unmarked. */
+.tool-page #board button { position:relative; isolation:isolate; overflow:visible; }
+.tool-page #board button.review-move-highlight::after {
+ content:"";
+ position:absolute;
+ inset:0;
+ z-index:1;
+ background:var(--review-square-color, #ed5555);
+ opacity:.46;
+ pointer-events:none;
+}
+.tool-page #board button.review-move-highlight .chess-piece{
+ position:relative;
+ z-index:2!important;
+}
+.tool-page #board button .review-move-badge{
+ position:absolute;
+ right:-5px;
+ top:-8px;
+ z-index:9;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ width:29%;
+ aspect-ratio:1;
+ min-width:18px;
+ max-width:30px;
+ border-radius:50%;
+ color:white;
+ font-size:clamp(10px,1.35vw,16px);
+ font-weight:850;
+ line-height:1;
+ border:1px solid rgba(255,255,255,.5);
+ box-shadow:0 1px 5px rgba(0,0,0,.4);
+ pointer-events:none;
+}
+.tool-page #board button .legal-move-dot,
+.tool-page #board button .legal-capture-ring{
+ z-index:5;
+}
+.tool-page #notation-moves .notation-move{
+ display:flex;
+ align-items:center;
+ justify-content:flex-start;
+ gap:5px;
+ min-width:0;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ padding:7px 5px;
+}
+.tool-page #notation-moves .notation-review-glyph{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ flex:0 0 17px;
+ width:17px;
+ height:17px;
+ border-radius:50%;
+ color:#fff;
+ font-size:10px;
+ font-weight:850;
+ line-height:1;
+}
+.tool-page #notation-moves .notation-move[class*="notation-highlight-"]{
+ font-weight:700;
+}
+.tool-page #notation-moves .notation-move.notation-highlight-blunder,
+.tool-page #notation-moves .notation-move.notation-highlight-miss{
+ color:#ffb4b3!important;
+}
+.tool-page #notation-moves .notation-move.notation-highlight-brilliant{
+ color:#7cf0e0!important;
+}
+.tool-page #notation-moves .notation-move.notation-highlight-best{
+ color:#b5e2a2!important;
+}
+/* More room for engine variations; keep the board at its existing size. */
+@media(min-width:1250px){
+ .tool-page{width:min(2000px,calc(100% - 20px))!important}
+ .tool-page .tool-card:first-of-type{
+  grid-template-columns:minmax(220px,300px) minmax(0,calc(var(--elo-board-size) + 42px)) minmax(330px,1fr)!important;
+  column-gap:20px!important;
+ }
+ .tool-page .tool-card:first-of-type>.live-notation{
+  min-width:0!important;
+  width:100%!important;
+ }
+ .tool-page .tool-card:first-of-type .live-notation .engine-lines-panel{
+  min-width:0!important;
+  width:100%!important;
+ }
+}
