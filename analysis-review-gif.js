@@ -133,6 +133,7 @@ export async function exportReviewGif({history,moves,categories,evaluations,play
   try{rgba=ctx.getImageData(0,0,canvas.width,canvas.height).data}
   catch{ // Remote SVGs must never prevent export; use bundled font glyphs instead.
    for(const key of Object.keys(assets))assets[key]=null;
+   canvas.width=canvas.width; // reset origin-clean state if a remote image tainted the canvas
    drawFrame(ctx,state,i,assets,Chess);
    rgba=ctx.getImageData(0,0,canvas.width,canvas.height).data;
   }
