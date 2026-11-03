@@ -247,7 +247,7 @@ board.addEventListener('pointerdown',e=>{
  if(!piece||piece.color!==pos.turn())return;
  const source=e.target.closest('button');
  if(!source)return;
- drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null,pointerId:e.pointerId};
+ drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null,pointerId:e.pointerId};selected=sq;render();drag.source=board.querySelector('[data-square="'+sq+'"]')||source;
  e.preventDefault();
  try{board.setPointerCapture(e.pointerId)}catch{}
 });
