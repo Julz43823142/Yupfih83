@@ -8,25 +8,30 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=3">
+<link rel="stylesheet" href="/puzzles.css?v=4">
 </head>
 <body>
-<header class="navbar">
+<header class="navbar puzzles-navbar">
 <a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
+<nav class="puzzles-site-nav" aria-label="Chess Tools"><a href="/">Home</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html" aria-current="page">Puzzles</a><a href="/minigames.html">Minigames</a></nav>
+<details class="mobile-chess-menu puzzles-mobile-menu"><summary aria-label="Open navigatiemenu"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></summary><nav aria-label="Mobiele navigatie"><a href="/">Home</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html" aria-current="page">Puzzles</a><a href="/minigames.html">Minigames</a></nav></details>
 </header>
 <main class="puzzles-page">
   <div class="puzzles-top">
-    <div><h1>Chess Puzzles</h1><p class="puzzles-lead">Train your tactics. Find the best move.</p></div>
-    <a class="puzzles-back" href="/">← Back to EloScanner</a>
+    <div><h1>Chess Puzzles</h1></div>
   </div>
   <div class="puzzles-tabs" role="tablist" aria-label="Choose puzzle mode">
-    <button type="button" role="tab" data-puzzle-mode="daily" aria-selected="true">Daily Puzzle</button>
-    <button type="button" role="tab" data-puzzle-mode="random" aria-selected="false">Random Puzzle</button>
+    <button type="button" role="tab" data-puzzle-mode="random" aria-selected="true">Random Puzzle</button>
     <button type="button" role="tab" data-puzzle-mode="custom" aria-selected="false">Custom Puzzle</button>
     <button type="button" role="tab" data-puzzle-mode="sprint" aria-selected="false">Puzzle Sprint</button>
     <button type="button" role="tab" data-puzzle-mode="survival" aria-selected="false">Puzzle Survival</button>
   </div>
   <div class="puzzles-layout">
+    <aside class="puzzle-ranking" aria-label="Puzzle leaderboards">
+      <section class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>TOP 10 SPRINT</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><ol id="puzzle-top10-sprint" class="puzzle-rank-list"><li>Loading…</li></ol></section>
+      <section class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>TOP 10 SURVIVAL</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><ol id="puzzle-top10-survival" class="puzzle-rank-list"><li>Loading…</li></ol></section>
+      <p class="puzzle-ranking-note">Community-submitted scores. Not independently verified.</p>
+    </aside>
     <section class="puzzle-board-card" aria-label="Interactive puzzle board">
       <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
@@ -37,7 +42,7 @@
       </div>
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
-      <div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Daily Puzzle</h2><p id="puzzle-subtitle">A new puzzle every day.</p></div>
+      <div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div>
       <div class="puzzle-metrics">
         <div class="puzzle-metric" id="puzzle-elo-box"><span>Puzzle Elo</span><strong id="puzzle-elo">—</strong></div>
         <div class="puzzle-metric"><span id="puzzle-solved-label">Solved</span><strong id="puzzle-solved">0</strong></div>
@@ -52,11 +57,16 @@
         <p id="puzzle-sprint-guide" hidden>5-minute countdown · 3 mistakes allowed · score increases with each solved puzzle.</p>
         <p id="puzzle-survival-guide" hidden>No countdown · 3 mistakes allowed · solve as many as possible.</p>
       </div>
-      <div id="puzzle-status" class="puzzle-status" role="status" aria-live="polite">Loading today's puzzle…</div>
+      <div id="puzzle-status" class="puzzle-status" role="status" aria-live="polite">Loading puzzle…</div>
       <div class="puzzle-controls">
         <button type="button" id="puzzle-next" class="puzzle-action primary">New Puzzle</button>
         <button type="button" id="puzzle-start" class="puzzle-action primary" hidden>Start</button>
         <button type="button" id="puzzle-stop" class="puzzle-action" hidden>End Run</button>
+      </div>
+      <div id="puzzle-save-run" class="puzzle-save-run" hidden>
+       <h3>Save your run</h3><p>Type your nickname to save this run to the community leaderboard.</p>
+       <form id="puzzle-save-form"><label for="puzzle-nickname">Nickname</label><div class="puzzle-save-controls"><input id="puzzle-nickname" name="nickname" maxlength="25" minlength="2" autocomplete="nickname" placeholder="Your nickname" required><button type="submit" class="puzzle-action primary">Save run</button></div></form>
+       <div id="puzzle-save-status" role="status" aria-live="polite"></div>
       </div>
       <p class="puzzle-footnote">Use the same click, drag and drop, or right-click cancellation controls as EloScanner Analysis. During a puzzle, only your moves are required; the opponent responds automatically.</p>
       <a id="puzzle-source" class="puzzle-credits" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Puzzles sourced from Lichess · Public domain</a>
@@ -65,6 +75,6 @@
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=3"></script>
+<script type="module" src="/puzzles.js?v=4"></script>
 </body>
 </html>
