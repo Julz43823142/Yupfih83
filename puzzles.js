@@ -60,10 +60,10 @@ function draw(){
 }
 attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selected,setSelected:x=>{selected=x},
  playMove:(from,to)=>play(from,to),repaint:draw,getArrows:()=>arrows,getHighlights:()=>highlights});
-async function getPuzzle(which){
+async function getPuzzle(which,target=null){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
  try{
-  const url='/api/puzzles?mode='+encodeURIComponent(which)+'&nonce='+Date.now();
+  const url='/api/puzzles?mode='+encodeURIComponent(which)+(Number.isFinite(target)?'&target='+encodeURIComponent(Math.round(target)):'')+'&nonce='+Date.now();
   const response=await fetch(url,{signal:controller.signal,cache:'no-store'});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw Error(data.error||'Puzzle provider unavailable');
@@ -72,12 +72,20 @@ async function getPuzzle(which){
  }finally{clearTimeout(timeout)}
 }
 function decode(data){
- const full=new Chess();full.loadPgn(data.game.pgn);
- const moves=full.history(),initial=Math.max(1,Math.min(moves.length,Number(data.puzzle.initialPly)));
- const chess=new Chess(),before=new Chess();
- for(let i=0;i<initial;i++)chess.move(moves[i]);
- for(let i=0;i<initial-1;i++)before.move(moves[i]);
- const setup=before.move(moves[initial-1]);
+ let chess,setup=null;
+ // Prefer the exact public puzzle position; replay the game only when the FEN is absent.
+ if(typeof data.puzzle.fen==='string'&&data.puzzle.fen.trim()){
+  chess=new Chess(data.puzzle.fen.trim());
+  const uci=String(data.puzzle.lastMove||'');
+  if(/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))setup={from:uci.slice(0,2),to:uci.slice(2,4)};
+ }else{
+  const full=new Chess();full.loadPgn(data.game.pgn);
+  const moves=full.history(),initial=Math.max(1,Math.min(moves.length,Number(data.puzzle.initialPly)));
+  chess=new Chess();const before=new Chess();
+  for(let i=0;i<initial;i++)chess.move(moves[i]);
+  for(let i=0;i<initial-1;i++)before.move(moves[i]);
+  setup=before.move(moves[initial-1]);
+ }
  const line=data.puzzle.solution.map(x=>String(x).toLowerCase()),test=new Chess(chess.fen());
  for(const uci of line){
   if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))throw Error('Invalid puzzle move');
@@ -92,13 +100,13 @@ async function load(kind=mode){
   if(kind==='custom'){
    const target=Number($('puzzle-target').value)||1200;
    for(let i=0;i<3;i++){
-    const choice=decode(await getPuzzle('next'));
+    const choice=decode(await getPuzzle('next',target));
     if(!p||Math.abs(choice.rating-target)<Math.abs(p.rating-target))p=choice;
     if(Math.abs(p.rating-target)<=150)break;
    }
   }else{
-   p=decode(await getPuzzle(kind==='daily'?'daily':'next'));
-   for(let attempt=0;attempt<2&&kind!=='daily'&&p.id&&seen.has(p.id);attempt++)p=decode(await getPuzzle('next'));
+   p=decode(await getPuzzle(kind==='daily'?'daily':'next',kind==='sprint'?1200+40*solved:kind==='survival'?1200+75*solved:null));
+   for(let attempt=0;attempt<2&&kind!=='daily'&&p.id&&seen.has(p.id);attempt++)p=decode(await getPuzzle('next',kind==='sprint'?1200+40*solved:kind==='survival'?1200+75*solved:null));
   }
   if(generation!==requestId)return;
   position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
