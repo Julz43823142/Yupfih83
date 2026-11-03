@@ -738,7 +738,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261103-local-v87-4");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261103-local-v87-15min-5");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
