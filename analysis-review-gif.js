@@ -39,18 +39,19 @@ function arrow(ctx,x1,y1,x2,y2){
 }
 function drawFrame(ctx,state,step,assets,Chess){
  const {history,moves,categories,evaluations,players,clocks}=state;
- const W=600,H=490,B=384,S=48,X=45,Y=53,SIDE=452,SIDE_WIDTH=132;
+ const W=720,H=520,B=480,S=60,X=18,Y=18,SIDE=510,SIDE_WIDTH=194;
  ctx.fillStyle=COLORS.bg;ctx.fillRect(0,0,W,H);
- roundRect(ctx,12,12,576,466,15,COLORS.panel);
- label(ctx,'ELOSCANNER  •  GAME REVIEW',45,39,15,COLORS.cyan,750);
+ // A near edge-to-edge board with no surrounding title or bottom caption.
+ roundRect(ctx,0,0,W,H,8,COLORS.panel);
+ label(ctx,'EloScanner',SIDE+11,28,17,COLORS.cyan,800);
  const ev=evaluations[step];
  let cp=Number(ev?.white||0);
  if(!Number.isFinite(cp))cp=0;
  const whitePct=Math.max(3,Math.min(97,50+50*(2/Math.PI)*Math.atan((cp/100)/2.2)));
  // Bar alongside the board, position-based (no additional engine pass).
- ctx.fillStyle='#131923';ctx.fillRect(18,Y,17,B);
- ctx.fillStyle='#f4f4f1';ctx.fillRect(18,Y+B*(1-whitePct/100),17,B*whitePct/100);
- ctx.strokeStyle='#557083';ctx.lineWidth=1;ctx.strokeRect(18.5,Y+.5,16,B);
+ ctx.fillStyle='#131923';ctx.fillRect(4,Y,8,B);
+ ctx.fillStyle='#f4f4f1';ctx.fillRect(4,Y+B*(1-whitePct/100),8,B*whitePct/100);
+ ctx.strokeStyle='#557083';ctx.lineWidth=1;ctx.strokeRect(4.5,Y+.5,7,B);
  for(let rank=0;rank<8;rank++)for(let file=0;file<8;file++){
   ctx.fillStyle=(rank+file)%2?COLORS.dark:COLORS.light;
   ctx.fillRect(X+file*S,Y+rank*S,S,S);
@@ -90,7 +91,7 @@ function drawFrame(ctx,state,step,assets,Chess){
    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 10px Arial,sans-serif';ctx.fillStyle='#fff';ctx.fillText(symbol,tx+10,ty+11);ctx.textAlign='left';ctx.textBaseline='alphabetic';
   }
  }
- ctx.strokeStyle=COLORS.edge;ctx.lineWidth=2;ctx.strokeRect(X,Y,B,B);
+ ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.strokeRect(X+.5,Y+.5,B-1,B-1);
  const w=players?.white||{},b=players?.black||{};
  const cur=clocks?.[step]||{};
  // Fit the complete player name in the wider card without truncating it.
@@ -98,39 +99,37 @@ function drawFrame(ctx,state,step,assets,Chess){
   const name=String(raw||'Unknown player').trim()||'Unknown player';
   ctx.textAlign='left';
   let fontSize=16;
-  do{ctx.font='700 '+fontSize+'px system-ui,Arial,sans-serif';if(ctx.measureText(name).width<=SIDE_WIDTH-20)break;fontSize-=.5}while(fontSize>9);
+  do{ctx.font='700 '+fontSize+'px system-ui,Arial,sans-serif';if(ctx.measureText(name).width<=SIDE_WIDTH-24)break;fontSize-=.5}while(fontSize>9);
   // Ultra-long names remain intact; canvas clips them inside the player card.
-  ctx.save();ctx.beginPath();ctx.rect(x-1,y-22,SIDE_WIDTH-17,26);ctx.clip();
+  ctx.save();ctx.beginPath();ctx.rect(x-1,y-24,SIDE_WIDTH-22,29);ctx.clip();
   label(ctx,name,x,y,fontSize,COLORS.ink,700);ctx.restore();
  };
- // Mirror the player cards around the center: top player's name at
- // the top, both clocks together in the middle, bottom player's name below.
+ // Black at top, then both clocks towards the center; white name at bottom.
  const playerCard=(color,name,time,y,bottomPlayer=false)=>{
-  roundRect(ctx,SIDE,y,SIDE_WIDTH,176,12,'#133750');
-  const x=SIDE+11;
+  roundRect(ctx,SIDE,y,SIDE_WIDTH,204,11,'#133750');
+  const x=SIDE+12;
   ctx.strokeStyle='#315b75';ctx.lineWidth=1;
   if(!bottomPlayer){
-   label(ctx,color,x,y+24,12,COLORS.muted,750);
-   playerName(name,x,y+54);
-   ctx.beginPath();ctx.moveTo(x,y+78);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+78);ctx.stroke();
-   label(ctx,'CLOCK',x,y+105,11,COLORS.muted,700);
-   label(ctx,clock(time),x,y+147,25,COLORS.cyan,750);
+   label(ctx,color,x,y+29,12,COLORS.muted,750);
+   playerName(name,x,y+65);
+   ctx.beginPath();ctx.moveTo(x,y+88);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+88);ctx.stroke();
+   label(ctx,'CLOCK',x,y+121,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+170,29,COLORS.cyan,750);
   }else{
-   label(ctx,'CLOCK',x,y+27,11,COLORS.muted,700);
-   label(ctx,clock(time),x,y+66,25,COLORS.cyan,750);
-   ctx.beginPath();ctx.moveTo(x,y+91);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+91);ctx.stroke();
-   label(ctx,color,x,y+119,12,COLORS.muted,750);
-   playerName(name,x,y+150);
+   label(ctx,'CLOCK',x,y+32,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+79,29,COLORS.cyan,750);
+   ctx.beginPath();ctx.moveTo(x,y+103);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+103);ctx.stroke();
+   label(ctx,color,x,y+139,12,COLORS.muted,750);
+   playerName(name,x,y+177);
   }
  };
- playerCard('BLACK',b.name||'Black',cur.b,58);
- playerCard('WHITE',w.name||'White',cur.w,261,true);
- label(ctx,'EloScanner • '+step+'/'+moves.length+' moves',45,462,13,COLORS.muted,550);
+ playerCard('BLACK',b.name||'Black',cur.b,43);
+ playerCard('WHITE',w.name||'White',cur.w,270,true);
 }
 export async function exportReviewGif({history,moves,categories,evaluations,players,clocks,Chess,onProgress}){
  if(!history?.length||!moves?.length||categories?.length!==moves.length||evaluations?.length!==history.length)throw Error('Finish Game Review before exporting.');
  if(moves.length>240)throw Error('This game is longer than 240 half-moves. GIF export supports games up to 120 full moves.');
- const canvas=document.createElement('canvas');canvas.width=600;canvas.height=490;
+ const canvas=document.createElement('canvas');canvas.width=720;canvas.height=520;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});
  if(!ctx)throw Error('Canvas export is unavailable in this browser.');
  const assets=await loadPieces();
