@@ -1,4 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {fetchOpeningStats} from './opening-stats-client.js?v=1';
 const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('opening-board');
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
@@ -63,8 +64,7 @@ async function fetchStats(){
  const token=++fetchIndex;controller?.abort();controller=new AbortController();
  $('opening-stat').textContent='Loading database statistics…';$('opening-moves').replaceChildren();
  try{
-  const r=await fetch('/api/opening-catalog?fen='+encodeURIComponent(game.fen()),{signal:controller.signal});
-  const contentType=r.headers.get('content-type')||'';if(!contentType.includes('json'))throw Error('Database request did not return JSON.');const data=await r.json();if(!r.ok)throw Error(data.error||'Database unavailable');
+  const data=await fetchOpeningStats(game.fen(),{signal:controller.signal});
   if(token===fetchIndex)renderMoves(data);
  }catch(e){if(token===fetchIndex&&e.name!=='AbortError')$('opening-stat').textContent=e.message}
 }
