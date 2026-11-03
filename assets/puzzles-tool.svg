@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Puzzle pieces">
-<g stroke="#071B30" stroke-width="1.6" stroke-linejoin="round">
-<path fill="#F5FBFF" d="M6 5H21V11C21 12.5 22 12.5 23 11.5C26 9.5 29 11.5 29 14.5S26 19.5 23 17.5C22 16.5 21 16.5 21 18V21H6A2 2 0 0 1 4 19V7A2 2 0 0 1 6 5Z"/>
-<path fill="#00CFF4" d="M29 5H42A2 2 0 0 1 44 7V21H29V18C33 20 36 17.5 36 14.5S33 9 29 11Z"/>
-<path fill="#F5FBFF" d="M4 27H21V30C21 31.5 22 31.5 23 30.5C26 28.5 29 30.5 29 33.5S26 38.5 23 36.5C22 35.5 21 35.5 21 37V43H6A2 2 0 0 1 4 41Z"/>
-<path fill="#F5FBFF" d="M29 27H44V41A2 2 0 0 1 42 43H29V37C33 39 36 36.5 36 33.5S33 28 29 30Z"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Puzzles">
+<!-- Four bold pieces with deliberately simple joins, legible at 26px. -->
+<path fill="#F5FBFF" d="M6 5h15v5.2c0 1.1 1 1.6 2 1 3.3-2.4 6.4-.3 6.4 2.8s-3.1 5.2-6.4 2.8c-1-.6-2-.1-2 1V21H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/>
+<path fill="#00CFF4" d="M29 5h13a2 2 0 0 1 2 2v14h-7.3c-1.1 0-1.6-1-1-2 2.4-3.3.3-6.4-2.8-6.4s-5.2 3.1-2.8 6.4c.6 1 .1 2-1 2H29v-3.2c3.3 2.4 6.4.3 6.4-2.8S32.3 8.8 29 11.2Z"/>
+<path fill="#F5FBFF" d="M4 27h7.3c1.1 0 1.6 1 1 2-2.4 3.3-.3 6.4 2.8 6.4s5.2-3.1 2.8-6.4c-.6-1-.1-2 1-2H21v5.2c0 1.1 1 1.6 2 1 3.3-2.4 6.4-.3 6.4 2.8s-3.1 5.2-6.4 2.8c-1-.6-2-.1-2 1V44H6a2 2 0 0 1-2-2Z"/>
+<path fill="#F5FBFF" d="M29 27h2.7c-2.4-3.3-.3-6.4 2.8-6.4s5.2 3.1 2.8 6.4H44v15a2 2 0 0 1-2 2H29v-3.2c3.3 2.4 6.4.3 6.4-2.8s-3.1-5.2-6.4-2.8Z"/>
 </svg>
