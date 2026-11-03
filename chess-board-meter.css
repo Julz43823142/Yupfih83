@@ -172,3 +172,21 @@
   min-height:0!important;
   flex:none!important;
 }
+
+/* Slightly larger score, with breathing room on both sides of the 34px bar. */
+.tool-page .tool-card:first-of-type .board-with-eval .board-eval-track .board-eval-text,
+.tool-page .prep-board-row .board-eval-track #prep-eval-label {
+  font-family:Arial,sans-serif!important;
+  font-size:11px!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+  letter-spacing:-.25px!important;
+  left:2px!important;
+  right:2px!important;
+  width:calc(100% - 4px)!important;
+  min-width:0!important;
+  max-width:calc(100% - 4px)!important;
+  padding:0!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
