@@ -363,6 +363,14 @@ function drawArrows(){
  const point=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
  const arrow=(a,b,color,opacity)=>appendChessArrow(svg,a,b,color,opacity);
  for(const sq of blueSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':.32}))}
+ // Always show the last move of the position currently on the board.
+ if(cursor>0){
+  try{
+   const previous=new Chess(history[cursor-1]);
+   const last=previous.move(sanMoves[cursor-1]);
+   if(last)arrow(last.from,last.to,'#ff962f',.84);
+  }catch{}
+ }
  for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
  const shownEngineMove=engineSwitch.checked&&engineReady?(previewEngineMove||(arrowToggle.checked?bestEngineMove:null)):null;
  if(shownEngineMove)arrow(shownEngineMove.slice(0,2),shownEngineMove.slice(2,4),'#23e65d',.7);
@@ -503,11 +511,15 @@ function renderNotation(){
   if(i===sanMoves.length-1&&i%2===0)list.append(document.createElement('span'));
  }
 }
-document.addEventListener('keydown',e=>{
+// Capture navigation before focused board/engine controls can consume arrow keys.
+window.addEventListener('keydown',e=>{
  if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.altKey||e.ctrlKey||e.metaKey)return;
- if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
- e.preventDefault();const btn=e.key==='ArrowLeft'?$('back'):$('forward');if(!btn.disabled)btn.click();
-});
+ const target=e.target instanceof Element?e.target:null;
+ if(target?.closest('input,textarea,select,[contenteditable="true"],[role="slider"],[role="spinbutton"]'))return;
+ e.preventDefault();e.stopPropagation();
+ if(e.key==='ArrowLeft'&&cursor>0){cursor--;selected=null;render();requestAnalysis()}
+ if(e.key==='ArrowRight'&&cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}
+},true);
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];playerMeta={white:{name:'White',elo:null},black:{name:'Black',elo:null}};positionClocks=[];render();requestAnalysis()};
 // Import now lives inside Game Review. One action both imports and starts review.
 let importedPlayers={white:'White',black:'Black'};
