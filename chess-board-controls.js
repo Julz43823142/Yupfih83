@@ -10,8 +10,12 @@ export function attachChessBoardControls({
   const squareAt = (x, y) => {
     const rect = board.getBoundingClientRect();
     if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) return null;
-    const file = Math.floor((x - rect.left) * 8 / rect.width);
-    const rank = Math.floor((y - rect.top) * 8 / rect.height);
+    const visualFile = Math.floor((x - rect.left) * 8 / rect.width);
+    const visualRank = Math.floor((y - rect.top) * 8 / rect.height);
+    // Analysis defaults to White; Puzzles sets this attribute when Black solves.
+    const reversed = board.dataset.orientation === 'black';
+    const file = reversed ? 7 - visualFile : visualFile;
+    const rank = reversed ? 7 - visualRank : visualRank;
     return String.fromCharCode(97 + file) + (8 - rank);
   };
   const clearAnnotations = () => {
