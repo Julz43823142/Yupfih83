@@ -104,24 +104,37 @@
 }
 .tool-page .board-eval-wrap.eval-inactive {opacity:1!important;}
 
-/* Both boards use the same upper size cap, without changing the sidebars. */
-@media(min-width:1100px) {
-  .tool-page .tool-card:first-of-type .board-with-eval {
-    width:100%!important;
-    max-width:870px!important;
-  }
-  .tool-page .tool-card:first-of-type .board-with-eval .chess-board,
-  .tool-page .prep-analysis-layout .prep-board-row .chess-board {
-    width:100%!important;
-    max-width:834px!important;
-  }
-  .tool-page .prep-analysis-layout .prep-board-area {
-    width:100%!important;
-    max-width:870px!important;
-    min-width:0!important;
-  }
-  .tool-page .prep-analysis-layout {
-    grid-template-columns:minmax(200px,300px) minmax(0,870px) minmax(310px,1fr)!important;
-    justify-content:center!important;
-  }
+/* One canonical desktop board size shared by Analysis and Repertoire Explorer.
+   The meter has 34px width plus 8px gap, so the board-row total is
+   always board-size + 42px on both pages. */
+@media(min-width:1100px){
+ .tool-page{--elo-board-size:clamp(410px,calc(60vw - 250px),830px)}
+ .tool-page .board-with-eval,
+ .tool-page .prep-analysis-layout .prep-board-row{
+   width:calc(var(--elo-board-size) + 42px)!important;
+   min-width:0!important;
+   max-width:100%!important;
+ }
+ .tool-page .board-with-eval #board,
+ .tool-page .prep-analysis-layout .prep-board-row #board{
+   box-sizing:border-box!important;
+   flex:0 0 var(--elo-board-size)!important;
+   width:var(--elo-board-size)!important;
+   min-width:var(--elo-board-size)!important;
+   max-width:var(--elo-board-size)!important;
+   height:var(--elo-board-size)!important;
+   min-height:var(--elo-board-size)!important;
+   max-height:var(--elo-board-size)!important;
+   aspect-ratio:1!important;
+   margin:0!important;
+ }
+ .tool-page .prep-analysis-layout .prep-board-area{
+   width:calc(var(--elo-board-size) + 42px)!important;
+   min-width:0!important;
+   max-width:100%!important;
+ }
+ .tool-page .prep-analysis-layout{
+   grid-template-columns:minmax(180px,300px) minmax(0,calc(var(--elo-board-size) + 42px)) minmax(310px,1fr)!important;
+   justify-content:center!important;
+ }
 }
