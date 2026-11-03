@@ -670,7 +670,7 @@ $('review-start').onclick=async()=>{
   const sideStats=[0,1].map(side=>reviewAccuracy(
    categories,evaluations.map(x=>reviewWin(x.white)),side));
   renderReviewScorecard(categories,evaluations,sideStats);
-  renderNotation();
+  render();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
 };
