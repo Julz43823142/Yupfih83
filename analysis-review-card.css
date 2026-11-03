@@ -1,0 +1,131 @@
+/* EloScanner Game Review: compact, two-player report inspired by the supplied reference. */
+.tool-page .review-side-stats{
+ background:#10283e!important;
+ border:1px solid #315570!important;
+ border-radius:12px!important;
+ padding:16px!important;
+ color:#edf7fd!important;
+ min-width:0!important;
+ overflow:hidden!important;
+}
+.review-side-stats>h3{
+ font-size:17px!important;
+ font-weight:800!important;
+ margin:0 0 15px!important;
+ color:#e3f4ff!important;
+}
+.review-graph{
+ position:relative;
+ width:100%;
+ height:82px;
+ margin-bottom:16px;
+ overflow:hidden;
+ background:#343a40;
+ border-radius:5px;
+}
+.review-graph svg{display:block;width:100%;height:100%}
+.review-players{
+ display:grid;
+ grid-template-columns:minmax(80px,1fr) minmax(0,1fr) minmax(0,1fr);
+ column-gap:8px;
+ align-items:end;
+ margin-bottom:12px;
+ font-size:12px;
+ font-weight:700;
+}
+.review-player{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.review-player-avatar{
+ width:43px;height:43px;
+ border:2px solid #7ebf69;border-radius:8px;
+ background:#f4f8fb;color:#18354d;
+ display:flex;align-items:center;justify-content:center;
+ font-size:21px;font-weight:800;
+}
+.review-player-avatar.black{background:#34485a;color:#fff;border-color:#657b90}
+.review-player-name{text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.review-metric{
+ display:grid;grid-template-columns:minmax(80px,1fr) minmax(0,1fr) minmax(0,1fr);
+ align-items:center;gap:8px;
+ margin:0 0 12px;
+ font-size:13px;
+}
+.review-metric>strong{
+ display:block;
+ min-width:0;text-align:center;
+ padding:9px 3px;
+ border-radius:6px;
+ background:#23435a;
+ font-size:18px;
+ font-variant-numeric:tabular-nums;
+ color:#fff;
+}
+.review-accuracy{padding-bottom:14px;border-bottom:1px solid #315570;margin-bottom:15px}
+.review-accuracy>strong:first-of-type{background:#f4f8fb;color:#17364d}
+.review-breakdown-head{
+ font-size:12px;text-transform:uppercase;letter-spacing:.07em;
+ color:#8cb5ca;font-weight:750;margin:0 0 10px;
+}
+.review-classification{
+ display:grid;
+ grid-template-columns:minmax(72px,1fr) 25px 30px 25px;
+ align-items:center;
+ column-gap:7px;
+ min-height:31px;
+ font-size:13px;
+}
+.review-classification>strong{font-size:15px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
+.review-classification:nth-of-type(4n) strong{color:#c4e9fc}
+.review-class-icon{
+ display:flex;align-items:center;justify-content:center;
+ width:25px;height:25px;border-radius:50%;
+ font-size:11px;font-weight:850;
+ color:#fff;background:#5b8baf;
+}
+.review-class-brilliant{background:#12bfa9}
+.review-class-great{background:#82abd2}
+.review-class-book{background:#c69b79}
+.review-class-best{background:#81c665}
+.review-class-excellent{background:#8ac768}
+.review-class-good{background:#8eb97b}
+.review-class-inaccuracy{background:#e3bb33}
+.review-class-mistake{background:#f19a52}
+.review-class-miss{background:#ee6d6d}
+.review-class-blunder{background:#dd5757}
+.review-scoring-note,.review-rating-note{
+ margin:14px 0 16px;
+ color:#9cb5c4;font-size:11px;line-height:1.45;
+}
+.review-rating{border-top:1px solid #315570;padding-top:15px;margin-top:5px}
+.review-rating>strong{font-size:15px}
+.review-placeholder{font-size:13px;color:#9bb9cc;line-height:1.65;margin:0}
+.game-review{
+ background:#10283e;
+ border:1px solid #315570;border-radius:14px;
+ padding:22px 24px;margin:18px 0 22px;
+}
+.game-review h2{margin:0 0 16px;font-size:23px}
+.game-review .review-import-heading{font-size:15px;color:#d3e8f7;margin:4px 0 12px}
+.game-review #review-import-slot{display:flex;flex-direction:column;gap:10px;max-width:780px}
+.game-review #review-import-slot .tab-row{display:flex;gap:8px;flex-wrap:wrap}
+.game-review #import-value{
+ width:100%;box-sizing:border-box;
+ min-height:94px;max-width:100%;resize:vertical;
+ border-radius:9px;background:#092138;color:#f0faff;
+ border:1px solid #426580;padding:12px 14px;
+ font:14px/1.55 inherit;
+}
+.game-review .review-actions{display:flex;gap:10px;align-items:center;margin-top:14px}
+.game-review #review-start{background:#17ab91;color:white;border:0;border-radius:8px;font-weight:800;padding:12px 22px;cursor:pointer}
+.game-review #review-start:hover{background:#129d83}
+.game-review #review-start:disabled{cursor:wait;opacity:.55}
+.game-review #review-cancel{padding:12px 18px}
+.game-review [hidden]{display:none!important}
+.game-review #review-status,.game-review #import-status{font-size:13px;color:#b1cadd;min-height:0}
+@media(min-width:1250px){
+ .tool-page .tool-card:first-of-type{
+  grid-template-columns:minmax(235px,.7fr) minmax(440px,1.55fr) minmax(330px,1.1fr)!important;
+ }
+}
+@media(max-width:1249px){
+ .review-side-stats{max-width:680px}
+}
