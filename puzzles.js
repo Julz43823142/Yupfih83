@@ -101,7 +101,7 @@ async function load(kind=mode){
  try{
   let p;
   if(kind==='custom'){
-   const target=Math.min(3000,Math.max(400,Number($('puzzle-target').value)||1200));
+   const target=Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200));
    p=decode(await getPuzzle('next',target));
   }else{
    p=decode(await getPuzzle('next',kind==='sprint'?1200+40*solved:kind==='survival'?1200+75*solved:null));
