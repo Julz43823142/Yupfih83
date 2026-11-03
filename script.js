@@ -36,19 +36,13 @@ function number(value, digits = 2) {
     ? value.toLocaleString("en-US", { maximumFractionDigits: digits }) : "—";
 }
 function ratingSparkline(box,rows){
- const valid=(rows||[]).filter(r=>Number.isFinite(r.player_elo));
- if(valid.length<2)return;
- const first=valid[0].player_elo,last=valid[valid.length-1].player_elo;
- const color=last>first?'#3be78c':last<first?'#ff6278':'#f6faff';
+ const valid=(rows||[]).filter(r=>Number.isFinite(r.player_elo));if(valid.length<2)return;
  const W=200,H=64,pad=7,vals=valid.map(r=>r.player_elo),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
- const points=valid.map((r,i)=>[pad+i*(W-2*pad)/(valid.length-1),H-pad-(r.player_elo-min)/span*(H-2*pad)]);
- const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
- svg.setAttribute('class','rating-sparkline');svg.setAttribute('viewBox','0 0 200 64');svg.setAttribute('role','img');svg.setAttribute('aria-label','All-time rating history, '+(last>first?'up':last<first?'down':'unchanged')+' overall');
- const path=document.createElementNS(ns,'path');const d=points.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2)).join(' ');
- path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',color);path.setAttribute('stroke-width','2.6');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');path.setAttribute('class','rating-sparkline-path');
- const arrow=document.createElementNS(ns,'path');const end=points[points.length-1],prev=points[points.length-2],dx=end[0]-prev[0],dy=end[1]-prev[1],len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
- arrow.setAttribute('d','M '+(end[0]-ux*9-uy*5)+' '+(end[1]-uy*9+ux*5)+' L '+end[0]+' '+end[1]+' L '+(end[0]-ux*9+uy*5)+' '+(end[1]-uy*9-ux*5));arrow.setAttribute('fill','none');arrow.setAttribute('stroke',color);arrow.setAttribute('stroke-width','2.6');arrow.setAttribute('stroke-linecap','round');arrow.setAttribute('stroke-linejoin','round');arrow.setAttribute('class','rating-sparkline-tip');
- svg.append(path,arrow);box.append(svg);const length=path.getTotalLength();path.style.strokeDasharray=String(length);path.style.strokeDashoffset=String(length);requestAnimationFrame(()=>{path.style.animation='none';void path.getBoundingClientRect();path.style.animation='elo-spark-draw 2.3s ease-out forwards'});
+ const pts=valid.map((r,i)=>[pad+i*(W-2*pad)/(valid.length-1),H-pad-(r.player_elo-min)/span*(H-2*pad)]);
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('class','rating-sparkline');svg.setAttribute('viewBox','0 0 200 64');svg.setAttribute('role','img');svg.setAttribute('aria-label','Historical rating trend');
+ const duration=12000,segments=pts.length-1;
+ pts.slice(1).forEach((pt,i)=>{const prev=pts[i],line=document.createElementNS(ns,'line');for(const [k,v] of Object.entries({x1:prev[0],y1:prev[1],x2:pt[0],y2:pt[1]}))line.setAttribute(k,v);const delta=valid[i+1].player_elo-valid[i].player_elo;line.setAttribute('stroke',delta>0?'#3be78c':delta<0?'#ff6278':'#f6faff');line.setAttribute('stroke-width','2.6');line.setAttribute('stroke-linecap','round');const len=Math.hypot(pt[0]-prev[0],pt[1]-prev[1]);line.style.strokeDasharray=String(len);line.style.strokeDashoffset=String(len);line.style.animation='elo-segment-draw '+(duration/segments)+'ms linear '+(i*duration/segments)+'ms forwards';svg.append(line)});
+ box.append(svg);
 }
 async function loadRatingSparklines(username,boxes){
  try{const history=await loadCareerRatings(username);for(const [kind,box] of Object.entries(boxes)){if(box.isConnected)ratingSparkline(box,history.charts[kind]);}}
