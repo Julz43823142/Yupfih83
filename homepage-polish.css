@@ -97,3 +97,9 @@ main>.below-hero-layout>.features .feature-illustration{
 
 /* Chess Tools: compact two-link card, no phantom third-link space */
 @media(min-width:1100px){.hero .hero-tool-links{min-height:0!important;height:auto!important;width:clamp(350px,27.8vw,480px)!important;padding:23px 25px 25px!important;gap:14px!important;align-content:start!important}.hero .hero-tool-links a{min-height:78px!important;padding:19px 22px!important;font-size:18px!important}.hero .hero-tool-heading{font-size:18px!important}}
+
+
+/* Chess Tools: match the perceived size of the approved 26px Puzzles artwork.
+   Reserve an identical icon slot so the four labels remain aligned. */
+.hero-tool-links a .tool-icon{display:block!important;width:32px!important;height:32px!important;flex:0 0 32px!important;object-fit:contain!important}
+.hero-tool-links a[href="/puzzles.html"] .tool-icon{width:26px!important;height:26px!important;flex:0 0 26px!important;margin-inline:3px!important}
