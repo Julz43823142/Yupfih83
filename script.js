@@ -864,13 +864,14 @@ function showSusRanking(target,players){
   const row=add(target,'li','');
   if(i>=valid.length){add(row,'span','sus-rank-name','·');continue}
   const entry=valid[i],name=String(entry.username);
-  const link=add(row,'a','sus-rank-name',name);
+  const link=add(row,'a','sus-rank-name',name.charAt(0).toUpperCase()+name.slice(1));
   link.href='https://www.chess.com/member/'+encodeURIComponent(name);
   link.target='_blank';link.rel='noopener noreferrer';
   // Chess.com usernames are case-insensitive identifiers, but their public profile preserves display capitalization.
   getJSON('https://api.chess.com/pub/player/'+encodeURIComponent(name)).then(profile=>{
-    const official=String(profile?.username||'');
-    if(official.toLowerCase()===name.toLowerCase())link.textContent=official;
+    const candidates=[profile?.name,profile?.username];
+    const official=candidates.find(value=>typeof value==='string'&&value.toLowerCase()===name.toLowerCase()&&/[A-Z]/.test(value));
+    if(official)link.textContent=official;
   }).catch(()=>{});
   add(row,'span','sus-rank-count',number(Number(entry.votes)||0,0));
  }
