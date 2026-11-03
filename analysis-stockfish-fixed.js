@@ -525,7 +525,7 @@ function reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin){
 // Not a statistically calibrated Elo or a Chess.com Game Rating.
 function estimateGamePerformance(categories,accuracyBySide){
  return [0,1].map(side=>{
-  const moves=categories.filter((_,i)=>i%2===side);
+  const moves=categories.filter((_,i)=>i%2===side).filter(m=>m.label!=='Book');
   if(moves.length<8||accuracyBySide[side]==null)return null;
   const n=moves.length;
   const accuracy=accuracyBySide[side];
@@ -603,7 +603,7 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
  const performances=estimateGamePerformance(categories,accuracyBySide);
  addMetric('Game Rating',performances.map(x=>x===null?'—':x),'review-rating');
  const caption=document.createElement('p');caption.className='review-rating-note';
- caption.textContent='Experimental EloScanner performance estimate (400–2800), based on move accuracy, serious errors, difficult decisions and consistency—not your account Elo. Uncalibrated; short games are less reliable.';
+ caption.textContent='Experimental EloScanner performance estimate (400–2800), based on non-book move quality, serious errors, difficult decisions and consistency—not account Elo. Uncalibrated; short games are less reliable.';
  panel.append(caption);
 }
 function stopReview(){
