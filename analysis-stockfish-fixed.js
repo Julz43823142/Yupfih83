@@ -914,7 +914,7 @@ $('review-gif').addEventListener('click',async()=>{
   onProgress:(done,total)=>{message.textContent='Creating GIF '+done+'/'+total+' frames…';}
  };
  try{
-  const {exportReviewGif}=await import('./analysis-review-gif.js?v=4');
+  const {exportReviewGif}=await import('./analysis-review-gif.js?v=5');
   const blob=await exportReviewGif(options);
   if(reviewGifUrl)URL.revokeObjectURL(reviewGifUrl);
   reviewGifUrl=URL.createObjectURL(blob);
