@@ -138,3 +138,37 @@
    justify-content:center!important;
  }
 }
+
+/* Analysis historically declares a 24px/17px grid with higher specificity.
+   Override that exact rule so the bar matches Repertoire Explorer's 34px. */
+.tool-page .tool-card:first-of-type .board-with-eval {
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr)!important;
+  grid-template-rows:auto!important;
+  column-gap:8px!important;
+  align-items:start!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .board-eval-wrap {
+  grid-column:1!important;
+  grid-row:1!important;
+  display:block!important;
+  flex:none!important;
+  width:34px!important;
+  min-width:34px!important;
+  max-width:34px!important;
+  height:var(--chess-board-height,640px)!important;
+  max-height:var(--chess-board-height,640px)!important;
+  align-self:start!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval #board {
+  grid-column:2!important;
+  grid-row:1!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .board-eval-track {
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  height:100%!important;
+  min-height:0!important;
+  flex:none!important;
+}
