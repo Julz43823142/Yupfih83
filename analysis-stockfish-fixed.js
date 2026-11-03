@@ -300,17 +300,44 @@ function ensureBoardCells(){
   boardCells.set(sq,b);board.append(b);
  }
 }
+// Emphasize only noteworthy moves, not every 'Good' or 'Excellent' move.
+const reviewMoveDecorations={
+ Brilliant:{glyph:'!!',color:'#22c6b6'},Great:{glyph:'!',color:'#70a9d4'},
+ Book:{glyph:'▣',color:'#c49a77'},Best:{glyph:'★',color:'#7ab95b'},
+ Inaccuracy:{glyph:'?!',color:'#e3bd32'},Mistake:{glyph:'?',color:'#f39b58'},
+ Miss:{glyph:'×',color:'#ef7676'},Blunder:{glyph:'??',color:'#ec514e'}
+};
+function reviewCurrentMove(){
+ if(!cursor||!reviewResults[cursor-1])return null;
+ const classification=reviewResults[cursor-1];
+ const visual=reviewMoveDecorations[classification.label];
+ if(!visual)return null;
+ try{
+  const pos=new Chess(history[cursor-1]),move=pos.move(sanMoves[cursor-1]);
+  return move?{square:move.to,label:classification.label,...visual}:null;
+ }catch{return null}
+}
 function render(){
  ensureBoardCells();
  const pos=new Chess(history[cursor]),possible=selected?pos.moves({square:selected,verbose:true}):[];
+ const highlight=reviewCurrentMove();
  for(const [sq,b] of boardCells){
   const p=pos.get(sq),key=p?p.color+p.type:'';
   if(b.dataset.piece!==key){
    b.dataset.piece=key;b.replaceChildren();
    if(p){const img=document.createElement('img');img.className='chess-piece';img.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';img.alt=p.color+' '+p.type;img.draggable=false;img.onerror=()=>{img.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(img)}
-  }else b.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
+  }else b.querySelectorAll('.legal-move-dot,.legal-capture-ring,.review-move-badge').forEach(x=>x.remove());
   b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));
   b.classList.toggle('selected-square',selected===sq);
+  b.classList.toggle('review-move-highlight',!!highlight&&highlight.square===sq);
+  if(highlight&&highlight.square===sq){
+   b.style.setProperty('--review-square-color',highlight.color);
+   const badge=document.createElement('span');badge.className='review-move-badge';
+   badge.textContent=highlight.glyph;badge.title=highlight.label;
+   badge.style.background=highlight.color;
+   badge.setAttribute('aria-label',highlight.label+' move');
+   b.append(badge);
+  }else b.style.removeProperty('--review-square-color');
   const target=possible.find(m=>m.to===sq);
   if(target){const indicator=document.createElement('span');indicator.className=(p||target.flags.includes('e'))?'legal-capture-ring':'legal-move-dot';indicator.setAttribute('aria-hidden','true');b.append(indicator)}
  }
@@ -360,8 +387,19 @@ function renderNotation(){
  for(let i=0;i<sanMoves.length;i++){
   if(i%2===0){const number=document.createElement('span');number.textContent=Math.floor(i/2)+1+'.';number.className='notation-number';list.append(number)}
   const button=document.createElement('button');button.type='button';
-  button.textContent=sanMoves[i]+(reviewResults[i]?' '+reviewResults[i].symbol:'');
-  button.title=reviewResults[i]?.label||'Go to move';
+  button.textContent=sanMoves[i];
+  const category=reviewResults[i];
+  const decoration=category&&reviewMoveDecorations[category.label];
+  if(decoration){
+   button.classList.add('notation-highlight-'+category.label.toLowerCase());
+   const glyph=document.createElement('span');
+   glyph.className='notation-review-glyph';
+   glyph.textContent=decoration.glyph;
+   glyph.style.background=decoration.color;
+   glyph.setAttribute('aria-hidden','true');
+   button.append(glyph);
+  }
+  button.title=category?category.label+' move':'Go to move';
   button.className='notation-move'+(cursor===i+1?' active':'');
   button.onclick=()=>{cursor=i+1;selected=null;render();requestAnalysis()};list.append(button);
   if(i===sanMoves.length-1&&i%2===0)list.append(document.createElement('span'));
