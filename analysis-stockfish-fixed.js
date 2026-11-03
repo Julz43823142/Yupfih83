@@ -1,5 +1,6 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import {appendChessArrow} from './chess-board-arrows.js';
+import {attachChessBoardControls} from './chess-board-controls.js';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[],blueSquares=new Set();
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
@@ -211,13 +212,6 @@ engineSwitch.addEventListener('change',()=>{
  if(engineSwitch.checked)startEngine();
  else{stopEngine();engineInfo.textContent='Engine disabled.'}
 });
-let lastPointerAction=0;
-function squareAt(x,y){
- const rect=board.getBoundingClientRect();
- if(x<rect.left||x>=rect.right||y<rect.top||y>=rect.bottom)return null;
- const file=Math.floor((x-rect.left)/rect.width*8),rank=Math.floor((y-rect.top)/rect.height*8);
- return String.fromCharCode(97+file)+(8-rank);
-}
 function playBoardMove(from,to){
  try{
   const position=new Chess(history[cursor]);
@@ -226,65 +220,20 @@ function playBoardMove(from,to){
   const moved=position.move({from,to,promotion:'q'});
   if(!moved)return false;
   history=history.slice(0,cursor+1);history.push(position.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(moved.san);cursor++;
-  selected=null;arrows=[];reviewResults=[];render();requestAnalysis();
+  selected=null;arrows=[];blueSquares.clear();reviewResults=[];render();requestAnalysis();
   return true;
  }catch{return false}
 }
-function selectBoardSquare(sq){
- const position=new Chess(history[cursor]),piece=position.get(sq);
- if(selected===sq){selected=null;render();return}
- if(selected&&playBoardMove(selected,sq))return;
- selected=piece&&piece.color===position.turn()?sq:null;
- render();
-}
-board.addEventListener('contextmenu',e=>e.preventDefault());
-board.addEventListener('pointerdown',e=>{
- const sq=squareAt(e.clientX,e.clientY);
- if(!sq)return;
- if(e.button===2){rightStart=sq;e.preventDefault();return}
- if(e.button!==0)return;
- if(arrows.length||blueSquares.size){arrows=[];blueSquares.clear();drawArrows()}
- const pos=new Chess(history[cursor]),piece=pos.get(sq);
- if(!piece||piece.color!==pos.turn())return;
- const source=e.target.closest('button');
- if(!source)return;
- drag={from:sq,startX:e.clientX,startY:e.clientY,active:false,source,ghost:null,pointerId:e.pointerId};selected=sq;render();drag.source=board.querySelector('[data-square="'+sq+'"]')||source;
- e.preventDefault();
- try{board.setPointerCapture(e.pointerId)}catch{}
+const boardControls=attachChessBoardControls({
+ board,
+ getPosition:()=>new Chess(history[cursor]),
+ getSelected:()=>selected,
+ setSelected:value=>{selected=value},
+ playMove:playBoardMove,
+ repaint:()=>render(),
+ getArrows:()=>arrows,
+ getHighlights:()=>blueSquares
 });
-board.addEventListener('pointermove',e=>{
- if(!drag||drag.pointerId!==e.pointerId)return;
- if(!drag.active&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>8){
-  drag.active=true;
-  const img=drag.source.querySelector('img');
-  drag.ghost=img?img.cloneNode(true):document.createElement('span');
-  if(!img)drag.ghost.textContent=drag.source.textContent;
-  drag.ghost.className='dragging-chess-piece';
-  drag.source.classList.add('drag-source');
-  document.body.append(drag.ghost);
- }
- if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}
-});
-board.addEventListener('pointerup',e=>{
- if(e.button===2&&rightStart){
-  const to=squareAt(e.clientX,e.clientY);
-  if(to&&to===rightStart){if(blueSquares.has(to))blueSquares.delete(to);else blueSquares.add(to);drawArrows()}
-  else if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
-  rightStart=null;return;
- }
- if(!drag||drag.pointerId!==e.pointerId)return;
- lastPointerAction=Date.now();
- const d=drag;drag=null;d.ghost?.remove();d.source.classList.remove('drag-source');
- const to=squareAt(e.clientX,e.clientY);
- if(d.active){
-  if(to&&!playBoardMove(d.from,to)){selected=d.from;render()}
-  else if(!to){selected=d.from;render()}
- }else{
-  if(selected&&selected!==d.from&&playBoardMove(selected,d.from))return;
-  selected=d.from;render();
- }
-});
-board.addEventListener('pointercancel',()=>{if(!drag)return;drag.ghost?.remove();drag.source.classList.remove('drag-source');drag=null;render()});
 
 function drawArrows(){
  const old=board.querySelector('svg.arrows');if(old)old.remove();
@@ -305,7 +254,7 @@ function ensureBoardCells(){
  for(let r=0;r<8;r++)for(let f=0;f<8;f++){
   const sq=String.fromCharCode(97+f)+(8-r),b=document.createElement('button');
   b.type='button';b.className=(r+f)%2?'dark':'light';b.draggable=false;
-  b.dataset.square=sq;b.onclick=()=>{if(Date.now()-lastPointerAction<450)return;selectBoardSquare(sq)};
+  b.dataset.square=sq;
   boardCells.set(sq,b);board.append(b);
  }
 }
