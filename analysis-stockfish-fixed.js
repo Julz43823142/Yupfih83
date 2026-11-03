@@ -1,4 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {createOpeningIntegration} from './opening-integration.js?v=1';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
@@ -466,11 +467,22 @@ const OPENINGS=[
  ['b4','Sokolsky Opening'],['f4','Bird Opening'],['g3','Hungarian Opening'],
  ['e3','Van’t Kruijs Opening'],['d4','Queen’s Pawn Opening'],['e4','King’s Pawn Opening']
 ];
+let catalogOpenings=[];
+fetch('/api/opening-catalog').then(r=>r.ok?r.json():[]).then(rows=>{
+ catalogOpenings=rows.map(row=>{
+  const moves=String(row.pgn||'').replace(/\\d+\\.(?:\\.\\.)?/g,' ').trim().split(/\\s+/).filter(Boolean);
+  return {name:row.name,moves:moves.join(' ')};
+ }).filter(o=>o.moves).sort((a,b)=>b.moves.length-a.moves.length);
+ if(document.getElementById('opening-name'))renderNotation();
+}).catch(()=>{});
 function openingName(){
  const played=sanMoves.slice(0,cursor).join(' ');
+ const known=catalogOpenings.find(x=>played===x.moves||played.startsWith(x.moves+' '));
+ if(known)return known.name;
  for(const [line,name] of OPENINGS)if(played===line||played.startsWith(line+' '))return name;
  return cursor?'Unclassified opening':'Starting position';
 }
+let openingIntegration=null;
 function renderNotation(){
  let panel=$('live-notation');
  if(!panel){
@@ -486,6 +498,20 @@ function renderNotation(){
   panel.insertBefore(enginePanel,$('opening-name'));
   panel.insertBefore(engineSettings,enginePanel);
   panel.insertBefore(depthControl,enginePanel);
+  openingIntegration=createOpeningIntegration({
+   Chess,
+   getState:()=>({fen:history[cursor],san:sanMoves.slice(0,cursor)}),
+   onMove:san=>{
+    try{
+     const next=new Chess(history[cursor]),played=next.move(san);
+     if(!played)return;
+     history=history.slice(0,cursor+1);sanMoves=sanMoves.slice(0,cursor);
+     reviewResults=[];reviewEvaluations=[];
+     history.push(next.fen());sanMoves.push(played.san);cursor++;
+     selected=null;arrows=[];render();requestAnalysis();
+    }catch(e){console.warn('Opening move unavailable',e)}
+   }
+  });
  }
  panel.classList.toggle('engine-off',!engineSwitch.checked);
  $('opening-name').textContent=openingName();
@@ -510,6 +536,7 @@ function renderNotation(){
   button.onclick=()=>{cursor=i+1;selected=null;render();requestAnalysis()};list.append(button);
   if(i===sanMoves.length-1&&i%2===0)list.append(document.createElement('span'));
  }
+ openingIntegration?.update();
 }
 // Capture navigation before focused board/engine controls can consume arrow keys.
 window.addEventListener('keydown',e=>{
