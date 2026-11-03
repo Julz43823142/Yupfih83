@@ -35,6 +35,77 @@ const syncAnalysisMeter=()=>{
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncAnalysisMeter).observe(board);
 window.addEventListener('resize',syncAnalysisMeter);
 requestAnimationFrame(syncAnalysisMeter);
+// Player identities and recorded clocks are optional PGN metadata.
+let playerMeta={
+ white:{name:'White',elo:null},black:{name:'Black',elo:null}
+};
+let positionClocks=[];
+function parseClockSeconds(raw){
+ if(!raw)return null;
+ const value=String(raw).trim();
+ if(/^\d+(?:\.\d+)?$/.test(value))return Math.max(0,Math.round(Number(value)));
+ const parts=value.split(':');
+ if(parts.length<2||parts.length>3||!parts.every(p=>/^\d+(?:\.\d+)?$/.test(p)))return null;
+ return Math.max(0,Math.round(parts.reduce((total,p)=>total*60+Number(p),0)));
+}
+function formatClock(seconds){
+ if(seconds===null||seconds===undefined)return '—:—';
+ const t=Math.max(0,Math.round(seconds)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),ss=t%60;
+ return h?h+':'+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'):
+  String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+function readInitialClock(header){
+ const match=String(header||'').match(/^(\d+)(?:\+\d+)?$/);
+ return match?Number(match[1]):null;
+}
+function clocksFromPgn(chess,states,headers){
+ const base=readInitialClock(headers.TimeControl);
+ const comments=typeof chess.getComments==='function'?chess.getComments():[];
+ const byFen=new Map();
+ for(const item of comments){
+  const match=String(item.comment||'').match(/\[%clk\s+([^\]]+)\]/i);
+  if(match)byFen.set(item.fen,parseClockSeconds(match[1]));
+ }
+ const tracked={w:base,b:base},clocks=[];
+ for(let i=0;i<states.length;i++){
+  if(i>0&&byFen.has(states[i])){
+   const sideToMove=states[i].split(' ')[1];
+   const justMoved=sideToMove==='w'?'b':'w';
+   tracked[justMoved]=byFen.get(states[i]);
+  }
+  clocks.push({w:tracked.w,b:tracked.b});
+ }
+ return clocks;
+}
+function makePlayerStrip(side){
+ const root=document.createElement('div');
+ root.className='analysis-player-strip analysis-player-'+side;
+ root.setAttribute('aria-label',side==='white'?'Black player and clock':'White player and clock');
+ const identity=document.createElement('div');identity.className='analysis-player-identity';
+ const avatar=document.createElement('span');avatar.className='analysis-player-initial';
+ const name=document.createElement('span');name.className='analysis-player-label';
+ const elo=document.createElement('span');elo.className='analysis-player-elo';
+ const clock=document.createElement('span');clock.className='analysis-player-clock';
+ clock.setAttribute('aria-live','off');
+ identity.append(avatar,name,elo);root.append(identity,clock);
+ return {root,avatar,name,elo,clock};
+}
+const blackStrip=makePlayerStrip('black');
+const whiteStrip=makePlayerStrip('white');
+boardLayout.prepend(blackStrip.root);
+boardLayout.append(whiteStrip.root);
+function updatePlayerStrips(){
+ const active=history[cursor]?.split(' ')[1]||'w';
+ for(const [side,strip] of [['black',blackStrip],['white',whiteStrip]]){
+  const id=side==='black'?'b':'w',meta=playerMeta[side];
+  strip.avatar.textContent=(meta.name.trim()[0]||side[0]).toUpperCase();
+  strip.name.textContent=meta.name;
+  strip.elo.textContent=meta.elo?'('+meta.elo+')':'';
+  strip.clock.textContent=formatClock(positionClocks[cursor]?.[id]??null);
+  strip.clock.classList.toggle('is-active',active===id);
+  strip.clock.classList.toggle('has-time',positionClocks[cursor]?.[id]!=null);
+ }
+}
 const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);
 const arrowToggleLabel=document.createElement('label');
 arrowToggleLabel.className='analysis-arrow-toggle';
@@ -341,6 +412,7 @@ function render(){
   const target=possible.find(m=>m.to===sq);
   if(target){const indicator=document.createElement('span');indicator.className=(p||target.flags.includes('e'))?'legal-capture-ring':'legal-move-dot';indicator.setAttribute('aria-hidden','true');b.append(indicator)}
  }
+ updatePlayerStrips();
  drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1;
  renderNotation();
 }
@@ -429,7 +501,7 @@ async function importGame(){
    if(host==='lichess.org'||host==='www.lichess.org'){
     const id=url.pathname.split('/').filter(Boolean)[0];
     if(!/^[a-zA-Z0-9]{8,12}$/.test(id||''))throw Error('Invalid Lichess game link.');
-    const response=await fetch('https://lichess.org/game/export/'+encodeURIComponent(id)+'?clocks=false&evals=false',{headers:{Accept:'application/x-chess-pgn'}});
+    const response=await fetch('https://lichess.org/game/export/'+encodeURIComponent(id)+'?clocks=true&evals=false',{headers:{Accept:'application/x-chess-pgn'}});
     if(!response.ok)throw Error('Lichess game could not be fetched ('+response.status+').');
     pgn=await response.text();
    }else if(host==='chess.com'||host==='www.chess.com'){
@@ -449,10 +521,12 @@ async function importGame(){
   if(mode==='fen')next.load(pgn);else next.loadPgn(pgn);
   const headers=mode==='fen'?{}:next.header();
   importedPlayers={white:headers.White||'White',black:headers.Black||'Black'};
+  playerMeta={white:{name:importedPlayers.white,elo:/^\d{2,4}$/.test(headers.WhiteElo||'')?headers.WhiteElo:null},black:{name:importedPlayers.black,elo:/^\d{2,4}$/.test(headers.BlackElo||'')?headers.BlackElo:null}};
   const startFen=mode==='fen'?next.fen():headers.FEN;
   const replay=new Chess(startFen||undefined),states=[replay.fen()];
   const moves=mode==='fen'?[]:next.history();
   for(const san of moves){replay.move(san);states.push(replay.fen())}
+  positionClocks=mode==='fen'?[]:clocksFromPgn(next,states,headers);
   history=states;sanMoves=moves;reviewResults=[];cursor=0;selected=null;arrows=[];blueSquares.clear();
   status.textContent=mode==='fen'?'Position imported. Make moves to review a game.':'';
   render();requestAnalysis();
