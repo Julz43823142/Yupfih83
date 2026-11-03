@@ -1,24 +1,69 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Puzzles are coming soon to EloScanner.">
-<title>Puzzles | EloScanner</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Play daily chess puzzles, random tactics, custom Elo puzzles, Puzzle Sprint and Puzzle Survival on EloScanner.">
+<title>Chess Puzzles | EloScanner</title>
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
-<style>
-.coming-page{min-height:calc(100vh - 170px);display:grid;place-items:center;padding:48px 20px}
-.coming-card{text-align:center;max-width:600px;width:100%;background:#0d263d;border:1px solid #285777;border-radius:20px;padding:52px 30px;color:#e5f4ff;box-shadow:0 18px 55px #0003}
-.coming-icon{font-size:60px;line-height:1.1;color:#5be0f4;margin-bottom:20px}
-.coming-card h1{font-size:clamp(32px,6vw,54px);margin:0 0 12px}
-.coming-card p{color:#b5d5e8;font-size:19px;margin:0 0 32px}
-.coming-back{display:inline-block;padding:12px 20px;border-radius:10px;background:#123f61;border:1px solid #39779b;color:#fff;text-decoration:none;font-weight:650}
-.coming-back:hover{background:#1a577f}.coming-back:focus-visible{outline:2px solid #5be0f4;outline-offset:3px}
-</style>
+<link rel="stylesheet" href="/chess-tools.css">
+<link rel="stylesheet" href="/puzzles.css?v=1">
 </head>
 <body>
-<header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
-<main class="coming-page"><section class="coming-card"><div class="coming-icon" aria-hidden="true">♟</div><h1>Puzzles</h1><p>Coming soon</p><a class="coming-back" href="/">← Back to EloScanner</a></section></main>
+<header class="navbar">
+<a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
+</header>
+<main class="puzzles-page">
+  <div class="puzzles-top">
+    <div><h1>Chess Puzzles</h1><p class="puzzles-lead">Train your tactics. Find the best move.</p></div>
+    <a class="puzzles-back" href="/">← Back to EloScanner</a>
+  </div>
+  <div class="puzzles-tabs" role="tablist" aria-label="Choose puzzle mode">
+    <button type="button" role="tab" data-puzzle-mode="daily" aria-selected="true">Daily Puzzle</button>
+    <button type="button" role="tab" data-puzzle-mode="random" aria-selected="false">Random Puzzle</button>
+    <button type="button" role="tab" data-puzzle-mode="custom" aria-selected="false">Custom Puzzle</button>
+    <button type="button" role="tab" data-puzzle-mode="sprint" aria-selected="false">Puzzle Sprint</button>
+    <button type="button" role="tab" data-puzzle-mode="survival" aria-selected="false">Puzzle Survival</button>
+  </div>
+  <div class="puzzles-layout">
+    <section class="puzzle-board-card" aria-label="Interactive puzzle board">
+      <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
+      <div id="puzzle-board" aria-label="Interactive chessboard"></div>
+      <div class="puzzle-board-controls">
+        <span class="hint-text">Click a piece or drag it to a square. Right-click to mark squares.</span>
+        <button type="button" id="puzzle-hint" disabled>Hint</button>
+      </div>
+    </section>
+    <section class="puzzle-details" aria-label="Puzzle mode and progress">
+      <div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Daily Puzzle</h2><p id="puzzle-subtitle">A new puzzle every day.</p></div>
+      <div class="puzzle-metrics">
+        <div class="puzzle-metric" id="puzzle-elo-box"><span>Puzzle Elo</span><strong id="puzzle-elo">—</strong></div>
+        <div class="puzzle-metric"><span id="puzzle-solved-label">Solved</span><strong id="puzzle-solved">0</strong></div>
+        <div class="puzzle-metric" id="puzzle-lives-box" hidden><span>Lives</span><strong id="puzzle-lives">♥♥♥</strong></div>
+        <div class="puzzle-metric" id="puzzle-time-box" hidden><span>Time left</span><strong id="puzzle-time">5:00</strong></div>
+      </div>
+      <div class="puzzle-mode-extra">
+        <div id="puzzle-custom-controls" hidden class="puzzle-controls">
+          <label>Target Puzzle Elo <input id="puzzle-target" type="number" min="400" max="3000" step="50" value="1200" inputmode="numeric"></label>
+          <p class="puzzle-footnote">The closest available puzzle is selected. Its actual rating may differ from your target.</p>
+        </div>
+        <p id="puzzle-sprint-guide" hidden>5-minute countdown · 3 mistakes allowed · score increases with each solved puzzle.</p>
+        <p id="puzzle-survival-guide" hidden>No countdown · 3 mistakes allowed · solve as many as possible.</p>
+      </div>
+      <div id="puzzle-status" class="puzzle-status" role="status" aria-live="polite">Loading today's puzzle…</div>
+      <div class="puzzle-controls">
+        <button type="button" id="puzzle-next" class="puzzle-action primary">New Puzzle</button>
+        <button type="button" id="puzzle-start" class="puzzle-action primary" hidden>Start</button>
+        <button type="button" id="puzzle-stop" class="puzzle-action" hidden>End Run</button>
+      </div>
+      <p class="puzzle-footnote">Use the same click, drag and drop, or right-click cancellation controls as EloScanner Analysis. During a puzzle, only your moves are required; the opponent responds automatically.</p>
+      <a id="puzzle-source" class="puzzle-credits" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Puzzles sourced from Lichess · Public domain</a>
+    </section>
+  </div>
+</main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
-<script>document.getElementById("year").textContent=new Date().getFullYear();</script>
-</body></html>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+<script type="module" src="/puzzles.js?v=1"></script>
+</body>
+</html>
