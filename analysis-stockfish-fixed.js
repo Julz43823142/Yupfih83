@@ -23,6 +23,14 @@ evalTrack.append(evalWhite,evalText);evalWrap.append(evalTrack);
 const boardLayout=document.createElement('div');boardLayout.className='board-with-eval';
 board.parentNode.insertBefore(boardLayout,board);
 boardLayout.append(evalWrap,board);
+// The evaluation meter is measured from the actual board, not from the panel.
+const syncAnalysisMeter=()=>{
+ const h=board.getBoundingClientRect().height;
+ if(h>0)evalWrap.style.setProperty('--chess-board-height',h+'px');
+};
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncAnalysisMeter).observe(board);
+window.addEventListener('resize',syncAnalysisMeter);
+requestAnimationFrame(syncAnalysisMeter);
 const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);
 const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats';sidePanel.className='review-side-stats';sidePanel.innerHTML='<h3>GAME REVIEW</h3>';boardTop.insertAdjacentElement('beforebegin',sidePanel);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
