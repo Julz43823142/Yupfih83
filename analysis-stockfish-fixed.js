@@ -55,7 +55,7 @@ engineInfo.insertAdjacentElement('beforebegin',engineSettings);
 const depthControl=document.createElement('div');
 depthControl.className='engine-depth-control';
 const depthLabel=document.createElement('span');
-depthLabel.textContent='Depth 14–18';
+depthLabel.textContent='Stockfish 19 Lite · Depth 14–18';
 const depthPlus=document.createElement('button');
 depthPlus.type='button';depthPlus.className='engine-depth-plus';
 depthPlus.textContent='+';depthPlus.title='Continue analysing without a depth limit';
@@ -70,7 +70,7 @@ boardLayout.insertAdjacentElement('beforebegin',engineInfo);
 boardLayout.insertAdjacentElement('beforebegin',enginePanel);
 depthPlus.addEventListener('click',()=>{
  unlimitedDepth=!unlimitedDepth;
- depthLabel.textContent=unlimitedDepth?'Depth unlimited':'Depth 14–18';
+ depthLabel.textContent=unlimitedDepth?'Stockfish 19 Lite · Depth unlimited':'Stockfish 19 Lite · Depth 14–18';
  depthPlus.textContent=unlimitedDepth?'−':'+';
  depthPlus.title=unlimitedDepth?'Return to depth 18 limit':'Continue analysing without a depth limit';
  depthPlus.setAttribute('aria-label',unlimitedDepth?'Disable unlimited depth':'Enable unlimited depth');
@@ -297,10 +297,11 @@ function drawArrows(){
   const fileDistance=Math.abs(a.charCodeAt(0)-b.charCodeAt(0)),rankDistance=Math.abs(Number(a[1])-Number(b[1]));
   if((fileDistance===1&&rankDistance===2)||(fileDistance===2&&rankDistance===1)){
    const bend=fileDistance===2?[x2,y1]:[x1,y2];
-   const line=make('polyline',{points:[[x1,y1],bend,[x2,y2]].map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-opacity':opacity,'stroke-width':13,'stroke-linejoin':'round','stroke-linecap':'round'});
+   const shaftEnd=[x2-(x2-bend[0])*.32,y2-(y2-bend[1])*.32];
+   const line=make('polyline',{points:[[x1,y1],bend,shaftEnd].map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-opacity':opacity,'stroke-width':13,'stroke-linejoin':'round','stroke-linecap':'round'});
    svg.append(line);
    const vx=x2-bend[0],vy=y2-bend[1],vd=Math.hypot(vx,vy),ux2=vx/vd,uy2=vy/vd;
-   svg.append(make('polygon',{points:[[x2-ux2*7,y2-uy2*7],[x2-ux2*31-uy2*17,y2-uy2*31+ux2*17],[x2-ux2*31+uy2*17,y2-uy2*31-ux2*17]].map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':opacity}));return;
+   svg.append(make('polygon',{points:[[x2-ux2*10,y2-uy2*10],[x2-ux2*42-uy2*20,y2-uy2*42+ux2*20],[x2-ux2*42+uy2*20,y2-uy2*42-ux2*20]].map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':opacity}));return;
   }
   const ux=dx/d,uy=dy/d,px=-uy,py=ux;
   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
