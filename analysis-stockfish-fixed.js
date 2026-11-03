@@ -370,7 +370,7 @@ function renderNotation(){
   boardLayout.insertAdjacentElement('afterend',panel);
   panel.insertBefore(enginePanel,panel.firstChild);
   panel.insertBefore(engineSettings,enginePanel);
-  panel.insertBefore(depthControl,enginePanel);
+  panel.insertBefore(depthControl,enginePanel);panel.insertBefore(engineInfo,enginePanel);
  }
  $('opening-name').textContent=openingName();
  const list=$('notation-moves');list.replaceChildren();
