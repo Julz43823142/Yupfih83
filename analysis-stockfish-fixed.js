@@ -701,33 +701,84 @@ $('review-start').onclick=async()=>{
  });
  try{
   const uciReady=waitFor(line=>line.includes('uciok'));worker.postMessage('uci');await uciReady;
-  worker.postMessage('setoption name MultiPV value 2');
+  worker.postMessage('setoption name MultiPV value 1');
   const ready=waitFor(line=>line.includes('readyok'));worker.postMessage('isready');await ready;
-  const evaluations=[];
-  for(let i=0;i<snapshot.length;i++){
+  // Two stages: fast evaluation of every position, followed by selective
+  // refinement of tactical mistakes and moves with uncertain evaluations.
+  const reviewStarted=performance.now();
+  const quickMs=45,deepMs=200;
+  const evaluations=new Array(snapshot.length);
+  async function analyzeReviewPosition(i,milliseconds){
    if(reviewCancelled)throw Error('Cancelled');
-   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+'0.5 second'+')…';
    let lastScore=null,lastPv=null,secondScore=null;
    const result=new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
+    const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},30000);
     function listener(e){
      for(const line of String(e.data).split(/\r?\n/)){
       if(line.startsWith('info ')&&line.includes(' score ')){
-       const score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
-       if(score){if(line.includes('multipv 2'))secondScore=Number(score[2]);else{lastScore=score;lastPv=pv?.[1]||lastPv}}
+       const score=line.match(/\bscore (cp|mate) (-?\d+)/);
+       const pv=line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+       if(score){
+        const n=Number(line.match(/\bmultipv (\d+)/)?.[1]||1);
+        const amount=score[1]==='mate'?(Number(score[2])>0?1200:-1200):Number(score[2]);
+        if(n===2)secondScore=amount;
+        else {lastScore=score;lastPv=pv?.[1]||lastPv}
+       }
       }
-      if(line.startsWith('bestmove ')){clearTimeout(timer);worker.removeEventListener('message',listener);resolve({score:lastScore,pv:lastPv,second:secondScore})}
+      if(line.startsWith('bestmove ')){
+       clearTimeout(timer);worker.removeEventListener('message',listener);
+       resolve({score:lastScore,pv:lastPv,second:secondScore});
+      }
      }
     }
     worker.addEventListener('message',listener);
    });
-   worker.postMessage('position fen '+snapshot[i]);worker.postMessage('go movetime 500');
+   worker.postMessage('position fen '+snapshot[i]);
+   worker.postMessage('go movetime '+milliseconds);
    const info=await result;
-   if(!info.score)throw Error('Engine returned no evaluation');
+   if(!info.score)throw Error('Engine returned no evaluation at position '+i);
    const side=snapshot[i].split(' ')[1]==='w'?1:-1;
    const value=info.score[1]==='mate'?(Number(info.score[2])>0?1200:-1200):Number(info.score[2]);
-   evaluations.push({white:value*side,pv:info.pv,second:info.second===null?null:info.second*side});
+   return {white:value*side,pv:info.pv,second:info.second===null?null:info.second*side};
   }
+  for(let i=0;i<snapshot.length;i++){
+   if(reviewCancelled)throw Error('Cancelled');
+   status.textContent='Quick scan '+(i+1)+'/'+snapshot.length+' · 45 ms per position';
+   evaluations[i]=await analyzeReviewPosition(i,quickMs);
+  }
+  // A large drop in win probability, sudden evaluation swing or played-move
+  // disagreement raises the priority of the positions before and after it.
+  const priorities=Array(snapshot.length).fill(0);
+  for(let i=0;i<moves.length;i++){
+   const mover=i%2===0?1:-1;
+   const before=evaluations[i].white*mover,after=evaluations[i+1].white*mover;
+   const lost=Math.max(0,reviewWin(before)-reviewWin(after));
+   const swing=Math.abs(before-after);
+   let disagrees=false;
+   try{
+    const played=new Chess(snapshot[i]).move(moves[i]);
+    disagrees=!!played&&!!evaluations[i].pv&&
+     evaluations[i].pv!==played.from+played.to+(played.promotion||'');
+   }catch{}
+   const weight=lost*3+Math.min(20,swing/15)+(disagrees?7:0);
+   priorities[i]+=weight*.8;
+   priorities[i+1]+=weight;
+  }
+  const refineCount=Math.min(24,Math.max(4,Math.ceil(snapshot.length*.22)),snapshot.length);
+  const priorityOrder=priorities.map((score,i)=>({score,i}))
+   .sort((a,b)=>b.score-a.score||a.i-b.i)
+   .slice(0,refineCount)
+   .sort((a,b)=>a.i-b.i);
+  worker.postMessage('setoption name MultiPV value 2');
+  const refinementReady=waitFor(line=>line.includes('readyok'));
+  worker.postMessage('isready');await refinementReady;
+  for(let j=0;j<priorityOrder.length;j++){
+   if(reviewCancelled)throw Error('Cancelled');
+   const i=priorityOrder[j].i;
+   status.textContent='Refining critical positions '+(j+1)+'/'+priorityOrder.length;
+   evaluations[i]=await analyzeReviewPosition(i,deepMs);
+  }
+  const reviewElapsed=((performance.now()-reviewStarted)/1000).toFixed(1);
   const categories=[],counts={};
   for(let i=0;i<moves.length;i++){
    const mover=i%2===0?1:-1;
@@ -742,7 +793,7 @@ $('review-start').onclick=async()=>{
    categories.push({...category,loss:Number(loss.toFixed(2)),accuracy:reviewMoveAccuracy(loss),complexity:Math.min(1,Math.max(0,(alternatives-1)/24))*(bestWin>20&&bestWin<80?1:.55),move:moves[i]});counts[category.label]=(counts[category.label]||0)+1;
   }
   reviewResults=categories;
-  status.textContent='';
+  status.textContent='Reviewed '+moves.length+' half-moves in '+reviewElapsed+' s · '+priorityOrder.length+' critical positions refined.';
   // All metrics are displayed once, in the left Game Review scorecard.
   const sideStats=[0,1].map(side=>reviewAccuracy(
    categories,evaluations.map(x=>reviewWin(x.white)),side));
