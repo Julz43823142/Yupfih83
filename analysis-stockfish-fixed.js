@@ -80,7 +80,7 @@ function clocksFromPgn(chess,states,headers){
 function makePlayerStrip(side){
  const root=document.createElement('div');
  root.className='analysis-player-strip analysis-player-'+side;
- root.setAttribute('aria-label',side==='white'?'Black player and clock':'White player and clock');
+ root.setAttribute('aria-label',side==='white'?'White player and clock':'Black player and clock');
  const identity=document.createElement('div');identity.className='analysis-player-identity';
  const avatar=document.createElement('span');avatar.className='analysis-player-initial';
  const name=document.createElement('span');name.className='analysis-player-label';
@@ -482,7 +482,7 @@ document.addEventListener('keydown',e=>{
  if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
  e.preventDefault();const btn=e.key==='ArrowLeft'?$('back'):$('forward');if(!btn.disabled)btn.click();
 });
-$('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];render();requestAnalysis()};
+$('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];playerMeta={white:{name:'White',elo:null},black:{name:'Black',elo:null}};positionClocks=[];render();requestAnalysis()};
 // Import now lives inside Game Review. One action both imports and starts review.
 let importedPlayers={white:'White',black:'Black'};
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
