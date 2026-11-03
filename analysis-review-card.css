@@ -112,7 +112,7 @@
  min-height:94px;max-width:100%;resize:vertical;
  border-radius:9px;background:#092138;color:#f0faff;
  border:1px solid #426580;padding:12px 14px;
- font:14px/1.55 inherit;
+ font-size:14px;line-height:1.55;font-family:inherit;
 }
 .game-review .review-actions{display:flex;gap:10px;align-items:center;margin-top:14px}
 .game-review #review-start{background:#17ab91;color:white;border:0;border-radius:8px;font-weight:800;padding:12px 22px;cursor:pointer}
