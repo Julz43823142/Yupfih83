@@ -97,3 +97,19 @@
 @media(max-width:1250px){.puzzles-layout{grid-template-columns:190px minmax(0,1.4fr) minmax(260px,1fr);gap:12px}.puzzles-page{width:calc(100% - 36px)}}
 @media(max-width:1000px){.puzzles-site-nav{display:none}.puzzles-mobile-menu{display:block}.puzzles-layout{grid-template-columns:minmax(0,1.35fr) minmax(265px,1fr)}.puzzle-ranking{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr))}.puzzle-ranking-note{grid-column:1/-1}}
 @media(max-width:680px){.puzzles-layout{grid-template-columns:1fr}.puzzle-ranking{grid-column:1;grid-row:auto;grid-template-columns:1fr}.puzzles-page{width:calc(100% - 20px)}.puzzle-board-card,.puzzle-details{padding:12px}}
+
+.puzzles-mobile-menu{position:relative;color:#def3ff}
+.puzzles-mobile-menu summary{display:flex;align-items:center;gap:7px;cursor:pointer;list-style:none;padding:9px 12px;border:1px solid #386986;border-radius:9px;background:#12334b;font-size:13px;font-weight:750}
+.puzzles-mobile-menu summary::-webkit-details-marker{display:none}
+.puzzles-mobile-menu summary svg{width:20px;height:20px}
+.puzzles-mobile-menu nav{position:absolute;z-index:50;right:0;top:calc(100% + 7px);min-width:205px;display:grid;gap:4px;border:1px solid #3c7291;background:#071e32;padding:9px;border-radius:12px;box-shadow:0 18px 40px #0008}
+.puzzles-mobile-menu nav a{padding:10px 12px;color:#d8eeff;text-decoration:none;border-radius:7px;font-size:13px}
+.puzzles-mobile-menu nav a:hover,.puzzles-mobile-menu nav a[aria-current="page"]{background:#13425e;color:#36daf4}
+.puzzle-leaderboard-page{max-width:1100px}
+.puzzle-leaderboard-page .puzzles-tabs a{border:1px solid #315e7b;background:#102f47;border-radius:9px;color:#bcd7e7;min-height:43px;padding:11px 15px;font:700 14px/1.2 system-ui;text-decoration:none}
+.puzzle-leaderboard-page .puzzles-tabs a[aria-current="page"]{border-color:#25d4f0;background:#125477;color:white}
+.puzzle-top100-table{width:100%;border-collapse:collapse;text-align:left}
+.puzzle-top100-table th{color:#78dff4;font-size:12px;letter-spacing:.5px}
+.puzzle-top100-table th,.puzzle-top100-table td{padding:13px 12px;border-bottom:1px solid #28506a}
+.puzzle-top100-table td:last-child{font-weight:850;color:#f6fcff}
+.puzzle-top100-table tr:hover td{background:#103149}
