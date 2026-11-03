@@ -1,3 +1,4 @@
+import {fetchOpeningStats} from './opening-stats-client.js?v=1';
 // EloScanner analysis database switch; actual move statistics from Lichess.
 export function createOpeningIntegration({Chess,getState,onMove}){
  const label=document.createElement('label');label.className='elo-db-toggle';label.title='Toggle game database';
@@ -35,8 +36,7 @@ export function createOpeningIntegration({Chess,getState,onMove}){
   lastFen=fen;const token=++requestIndex;
   controller?.abort();controller=new AbortController();
   info.textContent='Loading database statistics…';moves.replaceChildren();
-  fetch('/api/opening-catalog?fen='+encodeURIComponent(fen),{signal:controller.signal})
-   .then(async r=>{const contentType=r.headers.get('content-type')||'';if(!contentType.includes('json'))throw Error('Database service is temporarily unavailable.');const json=await r.json();if(!r.ok)throw Error(json.error||'Database unavailable');return json})
+  fetchOpeningStats(fen,{signal:controller.signal})
    .then(data=>{
     if(token!==requestIndex||!checkbox.checked)return;
     const sum=(data.white||0)+(data.draws||0)+(data.black||0);
