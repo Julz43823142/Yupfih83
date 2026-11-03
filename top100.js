@@ -36,7 +36,7 @@ async function load(){
           reviewLink.className="top100-review-link";
           reviewLink.href="/?review="+encodeURIComponent(item.username);
           reviewLink.textContent=performanceLabels[priority]+" ↗";
-          reviewLink.title="Open the latest saved Fair Play Review";
+          reviewLink.title="Open the latest saved performance review";
           score.appendChild(reviewLink);
         }else{
           score.title="Saved report not yet available; run a new analysis to enable this link";
