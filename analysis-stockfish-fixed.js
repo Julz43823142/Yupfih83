@@ -297,7 +297,7 @@ function drawArrows(){
   const fileDistance=Math.abs(a.charCodeAt(0)-b.charCodeAt(0)),rankDistance=Math.abs(Number(a[1])-Number(b[1]));
   if((fileDistance===1&&rankDistance===2)||(fileDistance===2&&rankDistance===1)){
    const bend=fileDistance===2?[x2,y1]:[x1,y2];
-   const shaftEnd=[x2-(x2-bend[0])*.32,y2-(y2-bend[1])*.32];
+   const shaftEnd=[x2-(x2-bend[0])*.39,y2-(y2-bend[1])*.39];
    const line=make('polyline',{points:[[x1,y1],bend,shaftEnd].map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-opacity':opacity,'stroke-width':13,'stroke-linejoin':'round','stroke-linecap':'round'});
    svg.append(line);
    const vx=x2-bend[0],vy=y2-bend[1],vd=Math.hypot(vx,vy),ux2=vx/vd,uy2=vy/vd;
