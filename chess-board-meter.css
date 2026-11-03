@@ -20,17 +20,17 @@
 .tool-page .tool-card .prep-board-row .prep-eval-bar {
   position:relative!important;
   display:block!important;
-  flex:0 0 30px!important;
-  width:30px!important;
-  min-width:30px!important;
-  max-width:30px!important;
+  flex:0 0 34px!important;
+  width:34px!important;
+  min-width:34px!important;
+  max-width:34px!important;
   height:var(--chess-board-height, 640px)!important;
   min-height:0!important;
   max-height:var(--chess-board-height, 640px)!important;
   align-self:flex-start!important;
   padding:0!important;
   margin:0!important;
-  background:#3c3b39!important;
+  background:#252525!important;
   border:0!important;
   border-radius:1px!important;
   box-shadow:none!important;
@@ -48,7 +48,7 @@
   height:100%!important;
   padding:0!important;
   margin:0!important;
-  background:#3c3b39!important;
+  background:#252525!important;
   border:0!important;
   border-radius:0!important;
   box-shadow:none!important;
@@ -95,7 +95,7 @@
   box-shadow:none!important;
   opacity:1!important;
   mix-blend-mode:normal!important;
-  font:400 9px/1.2 Arial, sans-serif!important;
+  font:600 9px/1.2 Arial, sans-serif!important;
   font-variant-numeric:tabular-nums!important;
   letter-spacing:0!important;
   text-align:center!important;
@@ -113,7 +113,7 @@
   .tool-page .tool-card:first-of-type .board-with-eval .chess-board,
   .tool-page .prep-analysis-layout .prep-board-row .chess-board {
     width:100%!important;
-    max-width:830px!important;
+    max-width:834px!important;
   }
   .tool-page .prep-analysis-layout .prep-board-area {
     width:100%!important;
