@@ -35,6 +35,25 @@ function number(value, digits = 2) {
   return typeof value === "number" && Number.isFinite(value)
     ? value.toLocaleString("en-US", { maximumFractionDigits: digits }) : "—";
 }
+function ratingSparkline(box,rows){
+ const valid=(rows||[]).filter(r=>Number.isFinite(r.player_elo));
+ if(valid.length<2)return;
+ const first=valid[0].player_elo,last=valid[valid.length-1].player_elo;
+ const color=last>first?'#3be78c':last<first?'#ff6278':'#f6faff';
+ const W=200,H=64,pad=7,vals=valid.map(r=>r.player_elo),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
+ const points=valid.map((r,i)=>[pad+i*(W-2*pad)/(valid.length-1),H-pad-(r.player_elo-min)/span*(H-2*pad)]);
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+ svg.setAttribute('class','rating-sparkline');svg.setAttribute('viewBox','0 0 200 64');svg.setAttribute('role','img');svg.setAttribute('aria-label','All-time rating history, '+(last>first?'up':last<first?'down':'unchanged')+' overall');
+ const path=document.createElementNS(ns,'path');const d=points.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2)).join(' ');
+ path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',color);path.setAttribute('stroke-width','2.6');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');path.setAttribute('class','rating-sparkline-path');
+ const arrow=document.createElementNS(ns,'path');const end=points[points.length-1],prev=points[points.length-2],dx=end[0]-prev[0],dy=end[1]-prev[1],len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
+ arrow.setAttribute('d','M '+(end[0]-ux*9-uy*5)+' '+(end[1]-uy*9+ux*5)+' L '+end[0]+' '+end[1]+' L '+(end[0]-ux*9+uy*5)+' '+(end[1]-uy*9-ux*5));arrow.setAttribute('fill','none');arrow.setAttribute('stroke',color);arrow.setAttribute('stroke-width','2.6');arrow.setAttribute('stroke-linecap','round');arrow.setAttribute('stroke-linejoin','round');arrow.setAttribute('class','rating-sparkline-tip');
+ svg.append(path,arrow);box.append(svg);
+}
+async function loadRatingSparklines(username,boxes){
+ try{const history=await loadCareerRatings(username);for(const [kind,box] of Object.entries(boxes)){if(box.isConnected)ratingSparkline(box,history.charts[kind]);}}
+ catch(e){for(const box of Object.values(boxes))box.title='All-time rating history unavailable: '+e.message;}
+}
 function ratingBox(label, value) {
   const box = el("div", "rating-box");
   add(box, "span", "rating-label", label);
@@ -705,9 +724,9 @@ function renderPlayer(profile, stats, username) {
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   const ratings = add(playerCard, "div", "rating-grid");
-  ratings.appendChild(ratingBox("BULLET", stats.chess_bullet?.last?.rating));
-  ratings.appendChild(ratingBox("BLITZ", stats.chess_blitz?.last?.rating));
-  ratings.appendChild(ratingBox("RAPID", stats.chess_rapid?.last?.rating));
+  const boxes={bullet:ratingBox("BULLET",stats.chess_bullet?.last?.rating),blitz:ratingBox("BLITZ",stats.chess_blitz?.last?.rating),rapid:ratingBox("RAPID",stats.chess_rapid?.last?.rating)};
+  for(const box of Object.values(boxes))ratings.append(box);
+  loadRatingSparklines(profile.username||username,boxes);
 }
 async function runReview(username) {
   const panel = document.getElementById("v87-review");
