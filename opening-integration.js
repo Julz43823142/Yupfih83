@@ -34,8 +34,8 @@ export function createOpeningIntegration({Chess,getState,onMove}){
   lastFen=fen;const token=++requestIndex;
   controller?.abort();controller=new AbortController();
   info.textContent='Loading Lichess opening statistics…';moves.replaceChildren();
-  fetch('/api/opening-explorer?fen='+encodeURIComponent(fen),{signal:controller.signal})
-   .then(async r=>{const json=await r.json();if(!r.ok)throw Error(json.error||'Database unavailable');return json})
+  fetch('/api/opening-catalog?fen='+encodeURIComponent(fen),{signal:controller.signal})
+   .then(async r=>{const contentType=r.headers.get('content-type')||'';if(!contentType.includes('json'))throw Error('Database service is temporarily unavailable.');const json=await r.json();if(!r.ok)throw Error(json.error||'Database unavailable');return json})
    .then(data=>{
     if(token!==requestIndex||!checkbox.checked)return;
     const sum=(data.white||0)+(data.draws||0)+(data.black||0);
