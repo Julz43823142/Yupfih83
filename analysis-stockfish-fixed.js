@@ -36,6 +36,15 @@ if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncAnalysisMeter).obs
 window.addEventListener('resize',syncAnalysisMeter);
 requestAnimationFrame(syncAnalysisMeter);
 const boardTop=document.createElement('div');boardTop.className='board-top-switch';boardLayout.insertAdjacentElement('beforebegin',boardTop);
+const arrowToggleLabel=document.createElement('label');
+arrowToggleLabel.className='analysis-arrow-toggle';
+const arrowToggle=document.createElement('input');
+arrowToggle.type='checkbox';arrowToggle.checked=true;arrowToggle.setAttribute('aria-label','Show Arrow');
+const arrowToggleText=document.createElement('span');arrowToggleText.textContent='Show Arrow';
+arrowToggleLabel.append(arrowToggle,arrowToggleText);
+boardTop.prepend(arrowToggleLabel);
+let previewEngineMove=null;
+arrowToggle.addEventListener('change',()=>drawArrows());
 const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats';sidePanel.className='review-side-stats';sidePanel.innerHTML='<h3>GAME REVIEW</h3>';boardTop.insertAdjacentElement('beforebegin',sidePanel);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
@@ -131,12 +140,28 @@ function renderEngineLines(){
   const score=document.createElement('strong');score.className='engine-line-score prep-engine-score';score.textContent=scoreLabel(item.type,item.value);
   row.classList.add('prep-engine-line');
   row.append(moves,score);
+  row.dataset.engineUci=item.uci;
   row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]?.san||item.uci);
   const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(played.san);cursor++;selected=null;arrows=[];blueSquares.clear();reviewResults=[];render();requestAnalysis()}catch{}};
   row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
   enginePanel.append(row);
  }
 }
+// Hovering a variant previews that variant's move instead of the default best move.
+enginePanel.addEventListener('pointerover',e=>{
+ const row=e.target.closest('.engine-line-clickable');
+ if(!row||!enginePanel.contains(row)||!engineSwitch.checked)return;
+ const move=row.dataset.engineUci;
+ if(move&&move!==previewEngineMove){previewEngineMove=move;drawArrows()}
+});
+enginePanel.addEventListener('pointerout',e=>{
+ const next=e.relatedTarget;
+ if(next&&enginePanel.contains(next))return;
+ if(previewEngineMove){previewEngineMove=null;drawArrows()}
+});
+enginePanel.addEventListener('pointerleave',()=>{
+ if(previewEngineMove){previewEngineMove=null;drawArrows()}
+});
 countSelect.addEventListener('change',()=>{
  multiPV=Number(countSelect.value);
  if(engineReady&&engineSwitch.checked)requestAnalysis();
@@ -146,7 +171,7 @@ function requestAnalysis(){
  if(!engine||!engineReady||!engineSwitch.checked)return;
  engineFen=history[cursor];
  analysisEpoch++;
- engineLines.clear();bestEngineMove=null;
+ engineLines.clear();bestEngineMove=null;previewEngineMove=null;
  renderEngineLines();drawArrows();
  engine.postMessage('stop');
  engine.postMessage('setoption name MultiPV value '+multiPV);
@@ -157,7 +182,7 @@ function requestAnalysis(){
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
  if(engine){try{engine.postMessage('quit')}catch{}engine.terminate()}
- engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;renderEngineLines();updateEvalBar();drawArrows();
+ engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;previewEngineMove=null;renderEngineLines();updateEvalBar();drawArrows();
  if(engineWorkerUrl){URL.revokeObjectURL(engineWorkerUrl);engineWorkerUrl=null}
 }
 function engineFailed(message){
@@ -258,7 +283,8 @@ function drawArrows(){
  const arrow=(a,b,color,opacity)=>appendChessArrow(svg,a,b,color,opacity);
  for(const sq of blueSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':.32}))}
  for(const [a,b] of arrows)arrow(a,b,'#0a9cff',.78);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#23e65d',.7);
+ const shownEngineMove=engineSwitch.checked&&engineReady?(previewEngineMove||(arrowToggle.checked?bestEngineMove:null)):null;
+ if(shownEngineMove)arrow(shownEngineMove.slice(0,2),shownEngineMove.slice(2,4),'#23e65d',.7);
  board.append(svg);
 }
 function ensureBoardCells(){
