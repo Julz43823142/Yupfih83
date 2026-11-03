@@ -1,5 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
-import {createOpeningIntegration} from './opening-integration.js?v=1';
+import {createOpeningIntegration} from './opening-integration.js?v=2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
