@@ -1,6 +1,6 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
-import {appendChessArrow} from './chess-board-arrows.js';
-import {attachChessBoardControls} from './chess-board-controls.js?v=2';
+import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
+import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[],blueSquares=new Set();
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
