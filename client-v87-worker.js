@@ -13,7 +13,7 @@ const PYTHON_FILES = [
   "fairplay_data.py", "fairplay_config.py", "fairplay_outcome_study.py",
   "fairplay_timing.py", "fairplay_opening.py", "fairplay_analysis.py",
   "browser_adapter.py", "assets/fairplay/opening-lines.json",
-  "chess/__init__.py", "chess/pgn.py", "chess/engine.py", "chess/svg.py"
+  "chess/__init__.py", "chess/pgn.py", "chess/engine.py", "chess/svg.py", "chess/variant.py"
 ];
 let loading = null;
 let busy = false;
