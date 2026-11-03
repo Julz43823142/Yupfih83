@@ -68,3 +68,29 @@
   width:100%!important;max-width:830px!important;
  }
 }
+
+/* Evaluation bar corrections: score must remain legible and the prep
+   bar must never stretch beyond the measured board height. */
+.tool-page .board-eval-wrap .board-eval-track .board-eval-text,
+.tool-page .prep-eval-bar .board-eval-track #prep-eval-label{
+  mix-blend-mode:normal!important;
+  background:#14374c!important;
+  color:#ffffff!important;
+  text-shadow:none!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  line-height:16px!important;
+  letter-spacing:-.35px!important;
+  border-radius:3px!important;
+  width:calc(100% - 2px)!important;
+  left:1px!important;
+  bottom:6px!important;
+  opacity:1!important;
+}
+.tool-page .board-eval-wrap.eval-inactive .board-eval-text{opacity:1!important}
+.tool-page .prep-board-row{align-items:flex-start!important}
+.tool-page .prep-board-row .prep-eval-bar{
+ align-self:flex-start!important;
+ height:var(--prep-board-height, 640px)!important;
+ max-height:var(--prep-board-height, 640px)!important;
+}
