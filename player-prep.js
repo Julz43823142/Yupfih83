@@ -47,7 +47,7 @@ let prepWorker=null,prepBest=null,prepLines=new Map();
 const prepMeter=document.querySelector('.prep-board-row .prep-eval-bar');
 const syncPrepMeter=()=>{
  const h=board.getBoundingClientRect().height;
- if(h>0&&prepMeter)prepMeter.style.setProperty('--prep-board-height',h+'px');
+ if(h>0&&prepMeter)prepMeter.style.setProperty('--chess-board-height',h+'px');
 };
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(syncPrepMeter).observe(board)}
 window.addEventListener('resize',syncPrepMeter);
