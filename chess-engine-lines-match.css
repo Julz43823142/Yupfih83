@@ -1,0 +1,83 @@
+/* Mirror Repertoire Explorer's Stockfish variation presentation in Analysis.
+   Engine calculations and its MultiPV setting are unchanged. */
+.tool-page .tool-card .engine-lines-panel {
+ display:block!important;
+ margin:0!important;
+ padding:0!important;
+ min-height:140px;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line {
+ display:flex!important;
+ flex-direction:row!important;
+ align-items:center!important;
+ justify-content:space-between!important;
+ grid-template-columns:none!important;
+ gap:12px!important;
+ min-height:47px!important;
+ padding:12px 4px!important;
+ margin:0!important;
+ width:100%!important;
+ box-sizing:border-box!important;
+ background:transparent!important;
+ border:0!important;
+ border-bottom:1px solid #315570!important;
+ border-radius:0!important;
+ font-size:14px!important;
+ line-height:1.5!important;
+ color:#eaf7ff!important;
+ box-shadow:none!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line:first-child {
+ border-left:3px solid #42e5a1!important;
+ padding-left:10px!important;
+ font-weight:400!important;
+ color:#f4faff!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line .engine-line-moves {
+ display:block!important;
+ flex:1 1 auto!important;
+ min-width:0!important;
+ width:auto!important;
+ max-width:none!important;
+ overflow:hidden!important;
+ white-space:nowrap!important;
+ text-overflow:ellipsis!important;
+ font-weight:400!important;
+ line-height:1.5!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line .engine-variation-move {
+ display:inline!important;
+ font-weight:400!important;
+ font-size:inherit!important;
+ color:inherit!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line .engine-variation-first {
+ font-weight:800!important;
+ color:#fff!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line .engine-line-score {
+ display:block!important;
+ flex:0 0 auto!important;
+ margin-left:auto!important;
+ padding-left:6px!important;
+ text-align:right!important;
+ width:auto!important;
+ white-space:nowrap!important;
+ font-size:15px!important;
+ font-weight:650!important;
+ color:#f6fbff!important;
+ font-variant-numeric:tabular-nums!important;
+}
+.tool-page .tool-card .engine-lines-panel .engine-line-pending {
+ color:#9fb4c6!important;
+}
+@media(max-width:650px){
+ .tool-page .tool-card .engine-lines-panel .engine-line{
+  padding:10px 3px!important;
+  gap:8px!important;
+  font-size:12px!important;
+ }
+ .tool-page .tool-card .engine-lines-panel .engine-line .engine-line-score{
+  font-size:13px!important;
+ }
+}
