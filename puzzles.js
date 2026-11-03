@@ -48,6 +48,7 @@ function draw(){
   cell.classList.toggle('selected-square',selected===sq);
   cell.classList.toggle('recent-square',!!lastMove&&(lastMove.from===sq||lastMove.to===sq));
   cell.classList.toggle('wrong-square',wrongSquare===sq);
+  cell.classList.toggle('marked-square',highlights.has(sq));
   cell.setAttribute('aria-label',sq);
   const legal=moves.find(m=>m.to===sq);
   if(legal){const dot=document.createElement('span');dot.className=pc||legal.flags.includes('e')?'legal-capture-ring':'legal-move-dot';cell.append(dot)}
