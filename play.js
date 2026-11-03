@@ -67,7 +67,7 @@ const evaluate=(game,side)=>{
  if(game.isDraw())return 0;
  let sum=0;
  for(const row of game.board())for(const pc of row)if(pc){
-  const advancement=pc.type==='p'?(pc.color==='w'?6-pc.square.charCodeAt(1)+49:pc.square.charCodeAt(1)-49):0;
+  const advancement=pc.type==='p'?(pc.color==='w'?Number(pc.square[1])-2:7-Number(pc.square[1])):0;
   const center=(3.5-Math.abs(3.5-(pc.square.charCodeAt(0)-97)))*2;
   const score=values[pc.type]+(pc.type==='p'?advancement*3:0)+center;
   sum+=(pc.color===side?1:-1)*score;
@@ -85,7 +85,7 @@ function search(game,depth,alpha,beta,side){
 function chooseBotMove(){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
  if(botLevel==='beginner')return moves[Math.floor(Math.random()*moves.length)];
- const depth=botLevel==='easy'?1:botLevel==='medium'?2:2;
+ const depth=botLevel==='easy'?1:botLevel==='medium'?2:3;
  const ranked=moves.map(m=>{chess.move(m);const score=search(chess,depth-1,-Infinity,Infinity,chess.turn()==='w'?'b':'w');chess.undo();return {move:m,score:score+(Math.random()-.5)*(botLevel==='easy'?140:botLevel==='medium'?28:4)}}).sort((a,b)=>b.score-a.score);
  const pool=botLevel==='easy'?ranked.slice(0,Math.min(3,ranked.length)):ranked;
  return pool[botLevel==='easy'?Math.floor(Math.random()*pool.length):0].move;
