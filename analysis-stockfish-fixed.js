@@ -488,7 +488,9 @@ function stopReview(){
 }
 $('review-cancel').onclick=()=>{stopReview();$('review-status').textContent='Review cancelled.'};
 $('review-start').onclick=async()=>{
- if(reviewBusy||history.length<2){$('review-status').textContent='Play or import a game first.';return}
+ if(reviewBusy)return;
+ if(importBox.value.trim()&&!await importGame())return;
+ if(history.length<2){$('review-status').textContent='Import a PGN with moves or play some moves to review. A FEN alone has no move history.';return}
  reviewBusy=true;reviewCancelled=false;$('review-start').disabled=true;$('review-cancel').disabled=false;
  const snapshot=history.slice(),moves=sanMoves.slice();
  const status=$('review-status'),summary=$('review-summary');summary.replaceChildren();
@@ -505,7 +507,7 @@ $('review-start').onclick=async()=>{
   const evaluations=[];
   for(let i=0;i<snapshot.length;i++){
    if(reviewCancelled)throw Error('Cancelled');
-   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+(reviewSpeedSelect.value==='fast'?'0.12 second':'depth 12')+')…';
+   status.textContent='Analyzing position '+(i+1)+' of '+snapshot.length+' (local Stockfish, '+'0.5 second'+')…';
    let lastScore=null,lastPv=null,secondScore=null;
    const result=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{worker.removeEventListener('message',listener);reject(Error('Engine timeout at position '+i))},60000);
@@ -520,7 +522,7 @@ $('review-start').onclick=async()=>{
     }
     worker.addEventListener('message',listener);
    });
-   worker.postMessage('position fen '+snapshot[i]);worker.postMessage(reviewSpeedSelect.value==='fast'?'go movetime 120':'go depth 12');
+   worker.postMessage('position fen '+snapshot[i]);worker.postMessage('go movetime 500');
    const info=await result;
    if(!info.score)throw Error('Engine returned no evaluation');
    const side=snapshot[i].split(' ')[1]==='w'?1:-1;
