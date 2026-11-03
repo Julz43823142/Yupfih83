@@ -32,7 +32,7 @@ function drawCandidateArrows(options){
    if(last)appendChessArrow(svg,last.from,last.to,'#ff962f',.84);
   }catch{}
  }
- for(const [from,to] of manualArrows)appendChessArrow(svg,from,to,'#0a9cff',.78);board.style.position='relative';board.append(svg);
+ for(const [from,to,color] of manualArrows)appendChessArrow(svg,from,to,color||'#0a9cff',.78);board.style.position='relative';board.append(svg);
 }
 const prepBoardControls=attachChessBoardControls({
  board,
