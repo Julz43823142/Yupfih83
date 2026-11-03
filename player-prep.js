@@ -31,7 +31,24 @@ function drawCandidateArrows(options){
  });
  const blueMarker=document.createElementNS(svg.namespaceURI,'marker');blueMarker.setAttribute('id','prep-manual-head');for(const [k,v] of Object.entries({markerWidth:5,markerHeight:5,refX:3,refY:2.5,orient:'auto'}))blueMarker.setAttribute(k,v);const blueTip=document.createElementNS(svg.namespaceURI,'path');blueTip.setAttribute('d','M0 0 L5 2.5 L0 5Z');blueTip.setAttribute('fill','#328aff');blueMarker.append(blueTip);defs.append(blueMarker);const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}for(const [from,to] of manualArrows){const [x1,y1]=pt(from),[x2,y2]=pt(to),line=document.createElementNS(svg.namespaceURI,'line');for(const [k,v] of Object.entries({x1,y1,x2,y2,stroke:'#0a9cff','stroke-opacity':'.78','stroke-width':10}))line.setAttribute(k,v);line.setAttribute('marker-end','url(#prep-manual-head)');svg.append(line)}if(selectedSquare){const [x,y]=pt(selectedSquare),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#f4c64c','fill-opacity':'.28'}))rect.setAttribute(k,v);svg.append(rect)}board.style.position='relative';board.append(svg);
 }
-let dragStart=null;board.addEventListener('pointerdown',e=>{if(e.button===0){dragStart=prepSquareAt(e);if(dragStart){const current=new Chess();for(const m of path)current.move(m);if(current.get(dragStart)?.color===current.turn()){selectedSquare=dragStart;renderBoard();drawCandidateArrows(candidateMoves)}e.preventDefault();board.setPointerCapture(e.pointerId)}}});board.addEventListener('pointerup',e=>{if(e.button!==0||!dragStart)return;const from=dragStart,to=prepSquareAt(e);dragStart=null;if(!to||from===to)return;const pos=new Chess();for(const m of path)pos.move(m);const move=pos.moves({square:from,verbose:true}).find(m=>m.to===to);if(move){path.push(move.san);selectedSquare=null;manualArrows=[];blueSquares.clear();render()}});let rightSquare=null,prepWorker=null,prepBest=null,prepLines=new Map();
+let dragStart=null,dragGhost=null,dragMoved=false,suppressPrepClick=false;
+board.addEventListener('click',e=>{if(suppressPrepClick){e.stopImmediatePropagation();e.preventDefault();suppressPrepClick=false}},true);
+board.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragStart=prepSquareAt(e);dragMoved=false;if(!dragStart)return;
+ const current=new Chess();for(const m of path)current.move(m);
+ if(current.get(dragStart)?.color===current.turn()){
+  selectedSquare=dragStart;renderBoard();drawCandidateArrows(candidateMoves);
+  const cell=board.querySelector('[data-square="'+dragStart+'"]'),img=cell?.querySelector('img');if(img){dragGhost=img.cloneNode(true);dragGhost.className='prep-drag-ghost';dragGhost.style.cssText='position:fixed;pointer-events:none;z-index:9999;width:'+(cell.clientWidth*.85)+'px;height:'+(cell.clientHeight*.85)+'px;left:'+(e.clientX-cell.clientWidth*.425)+'px;top:'+(e.clientY-cell.clientHeight*.425)+'px;opacity:.92;display:none';document.body.append(dragGhost)}
+ }
+ board.setPointerCapture(e.pointerId);
+});
+board.addEventListener('pointermove',e=>{if(!dragStart||!dragGhost)return;const rect=board.getBoundingClientRect();if(Math.abs(e.clientX-(rect.left+(dragStart.charCodeAt(0)-97+.5)*rect.width/8))>12||Math.abs(e.clientY-(rect.top+(8-Number(dragStart[1])+.5)*rect.height/8))>12)dragMoved=true;if(dragMoved){dragGhost.style.display='block';dragGhost.style.left=(e.clientX-dragGhost.clientWidth/2)+'px';dragGhost.style.top=(e.clientY-dragGhost.clientHeight/2)+'px'}});
+board.addEventListener('pointerup',e=>{if(e.button!==0||!dragStart)return;const from=dragStart,to=prepSquareAt(e);dragStart=null;dragGhost?.remove();dragGhost=null;if(!to)return;
+ if(from===to){suppressPrepClick=true;return;}
+ const pos=new Chess();for(const m of path)pos.move(m);const move=pos.moves({square:from,verbose:true}).find(m=>m.to===to);
+ if(move){path.push(move.san);selectedSquare=null;manualArrows=[];blueSquares.clear();render();suppressPrepClick=true}
+ else if(dragMoved){suppressPrepClick=true}
+});
+let rightSquare=null,prepWorker=null,prepBest=null,prepLines=new Map();
 function prepSquareAt(e){const rect=board.getBoundingClientRect(),x=Math.floor((e.clientX-rect.left)/rect.width*8),y=Math.floor((e.clientY-rect.top)/rect.height*8);return x>=0&&x<8&&y>=0&&y<8?String.fromCharCode(97+x)+(8-y):null}
 board.addEventListener('contextmenu',e=>e.preventDefault());
 board.addEventListener('pointerdown',e=>{if(e.button===2){rightSquare=prepSquareAt(e);e.preventDefault()}});
