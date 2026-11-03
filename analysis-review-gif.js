@@ -103,19 +103,28 @@ function drawFrame(ctx,state,step,assets,Chess){
   ctx.save();ctx.beginPath();ctx.rect(x-1,y-22,SIDE_WIDTH-17,26);ctx.clip();
   label(ctx,name,x,y,fontSize,COLORS.ink,700);ctx.restore();
  };
- const playerCard=(color,name,time,y)=>{
-  const height=176;
-  roundRect(ctx,SIDE,y,SIDE_WIDTH,height,12,'#133750');
-  label(ctx,color,SIDE+11,y+24,12,COLORS.muted,750);
-  playerName(name,SIDE+11,y+54);
+ // Mirror the player cards around the center: top player's name at
+ // the top, both clocks together in the middle, bottom player's name below.
+ const playerCard=(color,name,time,y,bottomPlayer=false)=>{
+  roundRect(ctx,SIDE,y,SIDE_WIDTH,176,12,'#133750');
+  const x=SIDE+11;
   ctx.strokeStyle='#315b75';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(SIDE+11,y+78);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+78);ctx.stroke();
-  label(ctx,'CLOCK',SIDE+11,y+105,11,COLORS.muted,700);
-  label(ctx,clock(time),SIDE+11,y+147,25,COLORS.cyan,750);
+  if(!bottomPlayer){
+   label(ctx,color,x,y+24,12,COLORS.muted,750);
+   playerName(name,x,y+54);
+   ctx.beginPath();ctx.moveTo(x,y+78);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+78);ctx.stroke();
+   label(ctx,'CLOCK',x,y+105,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+147,25,COLORS.cyan,750);
+  }else{
+   label(ctx,'CLOCK',x,y+27,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+66,25,COLORS.cyan,750);
+   ctx.beginPath();ctx.moveTo(x,y+91);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+91);ctx.stroke();
+   label(ctx,color,x,y+119,12,COLORS.muted,750);
+   playerName(name,x,y+150);
+  }
  };
- // The old Evaluation and Move cards are replaced by clear, large clocks.
  playerCard('BLACK',b.name||'Black',cur.b,58);
- playerCard('WHITE',w.name||'White',cur.w,261);
+ playerCard('WHITE',w.name||'White',cur.w,261,true);
  label(ctx,'EloScanner • '+step+'/'+moves.length+' moves',45,462,13,COLORS.muted,550);
 }
 export async function exportReviewGif({history,moves,categories,evaluations,players,clocks,Chess,onProgress}){
