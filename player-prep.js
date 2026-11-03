@@ -44,8 +44,16 @@ const prepBoardControls=attachChessBoardControls({
  getHighlights:()=>blueSquares
 });
 let prepWorker=null,prepBest=null,prepLines=new Map();
+const prepMeter=document.querySelector('.prep-board-row .prep-eval-bar');
+const syncPrepMeter=()=>{
+ const h=board.getBoundingClientRect().height;
+ if(h>0&&prepMeter)prepMeter.style.setProperty('--prep-board-height',h+'px');
+};
+if(typeof ResizeObserver!=='undefined'){new ResizeObserver(syncPrepMeter).observe(board)}
+window.addEventListener('resize',syncPrepMeter);
+requestAnimationFrame(syncPrepMeter);
 const engineSwitch=$('prep-engine'),engineLines=$('prep-engine-lines'),engineCount=$('prep-engine-count'),engineDepth=$('prep-depth');
-function stopPrepEngine(){if(prepWorker){prepWorker.terminate();prepWorker=null}prepLines.clear();engineLines.replaceChildren();$('prep-eval-fill').style.height='50%';$('prep-eval-label').textContent='—'}
+function stopPrepEngine(){if(prepWorker){prepWorker.terminate();prepWorker=null}prepLines.clear();engineLines.replaceChildren();$('prep-eval-fill').style.height='50%';$('prep-eval-label').textContent='0.00'}
 function analyzePrep(){stopPrepEngine();if(!engineSwitch.checked)return;const pos=new Chess();for(const m of path)pos.move(m);const worker=new Worker('/vendor/stockfish/stockfish-19-lite-single.js');prepWorker=worker;let initialized=false;worker.onmessage=e=>{if(prepWorker!==worker)return;for(const line of String(e.data).split(/\r?\n/)){if(line==='uciok'){worker.postMessage('setoption name MultiPV value '+engineCount.value);worker.postMessage('isready')}else if(line==='readyok'&&!initialized){initialized=true;worker.postMessage('position fen '+pos.fen());worker.postMessage('go depth '+engineDepth.value)}else if(line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){const n=Number(line.match(/\bmultipv (\d+)/)?.[1]||1),score=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv (.+)$/);if(!score||!pv)return;const cp=score[1]==='mate'?(Number(score[2])>0?1000:-1000):Number(score[2]);const white=cp*(pos.turn()==='w'?1:-1);prepLines.set(n,{white,pv:pv[1]});engineLines.replaceChildren();for(let i=1;i<=Number(engineCount.value);i++){const item=prepLines.get(i),row=document.createElement('div');row.className='prep-engine-line';if(item){const test=new Chess(pos.fen());const san=[];for(const uci of item.pv.split(' ').slice(0,10)){try{const number=test.fen().split(' ')[5];const m=test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});if(!m)break;san.push(number+(m.color==='b'?'...':'.')+m.san)}catch{break}}row.innerHTML='';const variation=document.createElement('span');if(san.length){const first=document.createElement('strong');first.textContent=san[0];variation.append(first,document.createTextNode('  '+san.slice(1,6).join('  ')))}const evalText=document.createElement('strong');evalText.className='prep-engine-score';evalText.textContent=(item.white>=0?'+':'')+(item.white/100).toFixed(2);row.append(variation,evalText)}else row.textContent='Analyzing…';engineLines.append(row)}const best=prepLines.get(1);if(best){$('prep-eval-fill').style.height=Math.max(3,Math.min(97,50+50*(2/Math.PI)*Math.atan((best.white/100)/2.2)))+'%';$('prep-eval-label').textContent=(best.white>=0?'+':'')+(best.white/100).toFixed(2)}}}};worker.postMessage('uci')}
 engineSwitch.onchange=analyzePrep;engineCount.onchange=analyzePrep;engineDepth.onchange=analyzePrep;
 function parsePgn(text){const game=new Chess();try{game.loadPgn(text);return game.history()}catch{return null}}
