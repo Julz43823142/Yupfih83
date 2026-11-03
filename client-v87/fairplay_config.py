@@ -1,0 +1,293 @@
+"""Versioned screening thresholds: heuristic review priorities, not probabilities."""
+from dataclasses import dataclass
+
+CHANNEL_ID = 1311445685492781186
+NAMESPACE = 'shark:fairplay:'
+DISCLAIMER = ('Automated fair-play screening only. This result is not proof of cheating '
+              'and must not be used as the sole basis for punishment. Human review is mandatory.')
+VERSION = 'fairplay-v50-selective-policy'
+DEPTH_VERSION = 'fairplay-v57-runtime-throughput'
+
+
+def active_version(env=None):
+    """One source for the deployed route, progress card and automatic rescans."""
+    import os
+    env = os.environ if env is None else env
+    if env.get('FAIRPLAY_METHOD3') == '1':
+        from fairplay_method3 import VERSION as method3_version
+        return method3_version
+    return DEPTH_VERSION if env.get('FAIRPLAY_V51') == '1' else VERSION
+
+
+@dataclass(frozen=True)
+class ReviewConfig:
+    # Correspondence has no meaningful live-clock evidence. HIGH requires a
+    # within-player change on deep-reviewed, non-book competitive decisions.
+    daily_period_games: int = 5
+    daily_period_windows: tuple = (5, 10, 20, 30)
+    daily_contributor_fraction: float = .60
+    daily_control_mix_tolerance: float = .10
+    replication_tail_games: int = 100
+    daily_min_baseline_games: int = 10
+    daily_min_opportunities: int = 40
+    daily_min_game_opportunities: int = 5
+    daily_paired_coverage: float = .95
+    daily_quality_stability: float = .75
+    daily_hit_lower: float = .75
+    daily_baseline_upper: float = .55
+    daily_min_quality_shift: float = .30
+    max_games: int = 500  # production: latest 500 eligible rated games; fixture overrides supported
+    history_games: int = 500  # v21 explicitly extends metadata collection to 1000; legacy contracts remain 500
+    primary_engine_games: int = 500
+    historical_probe_nodes: int = 2_000
+    historical_probe_moves: int = 4
+    historical_probe_budget_fraction: float = .12
+    historical_target_games: int = 40
+    # Long plateaus may expose few critical opportunities in each individual
+    # game. Keep bounded longer windows alongside short intermittent periods.
+    cluster_windows: tuple = (5, 6, 8, 10, 15, 20, 30, 50)
+    session_gap_seconds: int = 45 * 60
+    cluster_min_games: int = 6
+    persistence_fraction: float = 2 / 3
+    persistence_critical_hits: float = .75
+    persistence_min_critical: int = 5
+    engine_top1_floor: float = .62
+    engine_top1_ceiling: float = .96
+    engine_top3_floor: float = .82
+    engine_cpl_good: float = 5.0
+    engine_cpl_weak: float = 60.0
+    critical_hit_floor: float = .50
+    critical_hit_ceiling: float = .96
+    engine_shrink_decisions: float = 35.0
+    critical_shrink_positions: float = 8.0
+    strength_top1_step: float = .025
+    strength_top3_step: float = .015
+    strength_critical_step: float = .035
+    high_engine_score: float = .65
+    high_critical_score: float = .65
+    very_high_score: float = .88
+    deep_multipv: int = 3  # three exact candidates for critical/unique evidence; fast searches stay at MultiPV 1
+    max_archives: int = 240  # Search available monthly archives back to Chess.com's beginning
+    max_plies: int = 600
+    min_plies: int = 24
+    opening_plies: int = 20
+    min_game_decisions: int = 8
+    min_games: int = 10
+    medium_confidence_decisions: int = 150
+    # Report coverage and HIGH coverage are intentionally separate.
+    normal_high_sample_games: int = 20
+    high_cluster_games: int = 8
+    high_cluster_decisions: int = 160
+    small_high_fraction: float = .8
+    small_high_decisions: int = 300
+    small_high_critical: int = 40
+    exceptional_evidence: float = .85
+    baseline_candidate_limit: int = 64
+    baseline_reference_games: int = 10
+    baseline_reference_decisions: int = 160
+    baseline_deep_games: int = 3
+    baseline_deep_critical: int = 6
+    baseline_top1_delta: float = .15
+    baseline_critical_delta: float = .20
+    baseline_cpl_delta: float = 20.0
+    baseline_effect_mad: float = 2.5
+    baseline_player_rating_tolerance: int = 200
+    baseline_opponent_rating_tolerance: int = 250
+    baseline_rating_gap_tolerance: int = 200
+    result_support_min_games: int = 8
+    result_rating_margin: int = 150
+    opponent_error_cp: int = 150
+    competitive_eval_cp: int = 200
+    easy_winning_cp: int = 350
+    easy_conversion_weight: float = .15
+    rate_lower_bound_z: float = 1.645
+    pooled_critical_games: int = 10
+    pooled_critical_lower: float = .80
+    pooled_critical_fraction: float = .8
+    pooled_opportunity_fraction: float = 1 / 3
+    persistence_top1_lower: float = .60
+    persistence_critical_lower: float = .60
+    fast_nodes: int = 24_000
+    fast_multipv: int = 1  # one best line; separately verify the played move
+    deep_nodes: int = 320_000
+    # Bullet is screening-only in full-depth mode; rapid/blitz remain depth 18.
+    bullet_deep_depth: int = 12
+    deep_games: int = 10
+    deadline_seconds: int = 3600
+    deep_min_games: int = 6
+    deep_normal_games: int = 10
+    deep_max_games: int = 14
+    opening_min_plies: int = 6
+    opening_max_plies: int = 60
+    human_absolute_information_floor: float = .15
+    human_expectation_margin: float = .05  # legacy diagnostics only
+    # Raw quality excess remains diagnostic. HIGH gates use a headroom-aware
+    # anomaly strength so strong players are not mathematically unable to
+    # generate evidence merely because their expected-quality baseline is high.
+    human_quality_excess: float = .12
+    human_period_excess: float = .18
+    # Residual normalization can magnify tiny raw differences near the quality
+    # ceiling. Absolute HIGH therefore also needs meaningful raw separation;
+    # the required floor rises continuously once the expected-quality reference
+    # is already elite/high.
+    human_period_min_raw_excess: float = .11
+    human_period_ceiling_reference: float = .84
+    human_period_ceiling_raw_scale: float = .50
+    # Enabled only by the current depth pipeline. Keep legacy review replay
+    # reproducible while making a perfect quality index reachable at any Elo.
+    human_reachable_headroom: bool = False
+    human_residual_headroom_floor: float = .04
+    human_residual_power: float = .50
+    human_residual_weight: float = .55
+    human_elite_threshold_start: float = .75
+    human_elite_threshold_scale: float = .08
+    human_min_raw_excess_base: float = .04
+    human_min_raw_excess_rating: float = .05
+    human_contributor_fraction: float = .60
+    # Separate MODERATE-only path for intermittent evidence distributed across
+    # many games. It never weakens absolute/acute HIGH gates. v16.3 requires
+    # breadth and paired-deep retention rather than rewarding isolated one-hit
+    # games, which are too easy to obtain from ordinary variance.
+    human_sparse_min_games: int = 30
+    human_sparse_min_opportunities: int = 30
+    human_sparse_min_hits: int = 16
+    human_sparse_min_hit_games: int = 10
+    human_sparse_min_contributors: int = 5
+    human_sparse_min_half_hit_games: int = 3
+    human_sparse_min_half_contributors: int = 2
+    human_sparse_max_single_hit_fraction: float = .60
+    human_sparse_hit_lower: float = .45
+    human_sparse_information_floor: float = .18
+    human_sparse_anomaly_strength: float = .22
+    human_sparse_min_raw_excess: float = .09
+    human_sparse_deep_games: int = 6
+    human_sparse_deep_opportunities: int = 14
+    human_sparse_deep_hits: int = 8
+    human_sparse_deep_hit_games: int = 5
+    human_sparse_deep_contributors: int = 3
+    human_sparse_deep_min_half_hit_games: int = 2
+    human_sparse_deep_hit_lower: float = .45
+    human_sparse_deep_stable_hits: int = 6
+    human_sparse_deep_retention: float = .70
+    human_sparse_deep_hit_game_retention: float = .65
+    human_sparse_deep_stability: float = .70
+    acute_windows: tuple = (2, 3, 4, 5, 6, 8)
+    acute_min_opportunities: int = 16
+    acute_min_game_opportunities: int = 6
+    acute_information_floor: float = .35
+    acute_quality_excess: float = .40  # retained for v15 diagnostic compatibility
+    acute_quality_residual: float = .38
+    acute_anomaly_strength: float = .40
+    acute_min_raw_excess: float = .10
+    acute_hit_lower: float = .78
+    acute_hit_fraction: float = .90
+    acute_stability_fraction: float = .85
+    acute_retention: float = .90
+    acute_quiet_hits_per_game: int = 3
+    human_equivalence_power: float = .30
+    human_threat_response_factor: float = .5
+    human_difficulty_floor: float = .55
+    human_min_opportunities: int = 40
+    human_min_contributors: int = 6
+    human_hit_lower: float = .65
+    human_deep_games: int = 5
+    human_deep_opportunities: int = 20
+    human_deep_hit_lower: float = .60
+    human_retention: float = .80
+    human_stability_fraction: float = .75
+    bullet_human_games: int = 30
+    bullet_human_opportunities: int = 100
+    bullet_human_contributors: int = 20
+    bullet_human_hit_lower: float = .90
+    bullet_human_information: float = .40
+    bullet_human_deep_games: int = 8
+    bullet_human_deep_opportunities: int = 60
+    bullet_human_deep_hit_lower: float = .85
+    bullet_human_stability: float = .85
+    human_game_cap: int = 12
+    human_period_windows: tuple = (10, 15, 20, 30, 50, 100, 200)
+    human_period_stride: int = 5
+    intro_panel_seconds: int = 10 * 60
+    disabled_features: tuple = ()  # explicit local research only; no labels/files read
+    engine_timeout: int = 8
+    hash_mb: int = 64
+    critical_legal: int = 6
+    critical_gap: int = 100
+    critical_spread: int = 180
+    unique_gap: int = 180
+    equivalent_cp: int = 15
+    inconsistent_eval_cp: int = 20
+    mistake_cp: int = 100
+    blunder_cp: int = 200
+    min_timing_moves: int = 15
+    timing_min_delay: float = 1.0
+    delay_floor_min_games: int = 6
+    delay_floor_min_trivial: int = 12
+    delay_floor_min_critical: int = 12
+    delay_floor_min_normal: int = 48
+    delay_floor_max_instant: float = .10
+    delay_floor_median_ratio: float = 1.5
+    delay_floor_relative_mad: float = .45
+    delay_floor_overlap: float = .65
+    local_timing_anchor_moves: int = 8
+    local_timing_bin: float = .20
+    timing_relative_band: float = .20
+    timing_min_game_moves: int = 8
+    timing_recurrence_moves: int = 80
+    timing_recurrence_games: int = 5
+    timing_recurrence_fraction: float = .70
+    premove_seconds: float = .5
+    timing_band_halfwidth: float = 1.0
+    timing_cluster_min: float = .80
+    timing_cv_max: float = .30
+    trivial_delay_seconds: float = 2.0
+    trivial_min_moves: int = 6
+    normal_min_moves: int = 8
+    critical_min_moves: int = 4
+    trivial_total_min: int = 24
+    trivial_overlap_min: float = .75
+    trivial_median_max_gap: float = 1.5
+    trivial_recurrence_games: int = 5
+    baseline_min_games: int = 6
+    baseline_min_decisions: int = 12
+    baseline_category_moves: int = 12
+    baseline_min_timing: int = 15
+    baseline_cpl_gap: float = 15.0
+    baseline_top1_gap: float = .15
+    baseline_critical_gap: float = .15
+    baseline_spread_ratio: float = .60
+    baseline_cluster_gain: float = .25
+    baseline_entropy_drop: float = .50
+    baseline_response_drop: float = .75
+    baseline_band_min: float = .70
+    baseline_window: int = 6
+    baseline_consistency: float = .80
+    min_critical: int = 30
+    high_decisions: int = 500
+    very_high_games: int = 30
+    very_high_critical: int = 60
+    min_deep_decisions: int = 60
+    min_deep_critical: int = 20
+    # Complete-period corroboration; this additional route is capped at HIGH.
+    convergence_games: int = 20
+    convergence_decisions: int = 300
+    convergence_critical: int = 40
+    convergence_contributors: int = 12
+    convergence_half_critical: int = 12
+    convergence_half_contributors: int = 6
+    convergence_critical_lower: float = 0.7
+    convergence_half_lower: float = 0.6
+    convergence_strength_excess: float = 0.1
+    convergence_shared_games: int = 6
+    convergence_result_bound: float = 0.005
+    convergence_deep_games: int = 6
+    convergence_deep_contributors: int = 5
+    convergence_deep_lower: float = 0.7
+    convergence_deep_retention: float = 0.85
+    convergence_deep_half_games: int = 2
+    convergence_deep_half_critical: int = 6
+    convergence_deep_half_lower: float = .50
+    weights: tuple = (.30, .30, .15, .15, .10)
+
+
+CONFIG = ReviewConfig()
