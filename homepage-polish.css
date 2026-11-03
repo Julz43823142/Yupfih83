@@ -94,3 +94,6 @@ main>.below-hero-layout>.features .feature-illustration{
 
 /* Chess Tools desktop panel: exactly the leaderboard width, 2.5x the original footprint */
 @media(min-width:1100px){.hero .hero-tool-links{width:clamp(368px,29.4vw,515px)!important;max-width:calc(100vw - 80px)!important;min-height:540px!important;box-sizing:border-box!important;padding:32px!important;gap:22px!important;align-content:start!important}.hero .hero-tool-links a{min-height:110px!important;padding:24px 28px!important;font-size:21px!important;border-radius:14px!important}.hero .hero-tool-heading{font-size:21px!important;letter-spacing:1.8px!important}}
+
+/* Chess Tools: compact two-link card, no phantom third-link space */
+@media(min-width:1100px){.hero .hero-tool-links{min-height:0!important;height:auto!important;width:clamp(350px,27.8vw,480px)!important;padding:23px 25px 25px!important;gap:14px!important;align-content:start!important}.hero .hero-tool-links a{min-height:78px!important;padding:19px 22px!important;font-size:18px!important}.hero .hero-tool-heading{font-size:18px!important}}
