@@ -867,6 +867,11 @@ function showSusRanking(target,players){
   const link=add(row,'a','sus-rank-name',name);
   link.href='https://www.chess.com/member/'+encodeURIComponent(name);
   link.target='_blank';link.rel='noopener noreferrer';
+  // Chess.com usernames are case-insensitive identifiers, but their public profile preserves display capitalization.
+  getJSON('https://api.chess.com/pub/player/'+encodeURIComponent(name)).then(profile=>{
+    const official=String(profile?.username||'');
+    if(official.toLowerCase()===name.toLowerCase())link.textContent=official;
+  }).catch(()=>{});
   add(row,'span','sus-rank-count',number(Number(entry.votes)||0,0));
  }
 }
