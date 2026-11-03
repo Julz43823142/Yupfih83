@@ -1,96 +1,127 @@
-/* Exactly the same evaluation-meter component for Analysis and Player Prep.
-   The white section rises from the bottom; the dark section stays opaque. */
-.tool-page .tool-card:first-of-type .board-with-eval .board-eval-wrap,
-.tool-page .prep-board-row .prep-eval-bar {
- position:relative!important;display:block!important;flex:0 0 30px!important;
- width:30px!important;min-width:30px!important;max-width:30px!important;
- min-height:0!important;align-self:stretch!important;
- margin:0!important;padding:0!important;border-radius:4px!important;
- border:1px solid #586c7d!important;background:#0b1017!important;
- overflow:hidden!important;box-sizing:border-box!important;
+/* Shared chess evaluation bar — same component on both EloScanner boards.
+   Reference: flat charcoal upper area, white lower area, tiny number
+   printed directly on the white part. No badge, border or gradient. */
+
+.tool-page .board-with-eval,
+.tool-page .prep-board-row {
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:8px!important;
+  min-width:0!important;
 }
-.tool-page .board-eval-wrap .board-eval-track,
-.tool-page .prep-eval-bar .board-eval-track {
- position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
- display:block!important;background:#0b1017!important;
- border:0!important;border-radius:0!important;box-shadow:none!important;
- margin:0!important;padding:0!important;overflow:hidden!important;
-}
-.tool-page .board-eval-wrap .board-eval-track .board-eval-white,
-.tool-page .prep-eval-bar .board-eval-track #prep-eval-fill {
- position:absolute!important;bottom:0!important;left:0!important;
- width:100%!important;height:50%;background:#f3f6f9!important;
- border:0!important;border-radius:0!important;box-sizing:border-box!important;
- transition:height .22s ease!important;
-}
-.tool-page .board-eval-wrap .board-eval-track .board-eval-text,
-.tool-page .prep-eval-bar .board-eval-track #prep-eval-label {
- position:absolute!important;z-index:5!important;bottom:7px!important;top:auto!important;
- left:0!important;width:100%!important;min-width:0!important;
- padding:0!important;margin:0!important;
- transform:none!important;display:block!important;
- color:white!important;mix-blend-mode:difference!important;
- background:transparent!important;border:none!important;box-shadow:none!important;
- border-radius:0!important;text-shadow:none!important;
- font:800 10px/1.2 system-ui,sans-serif!important;
- text-align:center!important;letter-spacing:-.2px!important;
- pointer-events:none!important;
-}
-@media(max-width:650px){
- .tool-page .tool-card:first-of-type .board-with-eval .board-eval-wrap,
- .tool-page .prep-board-row .prep-eval-bar {
-  width:22px!important;min-width:22px!important;max-width:22px!important;flex-basis:22px!important;
- }
- .tool-page .board-eval-text{font-size:9px!important}
-}
-/* The repertoire board and Analysis share the same maximum desktop board size.
-   Narrower viewports can still shrink both boards without horizontal overflow. */
-@media(min-width:1100px){
- .tool-page .prep-analysis-layout .prep-board-row .chess-board{
-  width:100%!important;max-width:830px!important;
- }
- .tool-page .prep-analysis-layout .prep-board-area{
-  width:100%!important;max-width:870px!important;min-width:0!important;
- }
- .tool-page .prep-analysis-layout{
-  grid-template-columns:minmax(200px,300px) minmax(0,870px) minmax(310px,1fr)!important;
-  justify-content:center!important;
- }
+.tool-page .board-with-eval .chess-board,
+.tool-page .prep-board-row .chess-board {
+  flex:1 1 auto!important;
+  min-width:0!important;
+  align-self:flex-start!important;
 }
 
-/* Give both chessboards the same 830px maximum square, while preserving
-   their distinct Analysis and repertoire sidebar layouts. */
-@media(min-width:1100px){
- .tool-page .tool-card:first-of-type .board-with-eval {
-  width:100%!important;max-width:870px!important;
- }
- .tool-page .tool-card:first-of-type .board-with-eval .chess-board{
-  width:100%!important;max-width:830px!important;
- }
-}
-
-/* Evaluation bar corrections: score must remain legible and the prep
-   bar must never stretch beyond the measured board height. */
-.tool-page .board-eval-wrap .board-eval-track .board-eval-text,
-.tool-page .prep-eval-bar .board-eval-track #prep-eval-label{
-  mix-blend-mode:normal!important;
-  background:#14374c!important;
-  color:#ffffff!important;
-  text-shadow:none!important;
-  font-size:10px!important;
-  font-weight:850!important;
-  line-height:16px!important;
-  letter-spacing:-.35px!important;
-  border-radius:3px!important;
-  width:calc(100% - 2px)!important;
-  left:1px!important;
-  bottom:6px!important;
+.tool-page .tool-card .board-with-eval .board-eval-wrap,
+.tool-page .tool-card .prep-board-row .prep-eval-bar {
+  position:relative!important;
+  display:block!important;
+  flex:0 0 30px!important;
+  width:30px!important;
+  min-width:30px!important;
+  max-width:30px!important;
+  height:var(--chess-board-height, 640px)!important;
+  min-height:0!important;
+  max-height:var(--chess-board-height, 640px)!important;
+  align-self:flex-start!important;
+  padding:0!important;
+  margin:0!important;
+  background:#3c3b39!important;
+  border:0!important;
+  border-radius:1px!important;
+  box-shadow:none!important;
   opacity:1!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
 }
-.tool-page .board-eval-wrap.eval-inactive .board-eval-text{opacity:1!important}
-.tool-page .prep-board-row{align-items:flex-start!important}
-.tool-page .prep-board-row .prep-eval-bar{
- align-self:flex-start!important;
- height:var(--prep-board-height, 640px)!important;
- max-height:var(--prep-board-height, 640px)!important;
+
+.tool-page .board-with-eval .board-eval-wrap .board-eval-track,
+.tool-page .prep-board-row .prep-eval-bar .board-eval-track {
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  padding:0!important;
+  margin:0!important;
+  background:#3c3b39!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+
+.tool-page .board-with-eval .board-eval-wrap .board-eval-white,
+.tool-page .prep-board-row .prep-eval-bar #prep-eval-fill {
+  position:absolute!important;
+  left:0!important;
+  bottom:0!important;
+  width:100%!important;
+  height:50%;
+  background:#ffffff!important;
+  background-image:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  transition:height .2s ease!important;
+  box-sizing:border-box!important;
+}
+
+.tool-page .board-with-eval .board-eval-wrap .board-eval-text,
+.tool-page .prep-board-row .prep-eval-bar #prep-eval-label {
+  position:absolute!important;
+  z-index:5!important;
+  display:block!important;
+  left:0!important;
+  bottom:8px!important;
+  top:auto!important;
+  right:auto!important;
+  transform:none!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  color:#303030!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  mix-blend-mode:normal!important;
+  font:400 9px/1.2 Arial, sans-serif!important;
+  font-variant-numeric:tabular-nums!important;
+  letter-spacing:0!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
+}
+.tool-page .board-eval-wrap.eval-inactive {opacity:1!important;}
+
+/* Both boards use the same upper size cap, without changing the sidebars. */
+@media(min-width:1100px) {
+  .tool-page .tool-card:first-of-type .board-with-eval {
+    width:100%!important;
+    max-width:870px!important;
+  }
+  .tool-page .tool-card:first-of-type .board-with-eval .chess-board,
+  .tool-page .prep-analysis-layout .prep-board-row .chess-board {
+    width:100%!important;
+    max-width:830px!important;
+  }
+  .tool-page .prep-analysis-layout .prep-board-area {
+    width:100%!important;
+    max-width:870px!important;
+    min-width:0!important;
+  }
+  .tool-page .prep-analysis-layout {
+    grid-template-columns:minmax(200px,300px) minmax(0,870px) minmax(310px,1fr)!important;
+    justify-content:center!important;
+  }
 }
