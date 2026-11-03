@@ -39,7 +39,7 @@ function arrow(ctx,x1,y1,x2,y2){
 }
 function drawFrame(ctx,state,step,assets,Chess){
  const {history,moves,categories,evaluations,players,clocks}=state;
- const W=600,H=490,B=384,S=48,X=45,Y=53,SIDE=467;
+ const W=600,H=490,B=384,S=48,X=45,Y=53,SIDE=452,SIDE_WIDTH=132;
  ctx.fillStyle=COLORS.bg;ctx.fillRect(0,0,W,H);
  roundRect(ctx,12,12,576,466,15,COLORS.panel);
  label(ctx,'ELOSCANNER  •  GAME REVIEW',45,39,15,COLORS.cyan,750);
@@ -93,29 +93,29 @@ function drawFrame(ctx,state,step,assets,Chess){
  ctx.strokeStyle=COLORS.edge;ctx.lineWidth=2;ctx.strokeRect(X,Y,B,B);
  const w=players?.white||{},b=players?.black||{};
  const cur=clocks?.[step]||{};
- roundRect(ctx,SIDE,58,107,90,9,'#133750');
- label(ctx,'BLACK',SIDE+9,77,11,COLORS.muted,700);
- label(ctx,String(b.name||'Black').slice(0,14),SIDE+9,101,15,COLORS.ink,700);
- label(ctx,clock(cur.b),SIDE+9,125,18,COLORS.cyan,700);
- roundRect(ctx,SIDE,349,107,90,9,'#133750');
- label(ctx,'WHITE',SIDE+9,370,11,COLORS.muted,700);
- label(ctx,String(w.name||'White').slice(0,14),SIDE+9,394,15,COLORS.ink,700);
- label(ctx,clock(cur.w),SIDE+9,419,18,COLORS.cyan,700);
- roundRect(ctx,SIDE,165,107,165,9,'#102b43');
- label(ctx,'EVALUATION',SIDE+9,187,11,COLORS.muted,700);
- label(ctx,(cp>=0?'+':'')+(cp/100).toFixed(2),SIDE+9,221,23,COLORS.ink,760);
- label(ctx,'MOVE',SIDE+9,258,11,COLORS.muted,700);
- const san=step?moves[step-1]:'Start';
- const moveNumber=step?Math.ceil(step/2)+(step%2?'. ':'... '):'';
- label(ctx,moveNumber+san,SIDE+9,283,16,COLORS.ink,700);
- if(step){
-  const kind=categories[step-1]?.label||'';
-  const entry=MARKS[kind];
-  if(entry){
-   ctx.fillStyle=entry[0];ctx.fillRect(SIDE+9,297,8,8);
-   label(ctx,kind,SIDE+22,307,11,COLORS.ink,600);
-  }
- }
+ // Fit the complete player name in the wider card without truncating it.
+ const playerName=(raw,x,y)=>{
+  const name=String(raw||'Unknown player').trim()||'Unknown player';
+  ctx.textAlign='left';
+  let fontSize=16;
+  do{ctx.font='700 '+fontSize+'px system-ui,Arial,sans-serif';if(ctx.measureText(name).width<=SIDE_WIDTH-20)break;fontSize-=.5}while(fontSize>9);
+  // Ultra-long names remain intact; canvas clips them inside the player card.
+  ctx.save();ctx.beginPath();ctx.rect(x-1,y-22,SIDE_WIDTH-17,26);ctx.clip();
+  label(ctx,name,x,y,fontSize,COLORS.ink,700);ctx.restore();
+ };
+ const playerCard=(color,name,time,y)=>{
+  const height=176;
+  roundRect(ctx,SIDE,y,SIDE_WIDTH,height,12,'#133750');
+  label(ctx,color,SIDE+11,y+24,12,COLORS.muted,750);
+  playerName(name,SIDE+11,y+54);
+  ctx.strokeStyle='#315b75';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(SIDE+11,y+78);ctx.lineTo(SIDE+SIDE_WIDTH-11,y+78);ctx.stroke();
+  label(ctx,'CLOCK',SIDE+11,y+105,11,COLORS.muted,700);
+  label(ctx,clock(time),SIDE+11,y+147,25,COLORS.cyan,750);
+ };
+ // The old Evaluation and Move cards are replaced by clear, large clocks.
+ playerCard('BLACK',b.name||'Black',cur.b,58);
+ playerCard('WHITE',w.name||'White',cur.w,261);
  label(ctx,'EloScanner • '+step+'/'+moves.length+' moves',45,462,13,COLORS.muted,550);
 }
 export async function exportReviewGif({history,moves,categories,evaluations,players,clocks,Chess,onProgress}){
