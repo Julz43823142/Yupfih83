@@ -26,7 +26,7 @@ boardLayout.append(evalWrap,board);
 // The evaluation meter is measured from the actual board, not from the panel.
 const syncAnalysisMeter=()=>{
  const rect=board.getBoundingClientRect();
- if(rect.height>0){
+ if(rect.height>0&&evalWrap){
   evalWrap.style.setProperty('--chess-board-height',rect.height+'px');
   const row=evalWrap.parentElement.getBoundingClientRect();
   evalWrap.style.top=(rect.top-row.top)+'px';
