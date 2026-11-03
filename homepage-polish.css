@@ -91,3 +91,6 @@ main>.below-hero-layout>.features .feature-illustration{
 
 /* Chess Tools: same visual scale as leaderboard, without adding extra rows */
 @media(min-width:1100px){.hero .hero-tool-links{width:clamp(245px,17vw,294px)!important;min-height:260px!important;padding:20px!important;gap:14px!important;align-content:start}.hero .hero-tool-links a{min-height:65px!important;padding:17px!important;font-size:16px!important}.hero .hero-tool-heading{font-size:15px!important}}
+
+/* Chess Tools desktop panel: exactly the leaderboard width, 2.5x the original footprint */
+@media(min-width:1100px){.hero .hero-tool-links{width:clamp(368px,29.4vw,515px)!important;max-width:calc(100vw - 80px)!important;min-height:540px!important;box-sizing:border-box!important;padding:32px!important;gap:22px!important;align-content:start!important}.hero .hero-tool-links a{min-height:110px!important;padding:24px 28px!important;font-size:21px!important;border-radius:14px!important}.hero .hero-tool-heading{font-size:21px!important;letter-spacing:1.8px!important}}
