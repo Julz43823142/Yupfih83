@@ -1,0 +1,103 @@
+/* Analysis polish: collapse optional content without reserving dead space. */
+
+/* The imported-player bands appear only after a game has been reviewed. */
+.tool-page .tool-card:first-of-type .board-with-eval:not(.has-reviewed-players) {
+  grid-template-rows:0 minmax(0,auto) 0!important;
+  row-gap:0!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval .analysis-player-strip[hidden] {
+  display:none!important;
+}
+.tool-page .tool-card:first-of-type .board-with-eval.has-reviewed-players {
+  grid-template-rows:38px minmax(0,auto) 38px!important;
+  row-gap:4px!important;
+}
+/* When the players are visible, align the side panels with the top of
+   the board itself, not with the name/clock band immediately above it. */
+@media(min-width:1000px) {
+  .tool-page .tool-card:first-of-type:has(.board-with-eval.has-reviewed-players) > .review-side-stats,
+  .tool-page .tool-card:first-of-type:has(.board-with-eval.has-reviewed-players) > .live-notation {
+    margin-top:42px!important;
+  }
+  .tool-page .tool-card:first-of-type:not(:has(.board-with-eval.has-reviewed-players)) > .review-side-stats,
+  .tool-page .tool-card:first-of-type:not(:has(.board-with-eval.has-reviewed-players)) > .live-notation {
+    margin-top:0!important;
+  }
+}
+/* No empty best-move or depth panel when Stockfish is switched off. */
+.tool-page .tool-card:first-of-type .live-notation.engine-off .engine-lines-panel,
+.tool-page .tool-card:first-of-type .live-notation.engine-off .engine-lines-settings,
+.tool-page .tool-card:first-of-type .live-notation.engine-off .engine-depth-control {
+  display:none!important;
+  visibility:hidden!important;
+  min-height:0!important;
+  height:0!important;
+  padding:0!important;
+  margin:0!important;
+}
+.tool-page .tool-card:first-of-type .live-notation.engine-off #opening-name {
+  margin-top:0!important;
+  padding-top:0!important;
+}
+.tool-page .tool-card:first-of-type .live-notation.engine-off #notation-moves {
+  margin-top:0!important;
+}
+/* Restore the earlier pill switch after Show Arrow was moved from the
+   board-top element into the engine-side panel. */
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header
+.analysis-arrow-toggle input[type="checkbox"] {
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  display:inline-block!important;
+  box-sizing:border-box!important;
+  flex:0 0 42px!important;
+  width:42px!important;
+  height:23px!important;
+  min-width:42px!important;
+  min-height:23px!important;
+  padding:0!important;
+  margin:0!important;
+  border-radius:16px!important;
+  border:1px solid #6b91a6!important;
+  background:#38546b!important;
+  position:relative!important;
+  vertical-align:middle!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease!important;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header
+.analysis-arrow-toggle input[type="checkbox"]::after {
+  content:""!important;
+  position:absolute!important;
+  display:block!important;
+  top:2px!important;
+  left:2px!important;
+  width:17px!important;
+  height:17px!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:#d6e6ee!important;
+  box-shadow:none!important;
+  transform:translateX(0)!important;
+  transition:transform .16s ease!important;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header
+.analysis-arrow-toggle input[type="checkbox"]:checked {
+  background:#079ac1!important;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header
+.analysis-arrow-toggle input[type="checkbox"]:checked::after {
+  transform:translateX(19px)!important;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header
+.analysis-arrow-toggle input[type="checkbox"]:focus-visible {
+  outline:2px solid #fff!important;
+  outline-offset:3px!important;
+}
+@media(max-width:650px) {
+  .tool-page .tool-card:first-of-type .board-with-eval.has-reviewed-players {
+    grid-template-rows:34px minmax(0,auto) 34px!important;
+    row-gap:3px!important;
+  }
+}
