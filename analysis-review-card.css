@@ -259,3 +259,54 @@
  opacity:.58;
  cursor:default;
 }
+
+/* EloScanner original SVG icon set, designed for 25px review rows. */
+.review-classification .review-class-icon,
+.review-key-moments .review-class-icon{
+ background:transparent!important;
+ overflow:visible;
+}
+.review-icon-svg{display:block;width:100%;height:100%;flex:0 0 auto}
+.review-class-icon .review-icon-svg{width:25px;height:25px}
+.review-move-badge .review-icon-svg{width:100%;height:100%}
+.review-move-badge:has(.review-icon-svg){
+ background:transparent!important;
+ border:0!important;
+ box-shadow:0 1px 5px rgba(0,0,0,.2)!important;
+}
+.notation-review-glyph:has(.review-icon-svg){
+ background:transparent!important;
+}
+.notation-review-glyph .review-icon-svg{width:17px;height:17px}
+.review-key-moments{
+ display:grid;
+ grid-template-columns:minmax(72px,1fr) 30px 32px;
+ gap:7px;
+ align-items:center;
+ min-height:46px;
+ margin-top:10px;
+ padding:12px 0 6px;
+ border-top:1px solid #315570;
+ color:#e9f5ff;
+ font-size:13px;
+ font-weight:700;
+}
+.review-key-moments .review-class-icon{justify-self:center}
+.review-key-count{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:29px;
+ min-height:28px;
+ padding:2px;
+ border:1px solid transparent;
+ border-radius:5px;
+ background:#214a67;
+ color:#fff;
+ font:800 15px/1 Arial,sans-serif;
+ font-variant-numeric:tabular-nums;
+ cursor:pointer;
+}
+.review-key-count:hover:not(:disabled){background:#356c8c;border-color:#69b3d3}
+.review-key-count:focus-visible{outline:2px solid #8fe2ff;outline-offset:2px}
+.review-key-count:disabled{opacity:.5;cursor:default}
