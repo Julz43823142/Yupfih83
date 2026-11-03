@@ -37,7 +37,6 @@
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
       <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
       <div class="puzzle-board-controls">
-        <span class="hint-text">Click a piece or drag it to a square. Right-click to mark squares.</span>
         <button type="button" id="puzzle-hint" disabled>Hint</button>
       </div>
     </section>
@@ -68,13 +67,11 @@
        <form id="puzzle-save-form"><label for="puzzle-nickname">Nickname</label><div class="puzzle-save-controls"><input id="puzzle-nickname" name="nickname" maxlength="25" minlength="2" autocomplete="nickname" placeholder="Your nickname" required><button type="submit" class="puzzle-action primary">Save run</button></div></form>
        <div id="puzzle-save-status" role="status" aria-live="polite"></div>
       </div>
-      <p class="puzzle-footnote">Use the same click, drag and drop, or right-click cancellation controls as EloScanner Analysis. During a puzzle, only your moves are required; the opponent responds automatically.</p>
-      <a id="puzzle-source" class="puzzle-credits" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Puzzles sourced from Lichess · Public domain</a>
     </section>
   </div>
 </main>
-<footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
+<footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=5"></script>
+<script type="module" src="/puzzles.js?v=6"></script>
 </body>
 </html>
