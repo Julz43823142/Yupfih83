@@ -1,0 +1,80 @@
+/* Keep both engines' switches in their right-hand panels.
+   No board-size, eval-meter or Stockfish setting changes. */
+
+/* Analysis: left scorecard, board and engine occupy the same grid row. */
+@media(min-width:1000px){
+ .tool-page .tool-card:first-of-type>.board-with-eval{
+  grid-row:2!important;
+  margin-top:0!important;
+ }
+ .tool-page .tool-card:first-of-type>.live-notation{
+  grid-row:2 / span 5!important;
+  margin-top:0!important;
+  align-self:start!important;
+ }
+ .tool-page .tool-card:first-of-type>.review-side-stats{
+  grid-row:2 / span 5!important;
+  align-self:start!important;
+ }
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:flex-start!important;
+ flex-wrap:wrap!important;
+ gap:9px 16px!important;
+ min-height:30px;
+ padding:0 0 12px!important;
+ margin:0 0 12px!important;
+ border-bottom:1px solid #315570;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header label{
+ display:inline-flex!important;
+ align-items:center!important;
+ gap:7px!important;
+ margin:0!important;
+ white-space:nowrap!important;
+ cursor:pointer;
+ color:#d7edf9;
+ font-size:13px;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header .analysis-arrow-toggle{
+ display:inline-flex!important;
+ font-weight:600;
+}
+.tool-page .tool-card:first-of-type .live-notation .analysis-engine-header .switch-label{
+ display:inline-flex!important;
+}
+@media(max-width:999px){
+ .tool-page .tool-card:first-of-type>.board-with-eval{margin-top:0!important}
+ .tool-page .tool-card:first-of-type>.live-notation{margin-top:10px!important}
+}
+
+/* Repertoire Explorer: move the existing Stockfish switch into the
+   engine-side panel so the board no longer has a separate switch row. */
+.tool-page .prep-analysis-layout .prep-board-area{
+ align-self:start!important;
+}
+.tool-page .prep-analysis-layout .prep-board-row{
+ margin-top:0!important;
+}
+.tool-page .prep-analysis-layout .prep-engine-side{
+ align-self:start!important;
+}
+.tool-page .prep-analysis-layout .prep-engine-top{
+ display:flex;
+ align-items:center;
+ justify-content:flex-start;
+ padding:0 0 12px;
+ margin:0 0 12px;
+ border-bottom:1px solid #315570;
+}
+.tool-page .prep-analysis-layout .prep-engine-top .prep-engine-toggle{
+ display:inline-flex!important;
+ justify-content:flex-start!important;
+ align-items:center!important;
+ gap:8px!important;
+ margin:0!important;
+ white-space:nowrap;
+ cursor:pointer;
+}
