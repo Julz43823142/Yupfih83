@@ -470,7 +470,7 @@ const OPENINGS=[
 let catalogOpenings=[];
 fetch('/api/opening-catalog').then(r=>r.ok?r.json():[]).then(rows=>{
  catalogOpenings=rows.map(row=>{
-  const moves=String(row.pgn||'').replace(/\\d+\\.(?:\\.\\.)?/g,' ').trim().split(/\\s+/).filter(Boolean);
+  const moves=String(row.pgn||'').replace(/\d+\.(?:\.\.)?/g,' ').trim().split(/\s+/).filter(Boolean);
   return {name:row.name,moves:moves.join(' ')};
  }).filter(o=>o.moves).sort((a,b)=>b.moves.length-a.moves.length);
  if(document.getElementById('opening-name'))renderNotation();
