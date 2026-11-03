@@ -481,6 +481,69 @@ function reviewCategory(loss,book,best,brilliant,great,bestWin,actualWin){
  if(loss<=20)return {label:'Mistake',symbol:'❓'};
  return {label:'Blunder',symbol:'‼️'};
 }
+// Compact, screenshot-inspired review scorecard in the EloScanner palette.
+function renderReviewScorecard(categories,evaluations,accuracyBySide){
+ const panel=$('review-side-stats');
+ if(!panel)return;
+ panel.replaceChildren();
+ const heading=document.createElement('h3');heading.textContent='Game Review';panel.append(heading);
+ const chart=document.createElement('div');chart.className='review-graph';chart.setAttribute('aria-label','White evaluation graph across the game');
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 320 78');svg.setAttribute('preserveAspectRatio','none');
+ const make=(tag,attrs={})=>{const el=document.createElementNS(svg.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el};
+ const graphY=cp=>39-31*Math.tanh(cp/280);
+ const points=evaluations.map((ev,i)=>[320*i/Math.max(1,evaluations.length-1),graphY(ev.white)]);
+ const graphLine=points.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
+ const area=make('path',{d:graphLine+' L320 78 L0 78 Z',fill:'#eff6f8','fill-opacity':'.96'});
+ const mid=make('path',{d:'M0 39 H320',stroke:'#97abb8','stroke-width':'.8'});
+ const line=make('path',{d:graphLine,stroke:'#f7fbfe','stroke-width':'2',fill:'none','stroke-linejoin':'round'});
+ svg.append(area,mid,line);
+ const colors={Brilliant:'#24c9b5',Great:'#7fadd6',Book:'#caad8a',Best:'#79c85b',Excellent:'#90ca67',Good:'#9abb83',Inaccuracy:'#e5c338',Mistake:'#ef9b50',Miss:'#ef7272',Blunder:'#ee5656'};
+ categories.forEach((c,i)=>{
+  const p=points[i+1];if(!p)return;
+  svg.append(make('circle',{cx:p[0],cy:p[1],r:'3.2',fill:colors[c.label]||'#d1d9e1'}));
+ });
+ chart.append(svg);panel.append(chart);
+ const headers=document.createElement('div');headers.className='review-players';
+ const title=document.createElement('span');title.textContent='Players';headers.append(title);
+ for(const side of ['white','black']){
+  const cell=document.createElement('div');cell.className='review-player';
+  const badge=document.createElement('span');badge.className='review-player-avatar '+side;badge.textContent=(importedPlayers[side]||side).slice(0,1).toUpperCase();
+  const name=document.createElement('span');name.className='review-player-name';name.textContent=importedPlayers[side]||side;
+  cell.append(badge,name);headers.append(cell);
+ }
+ panel.append(headers);
+ const addMetric=(label,values,extraClass='')=>{
+  const row=document.createElement('div');row.className='review-metric '+extraClass;
+  const name=document.createElement('span');name.textContent=label;row.append(name);
+  for(let i=0;i<2;i++){const value=document.createElement('strong');value.textContent=String(values[i]);row.append(value)}
+  panel.append(row);
+ };
+ addMetric('Accuracy',accuracyBySide.map(x=>x==null?'—':x.toFixed(1)+'%'),'review-accuracy');
+ const groups=[
+  ['Brilliant','!!'],['Great','!'],['Book','▣'],['Best','★'],['Excellent','◆'],
+  ['Good','✓'],['Inaccuracy','?!'],['Mistake','?'],['Miss','×'],['Blunder','??']
+ ];
+ const bySide=[{},{}];
+ categories.forEach((c,i)=>{const side=i%2;bySide[side][c.label]=(bySide[side][c.label]||0)+1});
+ const head=document.createElement('div');head.className='review-breakdown-head';head.textContent='Move classifications';panel.append(head);
+ for(const [name,symbol] of groups){
+  const row=document.createElement('div');row.className='review-classification';
+  const label=document.createElement('span');label.textContent=name;
+  const left=document.createElement('strong');left.textContent=bySide[0][name]||0;
+  const marker=document.createElement('span');marker.className='review-class-icon review-class-'+name.toLowerCase();
+  marker.textContent=symbol;
+  const right=document.createElement('strong');right.textContent=bySide[1][name]||0;
+  row.append(label,left,marker,right);panel.append(row);
+ }
+ const note=document.createElement('p');note.className='review-scoring-note';
+ note.textContent='Accuracy and classifications are EloScanner engine-based estimates, not official Chess.com scores.';
+ panel.append(note);
+ addMetric('Game Rating',['—','—'],'review-rating');
+ const caption=document.createElement('p');caption.className='review-rating-note';
+ caption.textContent='Game Rating is unavailable without a validated rating model.';
+ panel.append(caption);
+}
 function stopReview(){
  reviewCancelled=true;
  if(reviewWorker){reviewWorker.terminate();reviewWorker=null}
@@ -553,7 +616,7 @@ $('review-start').onclick=async()=>{
    const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);sideStats.push({label,accuracy:avg});
   }
 
-  const statsPanel=$('review-side-stats');if(statsPanel){statsPanel.replaceChildren();const heading=document.createElement('h3');heading.textContent='Game statistics';statsPanel.append(heading);for(const [side,label] of [[0,'White'],[1,'Black']]){const rows=categories.filter((x,i)=>i%2===side);const score=sideStats.find(x=>x.label===label)?.accuracy;const mean=rows.length?rows.reduce((a,x)=>a+x.loss,0)/rows.length:0;const grade=score===null||score===undefined?'—':score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'F';for(const [key,value] of [['Accuracy',score==null?'—':score.toFixed(1)+'%'],['Variance',mean.toFixed(1)+' pp'],['Grade',grade]]){const item=document.createElement('div');item.className='review-side-item';item.textContent=label+' '+key+' · '+value;statsPanel.append(item)}}}
+  renderReviewScorecard(categories,evaluations,sideStats.map(x=>x.accuracy));
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
