@@ -1037,3 +1037,6 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
 @keyframes elo-spark-tip{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.rating-sparkline-path{animation:none;stroke-dashoffset:0}.rating-sparkline-tip{animation:none;opacity:1}}
 @media(max-width:680px){.rating-grid .rating-box{padding-right:46%}.rating-sparkline{width:42%;right:10px}}
+
+@keyframes elo-segment-draw{to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.rating-sparkline line{animation:none!important;stroke-dashoffset:0!important}}
