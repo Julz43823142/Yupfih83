@@ -48,7 +48,7 @@ function ratingSparkline(box,rows){
  path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',color);path.setAttribute('stroke-width','2.6');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');path.setAttribute('class','rating-sparkline-path');
  const arrow=document.createElementNS(ns,'path');const end=points[points.length-1],prev=points[points.length-2],dx=end[0]-prev[0],dy=end[1]-prev[1],len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
  arrow.setAttribute('d','M '+(end[0]-ux*9-uy*5)+' '+(end[1]-uy*9+ux*5)+' L '+end[0]+' '+end[1]+' L '+(end[0]-ux*9+uy*5)+' '+(end[1]-uy*9-ux*5));arrow.setAttribute('fill','none');arrow.setAttribute('stroke',color);arrow.setAttribute('stroke-width','2.6');arrow.setAttribute('stroke-linecap','round');arrow.setAttribute('stroke-linejoin','round');arrow.setAttribute('class','rating-sparkline-tip');
- svg.append(path,arrow);box.append(svg);
+ svg.append(path,arrow);box.append(svg);const length=path.getTotalLength();path.style.strokeDasharray=String(length);path.style.strokeDashoffset=String(length);requestAnimationFrame(()=>{path.style.animation='none';void path.getBoundingClientRect();path.style.animation='elo-spark-draw 2.3s ease-out forwards'});
 }
 async function loadRatingSparklines(username,boxes){
  try{const history=await loadCareerRatings(username);for(const [kind,box] of Object.entries(boxes)){if(box.isConnected)ratingSparkline(box,history.charts[kind]);}}
