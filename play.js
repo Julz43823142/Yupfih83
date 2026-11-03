@@ -1,12 +1,13 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
+import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
-const names={mikhail:'Mikhail Hal (2350)',ominous:'ominousgenius (2090)',rocket:'ROCKETLEAGUE (1500)'};
-const intros={mikhail:'Mikhail Hal: Ready for a tactical battle?',ominous:'ominousgenius: I attack relentlessly, but sometimes miss a critical defense.',rocket:'ROCKETLEAGUE: Let’s play a rapid-style game!'};
+const names=Object.fromEntries([["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
+const ratings={"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null;
-let botLevel='mikhail',audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
+let botLevel='rocket',selectedBot=null,audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),cell=document.createElement('button');
  cell.type='button';cell.className='play-square '+((row+col)%2?'dark':'light');cell.dataset.square=sq;cell.setAttribute('aria-label',sq);squares.set(sq,cell);board.append(cell);
@@ -30,13 +31,22 @@ function paint(){
   cell.style.order=orientation==='black'?63-idx:idx;
   if(cell.dataset.piece!==key){
    cell.dataset.piece=key;cell.replaceChildren();
-   if(pc){const img=document.createElement('img');img.className='play-piece';img.alt=pc.color+' '+pc.type;img.draggable=false;img.src='https://lichess1.org/assets/piece/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.onerror=()=>{img.remove();cell.textContent=pieces[pc.color][pc.type]};cell.append(img)}
+   if(pc){const img=document.createElement('img');img.className='chess-piece';img.alt=pc.color+' '+pc.type;img.draggable=false;img.src='https://lichess1.org/assets/piece/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.onerror=()=>{img.remove();cell.textContent=pieces[pc.color][pc.type]};cell.append(img)}
   }else cell.querySelectorAll('.legal-dot,.capture-ring').forEach(x=>x.remove());
   cell.classList.toggle('selected',selected===sq);
   cell.classList.toggle('last',!!last&&(last.from===sq||last.to===sq));
   cell.classList.toggle('marked',highlights.has(sq));
   cell.classList.toggle('check',chess.isCheck()&&pc?.type==='k'&&pc.color===chess.turn());
   if(moves.some(m=>m.to===sq)){const dot=document.createElement('span');dot.className=pc?'capture-ring':'legal-dot';cell.append(dot)}
+ }
+ // Keep annotations above the pieces, matching the shared Analysis/Puzzles controls.
+ board.querySelector('.play-arrow-layer')?.remove();
+ if(arrows.length){
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 800 800');svg.setAttribute('preserveAspectRatio','none');svg.classList.add('play-arrow-layer');
+  for(const [from,to,color] of arrows)appendChessArrow(svg,from,to,color);
+  if(orientation==='black')svg.style.transform='rotate(180deg)';
+  board.append(svg);
  }
  $('play-side').textContent=(chess.turn()==='w'?'White':'Black')+' to move';
  const history=chess.history(),lines=[];for(let i=0;i<history.length;i+=2)lines.push((i/2+1)+'. '+history[i]+(history[i+1]?' '+history[i+1]:''));
@@ -85,11 +95,23 @@ function search(game,depth,alpha,beta,side){
 }
 function chooseBotMove(){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
- const depth=botLevel==='rocket'?1:botLevel==='ominous'?2:3;
- const side=chess.turn();
- const ranked=moves.map(m=>{chess.move(m);const score=search(chess,depth-1,-Infinity,Infinity,side);const aggressive=(m.captured?65:0)+(m.san.includes('+')?85:0)+(m.san.includes('#')?1500:0);chess.undo();return {move:m,score:score+(botLevel==='ominous'?aggressive:0)+(Math.random()-.5)*(botLevel==='rocket'?125:botLevel==='ominous'?38:12)}}).sort((a,b)=>b.score-a.score);
- if(botLevel==='ominous'&&chess.history().length>=12&&Math.random()<.12){const playable=ranked.filter(x=>x.score>ranked[0].score-520);if(playable.length>1)return playable[Math.floor(Math.random()*playable.length)].move;}
- if(botLevel==='rocket'){const pool=ranked.slice(0,Math.min(3,ranked.length));return pool[Math.floor(Math.random()*pool.length)].move;}
+ const elo=ratings[botLevel]||1000,side=chess.turn();
+ // Elo values are approximate difficulty tiers, not independently calibrated ratings.
+ // Lower levels search less deeply and make more deliberate suboptimal choices.
+ const depth=elo<1000?1:elo<1650?2:3;
+ const noise=elo<700?700:elo<1000?480:elo<1300?300:elo<1650?180:elo<1950?115:elo<2200?70:elo<2500?32:10;
+ const ranked=moves.map(m=>{
+  chess.move(m);
+  const score=search(chess,depth-1,-Infinity,Infinity,side);
+  chess.undo();
+  const aggression=botLevel==='ominous'?((m.captured?45:0)+(m.san.includes('+')?60:0)):0;
+  return {move:m,score:score+aggression+(Math.random()-.5)*noise};
+ }).sort((a,b)=>b.score-a.score);
+ const probability=elo<800?.62:elo<1100?.48:elo<1500?.3:elo<1900?.16:elo<2300?.07:.01;
+ if(ranked.length>1&&Math.random()<probability){
+  const options=ranked.slice(1,Math.min(5,ranked.length));
+  return options[Math.floor(Math.random()*options.length)].move;
+ }
  return ranked[0].move;
 }
 function scheduleBot(){
@@ -104,9 +126,9 @@ function scheduleBot(){
 }
 function newGame(){
  gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
- botLevel=document.querySelector('input[name=bot]:checked').value;
+ botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;ended=false;working=false;highlights.clear();arrows.length=0;
- $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-bot-intro').textContent=intros[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ $('play-game').hidden=false;$('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'Your move.':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
@@ -117,5 +139,10 @@ $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;worki
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(pending){const p=pending;play(p.from,p.to,b.dataset.promote)}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;$('play-promotion').hidden=true;selected=null;paint()});
-document.querySelectorAll('input[name=bot]').forEach(input=>input.addEventListener('change',()=>{if(input.checked)$('play-bot-intro').textContent=intros[input.value]}));
-newGame();
+document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
+ const id=button.dataset.bot;
+ if(selectedBot===id){selectedBot=null;$('play-bot-options').hidden=true;}
+ else{selectedBot=id;$('play-bot-options').hidden=false;$('play-selected-name').textContent=id==='mikhail'?'Mikhail Hal':id==='ominous'?'ominousgenius':id==='rocket'?'ROCKETLEAGUE':'Bot';$('play-selected-elo').textContent=ratings[id]+' Elo';}
+ document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
+}));
+paint();
