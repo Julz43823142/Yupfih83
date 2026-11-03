@@ -373,13 +373,82 @@ document.addEventListener('keydown',e=>{
  e.preventDefault();const btn=e.key==='ArrowLeft'?$('back'):$('forward');if(!btn.disabled)btn.click();
 });
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];render();requestAnalysis()};
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
-$('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];reviewResults=[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
+// Import now lives inside Game Review. One action both imports and starts review.
+let importedPlayers={white:'White',black:'Black'};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+ mode=b.dataset.mode;
+ document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));
+ $('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste a Lichess or Chess.com game link';
+});
+async function importGame(){
+ const value=$('import-value').value.trim(),status=$('import-status');
+ if(!value)return history.length>1;
+ try{
+  let pgn=value;
+  if(mode==='url'){
+   const url=new URL(value);
+   const host=url.hostname.toLowerCase();
+   if(host==='lichess.org'||host==='www.lichess.org'){
+    const id=url.pathname.split('/').filter(Boolean)[0];
+    if(!/^[a-zA-Z0-9]{8,12}$/.test(id||''))throw Error('Invalid Lichess game link.');
+    const response=await fetch('https://lichess.org/game/export/'+encodeURIComponent(id)+'?clocks=false&evals=false',{headers:{Accept:'application/x-chess-pgn'}});
+    if(!response.ok)throw Error('Lichess game could not be fetched ('+response.status+').');
+    pgn=await response.text();
+   }else if(host==='chess.com'||host==='www.chess.com'){
+    const id=url.pathname.match(/\/game\/(?:live|daily)\/(\d+)/)?.[1];
+    if(!id)throw Error('Use a Chess.com live or daily game link, or paste the PGN.');
+    // Chess.com does not publish a guaranteed per-game PGN endpoint.
+    // Try its public game callback; failures report a useful PGN fallback.
+    let response;
+    try{response=await fetch('https://www.chess.com/callback/live/games/'+id,{headers:{Accept:'application/json'}})}catch{}
+    if(!response?.ok)throw Error('This Chess.com link cannot be imported directly here. Copy the game PGN from Chess.com and paste it instead.');
+    const data=await response.json();
+    pgn=data?.pgn||data?.game?.pgn||data?.game?.headers?.pgn;
+    if(typeof pgn!=='string')throw Error('Chess.com did not return a PGN. Paste the PGN instead.');
+   }else throw Error('Supported game links: Lichess and Chess.com.');
+  }
+  const next=new Chess();
+  if(mode==='fen')next.load(pgn);else next.loadPgn(pgn);
+  const headers=mode==='fen'?{}:next.header();
+  importedPlayers={white:headers.White||'White',black:headers.Black||'Black'};
+  const startFen=mode==='fen'?next.fen():headers.FEN;
+  const replay=new Chess(startFen||undefined),states=[replay.fen()];
+  const moves=mode==='fen'?[]:next.history();
+  for(const san of moves){replay.move(san);states.push(replay.fen())}
+  history=states;sanMoves=moves;reviewResults=[];cursor=0;selected=null;arrows=[];blueSquares.clear();
+  status.textContent=mode==='fen'?'Position imported. Make moves to review a game.':'Imported '+moves.length+' half-moves.';
+  render();requestAnalysis();
+  renderReviewPlaceholder();
+  return true;
+ }catch(e){status.textContent='Import failed: '+e.message;return false}
+}
 
-const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
-reviewPanel.innerHTML='<h2>GAME REVIEW</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
+const reviewPanel=document.createElement('section');
+reviewPanel.id='game-review';reviewPanel.className='game-review';
+reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Import a position or game</h3><div id="review-import-slot"></div><div class="review-actions"><button id="review-start" type="button" hidden>Review Game</button><button id="review-cancel" type="button" disabled hidden>Cancel</button></div><div id="review-status" role="status"></div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
-const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (0.12 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
+const importCard=$('import-value').closest('.tool-card');
+const importSlot=$('review-import-slot');
+importSlot.append(importCard.querySelector('.tab-row'),$('import-value'),$('import-status'));
+importCard.remove();
+const importBox=$('import-value');
+function syncReviewAction(){
+ $('review-start').hidden=!(importBox.value.trim()||history.length>1);
+}
+importBox.addEventListener('input',syncReviewAction);
+function renderReviewPlaceholder(){
+ const panel=$('review-side-stats');
+ if(panel&&!reviewResults.length){
+  panel.replaceChildren();
+  const heading=document.createElement('h3');heading.textContent='Game statistics';
+  const note=document.createElement('p');note.className='review-placeholder';
+  note.textContent='Import a game and choose Review Game to see accuracy, move classifications and the evaluation graph.';
+  panel.append(heading,note);
+ }
+ syncReviewAction();
+}
+renderReviewPlaceholder();
+let reviewWorker=null,reviewCancelled=false;
 function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
 function reviewMoveAccuracy(loss){return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669))}
 function reviewAccuracy(rows,positions,side){
