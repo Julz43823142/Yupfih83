@@ -1,0 +1,14 @@
+/* One consistent menu on every EloScanner tool page (not on the homepage). */
+body.elo-subpage .navbar{position:relative!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;flex-wrap:nowrap!important;min-height:70px!important;padding:9px max(20px,calc((100vw - 1530px)/2))!important}
+body.elo-subpage .navbar>.play-nav,body.elo-subpage .navbar>.puzzles-site-nav,body.elo-subpage .navbar>.mobile-chess-menu{display:none!important}
+body.elo-subpage .elo-global-menu{position:relative;display:block!important;margin-left:auto;flex:0 0 auto;z-index:1100}
+body.elo-subpage .elo-global-menu summary{display:flex;align-items:center;gap:10px;min-width:115px;padding:11px 16px!important;border-radius:11px!important;border:1px solid #39718e!important;background:#102d44!important;color:#effaff!important;font:700 14px system-ui,sans-serif!important;cursor:pointer;list-style:none}
+body.elo-subpage .elo-global-menu summary::-webkit-details-marker{display:none}
+body.elo-subpage .elo-global-menu summary svg{width:19px;height:19px}
+body.elo-subpage .elo-global-menu[open] summary{border-color:#38dce9!important;background:#164965!important}
+body.elo-subpage .elo-global-menu nav{position:absolute!important;top:calc(100% + 9px)!important;right:0!important;left:auto!important;width:min(280px,calc(100vw - 36px))!important;max-width:none!important;display:grid!important;gap:5px!important;margin:0!important;padding:9px!important;background:#0c273c!important;border:1px solid #3a6881!important;border-radius:12px!important;box-shadow:0 15px 45px #0008!important;z-index:1200!important;transform:none!important}
+body.elo-subpage .elo-global-menu nav a{display:block!important;padding:13px 15px!important;border:1px solid transparent!important;border-radius:8px!important;color:#e1f3ff!important;text-decoration:none!important;font:600 14px system-ui,sans-serif!important;background:transparent!important}
+body.elo-subpage .elo-global-menu nav a:hover,body.elo-subpage .elo-global-menu nav a:focus-visible{background:#1b4e6a!important;border-color:#4697b4!important}
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#136c91!important;border-color:#55dce9!important;color:white!important}
+body.elo-subpage .tool-page>.tool-nav,body.elo-subpage .opening-page>.tool-nav{display:none!important}
+@media(max-width:1099px){body.elo-subpage .navbar{position:sticky!important;top:0;z-index:1000!important;padding:9px 18px!important}}
