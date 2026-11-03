@@ -3,9 +3,10 @@ import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-blac
 const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
-const names={beginner:'Rookie',easy:'Scout',medium:'Strategist',hard:'Master Bot'};
+const names={mikhail:'Mikhail Hal (2350)',ominous:'ominousgenius (2090)',rocket:'ROCKETLEAGUE (1500)'};
+const intros={mikhail:'Mikhail Hal: Ready for a tactical battle?',ominous:'ominousgenius: I attack relentlessly, but sometimes miss a critical defense.',rocket:'ROCKETLEAGUE: Let’s play a rapid-style game!'};
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null;
-let botLevel='beginner',audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
+let botLevel='mikhail',audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),cell=document.createElement('button');
  cell.type='button';cell.className='play-square '+((row+col)%2?'dark':'light');cell.dataset.square=sq;cell.setAttribute('aria-label',sq);squares.set(sq,cell);board.append(cell);
@@ -84,11 +85,12 @@ function search(game,depth,alpha,beta,side){
 }
 function chooseBotMove(){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
- if(botLevel==='beginner')return moves[Math.floor(Math.random()*moves.length)];
- const depth=botLevel==='easy'?1:botLevel==='medium'?2:3;
- const ranked=moves.map(m=>{chess.move(m);const score=search(chess,depth-1,-Infinity,Infinity,chess.turn()==='w'?'b':'w');chess.undo();return {move:m,score:score+(Math.random()-.5)*(botLevel==='easy'?140:botLevel==='medium'?28:4)}}).sort((a,b)=>b.score-a.score);
- const pool=botLevel==='easy'?ranked.slice(0,Math.min(3,ranked.length)):ranked;
- return pool[botLevel==='easy'?Math.floor(Math.random()*pool.length):0].move;
+ const depth=botLevel==='rocket'?1:botLevel==='ominous'?2:3;
+ const side=chess.turn();
+ const ranked=moves.map(m=>{chess.move(m);const score=search(chess,depth-1,-Infinity,Infinity,side);const aggressive=(m.captured?65:0)+(m.san.includes('+')?85:0)+(m.san.includes('#')?1500:0);chess.undo();return {move:m,score:score+(botLevel==='ominous'?aggressive:0)+(Math.random()-.5)*(botLevel==='rocket'?125:botLevel==='ominous'?38:12)}}).sort((a,b)=>b.score-a.score);
+ if(botLevel==='ominous'&&chess.history().length>=12&&Math.random()<.12){const playable=ranked.filter(x=>x.score>ranked[0].score-520);if(playable.length>1)return playable[Math.floor(Math.random()*playable.length)].move;}
+ if(botLevel==='rocket'){const pool=ranked.slice(0,Math.min(3,ranked.length));return pool[Math.floor(Math.random()*pool.length)].move;}
+ return ranked[0].move;
 }
 function scheduleBot(){
  if(terminal())return;
@@ -104,7 +106,7 @@ function newGame(){
  gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=document.querySelector('input[name=bot]:checked').value;
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;ended=false;working=false;highlights.clear();arrows.length=0;
- $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel]+' · Bot';$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-bot-intro').textContent=intros[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'Your move.':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
@@ -115,4 +117,5 @@ $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;worki
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(pending){const p=pending;play(p.from,p.to,b.dataset.promote)}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;$('play-promotion').hidden=true;selected=null;paint()});
+document.querySelectorAll('input[name=bot]').forEach(input=>input.addEventListener('change',()=>{if(input.checked)$('play-bot-intro').textContent=intros[input.value]}));
 newGame();
