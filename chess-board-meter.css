@@ -57,3 +57,14 @@
   justify-content:center!important;
  }
 }
+
+/* Give both chessboards the same 830px maximum square, while preserving
+   their distinct Analysis and repertoire sidebar layouts. */
+@media(min-width:1100px){
+ .tool-page .tool-card:first-of-type .board-with-eval {
+  width:100%!important;max-width:870px!important;
+ }
+ .tool-page .tool-card:first-of-type .board-with-eval .chess-board{
+  width:100%!important;max-width:830px!important;
+ }
+}
