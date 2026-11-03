@@ -84,3 +84,7 @@ main>.below-hero-layout>.features .feature-illustration{
 @media(min-width:1100px){.hero .hero-sus-ranking{width:clamp(370px,29.6vw,518px)!important}}
 
 @media(min-width:1100px){.hero .hero-sus-ranking{width:clamp(368px,29.4vw,515px)!important}}
+
+/* Match chess tools card width to Top 10 CIP without matching its height */
+@media(min-width:1451px){.hero .hero-tool-links{width:clamp(245px,17vw,294px)!important;box-sizing:border-box}}
+@media(min-width:1100px) and (max-width:1450px){.hero .hero-tool-links{width:235px!important;box-sizing:border-box}}
