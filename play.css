@@ -33,3 +33,24 @@
 @media(max-width:780px){.play-nav{display:none}.play-mobile-menu{display:block}.play-layout{grid-template-columns:1fr}.play-bots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.play-page{width:calc(100% - 20px)}.play-bots{gap:8px}.play-bot{min-height:76px;padding:8px;gap:7px}.play-avatar{width:39px;height:39px;font-size:27px}.play-bot-info strong{font-size:12px}.play-bot-info small{font-size:11px}.play-board-card,.play-panel{padding:12px}}
 @media(prefers-reduced-motion:reduce){.play-bot,.play-bot-options{transition:none;animation:none}}
+
+/* Keep the large interactive chessboard centered in the main column.
+   Twenty compact bots live in four columns at the right. */
+.play-page{width:min(1540px,calc(100% - 36px))}
+.play-main-layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:24px;align-items:start}
+.play-game{margin-top:0;min-width:0}
+.play-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:13px}
+.play-board-card{width:100%;max-width:760px;margin-inline:auto}
+.play-panel{width:100%;max-width:760px;margin-inline:auto;gap:12px}
+.play-selector{min-width:0;background:#071d30;border:1px solid #285877;border-radius:17px;padding:14px}
+.play-bots{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.play-bot{min-height:110px;flex-direction:column;justify-content:center;gap:6px;padding:9px 5px;text-align:center}
+.play-avatar{width:43px;height:43px;font-size:28px}
+.play-bot-info{gap:3px;width:100%;justify-items:center}
+.play-bot-info strong{font-size:11px;line-height:1.15;overflow-wrap:anywhere}
+.play-bot-info small{font-size:11px}
+.play-bot-options{margin-top:12px;padding:14px}
+.play-options-heading strong{font-size:17px}
+@media(max-width:1100px){.play-main-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:13px}.play-selector{padding:10px}.play-bots{gap:5px}.play-bot{min-height:96px;padding:7px 2px}.play-avatar{width:35px;height:35px;font-size:23px}.play-bot-info strong{font-size:10px}.play-bot-info small{font-size:10px}}
+@media(max-width:820px){.play-main-layout{grid-template-columns:1fr}.play-game{order:0}.play-selector{order:1}.play-board-card,.play-panel{max-width:660px}.play-selector{max-width:660px;width:100%;margin-inline:auto}.play-bot{min-height:105px}.play-avatar{width:43px;height:43px;font-size:28px}.play-bot-info strong{font-size:12px}.play-bot-info small{font-size:11px}}
+@media(max-width:450px){.play-main-layout{gap:15px}.play-selector{padding:8px}.play-bots{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.play-bot{min-height:90px;padding:5px 1px}.play-avatar{width:32px;height:32px;font-size:22px}.play-bot-info strong{font-size:9px}.play-bot-info small{font-size:9px}}

@@ -128,7 +128,7 @@ function newGame(){
  gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;ended=false;working=false;highlights.clear();arrows.length=0;
- $('play-game').hidden=false;$('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'Your move.':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
