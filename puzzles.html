@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=1">
+<link rel="stylesheet" href="/puzzles.css?v=2">
 </head>
 <body>
 <header class="navbar">
@@ -30,6 +30,7 @@
     <section class="puzzle-board-card" aria-label="Interactive puzzle board">
       <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
+      <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
       <div class="puzzle-board-controls">
         <span class="hint-text">Click a piece or drag it to a square. Right-click to mark squares.</span>
         <button type="button" id="puzzle-hint" disabled>Hint</button>
@@ -64,6 +65,6 @@
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis</span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=1"></script>
+<script type="module" src="/puzzles.js?v=2"></script>
 </body>
 </html>
