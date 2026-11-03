@@ -24,6 +24,11 @@ async function load(){
       const player=cell(row,"");const profile=document.createElement("a");
       profile.href="https://www.chess.com/member/"+encodeURIComponent(item.username);
       profile.textContent=item.username;profile.target="_blank";profile.rel="noopener noreferrer";player.appendChild(profile);
+      // Resolve official display capitalization without changing case-insensitive player identity.
+      fetch("https://api.chess.com/pub/player/"+encodeURIComponent(item.username)).then(response=>response.ok?response.json():null).then(info=>{
+        const official=String(info?.username||"");
+        if(official.toLowerCase()===String(item.username).toLowerCase())profile.textContent=official;
+      }).catch(()=>{});
       cell(row,Number(item.votes||0).toLocaleString("en-US"),"top100-votes");
       const raw=String(item.priority||"").toUpperCase().replace(/[-_]/g," ");
       const priority=["LOW","MODERATE","HIGH","VERY HIGH"].includes(raw)?raw:"Not available";
