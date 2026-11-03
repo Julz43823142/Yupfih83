@@ -106,18 +106,19 @@ function renderEngineLines(){
  for(let i=1;i<=multiPV;i++){
   const item=engineLines.get(i);
   const row=document.createElement('div');row.className='engine-line';
-  if(!item){row.classList.add('engine-line-pending');row.textContent=i+'.  Calculating…';enginePanel.append(row);continue;}
-  const rank=document.createElement('span');rank.className='engine-line-rank';rank.textContent=i+'.';
-  const moves=document.createElement('span');moves.className='engine-line-moves';
+  if(!item){row.classList.add('engine-line-pending','prep-engine-line');row.textContent='Analyzing…';enginePanel.append(row);continue;}
+  const moves=document.createElement('span');moves.className='engine-line-moves prep-engine-variation';
   const variation=variationText(item.pv||[item.uci]);
   variation.forEach((move,j)=>{
-   const span=document.createElement('span');
+   const span=document.createElement(j===0?'strong':'span');
    span.className='engine-variation-move'+(j===0?' engine-variation-first':'');
-   span.textContent=move.prefix+' '+move.san;
+   span.textContent=move.prefix+move.san;
    moves.append(span);
+   if(j<variation.length-1)moves.append(document.createTextNode('  '));
   });
-  const score=document.createElement('span');score.className='engine-line-score';score.textContent=scoreLabel(item.type,item.value);
-  row.append(rank,moves,score);
+  const score=document.createElement('strong');score.className='engine-line-score prep-engine-score';score.textContent=scoreLabel(item.type,item.value);
+  row.classList.add('prep-engine-line');
+  row.append(moves,score);
   row.classList.add('engine-line-clickable');row.setAttribute('role','button');row.tabIndex=0;row.title='Play '+(variation[0]?.san||item.uci);
   const playSuggestion=()=>{try{const next=new Chess(history[cursor]);const u=item.uci;const played=next.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});if(!played)return;history=history.slice(0,cursor+1);history.push(next.fen());sanMoves=sanMoves.slice(0,cursor);sanMoves.push(played.san);cursor++;selected=null;arrows=[];blueSquares.clear();reviewResults=[];render();requestAnalysis()}catch{}};
   row.addEventListener('click',playSuggestion);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playSuggestion()}});
