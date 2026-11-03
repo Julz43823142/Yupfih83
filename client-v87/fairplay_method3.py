@@ -37,7 +37,7 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
            checkpoint=None, **unused):
     from fairplay_analysis import ReviewResult
     start=time.monotonic()
-    deadline=ScanDeadline(start+300,cancel)
+    deadline=ScanDeadline(start+900,cancel)
     target=username(target)
     api=api_factory(deadline)
     try:
