@@ -28,7 +28,7 @@ const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats'
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
-  evalWrap.classList.add('eval-inactive');evalWhite.style.height='50%';evalText.textContent='—';
+  evalWrap.classList.add('eval-inactive');evalWhite.style.height='50%';evalText.textContent='0.00';
   evalWrap.setAttribute('aria-valuenow','0');evalWrap.setAttribute('aria-valuetext','Analysis disabled or calculating');return;
  }
  evalWrap.classList.remove('eval-inactive');
