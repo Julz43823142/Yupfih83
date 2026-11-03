@@ -130,7 +130,7 @@ export function attachChessBoardControls({
         const arrows = getArrows();
         const idx = arrows.findIndex(a => a[0] === from && a[1] === to);
         if (idx >= 0) arrows.splice(idx, 1);
-        else arrows.push([from, to]);
+        else arrows.push([from, to, e.altKey ? 'rainbow' : e.shiftKey ? '#a855f7' : e.ctrlKey ? '#760018' : '#0a9cff']);
       }
       repaint();
       return;
