@@ -379,11 +379,23 @@ function ensureBoardCells(){
  }
 }
 // Emphasize only noteworthy moves, not every 'Good' or 'Excellent' move.
+const REVIEW_ICON_PATH='/review-icons.svg?v=1';
+function reviewIcon(name){
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 32 32');
+ svg.setAttribute('aria-hidden','true');
+ svg.classList.add('review-icon-svg');
+ const use=document.createElementNS(svg.namespaceURI,'use');
+ use.setAttribute('href',REVIEW_ICON_PATH+'#'+(name==='Key Moment'?'key-moment':name.toLowerCase()));
+ svg.append(use);
+ return svg;
+}
 const reviewMoveDecorations={
- Brilliant:{glyph:'!!',color:'#22c6b6'},Great:{glyph:'!',color:'#70a9d4'},
- Book:{glyph:'▣',color:'#c49a77'},Best:{glyph:'★',color:'#7ab95b'},
- Inaccuracy:{glyph:'?!',color:'#e3bd32'},Mistake:{glyph:'?',color:'#f39b58'},
- Miss:{glyph:'×',color:'#ef7676'},Blunder:{glyph:'??',color:'#ec514e'}
+ Brilliant:{glyph:'!!',color:'#00c6b9'},Great:{glyph:'!',color:'#099fee'},
+ Book:{glyph:'▣',color:'#c78b55'},Best:{glyph:'◆',color:'#2bc92d'},
+ Excellent:{glyph:'✦',color:'#a9e917'},Good:{glyph:'〰',color:'#49c52b'},
+ Inaccuracy:{glyph:'?!',color:'#ffc522'},Mistake:{glyph:'?',color:'#ff862c'},
+ Miss:{glyph:'×',color:'#ef7676'},Blunder:{glyph:'??',color:'#f03d42'}
 };
 function reviewCurrentMove(){
  if(!cursor||!reviewResults[cursor-1])return null;
@@ -411,7 +423,7 @@ function render(){
   if(highlight&&highlight.square===sq){
    b.style.setProperty('--review-square-color',highlight.color);
    const badge=document.createElement('span');badge.className='review-move-badge';
-   badge.textContent=highlight.glyph;badge.title=highlight.label;
+   badge.replaceChildren(reviewIcon(highlight.label));badge.title=highlight.label;
    badge.style.background=highlight.color;
    badge.setAttribute('aria-label',highlight.label+' move');
    b.append(badge);
@@ -480,8 +492,8 @@ function renderNotation(){
    button.classList.add('notation-highlight-'+category.label.toLowerCase());
    const glyph=document.createElement('span');
    glyph.className='notation-review-glyph';
-   glyph.textContent=decoration.glyph;
-   glyph.style.background=decoration.color;
+   glyph.replaceChildren(reviewIcon(category.label));
+   glyph.style.background='transparent';
    glyph.setAttribute('aria-hidden','true');
    button.append(glyph);
   }
@@ -669,10 +681,7 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
   panel.append(row);
  };
  addMetric('Accuracy',accuracyBySide.map(x=>x==null?'—':x.toFixed(1)+'%'),'review-accuracy');
- const groups=[
-  ['Brilliant','!!'],['Great','!'],['Book','▣'],['Best','★'],['Excellent','◆'],
-  ['Good','✓'],['Inaccuracy','?!'],['Mistake','?'],['Miss','×'],['Blunder','??']
- ];
+ const groups=['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Blunder'];
  const bySide=[{},{}],moveIndexes=[{},{}];
  categories.forEach((c,i)=>{
   const side=i%2;
@@ -694,7 +703,7 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
    ?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
  };
  const head=document.createElement('div');head.className='review-breakdown-head';head.textContent='Move classifications';panel.append(head);
- for(const [name,symbol] of groups){
+ for(const name of groups){
   const row=document.createElement('div');row.className='review-classification';
   const label=document.createElement('span');label.textContent=name;
   const countButton=side=>{
@@ -711,10 +720,47 @@ function renderReviewScorecard(categories,evaluations,accuracyBySide){
   };
   const left=countButton(0);
   const marker=document.createElement('span');marker.className='review-class-icon review-class-'+name.toLowerCase();
-  marker.textContent=symbol;
+  marker.append(reviewIcon(name));
   const right=countButton(1);
   row.append(label,left,marker,right);panel.append(row);
  }
+ // Key Moments are game-wide swings in estimated winning chances,
+ // independent of which player made the move. Cluster adjacent swings so
+ // a single tactical sequence does not inflate the total.
+ const candidates=categories.map((c,i)=>({
+  i,delta:Math.abs(reviewWin(evaluations[i+1].white)-reviewWin(evaluations[i].white))
+ })).filter(x=>x.delta>=18).sort((a,b)=>b.delta-a.delta);
+ const moments=[];
+ for(const candidate of candidates){
+  if(moments.every(existing=>Math.abs(existing.i-candidate.i)>2))moments.push(candidate);
+ }
+ moments.sort((a,b)=>a.i-b.i);
+ let momentIndex=-1;
+ const momentRow=document.createElement('div');
+ momentRow.className='review-key-moments';
+ const momentLabel=document.createElement('span');
+ momentLabel.textContent='Key Moments';
+ const momentIcon=document.createElement('span');
+ momentIcon.className='review-class-icon review-class-key-moment';
+ momentIcon.append(reviewIcon('Key Moment'));
+ const momentButton=document.createElement('button');
+ momentButton.type='button';
+ momentButton.className='review-key-count';
+ momentButton.textContent=String(moments.length);
+ momentButton.disabled=moments.length===0;
+ momentButton.title='Jump through decisive moments in the game';
+ momentButton.setAttribute('aria-label',moments.length+' key moments. Jump to next moment');
+ momentButton.onclick=()=>{
+  if(!moments.length)return;
+  const found=moments.findIndex(x=>x.i===cursor-1);
+  momentIndex=found>=0?(found+1)%moments.length:(momentIndex+1)%moments.length;
+  cursor=moments[momentIndex].i+1;
+  selected=null;render();requestAnalysis();
+  $('notation-moves')?.querySelector('.notation-move.active')
+   ?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
+ };
+ momentRow.append(momentLabel,momentIcon,momentButton);
+ panel.append(momentRow);
  const performances=estimateGamePerformance(categories,accuracyBySide);
  addMetric('Game Rating',performances.map(x=>x===null?'—':x),'review-rating');
 }
