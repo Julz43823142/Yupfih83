@@ -113,3 +113,14 @@
 .puzzle-top100-table th,.puzzle-top100-table td{padding:13px 12px;border-bottom:1px solid #28506a}
 .puzzle-top100-table td:last-child{font-weight:850;color:#f6fcff}
 .puzzle-top100-table tr:hover td{background:#103149}
+
+/* Sprint time control + optional chess sounds. */
+.puzzle-sprint-settings{display:grid;gap:8px}
+.puzzle-sprint-settings>label{color:#aed0df;font-size:12px;font-weight:750}
+.puzzle-duration-options{display:flex;flex-wrap:wrap;gap:8px}
+.puzzle-duration-options button{background:#133950;color:#d3e9f8;border:1px solid #366e89;padding:11px 16px;border-radius:9px;cursor:pointer;font:700 14px system-ui,Arial,sans-serif}
+.puzzle-duration-options button[aria-pressed="true"]{background:#086a92;color:white;border-color:#2dd6ee;box-shadow:inset 0 0 0 1px #2abbd6}
+.puzzle-duration-options button:disabled{opacity:.6;cursor:default}
+.puzzle-duration-options button:focus-visible,#puzzle-sound-toggle:focus-visible{outline:2px solid #6ce8ff;outline-offset:2px}
+.puzzle-board-controls{justify-content:flex-end}
+#puzzle-sound-toggle{font-size:12px}
