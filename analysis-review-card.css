@@ -239,7 +239,8 @@
  border-radius:5px;
  background:transparent;
  color:#e5f4ff;
- font:800 15px/1 inherit;
+ font-family:inherit;
+ line-height:1;
  font-size:15px;
  font-weight:800;
  font-variant-numeric:tabular-nums;
