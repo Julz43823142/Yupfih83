@@ -1,4 +1,5 @@
 import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {appendChessArrow} from './chess-board-arrows.js';
 const $=id=>document.getElementById(id), opponent=$('opponent'), board=$('board');
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let games=[],path=[],color='b',loading=false,selectedSquare=null,manualArrows=[],blueSquares=new Set(),candidateMoves=[];
@@ -20,16 +21,10 @@ function drawCandidateArrows(options){
   try{
    const next=new Chess(pos.fen()),m=next.move(option.move);
    if(!m)return;
-   const coord=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];
-   const [x1,y1]=coord(m.from),[x2,y2]=coord(m.to);
-   const dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy);if(d<1)return;
-   const ux=dx/d,uy=dy/d,px=-uy,py=ux;
-   const tip=[x2-ux*15,y2-uy*15],base=[x2-ux*54,y2-uy*54],tail=[x1+ux*15,y1+uy*15];
-   const coords=[[tail[0]+px*7,tail[1]+py*7],[base[0]+px*7,base[1]+py*7],[base[0]+px*19,base[1]+py*19],tip,[base[0]-px*19,base[1]-py*19],[base[0]-px*7,base[1]-py*7],[tail[0]-px*7,tail[1]-py*7]];
-   const polygon=document.createElementNS(svg.namespaceURI,'polygon');polygon.setAttribute('points',coords.map(p=>p.join(',')).join(' '));polygon.setAttribute('fill','#a640f5');polygon.setAttribute('opacity',String([.92,.62,.38][i]));polygon.setAttribute('stroke','#c18bff');polygon.setAttribute('stroke-width','1');polygon.setAttribute('stroke-linejoin','round');svg.append(polygon);
+   appendChessArrow(svg,m.from,m.to,'#a640f5',[.92,.62,.38][i]);
   }catch{}
  });
- const blueMarker=document.createElementNS(svg.namespaceURI,'marker');blueMarker.setAttribute('id','prep-manual-head');for(const [k,v] of Object.entries({markerWidth:5,markerHeight:5,refX:3,refY:2.5,orient:'auto'}))blueMarker.setAttribute(k,v);const blueTip=document.createElementNS(svg.namespaceURI,'path');blueTip.setAttribute('d','M0 0 L5 2.5 L0 5Z');blueTip.setAttribute('fill','#328aff');blueMarker.append(blueTip);defs.append(blueMarker);const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}for(const [from,to] of manualArrows){const [x1,y1]=pt(from),[x2,y2]=pt(to),line=document.createElementNS(svg.namespaceURI,'line');for(const [k,v] of Object.entries({x1,y1,x2,y2,stroke:'#0a9cff','stroke-opacity':'.78','stroke-width':10}))line.setAttribute(k,v);line.setAttribute('marker-end','url(#prep-manual-head)');svg.append(line)}if(selectedSquare){const [x,y]=pt(selectedSquare),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#f4c64c','fill-opacity':'.28'}))rect.setAttribute(k,v);svg.append(rect)}board.style.position='relative';board.append(svg);
+ const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}for(const [from,to] of manualArrows)appendChessArrow(svg,from,to,'#0a9cff',.78);if(selectedSquare){const [x,y]=pt(selectedSquare),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#f4c64c','fill-opacity':'.28'}))rect.setAttribute(k,v);svg.append(rect)}board.style.position='relative';board.append(svg);
 }
 let dragStart=null,dragGhost=null,dragMoved=false,suppressPrepClick=false;
 board.addEventListener('click',e=>{if(suppressPrepClick){e.stopImmediatePropagation();e.preventDefault();suppressPrepClick=false}},true);
