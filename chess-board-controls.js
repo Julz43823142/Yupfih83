@@ -54,6 +54,11 @@ export function attachChessBoardControls({
     setSelected(previous === square ? null : movable ? square : null);
     repaint();
   };
+  // A secondary mouse button may not fire pointerdown while the primary
+  // button is held: mousedown still fires, so use it to cancel reliably.
+  board.addEventListener('mousedown', e => {
+    if (e.button === 2 && left) { e.preventDefault(); cancelDrag(); }
+  });
   board.addEventListener('contextmenu', e => e.preventDefault());
   board.addEventListener('dragstart', e => e.preventDefault());
   board.addEventListener('pointerdown', e => {
