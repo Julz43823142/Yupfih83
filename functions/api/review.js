@@ -1,5 +1,27 @@
 import { json, github, listRuns, MAX_ACTIVE } from "../../lib/v87-github.js";
 
+
+// Cloudflare D1 enforces a shared per-IP quota across all Pages instances.
+// Store only an HMAC of the IP, never the address itself.
+async function reviewQuota(request, env) {
+  if (!env.SUS_DB || !env.GITHUB_TOKEN) return { error: "Review quota unavailable.", status: 503 };
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (!ip) return { error: "Unable to verify visitor.", status: 403 };
+  const key = await crypto.subtle.importKey("raw",
+    new TextEncoder().encode(env.GITHUB_TOKEN), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(ip));
+  const identity = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+  const windowId = Math.floor(Date.now() / 600000);
+  await env.SUS_DB.prepare(
+    "CREATE TABLE IF NOT EXISTS review_rate_limits (identity TEXT NOT NULL, window_id INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(identity, window_id))"
+  ).run();
+  const result = await env.SUS_DB.prepare(
+    "INSERT INTO review_rate_limits(identity,window_id,hits) VALUES(?,?,1) ON CONFLICT(identity,window_id) DO UPDATE SET hits=hits+1 WHERE hits < 15 RETURNING hits"
+  ).bind(identity,windowId).first();
+  if (!result) return { error: "Maximum 15 reviews per 10 minutes. Please try again later.", status: 429 };
+  return null;
+}
+
 export async function onRequestPost({ request, env }) {
   if (!env.GITHUB_TOKEN) return json({ error: "Server secret GITHUB_TOKEN is missing." }, 503);
   const origin = request.headers.get("Origin");
@@ -9,6 +31,8 @@ export async function onRequestPost({ request, env }) {
   const username = String(body?.username || "").trim();
   if (!/^[A-Za-z0-9_-]{3,25}$/.test(username)) return json({ error: "Invalid Chess.com username." }, 400);
   try {
+    const quota = await reviewQuota(request, env);
+    if (quota) return json({ error: quota.error }, quota.status);
     const runs = await listRuns(env.GITHUB_TOKEN);
     const active = runs.filter(run => run.status === "queued" || run.status === "in_progress").length;
     if (active >= MAX_ACTIVE) return json({ error: "The analysis service is busy. Please try again shortly." }, 429);
