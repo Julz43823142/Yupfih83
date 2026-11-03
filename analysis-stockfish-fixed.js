@@ -267,7 +267,7 @@ board.addEventListener('pointermove',e=>{
 board.addEventListener('pointerup',e=>{
  if(e.button===2&&rightStart){
   const to=squareAt(e.clientX,e.clientY);
-  if(to&&to===rightStart){if(highlightedSquares.has(to))highlightedSquares.delete(to);else highlightedSquares.add(to);drawArrows()}else if(to){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
+  if(to&&to!==rightStart){const key=rightStart+to,idx=arrows.findIndex(a=>a.join('')===key);if(idx>=0)arrows.splice(idx,1);else arrows.push([rightStart,to]);drawArrows()}
   rightStart=null;return;
  }
  if(!drag||drag.pointerId!==e.pointerId)return;
@@ -302,9 +302,8 @@ function drawArrows(){
   svg.append(make('polygon',{points,fill:color,'fill-opacity':opacity,stroke:color,'stroke-opacity':'.35','stroke-width':1,'stroke-linejoin':'round'}));
   svg.append(make('circle',{cx:tail[0],cy:tail[1],r:5,fill:color,'fill-opacity':'.5'}));
  }
- for(const sq of highlightedSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#318cff','fill-opacity':'.3',stroke:'#318cff','stroke-width':4}))}
  for(const [a,b] of arrows)arrow(a,b,'#328aff',.55);
- if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.32);
+ if(bestEngineMove&&engineSwitch.checked&&engineReady)arrow(bestEngineMove.slice(0,2),bestEngineMove.slice(2,4),'#21c66a',.55);
  board.append(svg);
 }
 function ensureBoardCells(){
@@ -370,7 +369,7 @@ function renderNotation(){
   boardLayout.insertAdjacentElement('afterend',panel);
   panel.insertBefore(enginePanel,panel.firstChild);
   panel.insertBefore(engineSettings,enginePanel);
-  panel.insertBefore(depthControl,enginePanel);panel.insertBefore(engineInfo,enginePanel);
+  panel.insertBefore(depthControl,enginePanel);
  }
  $('opening-name').textContent=openingName();
  const list=$('notation-moves');list.replaceChildren();
@@ -394,7 +393,7 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.datase
 $('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];reviewResults=[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
 
 const reviewPanel=document.createElement('section');reviewPanel.id='game-review';reviewPanel.className='game-review';
-reviewPanel.innerHTML='<h2>Game Review</h2><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
+reviewPanel.innerHTML='<h2>Game Review</h2><p>Review every move with Stockfish on your device. Categories are approximate engine-based assessments, not Chess.com proprietary ratings.</p><button id="review-start" type="button">Review Game</button><button id="review-cancel" type="button" disabled>Cancel</button><div id="review-status" role="status">Load or play a game to begin.</div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 const reviewSpeed=document.createElement('label');reviewSpeed.textContent='Review speed: ';const reviewSpeedSelect=document.createElement('select');reviewSpeedSelect.setAttribute('aria-label','Game Review analysis speed');for(const [value,label] of [['fast','Fast (0.12 second per position)'],['depth','Standard (depth 12)']]){const option=document.createElement('option');option.value=value;option.textContent=label;reviewSpeedSelect.append(option)}reviewSpeed.append(reviewSpeedSelect);$('review-start').before(reviewSpeed);let reviewWorker=null,reviewCancelled=false;
 function reviewWin(cp){return 100/(1+Math.exp(-0.00368208*Math.max(-1000,Math.min(1000,cp))))}
@@ -491,15 +490,15 @@ $('review-start').onclick=async()=>{
   for(const name of ['Brilliant','Great','Book','Best','Excellent','Good','Inaccuracy','Mistake','Miss','Blunder']){
    const row=document.createElement('div');row.className='review-stat';row.textContent=({Brilliant:'💎',Great:'❗',Book:'📖',Best:'⭐',Excellent:'✨',Good:'✔️',Inaccuracy:'⚠️',Mistake:'❓',Miss:'🎯',Blunder:'‼️'}[name]||'')+' '+name+': '+(counts[name]||0);summary.append(row);
   }
-  
+  const accuracyTitle=document.createElement('h3');accuracyTitle.textContent='EloScanner Accuracy';summary.prepend(accuracyTitle);
   const sideStats=[];
   for(const [side,label] of [[0,'White'],[1,'Black']]){
    const rows=categories.filter((x,i)=>i%2===side&&x.label!=='Book');
    const avg=reviewAccuracy(categories,evaluations.map(x=>reviewWin(x.white)),side);
-   sideStats.push({label,accuracy:avg});
+   const el=document.createElement('div');el.className='review-stat';el.textContent=label+': '+(avg===null?'N/A':avg.toFixed(1)+'%');accuracyTitle.insertAdjacentElement('afterend',el);sideStats.push({label,accuracy:avg});
   }
 
-  const statsPanel=$('review-side-stats');if(statsPanel){statsPanel.replaceChildren();const heading=document.createElement('h3');heading.textContent='Game statistics';statsPanel.append(heading);const columns=document.createElement('div');columns.className='review-side-columns';statsPanel.append(columns);for(const [side,label] of [[0,'White'],[1,'Black']]){const column=document.createElement('div');column.className='review-side-column';columns.append(column);const sideTitle=document.createElement('h4');sideTitle.textContent=label;column.append(sideTitle);const rows=categories.filter((x,i)=>i%2===side);const score=sideStats.find(x=>x.label===label)?.accuracy;const mean=rows.length?rows.reduce((a,x)=>a+x.loss,0)/rows.length:0;const grade=score===null||score===undefined?'—':score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'F';for(const [key,value] of [['Accuracy',score==null?'—':score.toFixed(1)+'%'],['Variance',mean.toFixed(1)+' pp'],['Grade',grade]]){const item=document.createElement('div');item.className='review-side-item';item.textContent=key+' · '+value;column.append(item)}}}
+  const statsPanel=$('review-side-stats');if(statsPanel){statsPanel.replaceChildren();const heading=document.createElement('h3');heading.textContent='Game statistics';statsPanel.append(heading);for(const [side,label] of [[0,'White'],[1,'Black']]){const rows=categories.filter((x,i)=>i%2===side);const score=sideStats.find(x=>x.label===label)?.accuracy;const mean=rows.length?rows.reduce((a,x)=>a+x.loss,0)/rows.length:0;const grade=score===null||score===undefined?'—':score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'F';for(const [key,value] of [['Accuracy',score==null?'—':score.toFixed(1)+'%'],['Variance',mean.toFixed(1)+' pp'],['Grade',grade]]){const item=document.createElement('div');item.className='review-side-item';item.textContent=label+' '+key+' · '+value;statsPanel.append(item)}}}
   renderNotation();
  }catch(e){if(!reviewCancelled)status.textContent='Review failed: '+e.message}
  finally{if(reviewWorker===worker)stopReview()}
