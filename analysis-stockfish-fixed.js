@@ -155,9 +155,12 @@ enginePanel.addEventListener('pointerover',e=>{
  if(move&&move!==previewEngineMove){previewEngineMove=move;drawArrows()}
 });
 enginePanel.addEventListener('pointerout',e=>{
+ const oldRow=e.target.closest('.engine-line-clickable');
+ if(!oldRow)return;
  const next=e.relatedTarget;
- if(next&&enginePanel.contains(next))return;
- if(previewEngineMove){previewEngineMove=null;drawArrows()}
+ if(next&&oldRow.contains(next))return;
+ const nextRow=next&&enginePanel.contains(next)?next.closest('.engine-line-clickable'):null;
+ if(!nextRow&&previewEngineMove){previewEngineMove=null;drawArrows()}
 });
 enginePanel.addEventListener('pointerleave',()=>{
  if(previewEngineMove){previewEngineMove=null;drawArrows()}
