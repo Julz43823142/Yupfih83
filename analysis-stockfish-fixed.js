@@ -575,7 +575,7 @@ async function importGame(){
 
 const reviewPanel=document.createElement('section');
 reviewPanel.id='game-review';reviewPanel.className='game-review';
-reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Import a position or game</h3><div id="review-import-slot"></div><div class="review-actions"><button id="review-start" type="button" hidden>Review Game</button><button id="review-cancel" type="button" disabled hidden>Cancel</button><button id="review-gif" type="button" hidden>Make GIF</button><a id="review-gif-download" hidden download="eloscanner-game-review.gif">Download GIF</a></div><div id="review-status" role="status"></div><div id="review-gif-status" role="status" aria-live="polite"></div><div id="review-summary"></div>';
+reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Import a position or game</h3><div id="review-import-slot"></div><div class="review-actions"><button id="review-start" type="button" hidden>Review Game</button><button id="review-cancel" type="button" disabled hidden>Cancel</button><button id="review-gif" type="button" hidden>Download GIF</button><a id="review-gif-download" hidden download="eloscanner-game-review.gif">Download GIF</a></div><div id="review-status" role="status"></div><div id="review-gif-status" role="status" aria-live="polite"></div><div id="review-summary"></div>';
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 const importCard=$('import-value').closest('.tool-card');
 const importSlot=$('review-import-slot');
@@ -914,7 +914,7 @@ $('review-gif').addEventListener('click',async()=>{
   onProgress:(done,total)=>{message.textContent='Creating GIF '+done+'/'+total+' frames…';}
  };
  try{
-  const {exportReviewGif}=await import('./analysis-review-gif.js?v=3');
+  const {exportReviewGif}=await import('./analysis-review-gif.js?v=4');
   const blob=await exportReviewGif(options);
   if(reviewGifUrl)URL.revokeObjectURL(reviewGifUrl);
   reviewGifUrl=URL.createObjectURL(blob);
