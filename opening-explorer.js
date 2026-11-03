@@ -43,8 +43,8 @@ async function fetchStats(){
  const token=++fetchIndex;controller?.abort();controller=new AbortController();
  $('opening-stat').textContent='Loading Lichess opening statistics…';$('opening-moves').replaceChildren();
  try{
-  const r=await fetch('/api/opening-explorer?fen='+encodeURIComponent(game.fen()),{signal:controller.signal});
-  const data=await r.json();if(!r.ok)throw Error(data.error||'Database unavailable');
+  const r=await fetch('/api/opening-catalog?fen='+encodeURIComponent(game.fen()),{signal:controller.signal});
+  const contentType=r.headers.get('content-type')||'';if(!contentType.includes('json'))throw Error('Database request did not return JSON.');const data=await r.json();if(!r.ok)throw Error(data.error||'Database unavailable');
   if(token===fetchIndex)renderMoves(data);
  }catch(e){if(token===fetchIndex&&e.name!=='AbortError')$('opening-stat').textContent=e.message}
 }
