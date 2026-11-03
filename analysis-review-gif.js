@@ -39,7 +39,7 @@ function arrow(ctx,x1,y1,x2,y2){
 }
 function drawFrame(ctx,state,step,assets,Chess){
  const {history,moves,categories,evaluations,players,clocks}=state;
- const W=720,H=520,B=480,S=60,X=18,Y=18,SIDE=510,SIDE_WIDTH=194;
+ const W=720,H=520,B=504,S=63,X=16,Y=8,SIDE=532,SIDE_WIDTH=174;
  ctx.fillStyle=COLORS.bg;ctx.fillRect(0,0,W,H);
  // A near edge-to-edge board with no surrounding title or bottom caption.
  roundRect(ctx,0,0,W,H,8,COLORS.panel);
@@ -94,37 +94,53 @@ function drawFrame(ctx,state,step,assets,Chess){
  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.strokeRect(X+.5,Y+.5,B-1,B-1);
  const w=players?.white||{},b=players?.black||{};
  const cur=clocks?.[step]||{};
- // Fit the complete player name in the wider card without truncating it.
+ // Wrap full player names at the available width; never truncate usernames.
  const playerName=(raw,x,y)=>{
   const name=String(raw||'Unknown player').trim()||'Unknown player';
+  const maxWidth=SIDE_WIDTH-24, fontSize=15, lineHeight=19;
   ctx.textAlign='left';
-  let fontSize=16;
-  do{ctx.font='700 '+fontSize+'px system-ui,Arial,sans-serif';if(ctx.measureText(name).width<=SIDE_WIDTH-24)break;fontSize-=.5}while(fontSize>9);
-  // Ultra-long names remain intact; canvas clips them inside the player card.
-  ctx.save();ctx.beginPath();ctx.rect(x-1,y-24,SIDE_WIDTH-22,29);ctx.clip();
-  label(ctx,name,x,y,fontSize,COLORS.ink,700);ctx.restore();
+  ctx.font='700 '+fontSize+'px system-ui,Arial,sans-serif';
+  const lines=[];
+  let part='';
+  for(const char of name){
+   if(part&&ctx.measureText(part+char).width>maxWidth){lines.push(part);part=char;}
+   else part+=char;
+  }
+  if(part)lines.push(part);
+  // Chess.com usernames are at most 25 characters, but support taller names safely.
+  const chosenSize=lines.length>3?12:fontSize;
+  if(chosenSize!==fontSize){
+   lines.length=0;part='';
+   ctx.font='700 '+chosenSize+'px system-ui,Arial,sans-serif';
+   for(const char of name){
+    if(part&&ctx.measureText(part+char).width>maxWidth){lines.push(part);part=char;}
+    else part+=char;
+   }
+   if(part)lines.push(part);
+  }
+  lines.forEach((line,i)=>label(ctx,line,x,y+i*(chosenSize===12?16:lineHeight),chosenSize,COLORS.ink,700));
  };
- // Black at top, then both clocks towards the center; white name at bottom.
+ // Black's name remains at the top; both clocks face the center; White's name at bottom.
  const playerCard=(color,name,time,y,bottomPlayer=false)=>{
-  roundRect(ctx,SIDE,y,SIDE_WIDTH,204,11,'#133750');
+  roundRect(ctx,SIDE,y,SIDE_WIDTH,214,11,'#133750');
   const x=SIDE+12;
   ctx.strokeStyle='#315b75';ctx.lineWidth=1;
   if(!bottomPlayer){
-   label(ctx,color,x,y+29,12,COLORS.muted,750);
-   playerName(name,x,y+65);
-   ctx.beginPath();ctx.moveTo(x,y+88);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+88);ctx.stroke();
-   label(ctx,'CLOCK',x,y+121,11,COLORS.muted,700);
-   label(ctx,clock(time),x,y+170,29,COLORS.cyan,750);
+   label(ctx,color,x,y+24,11,COLORS.muted,750);
+   playerName(name,x,y+49);
+   ctx.beginPath();ctx.moveTo(x,y+110);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+110);ctx.stroke();
+   label(ctx,'CLOCK',x,y+142,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+185,26,COLORS.cyan,750);
   }else{
-   label(ctx,'CLOCK',x,y+32,11,COLORS.muted,700);
-   label(ctx,clock(time),x,y+79,29,COLORS.cyan,750);
-   ctx.beginPath();ctx.moveTo(x,y+103);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+103);ctx.stroke();
-   label(ctx,color,x,y+139,12,COLORS.muted,750);
-   playerName(name,x,y+177);
+   label(ctx,'CLOCK',x,y+30,11,COLORS.muted,700);
+   label(ctx,clock(time),x,y+76,26,COLORS.cyan,750);
+   ctx.beginPath();ctx.moveTo(x,y+108);ctx.lineTo(SIDE+SIDE_WIDTH-12,y+108);ctx.stroke();
+   label(ctx,color,x,y+131,11,COLORS.muted,750);
+   playerName(name,x,y+153);
   }
  };
  playerCard('BLACK',b.name||'Black',cur.b,43);
- playerCard('WHITE',w.name||'White',cur.w,270,true);
+ playerCard('WHITE',w.name||'White',cur.w,263,true);
 }
 export async function exportReviewGif({history,moves,categories,evaluations,players,clocks,Chess,onProgress}){
  if(!history?.length||!moves?.length||categories?.length!==moves.length||evaluations?.length!==history.length)throw Error('Finish Game Review before exporting.');
