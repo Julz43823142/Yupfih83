@@ -35,7 +35,7 @@ async function puzzleBank(env,request){
  if(!bankCache){
   if(!env.ASSETS)throw Error('Puzzle validation assets unavailable');
   const url=new URL('/assets/puzzle-bank.json',request.url);
-  bankCache=env.ASSETS.fetch(new Request(url)).then(async r=>{if(!r.ok)throw Error('Puzzle bank unavailable');return new Map((await r.json()).map(row=>[String(row[0]),String(row[2]).trim().toLowerCase().split(/\\s+/).slice(1).join(' ')]))}).catch(e=>{bankCache=null;throw e});
+  bankCache=env.ASSETS.fetch(new Request(url)).then(async r=>{if(!r.ok)throw Error('Puzzle bank unavailable');return new Map((await r.json()).map(row=>[String(row[0]),String(row[2]).trim().toLowerCase().split(/\s+/).slice(1).join(' ')]))}).catch(e=>{bankCache=null;throw e});
  }
  return bankCache;
 }
