@@ -334,3 +334,35 @@
   grid-column:2!important;grid-row:2!important;
  }
 }
+
+/* Hard containment: the eval meter and chessboard must share the CENTER grid cell,
+   never expand its intrinsic width or paint into the right-hand engine cell. */
+.analysis-three-column>.analysis-board-column,
+.analysis-three-column>.analysis-engine-column{box-sizing:border-box!important;min-width:0!important}
+.analysis-three-column>.analysis-board-column>.board-with-eval{
+ display:grid!important;
+ grid-template-columns:30px minmax(0,1fr)!important;
+ grid-template-rows:auto!important;
+ gap:8px!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ overflow:hidden!important;box-sizing:border-box!important;
+}
+.analysis-three-column>.analysis-board-column>.board-with-eval>.board-eval-wrap{
+ grid-column:1!important;grid-row:1!important;
+ width:30px!important;min-width:0!important;max-width:30px!important;
+ height:100%!important;box-sizing:border-box!important;
+}
+.analysis-three-column>.analysis-board-column>.board-with-eval>#board{
+ grid-column:2!important;grid-row:1!important;
+ display:grid!important;width:100%!important;min-width:0!important;max-width:100%!important;
+ height:auto!important;aspect-ratio:1/1!important;box-sizing:border-box!important;
+ overflow:hidden!important;
+}
+@media(min-width:1550px){
+ main.tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:minmax(270px,1fr) minmax(0,740px) minmax(360px,1.25fr)!important;
+  gap:20px!important;
+ }
+ .analysis-three-column>.analysis-board-column{max-width:740px!important}
+ .analysis-three-column>.analysis-engine-column{margin-left:0!important;position:relative!important;z-index:1!important}
+}
