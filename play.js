@@ -333,3 +333,23 @@ document.querySelectorAll('.play-bot-tier').forEach(tier=>tier.addEventListener(
  if(!tier.open)return;
  document.querySelectorAll('.play-bot-tier').forEach(other=>{if(other!==tier)other.open=false});
 }));
+
+
+/* EloFlow move viewer: review previous positions without undoing the live bot game. */
+let playReviewPly=null;
+function showPlayReview(direction){
+ const moves=chess.history({verbose:true});
+ const total=moves.length;
+ playReviewPly=Math.max(0,Math.min(total,(playReviewPly===null?total:playReviewPly)+direction));
+ if(playReviewPly===total){playReviewPly=null;selected=null;paint();return}
+ const snapshot=new Chess();
+ for(let i=0;i<playReviewPly;i++)snapshot.move(moves[i]);
+ const live=chess,oldSelected=selected,oldLast=last;
+ chess=snapshot;selected=null;last=null;
+ try{paint()}finally{chess=live;selected=oldSelected;last=oldLast}
+ $('play-side').textContent='Review '+playReviewPly+'/'+total+' · Back/Next to navigate';
+ $('play-undo').disabled=!live.history().length;
+}
+$('play-review-back').addEventListener('click',()=>showPlayReview(-1));
+$('play-review-next').addEventListener('click',()=>showPlayReview(1));
+board.addEventListener('pointerdown',()=>{if(playReviewPly!==null){playReviewPly=null;paint()}},true);
