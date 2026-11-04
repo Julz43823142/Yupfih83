@@ -113,17 +113,65 @@ function terminal(){
  }else return false;
  paint();return true;
 }
-function premovePosition(){
- const fields=chess.fen().split(' ');
- fields[1]=human;
- fields[3]='-';
- return new Chess(fields.join(' '));
+// Premoves are pseudo-legal intentions, not moves in the current position.
+// Switching the FEN side-to-move and asking chess.js for legal moves fails when
+// the waiting side is in check (and rejects pawn captures into empty squares).
+// Validate movement geometry now; validate full legality after the bot moves.
+function premoveCandidates(from){
+ const piece=chess.get(from);
+ if(!piece||piece.color!==human||ended)return [];
+ const x=from.charCodeAt(0)-97,y=Number(from[1])-1;
+ const inside=(a,b)=>a>=0&&a<8&&b>=0&&b<8;
+ const square=(a,b)=>String.fromCharCode(97+a)+(b+1);
+ const result=[];
+ const add=(a,b)=>{
+  if(!inside(a,b))return;
+  const to=square(a,b),target=chess.get(to);
+  if(target?.color===human)return;
+  result.push({from,to,promotion:piece.type==='p'&&(b===0||b===7)?'q':undefined});
+ };
+ const ray=(dx,dy)=>{
+  for(let a=x+dx,b=y+dy;inside(a,b);a+=dx,b+=dy){
+   const occupant=chess.get(square(a,b));
+   if(occupant?.color===human)break;
+   add(a,b);
+   if(occupant)break;
+  }
+ };
+ if(piece.type==='p'){
+  const dir=human==='w'?1:-1,start=human==='w'?1:6;
+  if(inside(x,y+dir)&&!chess.get(square(x,y+dir))){
+   add(x,y+dir);
+   if(y===start&&!chess.get(square(x,y+2*dir)))add(x,y+2*dir);
+  }
+  // A diagonal premove can anticipate the opponent occupying the target.
+  for(const dx of [-1,1])if(inside(x+dx,y+dir)&&chess.get(square(x+dx,y+dir))?.color!==human)add(x+dx,y+dir);
+ }else if(piece.type==='n'){
+  for(const [dx,dy] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])add(x+dx,y+dy);
+ }else if(piece.type==='k'){
+  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)if(dx||dy)add(x+dx,y+dy);
+  // Castle as a premove if the king and rook have not moved and path is empty.
+  const rights=chess.fen().split(' ')[2],home=human==='w'?0:7;
+  if(x===4&&y===home){
+   for(const [right,rookX,destX,step] of [[human==='w'?'K':'k',7,6,1],[human==='w'?'Q':'q',0,2,-1]]){
+    if(!rights.includes(right)||chess.get(square(rookX,home))?.type!=='r'||chess.get(square(rookX,home))?.color!==human)continue;
+    let clear=true;
+    for(let f=x+step;f!==rookX;f+=step)if(chess.get(square(f,home))){clear=false;break}
+    if(clear)add(destX,home);
+   }
+  }
+ }else{
+  const diagonal=[[1,1],[1,-1],[-1,1],[-1,-1]];
+  const straight=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dx,dy] of (piece.type==='b'?diagonal:piece.type==='r'?straight:[...diagonal,...straight]))ray(dx,dy);
+ }
+ return result;
 }
 function candidateMoves(from){
  if(ended)return [];
  const piece=chess.get(from);
  if(!piece||piece.color!==human)return [];
- try{return (chess.turn()===human?chess:premovePosition()).moves({square:from,verbose:true})}catch{return []}
+ return chess.turn()===human?chess.moves({square:from,verbose:true}):premoveCandidates(from);
 }
 function queuePremove(from,to,promotion){
  if(ended||chess.turn()===human)return false;
