@@ -3,7 +3,7 @@
 // Both pages keep their own chess data and engine presentation.
 export function attachChessBoardControls({
   board, getPosition, getSelected, setSelected, playMove, repaint,
-  getArrows, getHighlights
+  getArrows, getHighlights, canSelectPiece, canAttemptMove, onRightClick
 }) {
   let left = null;
   let right = null;
@@ -42,7 +42,7 @@ export function attachChessBoardControls({
   const tryMove = (from, to) => {
     if (!from || !to || from === to) return false;
     const chess = getPosition();
-    if (!chess.moves({ square: from, verbose: true }).some(m => m.to === to)) return false;
+    if (canAttemptMove ? !canAttemptMove(from, to) : !chess.moves({ square: from, verbose: true }).some(m => m.to === to)) return false;
     setSelected(null);
     clearAnnotations();
     if (playMove(from, to)) return true;
@@ -52,7 +52,7 @@ export function attachChessBoardControls({
     const chess = getPosition();
     const previous = getSelected();
     const piece = chess.get(square);
-    const movable = piece && piece.color === chess.turn();
+    const movable = piece && (canSelectPiece ? canSelectPiece(square, piece) : piece.color === chess.turn());
     clearAnnotations();
     if (previous && previous !== square && tryMove(previous, square)) return;
     setSelected(previous === square ? null : movable ? square : null);
@@ -61,7 +61,7 @@ export function attachChessBoardControls({
   // A secondary mouse button may not fire pointerdown while the primary
   // button is held: mousedown still fires, so use it to cancel reliably.
   board.addEventListener('mousedown', e => {
-    if (e.button === 2 && left) { e.preventDefault(); cancelDrag(); }
+    if (e.button === 2 && left) { e.preventDefault(); cancelDrag(); onRightClick?.(); }
   });
   board.addEventListener('contextmenu', e => e.preventDefault());
   board.addEventListener('dragstart', e => e.preventDefault());
@@ -69,7 +69,8 @@ export function attachChessBoardControls({
     const square = squareAt(e.clientX, e.clientY);
     if (e.button === 2) {
       e.preventDefault();
-      if (left) { cancelDrag(); return; }
+      if (left) { cancelDrag(); onRightClick?.(); return; }
+      onRightClick?.();
       if (square) right = { square, id: e.pointerId };
       return;
     }
@@ -80,7 +81,7 @@ export function attachChessBoardControls({
     const previous = getSelected();
     const chess = getPosition();
     const piece = chess.get(square);
-    const movable = Boolean(piece && piece.color === chess.turn());
+    const movable = Boolean(piece && (canSelectPiece ? canSelectPiece(square, piece) : piece.color === chess.turn()));
     left = {
       id: e.pointerId, square, previous, movable,
       x: e.clientX, y: e.clientY, dragging: false,
@@ -96,7 +97,7 @@ export function attachChessBoardControls({
     if (!left || left.id !== e.pointerId || left.cancelled) return;
     // On most browsers a second mouse button changes buttons rather than
     // emitting another pointerdown: treat both ways as drag cancellation.
-    if (e.buttons & 2) { cancelDrag(); return; }
+    if (e.buttons & 2) { cancelDrag(); onRightClick?.(); return; }
     if (!left.movable) return;
     if (!left.dragging && Math.hypot(e.clientX - left.x, e.clientY - left.y) > 8) {
       left.dragging = true;
@@ -121,7 +122,7 @@ export function attachChessBoardControls({
   });
   board.addEventListener('pointerup', e => {
     if (e.button === 2) {
-      if (left) { cancelDrag(); return; }
+      if (left) { cancelDrag(); onRightClick?.(); return; }
       if (!right) return;
       const from = right.square, to = squareAt(e.clientX, e.clientY);
       right = null;
