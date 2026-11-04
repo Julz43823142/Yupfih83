@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "Cloudflare Pages Functions dependencies for EloScanner",
+  "dependencies": {
+    "glin-profanity": "4.0.1"
+  }
+}
