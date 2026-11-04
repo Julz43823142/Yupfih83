@@ -652,3 +652,21 @@ $('puzzle-submit-score').addEventListener('click',async()=>{
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });
 refreshRankings();
+
+
+/* EloFlow puzzle move viewer: browsing does not change the active puzzle. */
+let puzzleReviewPly=null;
+function showPuzzleReview(direction){
+ if(!puzzle?.startFen||runActive||busy)return;
+ const moves=position.history({verbose:true}),total=moves.length;
+ puzzleReviewPly=Math.max(0,Math.min(total,(puzzleReviewPly===null?total:puzzleReviewPly)+direction));
+ if(puzzleReviewPly===total){puzzleReviewPly=null;draw();return}
+ const snapshot=new Chess(puzzle.startFen);
+ for(let i=0;i<puzzleReviewPly;i++)snapshot.move(moves[i]);
+ const live=position,oldSelected=selected,oldLast=lastMove;
+ position=snapshot;selected=null;lastMove=null;
+ try{draw()}finally{position=live;selected=oldSelected;lastMove=oldLast}
+}
+$('puzzle-review-prev').addEventListener('click',()=>showPuzzleReview(-1));
+$('puzzle-review-next').addEventListener('click',()=>showPuzzleReview(1));
+board.addEventListener('pointerdown',()=>{if(puzzleReviewPly!==null){puzzleReviewPly=null;draw()}},true);
