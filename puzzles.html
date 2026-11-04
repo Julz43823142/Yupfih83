@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=7">
+<link rel="stylesheet" href="/puzzles.css?v=8">
 <link rel="stylesheet" href="/elo-global-menu.css?v=1"><script src="/elo-global-menu.js?v=1" defer></script></head>
 <body>
 <header class="navbar puzzles-navbar">
@@ -61,9 +61,20 @@
       </div>
     </section>
   </div>
+  <section class="puzzle-save-run" id="puzzle-save-run" hidden>
+    <h3>Submit your score</h3>
+    <p>Optional: choose a nickname to appear on this hour's leaderboard. Scores are self-reported, not independently verified. Older scores are periodically deleted when the leaderboard is accessed.</p>
+    <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
+    <p id="puzzle-save-status" role="status"></p>
+  </section>
+  <section class="puzzle-ranking" aria-label="Hourly puzzle rankings">
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · this hour</h2><a href="/puzzle-top100.html?mode=sprint5">Top 50 →</a></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · this hour</h2><a href="/puzzle-top100.html?mode=survival">Top 50 →</a></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <p class="puzzle-ranking-note">Hourly UTC leaderboard · Top 10 here, Top 50 on the full page · Sprint 3 and 5 minutes have separate rankings · Voluntary nicknames, unverified scores.</p>
+  </section>
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=10-privacy"></script>
+<script type="module" src="/puzzles.js?v=11-hourly"></script>
 </body>
 </html>

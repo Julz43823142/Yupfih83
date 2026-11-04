@@ -16,20 +16,28 @@ export async function onRequestGet({request,context}) {
  const key=new Request(new URL('/api/opening-stats-cache?'+target.searchParams.toString(),request.url).toString());
  const cache=caches.default;
  try{const hit=await cache.match(key);if(hit)return hit}catch{}
- const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),22000);
+ let parsed=null,lastError=null;
+ // Try the Lichess games database first; the Masters database is a
+ // separate public upstream and remains usable when the first is rate-limited.
+ for(const endpoint of [target.toString(),(()=>{const u=new URL('https://explorer.lichess.org/masters');if(fen!=='startpos')u.searchParams.set('fen',fen);u.searchParams.set('topGames','0');u.searchParams.set('moves','12');return u.toString()})()]){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+   const upstream=await fetch(endpoint,{headers:{Accept:'application/json'},signal:controller.signal});
+   if(!upstream.ok){lastError='HTTP '+upstream.status;continue}
+   const raw=await upstream.text();
+   try{parsed=JSON.parse(raw)}catch{
+    for(const line of raw.split(/\r?\n/).reverse()){try{const item=JSON.parse(line);if(Array.isArray(item.moves)){parsed=item;break}}catch{}}
+   }
+   if(parsed&&Array.isArray(parsed.moves))break;
+   lastError='Invalid opening response';
+  }catch(e){lastError=String(e?.message||e)}
+  finally{clearTimeout(timer)}
+ }
+ if(!parsed||!Array.isArray(parsed.moves)){
+  console.warn('Opening statistics upstream failed:',lastError);
+  return Response.json({error:'Opening statistics temporarily unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});
+ }
  try{
-  const upstream=await fetch(target.toString(),{headers:{Accept:'application/json, application/x-ndjson'},signal:controller.signal});
-  if(!upstream.ok){
-   return Response.json({error:upstream.status===429?'Opening database rate limit. Please retry after one minute.':'Opening statistics unavailable ('+upstream.status+').'},{status:upstream.status===429?429:502,headers:{'Cache-Control':'no-store'}});
-  }
-  const raw=await upstream.text();
-  let parsed;
-  try{parsed=JSON.parse(raw)}catch{
-   const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-   for(let i=lines.length-1;i>=0;i--){try{parsed=JSON.parse(lines[i]);break}catch{}}
-  }
-  if(!parsed||!Array.isArray(parsed.moves))throw Error('Invalid database response');
   const safe={
    white:Math.max(0,Number(parsed.white)||0),draws:Math.max(0,Number(parsed.draws)||0),black:Math.max(0,Number(parsed.black)||0),
    opening:parsed.opening&&typeof parsed.opening.name==='string'?{eco:parsed.opening.eco||'',name:parsed.opening.name}:null,
@@ -39,7 +47,7 @@ export async function onRequestGet({request,context}) {
   try{const storing=cache.put(key,response.clone());if(context?.waitUntil)context.waitUntil(storing);else await storing}catch{}
   return response;
  }catch(e){
-  console.error('Opening explorer upstream error:',e&&e.message||e);
+  console.error('Opening explorer response error:',e);
   return Response.json({error:'Opening statistics service temporarily unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});
- }finally{clearTimeout(timer)}
+ }
 }
