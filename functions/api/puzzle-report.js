@@ -1,4 +1,4 @@
-import {readJsonPayload} from '../_shared/read-json.js';
+import {readJsonPayload} from '../../lib/server-request-guard.js';
 // Server-side report handling. Never expose REPORT_SECRET to the browser.
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbztviqAs-l4vxnuHdulEg6vmKFpZhMbNatgkQScyOBR5kLRUU-n_z3O_961N6rymr3PVw/exec";
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
