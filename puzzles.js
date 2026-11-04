@@ -278,20 +278,26 @@ function clearPrefetch(){
  prefetchTimer=null;
 }
 function prefetchNext(kind,first=false){
- if(kind!=='sprint'&&kind!=='survival')return;
- if(first?runActive||ready:!runActive||!ready)return;
+ const training=kind==='random'||kind==='custom';
+ if(training?(!autoNextEnabled||!ready||busy||reviewing):(first?runActive||ready:!runActive||!ready))return;
  const token=++prefetchToken,expectedSolved=first?0:solved+1,ratingFloor=lastChallengeRating;
- // Do the expensive search in a separate task after the visible board can paint.
+ const previousId=training?puzzle?.id:null;
+ const customTarget=kind==='custom'?Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200)):null;
+ // Resolve the next problem after the current board has been painted.
  prefetchTimer=setTimeout(async()=>{
   prefetchTimer=null;
   try{
-   const candidate=decode(await getPuzzle(kind,nextTarget(kind,expectedSolved)));
-   if(token!==prefetchToken||mode!==kind||lastChallengeRating!==ratingFloor||
-      solved!==(first?0:expectedSolved-1))return;
-   if(first?runActive||ready:!runActive||!ready)return;
-   prefetchedPuzzle={kind,expectedSolved,ratingFloor,candidate};
+   const candidate=decode(await getPuzzle(kind,training?customTarget:nextTarget(kind,expectedSolved)));
+   if(token!==prefetchToken||mode!==kind||lastChallengeRating!==ratingFloor)return;
+   if(training){
+    if(!ready||busy||reviewing||puzzle?.id!==previousId||!autoNextEnabled)return;
+   }else{
+    if(solved!==(first?0:expectedSolved-1))return;
+    if(first?runActive||ready:!runActive||!ready)return;
+   }
+   prefetchedPuzzle={kind,expectedSolved,ratingFloor,candidate,previousId,customTarget};
   }catch{
-   // Loading a puzzle normally remains the fallback.
+   // Loading normally remains the fallback if a preview is not available.
   }
  },0);
 }
@@ -299,8 +305,11 @@ async function load(kind=mode){
  if(auto&&!runActive){clearTimeout(auto);auto=null}
  // Consume the validated preview synchronously when it matches this run.
  // No timeout, extra animation frame or async work is required in that case.
+ const training=kind==='random'||kind==='custom';
+ const customTarget=kind==='custom'?Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200)):null;
  const cached=prefetchedPuzzle&&prefetchedPuzzle.kind===kind&&
-  prefetchedPuzzle.expectedSolved===solved&&prefetchedPuzzle.ratingFloor===lastChallengeRating&&
+  (training?(prefetchedPuzzle.previousId===puzzle?.id&&prefetchedPuzzle.customTarget===customTarget):
+    (prefetchedPuzzle.expectedSolved===solved&&prefetchedPuzzle.ratingFloor===lastChallengeRating))&&
   !seen.has(prefetchedPuzzle.candidate.id)?prefetchedPuzzle.candidate:null;
  clearPrefetch();
  const generation=++requestId;
@@ -591,7 +600,10 @@ $('puzzle-stop').onclick=()=>{if(runActive)finishRun('Run ended.')};
 $('puzzle-auto-next').addEventListener('change',event=>{
  autoNextEnabled=event.target.checked;
  try{localStorage.setItem('eloscanner-puzzle-auto-next',autoNextEnabled?'on':'off')}catch{}
- if(!autoNextEnabled&&auto){clearTimeout(auto);auto=null}
+ if(!autoNextEnabled){
+  if(auto){clearTimeout(auto);auto=null}
+  if(isTraining())clearPrefetch();
+ }else if(isTraining()&&ready)prefetchNext(mode);
 });
 $('puzzle-sound-toggle').addEventListener('change',event=>{
  soundOn=event.target.checked;
