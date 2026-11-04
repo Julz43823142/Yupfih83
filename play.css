@@ -109,3 +109,9 @@
 .play-result-dialog h2{font-size:clamp(27px,5vw,36px);line-height:1.15;margin:3px 0 0}
 .play-result-dialog p{color:#b8d6e7;line-height:1.5;margin:0 0 7px}
 .play-result-dialog .play-primary{min-width:150px}
+
+/* Promotion is a real modal: always visible above the board and its pointer overlay. */
+#play-promotion[open]{display:flex!important;position:fixed;inset:auto;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;box-sizing:border-box;width:min(430px,calc(100vw - 24px));max-width:430px;justify-content:center;align-items:center;flex-wrap:wrap;gap:9px;padding:20px;border:2px solid #57d8f2;border-radius:16px;box-shadow:0 25px 90px #000c;background:#0b2940;color:#f1faff}
+#play-promotion::backdrop{background:#010817bb;backdrop-filter:blur(3px)}
+#play-promotion>span{width:100%;text-align:center;font-size:18px;font-weight:800;margin-bottom:6px}
+#play-promotion button{min-width:76px;min-height:44px;font-weight:800}
