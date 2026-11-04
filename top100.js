@@ -48,7 +48,7 @@ async function load(){
         }
       }
       const action=cell(row,"");const link=document.createElement("a");
-      link.className="top100-analyze";link.href="/?analyze="+encodeURIComponent(item.username);
+      link.className="top100-analyze";link.href="/#analyze="+encodeURIComponent(item.username);
       link.textContent="Analyze →";action.appendChild(link);
       tbody.appendChild(row);
     }
