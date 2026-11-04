@@ -8,9 +8,7 @@ function performanceLabel(value){
   const key=String(value||"").toUpperCase().replace(/[-_]/g," ").trim();
   return PERFORMANCE_LABELS[key] || value || "Unavailable";
 }
-/* EloScanner — v87 statistical review.
- * Configure API_URL after deploying fairplay_web_api.py from the bot repo.
- */
+/* EloScanner — on-device v87 statistical review. */
 // Chess analysis runs in the browser without a server-side review API.
 const form = document.getElementById("searchForm");
 const usernameInput = document.getElementById("username");
