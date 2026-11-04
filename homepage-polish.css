@@ -141,3 +141,37 @@ main>.below-hero-layout.with-player-previews .sample-avatar img{width:100%;heigh
 main>.below-hero-layout.with-player-previews .sample-player-name,main>.below-hero-layout.with-player-previews .sample-player-handle{grid-column:2;min-width:0}
 .example-preview-note{padding:18px;border:1px solid #315e7b;border-radius:12px;background:#102b41}
 .example-preview-note h3{margin:0 0 8px}.example-preview-note p{line-height:1.6}
+
+/* Example player cards: show the Chess.com photo as a square thumbnail, not a round badge.
+   Give the text its own row so "View analysis" never spills outside the button. */
+@media(min-width:1100px){
+ main>.below-hero-layout.with-player-previews>.sample-section{width:clamp(285px,23vw,345px)!important;max-width:345px!important}
+ main>.below-hero-layout.with-player-previews>.features{width:min(1000px,calc(100% - 420px))!important;margin-left:max(385px,calc((100% - 1000px)/2))!important;margin-right:0!important}
+}
+main>.below-hero-layout.with-player-previews .sample-button{
+ box-sizing:border-box!important;display:grid!important;
+ grid-template-columns:64px minmax(0,1fr)!important;
+ grid-template-rows:auto auto!important;column-gap:12px!important;
+ min-width:0!important;overflow:hidden!important;padding:12px!important;
+}
+main>.below-hero-layout.with-player-previews .sample-avatar{
+ grid-column:1!important;grid-row:1 / span 2!important;
+ width:64px!important;height:64px!important;border-radius:7px!important;
+ overflow:hidden!important;background:#174760!important;
+}
+main>.below-hero-layout.with-player-previews .sample-avatar img{
+ display:block!important;width:100%!important;height:100%!important;
+ object-fit:cover!important;border-radius:0!important;
+}
+main>.below-hero-layout.with-player-previews .sample-player-name{
+ grid-column:2!important;grid-row:1!important;min-width:0!important;
+ white-space:normal!important;overflow-wrap:anywhere!important;
+}
+main>.below-hero-layout.with-player-previews .sample-player-handle{
+ grid-column:2!important;grid-row:2!important;min-width:0!important;
+ display:flex!important;flex-wrap:wrap!important;column-gap:8px!important;
+ row-gap:3px!important;white-space:normal!important;overflow-wrap:anywhere!important;
+}
+main>.below-hero-layout.with-player-previews .sample-view{
+ display:inline-block!important;white-space:nowrap!important;margin-left:0!important;
+}
