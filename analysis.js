@@ -1,4 +1,4 @@
-import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[];
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
@@ -6,7 +6,7 @@ let engineFallback=false,engineWorkerUrl=null;
 let sanMoves=[]; const squareNodes=new Map();
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/engine/stockfish-19-lite-single.js';
-const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+const CDN_BASE='/vendor/stockfish/';
 function requestAnalysis(){
  if(!engine||!engineReady||!engineSwitch.checked)return;
  engineFen=history[cursor];
@@ -112,7 +112,7 @@ function render(){
   const p=pos.get(sq),pieceKey=p?p.color+p.type:'';
   if(b.dataset.piece!==pieceKey){
    b.replaceChildren();b.dataset.piece=pieceKey;
-   if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}
+   if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.src='/vendor/pieces/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.draggable=false;piece.onerror=()=>{piece.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(piece)}
   }
   b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));
   b.style.outline=selected===sq?'3px solid #facc15':'';

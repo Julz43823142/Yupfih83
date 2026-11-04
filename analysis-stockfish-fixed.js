@@ -1,4 +1,4 @@
-import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {createOpeningIntegration} from './opening-integration.js?v=3';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
@@ -10,7 +10,7 @@ let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimite
 let sanMoves=[],reviewResults=[],reviewEvaluations=[],reviewBusy=false;const boardCells=new Map();
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
-const CDN_BASE='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+const CDN_BASE='/vendor/stockfish/';
 const evalWrap=document.createElement('div');
 evalWrap.className='board-eval-wrap';
 evalWrap.setAttribute('role','meter');
@@ -424,7 +424,7 @@ function render(){
   const p=pos.get(sq),key=p?p.color+p.type:'';
   if(b.dataset.piece!==key){
    b.dataset.piece=key;b.replaceChildren();
-   if(p){const img=document.createElement('img');img.className='chess-piece';img.src='https://lichess1.org/assets/piece/cburnett/'+p.color+p.type.toUpperCase()+'.svg';img.alt=p.color+' '+p.type;img.draggable=false;img.onerror=()=>{img.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(img)}
+   if(p){const img=document.createElement('img');img.className='chess-piece';img.src='/vendor/pieces/cburnett/'+p.color+p.type.toUpperCase()+'.svg';img.alt=p.color+' '+p.type;img.draggable=false;img.onerror=()=>{img.remove();b.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};b.append(img)}
   }else b.querySelectorAll('.legal-move-dot,.legal-capture-ring,.review-move-badge').forEach(x=>x.remove());
   b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:''));
   b.classList.toggle('selected-square',selected===sq);

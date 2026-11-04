@@ -1,0 +1,66 @@
+name: Vendor browser dependencies locally
+on:
+  push:
+    branches: [privacy-local-assets-20261104]
+    paths:
+      - '.github/workflows/vendor-privacy-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch pinned chess.js and Pyodide distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish vendor/fonts vendor/gifenc
+          curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm' -o vendor/chess/chess-1.4.0.mjs
+          test "$(wc -c < vendor/chess/chess-1.4.0.mjs)" -gt 10000
+          curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm' -o vendor/gifenc/gifenc-1.0.3.mjs
+          test "$(wc -c < vendor/gifenc/gifenc-1.0.3.mjs)" -gt 1000
+          mkdir -p /tmp/eloscanner-font
+          npm pack @fontsource-variable/inter --pack-destination /tmp/eloscanner-font --silent
+          tar -xzf /tmp/eloscanner-font/fontsource-variable-inter-*.tgz -C /tmp/eloscanner-font
+          cp /tmp/eloscanner-font/package/files/inter-latin-wght-normal.woff2 vendor/fonts/
+          test "$(wc -c < vendor/fonts/inter-latin-wght-normal.woff2)" -gt 10000
+          mkdir -p /tmp/eloscanner-pyodide
+          npm pack pyodide@0.27.2 --pack-destination /tmp/eloscanner-pyodide --silent
+          tar -xzf /tmp/eloscanner-pyodide/pyodide-0.27.2.tgz -C /tmp/eloscanner-pyodide
+          find /tmp/eloscanner-pyodide/package -maxdepth 2 -type f | head -30
+          cp -a /tmp/eloscanner-pyodide/package/. vendor/pyodide/
+          test -f vendor/pyodide/pyodide.js
+          test -f vendor/pyodide/pyodide.asm.wasm
+          test -f vendor/pyodide/python_stdlib.zip
+          for color in w b; do
+            for piece in K Q R B N P; do
+              curl -fL --retry 3 "https://lichess1.org/assets/piece/cburnett/${color}${piece}.svg" -o "vendor/pieces/cburnett/${color}${piece}.svg"
+              grep -qi '<svg' "vendor/pieces/cburnett/${color}${piece}.svg"
+            done
+          done
+          if [ ! -f vendor/stockfish/stockfish-19-lite-single.wasm ]; then
+            mkdir -p /tmp/eloscanner-stockfish
+            npm pack stockfish@19.0.1 --pack-destination /tmp/eloscanner-stockfish --silent
+            tar -xzf /tmp/eloscanner-stockfish/stockfish-19.0.1.tgz -C /tmp/eloscanner-stockfish
+            cp /tmp/eloscanner-stockfish/package/bin/stockfish-19-lite-single.{js,wasm} vendor/stockfish/
+          fi
+          test -f vendor/stockfish/stockfish-19-lite-single.js
+          test -f vendor/stockfish/stockfish-19-lite-single.wasm
+      - name: Commit pinned local assets
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add vendor/chess vendor/pyodide vendor/pieces vendor/stockfish vendor/fonts vendor/gifenc
+          if ! git diff --cached --quiet; then
+            git commit -m "4"
+            git pull --rebase origin privacy-local-assets-20261104
+            git push origin HEAD:privacy-local-assets-20261104
+          fi

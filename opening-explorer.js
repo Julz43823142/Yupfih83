@@ -1,4 +1,4 @@
-import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {fetchOpeningStats} from './opening-stats-client.js?v=1';
 const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('opening-board');
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
@@ -26,7 +26,7 @@ function draw(){
  const matrix=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){
   const sq=document.createElement('div');sq.className='opening-square'+((r+f)%2?' dark':'');
   const piece=matrix[r][f];
-  if(piece){const img=document.createElement('img');img.src='https://lichess1.org/assets/piece/cburnett/'+piece.color+piece.type.toUpperCase()+'.svg';img.alt=piece.color+' '+piece.type;img.onerror=()=>{img.remove();sq.textContent=glyph[piece.color==='w'?piece.type.toUpperCase():piece.type]};sq.append(img)}
+  if(piece){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+piece.color+piece.type.toUpperCase()+'.svg';img.alt=piece.color+' '+piece.type;img.onerror=()=>{img.remove();sq.textContent=glyph[piece.color==='w'?piece.type.toUpperCase():piece.type]};sq.append(img)}
   board.append(sq);
  }
  $('opening-back').disabled=line.length===0;

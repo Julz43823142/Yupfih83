@@ -1,4 +1,4 @@
-import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('puzzle-board'),status=$('puzzle-status');
@@ -84,7 +84,7 @@ function draw(){
    cell.dataset.piece=key;cell.replaceChildren();
    if(pc){
     const img=document.createElement('img');img.className='chess-piece';img.alt=pc.color+' '+pc.type;img.draggable=false;
-    img.src='https://lichess1.org/assets/piece/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';
+    img.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';
     img.onerror=()=>{img.remove();cell.textContent=glyph[pc.color][pc.type]};
     cell.append(img);
    }
