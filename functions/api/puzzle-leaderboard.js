@@ -39,6 +39,37 @@ async function puzzleBank(env,request){
  }
  return bankCache;
 }
+// Shard-aware verification: validate the exact public CC0 solution in the
+// same 1000-row shard served to the browser. Never trust a self-reported score.
+let manifestCache=null;
+const verifiedShardCache=new Map();
+async function verifiedShard(env,request,shardId){
+ if(!Number.isInteger(shardId)||shardId<1||shardId>5000)throw Error('Invalid puzzle shard');
+ if(!env.ASSETS)throw Error('Puzzle validation assets unavailable');
+ if(!manifestCache){
+  const url=new URL('/assets/puzzle-pool/manifest.json',request.url);
+  manifestCache=env.ASSETS.fetch(new Request(url)).then(async response=>{
+   if(!response.ok)throw Error('Puzzle manifest unavailable');
+   const data=await response.json();
+   if(data.version!==1||data.total!==500000||!Array.isArray(data.shards))throw Error('Invalid puzzle manifest');
+   return new Set(data.shards.map(row=>row.id));
+  }).catch(error=>{manifestCache=null;throw error});
+ }
+ const ids=await manifestCache;
+ if(!ids.has(shardId))throw Error('Unknown puzzle shard');
+ if(!verifiedShardCache.has(shardId)){
+  const url=new URL('/assets/puzzle-pool/'+String(shardId).padStart(4,'0')+'.json',request.url);
+  const promise=env.ASSETS.fetch(new Request(url)).then(async response=>{
+   if(!response.ok)throw Error('Puzzle shard unavailable');
+   const rows=await response.json();
+   if(!Array.isArray(rows)||rows.length>1100)throw Error('Invalid puzzle shard');
+   return new Map(rows.map(row=>[String(row[0]),String(row[2]).trim().toLowerCase().split(/\s+/).slice(1).join(' ')]));
+  }).catch(error=>{verifiedShardCache.delete(shardId);throw error});
+  verifiedShardCache.set(shardId,promise);
+  if(verifiedShardCache.size>12)verifiedShardCache.delete(verifiedShardCache.keys().next().value);
+ }
+ return verifiedShardCache.get(shardId);
+}
 export async function onRequestGet({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:"Leaderboard database not configured."},503);
  const url=new URL(request.url),mode=url.searchParams.get("mode")||"sprint5";
@@ -67,13 +98,15 @@ export async function onRequestPost({request,env}){
   const id=String(data?.session||''),puzzleId=String(data?.puzzleId||''),line=String(data?.solution||'').trim().toLowerCase();
   if(!/^[a-f0-9-]{36}$/i.test(id)||!puzzleId||puzzleId.length>80||line.length>400)return json({error:'Invalid puzzle proof.'},400);
   try{
-   await dbReady(db);
+   // The run's start request already created the required tables.
    const run=await db.prepare('SELECT * FROM puzzle_verified_runs WHERE id=?').bind(id).first();
    if(!run||run.submitted)return json({error:'Run not available.'},409);
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
-   const bank=await puzzleBank(env,request);
+   const bank=data?.shard===null||data?.shard===undefined
+    ?await puzzleBank(env,request)
+    :await verifiedShard(env,request,Number(data.shard));
    if(bank.get(puzzleId)!==line)return json({error:'Puzzle solution not verified.'},400);
    const inserted=await db.prepare('INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id) VALUES(?,?)').bind(id,puzzleId).run();
    if(inserted.meta?.changes)await db.prepare('UPDATE puzzle_verified_runs SET score=score+1 WHERE id=? AND score<100000').bind(id).run();
