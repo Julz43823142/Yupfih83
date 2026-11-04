@@ -233,3 +233,17 @@ button.rank-report:disabled{opacity:.7;cursor:default}
  .puzzles-layout.has-save-score>.puzzle-save-run{grid-column:1;grid-row:2}
  .puzzles-layout.has-save-score>.puzzle-details{grid-column:1;grid-row:3}
 }
+
+/* Compact ranking tables with the same column labels as Top 100. */
+.puzzle-rank-columns,.puzzle-rank-list li:not(.rank-note){display:grid!important;grid-template-columns:33px minmax(0,1fr) 42px 55px!important;gap:6px!important;align-items:center!important;text-align:left!important}
+.puzzle-rank-columns{font-size:10px;font-weight:800;letter-spacing:.2px;color:#9fc7da;padding:4px 7px 9px;border-bottom:1px solid #3b6480;margin-bottom:9px}
+.puzzle-rank-list li:not(.rank-note){padding:7px!important;min-width:0}
+.puzzle-rank-list li:not(.rank-note)::before{content:none!important;display:none!important}
+.puzzle-rank-list .rank-position{font-size:11px;font-weight:800;color:#93dce9;font-variant-numeric:tabular-nums}
+.puzzle-rank-list .rank-score{text-align:center;font-size:12px;font-variant-numeric:tabular-nums}
+.puzzle-rank-list .rank-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.puzzle-rank-list .rank-report{justify-self:end;padding:4px 5px!important;font-size:10px!important}
+.puzzle-board-controls.elo-board-toolbar{justify-content:flex-start;margin:12px 0 0;padding:10px 12px}
+.puzzle-board-controls.elo-board-toolbar .elo-toolbar-sound{display:flex;padding:0;margin:0}
+.puzzle-board-controls.elo-board-toolbar .puzzle-sound-switch{padding-top:0}
+@media(max-width:450px){.puzzle-rank-columns,.puzzle-rank-list li:not(.rank-note){grid-template-columns:28px minmax(0,1fr) 34px 49px!important;gap:3px!important}.puzzle-rank-columns{font-size:9px}.puzzle-rank-list .rank-report{padding:4px 3px!important;font-size:9px!important}}

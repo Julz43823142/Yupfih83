@@ -139,7 +139,7 @@ function newGame(){
  if(human==='b')scheduleBot();
 }
 $('play-new').addEventListener('click',newGame);
-$('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';selected=null;paint()});
+$('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
 $('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back. Your move.')});
 $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;status('You resigned. '+names[botLevel]+' wins.');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});

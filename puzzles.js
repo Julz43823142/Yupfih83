@@ -1,6 +1,7 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
+import {createPuzzlePool} from './puzzle-pool-client.js?v=1';
 const $=id=>document.getElementById(id),board=$('puzzle-board'),status=$('puzzle-status');
 const MODES={random:['Random Puzzle','Train with a random position.'],custom:['Custom Puzzle','Choose your target puzzle Elo.'],sprint:['Puzzle Sprint','Three or five minutes, three mistakes. How many can you solve?'],survival:['Puzzle Survival','Three mistakes, no time limit. Keep your streak alive.']};
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
@@ -20,13 +21,13 @@ async function verifiedRequest(payload){
  const data=await response.json();if(!response.ok)throw Error(data.error||'Verification unavailable');return data;
 }
 function recordVerifiedSolve(){
- const puzzleId=puzzle?.id,answer=solution.join(' '),sessionPromise=verifiedSessionPromise;
+ const puzzleId=puzzle?.id,answer=solution.join(' '),sessionPromise=verifiedSessionPromise,shard=puzzle?.shard??null;
  if(!runActive||!sessionPromise||!puzzleId)return;
  proofChain=proofChain.then(async()=>{
   const session=(await sessionPromise).session;
   let error;
   for(let attempt=0;attempt<3;attempt++){
-   try{await verifiedRequest({action:'solve',session,puzzleId,solution:answer});return}
+   try{await verifiedRequest({action:'solve',session,puzzleId,solution:answer,shard});return}
    catch(e){error=e;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)))}
   }
   throw error;
@@ -35,7 +36,7 @@ function recordVerifiedSolve(){
  proofChain.catch(()=>{});
 }
 
-let deadline=0,startedAt=0,tick=null,auto=null,replyFrame=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,replyFrame=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white',boardFlipped=false;const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
 let soundOn=true,audioCtx=null;
@@ -98,10 +99,10 @@ function buttons(){
  $('puzzle-stop').hidden=!challenge||!runActive;
  $('puzzle-next').hidden=challenge;
  $('puzzle-next').disabled=busy;
- $('puzzle-hint').hidden=runActive||(!reviewing&&challenge);
- $('puzzle-hint').disabled=!ready||busy||hintStage>=2;
- $('puzzle-retry').hidden=runActive||(!reviewing&&challenge);
- $('puzzle-retry').disabled=!puzzle||busy;
+ $('puzzle-hint').hidden=false;
+ $('puzzle-hint').disabled=runActive||(!reviewing&&challenge)||!ready||busy||hintStage>=2;
+ $('puzzle-retry').hidden=false;
+ $('puzzle-retry').disabled=runActive||(!reviewing&&challenge)||!puzzle||busy;
  $('puzzle-review-back').hidden=!reviewing;
  $('puzzle-start').textContent=mode==='sprint'?'Start '+sprintMinutes+'-minute Sprint':'Start Survival';
  $('puzzle-sprint-settings').hidden=mode!=='sprint';
@@ -117,7 +118,7 @@ let lastBoardOrientation=null,lastArrowSignature=null;
 function draw(){
  const moves=selected&&ready&&!busy?position.moves({square:selected,verbose:true}):[];
  const legalBySquare=new Map(moves.map(m=>[m.to,m]));
- const flip=orientation!==lastBoardOrientation;
+ const flip=board.dataset.orientation!==lastBoardOrientation;
  for(const [sq,cell] of cells){
   const pc=position.get(sq),key=pc?pc.color+pc.type:'';
   if(cell.dataset.piece!==key){
@@ -131,7 +132,7 @@ function draw(){
   }else cell.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
   if(flip){
    const whiteIndex=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
-   cell.style.order=orientation==='black'?63-whiteIndex:whiteIndex;
+   cell.style.order=board.dataset.orientation==='black'?63-whiteIndex:whiteIndex;
   }
   cell.classList.toggle('selected-square',selected===sq);
   cell.classList.toggle('recent-square',!!lastMove&&(lastMove.from===sq||lastMove.to===sq));
@@ -140,17 +141,17 @@ function draw(){
   const legal=legalBySquare.get(sq);
   if(legal){const dot=document.createElement('span');dot.className=pc||legal.flags.includes('e')?'legal-capture-ring':'legal-move-dot';cell.append(dot)}
  }
- lastBoardOrientation=orientation;
+ lastBoardOrientation=board.dataset.orientation;
  // Rebuild arrows only when they actually change; selection and piece motion
  // should not recreate the entire SVG annotation layer.
- const signature=orientation+'|'+(lastMove?lastMove.from+lastMove.to:'')+'|'+JSON.stringify(arrows);
+ const signature=board.dataset.orientation+'|'+(lastMove?lastMove.from+lastMove.to:'')+'|'+JSON.stringify(arrows);
  if(signature!==lastArrowSignature){
   board.querySelector('.arrows')?.remove();
   if(lastMove||arrows.length){
    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
    svg.classList.add('arrows');svg.setAttribute('viewBox','0 0 800 800');
    svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
-   if(orientation==='black')svg.style.transform='rotate(180deg)';
+   if(board.dataset.orientation==='black')svg.style.transform='rotate(180deg)';
    if(lastMove)appendChessArrow(svg,lastMove.from,lastMove.to,'#ff962f',.7);
    for(const [from,to,color] of arrows)appendChessArrow(svg,from,to,color,.72);
    board.append(svg);
@@ -163,6 +164,17 @@ attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selecte
 // Static, curated CC0 puzzle bank served by EloScanner itself.
 // No Lichess API calls are needed for standard play, including timed runs.
 let bankPromise=null;
+const largePool=createPuzzlePool();
+function offlineRowToPuzzle(row,poolShard=null){
+ const [id,fen,moves,rating]=row;
+ const line=String(moves).split(' ').filter(Boolean);
+ if(line.length<2)throw Error('Invalid puzzle moves');
+ const setup=line.shift(),chess=new Chess(fen);
+ chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
+ return {game:{pgn:'offline puzzle'},puzzle:{id,initialPly:1,fen:chess.fen(),lastMove:setup,
+  rating,originalKey:fen+'|'+setup,solution:line,poolShard},source:'Lichess CC0 offline dataset'};
+}
+
 // Remember a bounded history of public puzzle IDs, not personal gameplay data.
 // Repeated reloads and switching modes no longer immediately recycle the same puzzle.
 const RECENT_KEY='eloscanner-recent-puzzles-v1',RECENT_LIMIT=950;
@@ -184,6 +196,8 @@ function rememberPuzzle(id){
 }
 
 async function getPuzzle(which,target=null){
+ const poolResult=await largePool.pick(which,target,{seen,seenPositions,recentSet,ratingFloor:lastChallengeRating});
+ if(poolResult){try{return offlineRowToPuzzle(poolResult.row,poolResult.shard)}catch{}}
  if(!bankPromise){
   bankPromise=fetch('/assets/puzzle-bank.json?v=1',{cache:'force-cache'}).then(async response=>{
    if(!response.ok)throw Error('Puzzle library is not available on this deployment.');
@@ -218,19 +232,9 @@ async function getPuzzle(which,target=null){
  if(fresh.length)candidates=fresh;
  for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
   const index=Math.floor(Math.random()*candidates.length);
-  const [id,fen,moves,rating]=candidates.splice(index,1)[0];
-  try{
-   const fullLine=String(moves).split(' ').filter(Boolean);
-   if(fullLine.length<2)continue;
-   const setup=fullLine.shift();
-   const chess=new Chess(fen);
-   chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
-   // The API-style shape keeps the same legality checks and board renderer.
-   return {game:{pgn:'offline puzzle'},puzzle:{
-    id,initialPly:1,fen:chess.fen(),lastMove:setup,
-    rating,originalKey:fen+'|'+setup,solution:fullLine
-   },source:'Lichess CC0 offline dataset'};
-  }catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
+  const row=candidates.splice(index,1)[0];
+  try{return offlineRowToPuzzle(row)}
+  catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
  }
  throw Error('No playable puzzle was found in the local puzzle library.');
 }
@@ -254,7 +258,7 @@ function decode(data){
   if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))throw Error('Invalid puzzle move');
   test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
  }
- return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen())};
+ return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen()),shard:data.puzzle.poolShard??null};
 }
 
 /* While a puzzle is being solved, prepare the NEXT board in memory.
@@ -308,7 +312,7 @@ async function load(kind=mode){
   position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
   seenPositions.add(p.puzzleKey);
   if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
-  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
   say(kind==='custom'?'Selected an available puzzle rated '+p.rating+'. Find the best move.':'Find the best move. Opponent replies are automatic.');
@@ -436,7 +440,7 @@ function resetCurrentPuzzle(){
  position=new Chess(puzzle.startFen);step=0;
  ready=true;busy=false;selected=null;wrongSquare=null;lastMove=puzzle.setup;
  arrows.length=0;highlights.clear();
- orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  say(reviewing?'Try this mistake again. Review has no effect on your score.':'Puzzle reset. Try again.');
  stats();buttons();draw();
@@ -449,7 +453,7 @@ function enterReview(index){
  solution=[...item.line];position=new Chess(item.fen);step=0;
  ready=true;busy=false;selected=null;wrongSquare=item.attempt?.to||null;lastMove=item.setup;
  arrows.length=0;highlights.clear();
- orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  $('puzzle-heading').textContent='Review mistake '+(index+1);
  $('puzzle-subtitle').textContent='Practice this position. Your original score stays '+(completedRun?.score??solved)+'.';
@@ -465,7 +469,7 @@ function leaveReview(){
   solution=[...postRunSnapshot.solution];step=postRunSnapshot.step;
   puzzle=postRunSnapshot.puzzle;lastMove=postRunSnapshot.lastMove;
   wrongSquare=postRunSnapshot.wrongSquare;
-  orientation=postRunSnapshot.orientation;board.dataset.orientation=orientation;
+  orientation=postRunSnapshot.orientation;board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  }
  $('puzzle-heading').textContent=MODES[mode][0];
@@ -493,6 +497,12 @@ function revealErrors(){
  }
  $('puzzle-reveal-errors').textContent='Hide errors';
 }
+$('puzzle-flip').addEventListener('click',()=>{
+ boardFlipped=!boardFlipped;
+ board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
+ $('puzzle-flip').setAttribute('aria-pressed',String(boardFlipped));
+ selected=null;draw();
+});
 function showHint(){
  if(!ready||busy||runActive||(!reviewing&&!isTraining())||hintStage>=2)return;
  const uci=solution[step];if(!uci)return;
@@ -513,7 +523,7 @@ function switchMode(next){
  if(!MODES[next])return;
  completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
  $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;
- clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
+ clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation=boardFlipped?'black':'white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
@@ -586,14 +596,15 @@ async function updateRanking(id,mode){
   if(!response.ok)throw Error(data.error||'Unavailable');
   list.replaceChildren();
   if(!data.entries.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No scores yet.';list.append(li);return}
-  for(const entry of data.entries){
-   const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('span');
+  data.entries.forEach((entry,index)=>{
+   const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span');
+   rank.className='rank-position';rank.textContent=String(index+1);
    name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
    const report=document.createElement('button');
    report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';
    report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;
-   li.append(name,score,report);list.append(li);
-  }
+   li.append(rank,name,score,report);list.append(li);
+  });
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
 }
 function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint');updateRanking('puzzle-survival-ranking','survival')}

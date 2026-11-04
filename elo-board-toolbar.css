@@ -1,0 +1,13 @@
+/* Shared, predictable control row immediately below chessboards. */
+.elo-board-toolbar{display:flex;align-items:center;justify-content:flex-start;gap:9px;flex-wrap:wrap;margin:12px 0 0;padding:11px 12px;border:1px solid #315f7c;border-radius:12px;background:#0b2940;min-width:0}
+.elo-board-toolbar button{appearance:none!important;border:1px solid #407a9c!important;background:#164360!important;color:#ebfaff!important;border-radius:8px!important;padding:9px 12px!important;font:700 13px/1.3 system-ui,Arial,sans-serif!important;min-height:36px;cursor:pointer}
+.elo-board-toolbar button:hover:not(:disabled){background:#225f82!important;border-color:#60c9e8!important}
+.elo-board-toolbar button:focus-visible{outline:2px solid #67e6ff!important;outline-offset:2px}
+.elo-board-toolbar button[aria-pressed="true"]{border-color:#54cde8!important;background:#125c7d!important}
+.elo-board-toolbar button:disabled{opacity:.45!important;cursor:not-allowed!important}
+.elo-board-toolbar .elo-toolbar-spacer{flex:1 1 8px}
+.elo-board-toolbar .elo-toolbar-sound{display:flex;align-items:center;gap:8px;white-space:nowrap;font:700 12px system-ui;color:#c8e7f6;cursor:pointer}
+.elo-board-toolbar .elo-toolbar-sound input{position:absolute;opacity:0;width:1px;height:1px}
+.elo-board-toolbar .elo-toolbar-sound input:focus-visible+.puzzle-switch-track{outline:2px solid #78eaff;outline-offset:3px}
+.elo-board-toolbar [hidden]{display:none!important}
+@media(max-width:500px){.elo-board-toolbar{gap:6px;padding:8px}.elo-board-toolbar button{font-size:12px!important;padding:8px 10px!important}}

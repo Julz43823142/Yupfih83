@@ -1,0 +1,56 @@
+name: Build 500000 Lichess puzzles
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build-puzzle-pool.py'
+      - '.github/workflows/build-puzzle-pool.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: puzzle-pool-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install streaming decompressor
+        run: python -m pip install 'zstandard>=0.23,<1'
+      - name: Test puzzle sampling and shard generation
+        run: python scripts/test-build-puzzle-pool.py
+      - name: Select 500000 CC0 puzzles and split into small shards
+        run: python scripts/build-puzzle-pool.py --count 500000 --shard-size 1000
+      - name: Verify all shards and publish static assets
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('assets/puzzle-pool')
+          manifest = json.loads((root/'manifest.json').read_text())
+          assert manifest['total'] == 500000
+          assert sum(x['count'] for x in manifest['shards']) == 500000
+          for shard in manifest['shards']:
+              file = root/f"{shard['id']:04d}.json"
+              entries = json.loads(file.read_text())
+              assert len(entries) == shard['count']
+              assert file.stat().st_size < 1024*1024
+          print(f"Verified {len(manifest['shards'])} shards.")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/puzzle-pool/
+          if ! git diff --cached --quiet; then
+            git commit -m "53"
+            git push origin HEAD:main
+          fi
