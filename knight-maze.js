@@ -13,6 +13,8 @@ function updateClock(){
  if(run&&!finished&&seconds===0)endRun(true);
 }
 function render(){
+ // A server response can redraw the board while the pointer still holds the knight.
+ // Keep the board piece hidden whenever the floating drag image is visible.
  board.replaceChildren();
  const blocked=new Set(run?.blocked||[]),reachable=run&&!finished?new Set(neighbors(run.position).filter(i=>!blocked.has(i))):new Set();
  for(let i=0;i<64;i++){
@@ -24,7 +26,7 @@ function render(){
   cell.classList.toggle('selected-square',selected&&run?.position===i);
   cell.dataset.index=String(i);
   if(run?.position===i&&!finished)cell.classList.add('knight-source');
-  if(run?.position===i){const piece=document.createElement('img');piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';piece.alt='White knight';piece.draggable=false;piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};cell.append(piece)}
+  if(run?.position===i){const piece=document.createElement('img');piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';piece.alt='White knight';piece.draggable=false;piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};if(drag?.dragging){piece.style.visibility='hidden';drag.source=piece}cell.append(piece)}
   else if(run?.goal===i){const star=document.createElement('span');star.className='maze-star';star.textContent='★';star.setAttribute('aria-hidden','true');cell.append(star)}
   cell.addEventListener('click',e=>{if(e.detail===0&&i!==run?.position)move(i)});
   board.append(cell);
@@ -152,7 +154,7 @@ function squareAt(x,y){
 function releaseDrag(){
  if(!drag)return;
  drag.ghost?.remove();
- if(drag.source)drag.source.style.visibility='';
+ if(drag.source?.isConnected)drag.source.style.visibility='';
  const d=drag;drag=null;
  try{if(board.hasPointerCapture(d.id))board.releasePointerCapture(d.id)}catch{}
 }
