@@ -1,5 +1,5 @@
 // EloScanner Game Review -> animated GIF. Browser-only export; no game data leaves the page.
-import {GIFEncoder,quantize,applyPalette} from 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm';
+import {GIFEncoder,quantize,applyPalette} from '/vendor/gifenc/gifenc-1.0.3.mjs';
 
 const COLORS={bg:'#071b2e',panel:'#0e2b43',edge:'#315b75',ink:'#f5fbff',muted:'#a9c5d8',cyan:'#00dff2',light:'#e8d7b6',dark:'#9b7856'};
 const MARKS={Brilliant:['#00c6b9','!!'],Great:['#099fee','!'],Book:['#c78b55','▣'],Best:['#2bc92d','◆'],Excellent:['#a9e917','✦'],Good:['#49c52b','✓'],Inaccuracy:['#ffc522','?!'],Mistake:['#ff862c','?'],Miss:['#ef7676','×'],Blunder:['#f03d42','??']};
@@ -22,7 +22,7 @@ async function loadPieces(){
   try{
    const img=new Image();img.crossOrigin='anonymous';
    const load=new Promise((resolve,reject)=>{img.onload=()=>resolve(img);img.onerror=reject;});
-   img.src='https://lichess1.org/assets/piece/cburnett/'+key+'.svg';
+   img.src='/vendor/pieces/cburnett/'+key+'.svg';
    const value=await load;return [key,value];
   }catch{return [key,null]}
  }));
