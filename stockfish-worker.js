@@ -4,8 +4,8 @@ try{
  importScripts('/engine/stockfish-19-lite-single.js');
 }catch(primaryError){
  try{
-  self.Module={locateFile:(path)=>path.endsWith('.wasm')?'https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-lite-single.wasm':path};
-  importScripts('https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-lite-single.js');
+  self.Module={locateFile:(path)=>path.endsWith('.wasm')?'/vendor/stockfish/stockfish-19-lite-single.wasm':path};
+  importScripts('/vendor/stockfish/stockfish-19-lite-single.js');
  }catch(fallbackError){
   throw Error('Stockfish worker could not load: '+primaryError.message+' / '+fallbackError.message);
  }
