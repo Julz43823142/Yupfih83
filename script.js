@@ -820,7 +820,7 @@ form.addEventListener("submit", async event => {
     statusText.textContent = error.message;
   } finally {
     button.disabled = false;
-    button.textContent = "Analyze Player →";
+    button.textContent = "Analyze Player";
   }
 });
 
