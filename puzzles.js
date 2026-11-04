@@ -233,6 +233,7 @@ async function load(kind=mode){
  stats();buttons();draw();
 }
 function finish(){
+ if(runActive)recordVerifiedSolve();
  ready=false;solved++;if(!position.isCheckmate())playSound('mate');say('Correct! Puzzle solved.','success');stats();buttons();
  if(runActive){
   const activeMode=mode;auto=setTimeout(()=>{if(runActive&&mode===activeMode)load(mode)},100);
