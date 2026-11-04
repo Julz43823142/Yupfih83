@@ -127,7 +127,7 @@ function queuePremove(from,to,promotion){
  const options=candidateMoves(from).filter(m=>m.to===to);
  if(!options.length)return false;
  premove={from,to,promotion:promotion||'q'};
- selected=null;status('Prem ove queued'.replace('Prem ove','Premove')+': '+from+' → '+to+'. Right-click to cancel.');
+ selected=null;status('Premove queued: '+from+' → '+to+'. Right-click to cancel.');
  paint();return true;
 }
 function runPremove(){
