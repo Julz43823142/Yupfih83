@@ -740,34 +740,39 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
     }
     return {profile,stats};
   });
-  exampleProfiles.set(username,task);
+  exampleProfiles.set(username,task.then(data=>{try{sessionStorage.setItem("eloscanner-example-v1-"+username,JSON.stringify({savedAt:Date.now(),data}));}catch{}return data;}));
 }
 document.querySelectorAll(".sample-button[data-username]").forEach(example => {
-  example.addEventListener("click", async () => {
-    const username=example.dataset.username;
-    usernameInput.value=username;
-    statusText.textContent="Opening public player preview…";
-    try{
-      const {profile,stats}=await exampleProfiles.get(username);
-      playerCard.replaceChildren();
-      renderPlayer(profile,stats,username);
-      const panel=document.getElementById("v87-review");
-      panel.replaceChildren();
-      const note=document.createElement("div");note.className="example-preview-note";
-      const heading=document.createElement("h3");heading.textContent="Example player preview";
-      const explanation=document.createElement("p");explanation.textContent="Public Chess.com profile and ratings. A full game-by-game analysis is calculated on your device when requested.";
-      const action=document.createElement("button");action.type="button";action.className="sample-live-button";action.textContent="Run full analysis";
-      action.addEventListener("click",()=>form.requestSubmit());
-      note.append(heading,explanation,action);panel.append(note);
-      results.classList.remove("hidden");
-      statusText.textContent="Public player preview ready.";
-      results.scrollIntoView({behavior:"smooth",block:"start"});
-    }catch(error){
-      statusText.textContent="Preview unavailable. You can still analyze this player.";
-      form.requestSubmit();
-    }
+  example.addEventListener("click", () => {
+    const slug=example.dataset.username==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
+    location.href="/example-"+slug+".html";
   });
 });
+const exampleUsername=document.body.dataset.examplePlayer;
+if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
+  usernameInput.value=exampleUsername;
+  results.classList.remove("hidden");
+  const panel=document.getElementById("v87-review");
+  panel.replaceChildren();
+  const note=document.createElement("div");
+  note.className="example-preview-note";
+  const title=document.createElement("h3");title.textContent="Example player profile";
+  const message=document.createElement("p");
+  message.textContent="Public Chess.com profile and ratings. This is not a precomputed game analysis. A full review is available on demand.";
+  const action=document.createElement("button");action.type="button";
+  action.textContent="Run full game analysis";action.className="sample-live-button";
+  action.addEventListener("click",()=>form.requestSubmit());
+  note.append(title,message,action);panel.append(note);
+  const cacheKey="eloscanner-example-v1-"+exampleUsername;
+  let cached=null;
+  try{const entry=JSON.parse(sessionStorage.getItem(cacheKey)||"null");if(entry&&Date.now()-entry.savedAt<900000)cached=entry.data;}catch{}
+  const ready=cached?Promise.resolve(cached):exampleProfiles.get(exampleUsername);
+  ready.then(data=>{
+    playerCard.replaceChildren();
+    renderPlayer(data.profile,data.stats,exampleUsername);
+    statusText.textContent="Example profile ready.";
+  }).catch(error=>{statusText.textContent="Example profile unavailable: "+error.message;});
+}
 form.addEventListener("submit", async event => {
   event.preventDefault();
   const username = usernameInput.value.trim();
