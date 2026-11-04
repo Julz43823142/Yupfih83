@@ -171,6 +171,34 @@ function play(from,to,promotion=null){
 }
 attachChessBoardControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
 board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',unlock);
+// Master and grandmaster tiers use Stockfish rather than the shallow JS search.
+let strongWorker=null;
+function stopStrongBot(){if(strongWorker){strongWorker.terminate();strongWorker=null}}
+function strongBotTurn(token,fen,level){
+ stopStrongBot();
+ try{
+  const w=new Worker('/play-strong-bot-worker.js?v=1',{type:'module'});strongWorker=w;
+  const fallback=()=>{
+   if(strongWorker!==w)return;
+   stopStrongBot();
+   if(token!==gameToken||ended||chess.turn()===human)return;
+   status('Strong engine unavailable; using fallback bot.');
+   try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}
+  };
+  w.onerror=fallback;
+  w.onmessage=e=>{
+   if(strongWorker!==w)return;
+   const {move,error}=e.data;
+   if(error){fallback();return}
+   stopStrongBot();
+   if(token!==gameToken||ended||chess.turn()===human)return;
+   try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
+   catch{working=false;status('Bot move failed.');}
+   paint();
+  };
+  w.postMessage({token,fen,elo:ratings[level]||2000});
+ }catch{try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
+}
 // Bot search runs in a module worker so deeper positions never freeze the board.
 let botWorker=null;
 function ensureBotWorker(){
@@ -192,7 +220,7 @@ function scheduleBot(){
  working=true;status(names[botLevel]+' is thinking…');paint();
  const token=gameToken,fen=chess.fen(),level=botLevel;
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
-  try{ensureBotWorker().postMessage({token,fen,level})}
+  try{if((ratings[level]||0)>=2000)strongBotTurn(token,fen,level);else ensureBotWorker().postMessage({token,fen,level})}
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
  },120);
 }
