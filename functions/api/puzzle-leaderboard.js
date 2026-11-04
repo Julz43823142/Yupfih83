@@ -18,7 +18,7 @@ export async function onRequestGet({request,env}){
   await dbReady(db);
   const current=hour();
   const sprint=mode==="sprint";
-  const sql=sprint?"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ('sprint3','sprint5') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?":"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?";
+  const sql=sprint?"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ('sprint3','sprint5') AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?":"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?";
   const rows=await db.prepare(sql).bind(...(sprint?[limit]:[mode,limit])).all();
   return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true,allTime:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
@@ -30,6 +30,8 @@ export async function onRequestPost({request,env}){
  if(mode==="sprint"||!validMode(mode)||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>500)
   return json({error:"Use a nickname (2–20 letters/numbers) and a valid score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
+ // Disallowed leaderboard entries cannot be submitted again.
+ if(["tttt","tttttttt"].includes(nickname.toLowerCase()))return json({error:"This nickname is not available. Please choose another."},400);
  // Always moderate on the server: browser-only filters can be bypassed.
  try {
   if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:"moderate",normalizeUnicode:true}).containsProfanity)
