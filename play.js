@@ -210,6 +210,7 @@ $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;worki
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
+$('play-promotion').addEventListener('cancel',e=>{e.preventDefault();pending=null;closePromotion();selected=null;paint()});
 document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.bot;
  if(selectedBot===id){selectedBot=null;$('play-bot-options').hidden=true;}
