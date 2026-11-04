@@ -1,3 +1,5 @@
+/play.html
+  Cache-Control: no-store, max-age=0, must-revalidate
 /analysis.html
   Cache-Control: no-store, max-age=0, must-revalidate
 /player-prep.html
