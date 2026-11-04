@@ -19,6 +19,7 @@ function seededRoll(runId,level){
  };
 }
 const duration=180000;
+let lastRunCleanup=0;
 let schemaPromise=null;
 async function ready(db){
  if(schemaPromise)return schemaPromise;
@@ -72,7 +73,12 @@ export async function onRequestPost({request,env}){
   if(action==='start'||action==='submit')await ready(db);
   const now=Date.now();
   if(action==='start'){
-   await db.prepare('DELETE FROM knight_maze_runs WHERE started_at < ?').bind(now-86400000).run();
+   // Purge expired runs at most once per isolate per hour.
+   if(now-lastRunCleanup>3600000){
+    lastRunCleanup=now;
+    try{await db.prepare('DELETE FROM knight_maze_runs WHERE started_at < ?').bind(now-86400000).run()}
+    catch{lastRunCleanup=0}
+   }
    const id=crypto.randomUUID(),m=maze(1,id);
    await db.prepare('INSERT INTO knight_maze_runs(id,started_at,level,position,goal,blocked,score) VALUES(?,?,?,?,?,?,0)').bind(id,now,1,m.position,m.goal,JSON.stringify(m.blocked)).run();
    return json({run:{id,level:1,score:0,position:m.position,goal:m.goal,blocked:m.blocked,endsAt:now+duration,finished:false,preview:maze(2,id),lookahead:futureLevels(id,3)}});
