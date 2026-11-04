@@ -303,3 +303,34 @@
 .analysis-three-column .analysis-engine-column .engine-line-moves{
  min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;
 }
+
+/* 2026-11-04: reserve the board's actual rendered width before positioning the engine.
+   Do not let the right card float over the last chessboard files. */
+@media(min-width:1550px){
+ main.tool-page:has(.analysis-three-column){width:calc(100% - 40px)!important;max-width:2000px!important}
+ main.tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:minmax(270px,1fr) minmax(0,740px) minmax(360px,1.25fr)!important;
+  gap:16px!important;
+ }
+ .analysis-three-column>.analysis-controls-panel{min-width:0!important;max-width:100%!important}
+ .analysis-three-column>.analysis-board-column{
+  min-width:0!important;max-width:740px!important;width:100%!important;
+  justify-self:center!important;
+ }
+ .analysis-three-column>.analysis-engine-column{
+  min-width:0!important;width:100%!important;max-width:100%!important;
+  justify-self:stretch!important;align-self:start!important;
+ }
+ .analysis-three-column>.analysis-engine-column>.live-notation{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+ }
+}
+/* Keep three columns only if they can actually fit; otherwise stack the engine. */
+@media(min-width:701px) and (max-width:1549px){
+ main.tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:minmax(215px,260px) minmax(0,1fr)!important;
+ }
+ .analysis-three-column>.analysis-engine-column{
+  grid-column:2!important;grid-row:2!important;
+ }
+}
