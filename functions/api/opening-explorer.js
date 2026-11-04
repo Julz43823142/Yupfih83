@@ -29,7 +29,7 @@ export async function onRequestGet({request,context}) {
    if(!upstream.ok)throw Error('Upstream HTTP '+upstream.status);
    const raw=await upstream.text();let result;
    try{result=JSON.parse(raw)}catch{
-    for(const line of raw.split(/\\r?\\n/).reverse()){
+    for(const line of raw.split(/\r?\n/).reverse()){
      try{const candidate=JSON.parse(line);if(Array.isArray(candidate.moves)){result=candidate;break}}catch{}
     }
    }
