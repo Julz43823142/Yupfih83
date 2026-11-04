@@ -15,7 +15,7 @@ export async function onRequestGet({request}){
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
     try{
      const r=await fetch(source,{headers:{Accept:'text/plain'},signal:controller.signal});
-     if(r.ok){const body=await r.text();if(body.startsWith('eco\\tname\\tpgn'))return body}
+     if(r.ok){const body=await r.text();if(body.startsWith('eco\tname\tpgn'))return body}
     }catch{}finally{clearTimeout(timer)}
    }
    throw Error('Opening catalogue unavailable');
