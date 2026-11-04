@@ -662,7 +662,7 @@ function renderPlayer(profile, stats, username) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
     const avatar = add(header, "img", "player-avatar");
-    avatar.src = '/api/avatar?url=' + encodeURIComponent(profile.avatar);
+    avatar.src = profile.avatar;
     avatar.alt = "Player avatar";
     avatar.referrerPolicy = "no-referrer";
   }
@@ -749,7 +749,7 @@ async function loadSampleAvatars(){
     try{
       const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
       if(typeof profile.avatar==="string"&&profile.avatar.startsWith("https://"))
-        sources.push('/api/avatar?url='+encodeURIComponent(profile.avatar));
+        sources.push(profile.avatar);
     }catch(error){console.warn("Chess.com sample avatar lookup failed",username,error);}
     if(fallback&&!sources.includes(fallback))sources.push(fallback);
     if(image.getAttribute("src")&&!sources.includes(image.getAttribute("src")))
@@ -902,7 +902,7 @@ async function load(user){
 }
 form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
 document.querySelectorAll('.sample-button').forEach(button=>button.addEventListener('click',()=>{const user=(button.dataset.username||'').toLowerCase();if(user)load(user)}));
-const saved=new URLSearchParams(location.search).get('review');
+const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
 })();
 
