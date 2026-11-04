@@ -7,7 +7,7 @@ const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'�
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
 let completedRun=null,verifiedSessionPromise=null,proofChain=Promise.resolve(),proofError=null;
-let reviewItems=[],reviewing=false,reviewIndex=-1,hintStage=0,hintRevealed=false;
+let reviewItems=[],reviewing=false,reviewIndex=-1,hintStage=0,hintRevealed=false,postRunSnapshot=null;
 const isTraining=()=>mode==='random'||mode==='custom';
 function showSaveScore(visible){
  $('puzzle-save-run').hidden=!visible;
@@ -355,6 +355,7 @@ function updateErrorReview(){
 }
 function finishRun(text){
  const score=solved;
+ postRunSnapshot={fen:position.fen(),solution:[...solution],step,puzzle,lastMove,orientation,wrongSquare};
  playSound('end');
  stopTimers();clearPrefetch();closePromotion();runActive=false;reviewing=false;
  ready=false;busy=false;requestId++;
@@ -459,9 +460,17 @@ function leaveReview(){
  if(!reviewing)return;
  reviewing=false;reviewIndex=-1;ready=false;busy=false;selected=null;
  closePromotion();requestId++;stopTimers();clearPrefetch();resetHint();
+ if(postRunSnapshot){
+  position=new Chess(postRunSnapshot.fen);
+  solution=[...postRunSnapshot.solution];step=postRunSnapshot.step;
+  puzzle=postRunSnapshot.puzzle;lastMove=postRunSnapshot.lastMove;
+  wrongSquare=postRunSnapshot.wrongSquare;
+  orientation=postRunSnapshot.orientation;board.dataset.orientation=orientation;
+  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
+ }
  $('puzzle-heading').textContent=MODES[mode][0];
  $('puzzle-subtitle').textContent=MODES[mode][1];
- say('Select any missed puzzle below. Your final score stays '+(completedRun?.score??solved)+'.');
+ say('Select another missed puzzle below. Your final score stays '+(completedRun?.score??solved)+'.');
  buttons();draw();
 }
 function revealErrors(){
@@ -501,7 +510,7 @@ function showHint(){
 }
 function switchMode(next){
  if(!MODES[next])return;
- completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;resetHint();
+ completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
  $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;
  clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
 
@@ -546,7 +555,7 @@ $('puzzle-reveal-errors').onclick=()=>{
 };
 $('puzzle-start').onclick=()=>{
  if(runActive||reviewing||(mode!=='sprint'&&mode!=='survival'))return;
- stopTimers();completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;resetHint();
+ stopTimers();completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
  $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;proofError=null;proofChain=Promise.resolve();verifiedSessionPromise=verifiedRequest({action:'start',mode:mode==='sprint'?'sprint'+sprintMinutes:'survival'});verifiedSessionPromise.catch(()=>{});solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
