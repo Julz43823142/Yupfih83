@@ -141,7 +141,10 @@
 @media(max-width:680px){.puzzle-ranking{grid-template-columns:1fr}}
 
 /* Manual nickname reporting from the puzzle rankings. */
-.rank-report{color:#8de6f7;text-decoration:underline;text-underline-offset:2px;font-size:11px;font-weight:700;white-space:nowrap;flex:none}
-.rank-report:hover{color:#fff}
-.rank-report:focus-visible{outline:2px solid #69ecff;outline-offset:3px}
+.rank-report{color:#ff5757;text-decoration:underline;text-underline-offset:2px;font-size:11px;font-weight:700;white-space:nowrap;flex:none}
+.rank-report:hover{color:#ff8989}
+.rank-report:focus-visible{outline:2px solid #ff5757;outline-offset:3px}
 .puzzle-top100-table td .rank-report{font-size:12px}
+
+.rank-report{background:transparent;border:0;padding:2px 0;cursor:pointer;font-family:inherit}
+.rank-report:disabled{cursor:default;opacity:.65}
