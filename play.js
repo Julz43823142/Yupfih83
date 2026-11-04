@@ -248,6 +248,18 @@ document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEvent
  else{selectedBot=id;$('play-bot-options').hidden=false;$('play-selected-name').textContent=id==='mikhail'?'Mikhail Hal':id==='ominous'?'ominousgenius':id==='rocket'?'ROCKETLEAGUE':id==='cashojf3r'?'cashojf3r':'Bot';$('play-selected-elo').textContent=ratings[id]+' Elo';}
  document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
 }));
+$('play-chat-form').addEventListener('submit',event=>{
+ event.preventDefault();
+ const input=$('play-chat-input'),message=input.value.trim();
+ if(!message)return;
+ input.value='';
+ const log=$('play-bot-chat'),entry=document.createElement('p');
+ entry.className='play-chat-message play-chat-user';
+ const label=document.createElement('strong');label.textContent='You: ';
+ entry.append(label,document.createTextNode(message));log.append(entry);
+ const replies=/hello|hi|hey|hoi/i.test(message)?['Hey! Ready to play?','Hi! Good luck!']:/queen|gambit|opening/i.test(message)?['I like fighting for the center.','The Queen’s Gambit starts with 1.d4 d5 2.c4.']:/attack|king|check/i.test(message)?['I love tactical chess!','Keep your king safe!']:['Interesting! Your move.','Let’s see what happens on the board.','Good luck!'];
+ botChat(replies[Math.floor(Math.random()*replies.length)]);
+});
 paint();
 
 // Keep the difficulty selector compact: only one tier is expanded at a time.
