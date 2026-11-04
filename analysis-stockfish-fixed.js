@@ -955,3 +955,21 @@ $('review-gif').addEventListener('click',async()=>{
 });
 
 render();
+// A puzzle-error review can open this analysis board with its original FEN.
+// No analysis is started automatically; the visitor controls the engine toggle.
+const linkedPuzzleFen=new URLSearchParams(window.location.search).get('fen');
+if(linkedPuzzleFen&&linkedPuzzleFen.length<=130){
+ try{
+  const fen=new Chess(linkedPuzzleFen).fen();
+  history=[fen];cursor=0;sanMoves=[];reviewResults=[];reviewEvaluations=[];
+  selected=null;arrows=[];blueSquares.clear();positionClocks=[];
+  mode='fen';
+  document.querySelectorAll('[data-mode]').forEach(button=>button.classList.toggle('selected',button.dataset.mode==='fen'));
+  $('import-value').value=fen;
+  $('import-value').placeholder='Paste FEN here';
+  $('import-status').textContent='Puzzle position loaded. Enable Stockfish to analyse it.';
+  render();requestAnalysis();
+ }catch{
+  $('import-status').textContent='The linked puzzle position could not be loaded.';
+ }
+}
