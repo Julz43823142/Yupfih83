@@ -1,4 +1,4 @@
-import {Chess} from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
@@ -31,7 +31,7 @@ function paint(){
   cell.style.order=orientation==='black'?63-idx:idx;
   if(cell.dataset.piece!==key){
    cell.dataset.piece=key;cell.replaceChildren();
-   if(pc){const img=document.createElement('img');img.className='chess-piece';img.alt=pc.color+' '+pc.type;img.draggable=false;img.src='https://lichess1.org/assets/piece/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.onerror=()=>{img.remove();cell.textContent=pieces[pc.color][pc.type]};cell.append(img)}
+   if(pc){const img=document.createElement('img');img.className='chess-piece';img.alt=pc.color+' '+pc.type;img.draggable=false;img.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.onerror=()=>{img.remove();cell.textContent=pieces[pc.color][pc.type]};cell.append(img)}
   }else cell.querySelectorAll('.legal-dot,.capture-ring').forEach(x=>x.remove());
   cell.classList.toggle('selected',selected===sq);
   cell.classList.toggle('last',!!last&&(last.from===sq||last.to===sq));
