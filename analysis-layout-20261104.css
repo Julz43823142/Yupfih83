@@ -190,3 +190,51 @@
 .analysis-three-column .analysis-engine-column .analysis-engine-header>label:has(input[role="switch"]) input[role="switch"]{
  width:42px!important;height:24px!important;min-width:42px!important;
 }
+
+/* Wider right-hand rail; maintain its right edge while extending left. */
+@media(min-width:1300px){
+ .tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:240px minmax(0,1fr) 405px!important;
+  column-gap:12px!important;
+ }
+ .analysis-three-column>.analysis-board-column{
+  max-width:min(700px,100%)!important;
+  justify-self:center!important;
+ }
+}
+@media(min-width:1201px) and (max-width:1299px){
+ .tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:225px minmax(0,1fr) 355px!important;column-gap:12px!important;
+ }
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch{
+ display:flex!important;flex-flow:row nowrap!important;align-items:center!important;
+ justify-content:flex-start!important;gap:14px!important;
+ width:100%!important;height:32px!important;min-height:32px!important;
+ padding:0!important;margin:0!important;
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch>input[type="checkbox"]{
+ appearance:none!important;-webkit-appearance:none!important;
+ display:block!important;position:relative!important;
+ flex:0 0 46px!important;width:46px!important;min-width:46px!important;max-width:46px!important;
+ height:25px!important;min-height:25px!important;max-height:25px!important;
+ margin:0!important;padding:0!important;border-radius:99px!important;
+ border:1px solid #47758c!important;background:#244359!important;
+ box-sizing:border-box!important;cursor:pointer!important;transform:none!important;
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch>input[type="checkbox"]::before{
+ content:""!important;position:absolute!important;top:3px!important;left:3px!important;
+ width:17px!important;height:17px!important;border-radius:50%!important;
+ background:#a9c1d0!important;transform:none!important;transition:left .15s ease!important;
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch>input[type="checkbox"]:checked{
+ background:#087fa7!important;border-color:#36b6df!important;
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch>input[type="checkbox"]:checked::before{
+ left:24px!important;background:#b8f2ff!important;
+}
+.analysis-three-column .analysis-engine-header>label.analysis-uniform-switch>.analysis-switch-caption{
+ display:block!important;position:static!important;flex:1 1 auto!important;
+ margin:0!important;padding:0!important;white-space:nowrap!important;
+ font-size:12px!important;line-height:20px!important;
+}
