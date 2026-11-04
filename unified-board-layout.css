@@ -64,8 +64,8 @@ body{min-height:100vh}
 }
 @media(max-width:1099px){
  .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
- .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:1!important}
- .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:1!important}
  .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:3!important}
  .tool-page .tool-card:first-of-type>.live-notation{grid-column:1!important;grid-row:4!important;max-height:none!important}
  .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:1!important;grid-row:5!important}
