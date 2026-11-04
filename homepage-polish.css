@@ -353,3 +353,64 @@ main>.results{
   transform:translateX(-150px)!important;
  }
 }
+
+
+/* Consistent, larger example report cards for both featured players. */
+main > .hero > .sample-section .sample-options {
+  align-items: stretch !important;
+}
+main > .hero > .sample-section .sample-button {
+  display: grid !important;
+  grid-template-columns: 88px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 18px !important;
+  align-items: center !important;
+  min-height: 138px !important;
+  padding: 18px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+main > .hero > .sample-section .sample-avatar {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  width: 88px !important;
+  height: 88px !important;
+}
+main > .hero > .sample-section .sample-player-name {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+}
+main > .hero > .sample-section .sample-player-handle {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+main > .hero > .sample-section .sample-view {
+  display: block !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+@media (min-width: 1100px) {
+  main > .hero > .sample-section {
+    width: 435px !important;
+    max-width: 435px !important;
+  }
+  main > .results {
+    padding-left: 505px !important;
+  }
+  main > .below-hero-layout.with-player-previews > .features {
+    margin-left: 505px !important;
+    width: calc(100% - 545px) !important;
+  }
+}
+@media (max-width: 1099px) {
+  main > .hero > .sample-section {
+    width: min(600px, calc(100% - 34px)) !important;
+  }
+}
