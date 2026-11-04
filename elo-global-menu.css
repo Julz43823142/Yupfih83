@@ -16,3 +16,8 @@ body.elo-subpage .tool-page>.tool-nav,body.elo-subpage .opening-page>.tool-nav{d
 /* Highlight the current tool before the dropdown is opened as well. */
 body.elo-subpage .elo-global-menu:has(a[aria-current="page"]) summary{border-color:#399bb8!important;background:#143f5b!important;color:#c6f5ff!important}
 body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#227fa5!important;box-shadow:inset 3px 0 #80efff!important;font-weight:800!important}
+
+/* Current section is visible even with the navigation dropdown closed. */
+body.elo-subpage .elo-global-menu:has(a[aria-current="page"]) summary{background:#175b7d!important;border-color:#69dff4!important;color:#e4faff!important;box-shadow:inset 3px 0 #7ceeff,0 0 12px #32a9cf30!important}
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#247da5!important;border-color:#74e8ff!important;color:#fff!important;box-shadow:inset 4px 0 #8cf2ff!important}
+body.elo-subpage .elo-global-menu summary{min-width:145px}
