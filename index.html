@@ -40,6 +40,12 @@
       <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/play.html"><img class="tool-icon" src="/assets/play-bots.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Play</span><span>→</span></a><a href="/analysis.html"><svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="26" height="26" role="img" aria-label="Analyse icon" fill="none"><rect x="10" y="10" width="72" height="76" rx="10" stroke="#F5FBFF" stroke-width="5"/><path fill="#F5FBFF" d="M22 23h17v17H22zm34 0h17v17H56zM39 40h17v17H39zM22 57h17v17H22zM56 57h17v17H56z"/><circle cx="77" cy="76" r="19" fill="#071B30" stroke="#00DFF2" stroke-width="7"/><path d="m91 91 13 13" stroke="#00DFF2" stroke-width="7" stroke-linecap="round"/></svg><span class="tool-label">Analyse</span><span>→</span></a><a href="/player-prep.html"><img class="tool-icon" src="/assets/accuracy-target.svg?v=1" alt=""><span class="tool-label">Player Prep</span><span>→</span></a><a href="/puzzles.html"><img class="tool-icon" src="/assets/puzzles-approved.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Puzzles</span><span>→</span></a><a href="/minigames.html"><img class="tool-icon" src="/assets/minigames-tool.svg?v=2" width="26" height="26" alt="" loading="eager"><span class="tool-label">Minigames</span><span>→</span></a></aside></aside>
       
 
+      <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Hourly puzzle leaderboard">
+        <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong><span id="hero-puzzle-hour">Changes hourly</span></div>
+        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
+        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint5">View Top 50 →</a>
+        <p>Voluntary nicknames · Unverified scores</p>
+      </aside>
       <div class="hero-content">
         <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
         <h1>Analyze up to 5,000 games.<br><span>Discover the patterns.</span></h1>
@@ -78,24 +84,6 @@
       </div>
       <p id="sampleStatus" class="sample-status" role="status" aria-live="polite"></p>
     </section>
-    <section class="homepage-hourly-rankings" aria-label="Hourly puzzle leaderboards">
-      <h2>Puzzle Leaderboards · This Hour</h2>
-      <div class="homepage-hourly-grid">
-        <div><h3>Puzzle Sprint (5 min)</h3><ol id="home-sprint-rank"></ol><a href="/puzzle-top100.html?mode=sprint5">View Top 50</a></div>
-        <div><h3>Puzzle Survival</h3><ol id="home-survival-rank"></ol><a href="/puzzle-top100.html?mode=survival">View Top 50</a></div>
-      </div>
-      <p>Rankings reset hourly (UTC). Voluntary nicknames; scores are not independently verified.</p>
-    </section>
-    <style>
-    .homepage-hourly-rankings{margin:22px 0;padding:22px;border:1px solid #285777;border-radius:15px;background:#081e31;color:#d8effc}
-    .homepage-hourly-rankings h2{margin:0 0 15px;color:#69e3f5}
-    .homepage-hourly-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-    .homepage-hourly-grid>div{padding:14px;background:#103149;border-radius:12px}
-    .homepage-hourly-grid h3{margin:0 0 10px}.homepage-hourly-grid ol{padding-left:27px;min-height:34px}
-    .homepage-hourly-grid li{padding:4px 0}.homepage-hourly-grid a{color:#6be5f4}
-    .homepage-hourly-rankings p{color:#a5c8db;font-size:12px}
-    @media(max-width:620px){.homepage-hourly-grid{grid-template-columns:1fr}}
-    </style>
     <section class="features">
       <div class="feature-card">
         <img class="feature-illustration" src="./assets/opening-explorer.svg?v=1" alt="Opening Explorer icon" width="112" height="112" loading="lazy">
@@ -139,5 +127,39 @@
    }
   })();
   </script>
+<style>
+.hero .hero-puzzle-ranking{position:absolute;left:clamp(20px,3vw,55px);top:24px;z-index:3;background:rgba(6,25,44,.96);border:1px solid #275a7b;border-radius:14px;padding:18px;color:#eaf7ff;box-sizing:border-box;max-width:calc(100vw - 40px)}
+.hero-puzzle-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;color:#57e4f5}
+.hero-puzzle-heading strong{font-size:17px}.hero-puzzle-heading span{font-size:11px;color:#a9cde0}
+.hero .hero-puzzle-ranking ol{margin:14px 0 12px;padding-left:27px;display:grid;gap:5px}
+.hero .hero-puzzle-ranking li{padding:5px 3px;font-size:13px}
+.hero .hero-puzzle-ranking a{color:#73e4f7;font-weight:750}
+.hero .hero-puzzle-ranking p{color:#a3c3d6;font-size:11px;margin:10px 0 0}
+@media(max-width:1099px){.hero .hero-puzzle-ranking{position:relative;left:auto;top:auto;order:2;margin:15px auto;width:min(480px,calc(100% - 34px))}}
+</style>
+<script>
+(()=>{
+ const title=document.getElementById('hero-puzzle-title'),list=document.getElementById('hero-puzzle-list'),more=document.getElementById('hero-puzzle-more'),label=document.getElementById('hero-puzzle-hour');
+ let lastMode='';
+ async function update(){
+  // Switch the displayed leaderboard every UTC hour. Scores remain separate,
+  // and the existing hourly scoring windows are unchanged.
+  const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint5':'survival';
+  if(mode===lastMode)return;lastMode=mode;
+  title.textContent=mode==='sprint5'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
+  label.textContent='Alternates hourly (UTC) · All-time scores';
+  more.href='/puzzle-top100.html?mode='+mode;
+  list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
+  try{
+   const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
+   if(!r.ok)throw Error('Unavailable');
+   list.replaceChildren();
+   if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
+   for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+  }catch{list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
+ }
+ update();setInterval(update,30000);
+})();
+</script>
 </body>
 </html>
