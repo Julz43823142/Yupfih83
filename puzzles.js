@@ -6,7 +6,7 @@ const MODES={random:['Random Puzzle','Train with a random position.'],custom:['C
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
-let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,lastRun=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
 let soundOn=true,audioCtx=null;
@@ -265,7 +265,7 @@ function play(from,to,promotion=null){
 }
 function switchMode(next){
  if(!MODES[next])return;
- requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastRun=null;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
+ requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
@@ -297,7 +297,7 @@ $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='cu
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();lastRun=null;
+ stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
