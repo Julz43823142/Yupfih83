@@ -366,7 +366,7 @@ function finishRun(text){
  say(text+' Final score: '+score+' solved.','success');
  stats();buttons();draw();
 }
-function mistake(to){
+function mistake(to,attempt=null){
  wrongSquare=to;draw();
  misses++;stats();
  if(!runActive){
@@ -378,7 +378,7 @@ function mistake(to){
  if(puzzle?.startFen&&solution.length){
   reviewItems.push({
    id:puzzle.id,fen:puzzle.startFen,line:[...solution],rating:puzzle.rating,
-   setup:puzzle.setup,puzzleKey:puzzle.puzzleKey
+   setup:puzzle.setup,puzzleKey:puzzle.puzzleKey,attempt
   });
  }
  if(misses>=3){finishRun('Three mistakes. Game over!');return}
@@ -398,7 +398,10 @@ function play(from,to,promotion=null){
  try{completedMove=position.move({from,to,promotion:chosen})}catch{return false}
  if(!completedMove)return false;
  const actual=from+to+(completedMove.promotion||'');
- if(actual!==expected&&!position.isCheckmate()){position.undo();mistake(to);return false}
+ if(actual!==expected&&!position.isCheckmate()){
+  const attempt={from,to,san:completedMove.san};
+  position.undo();mistake(to,attempt);return false;
+ }
  unlockAudio();soundForMove(completedMove);closePromotion();
  lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;
  // In practice mode, paint the final position BEFORE showing Puzzle solved.
@@ -443,13 +446,13 @@ function enterReview(index){
  reviewing=true;reviewIndex=index;
  puzzle={id:item.id,startFen:item.fen,setup:item.setup,rating:item.rating,puzzleKey:item.puzzleKey};
  solution=[...item.line];position=new Chess(item.fen);step=0;
- ready=true;busy=false;selected=null;wrongSquare=null;lastMove=item.setup;
+ ready=true;busy=false;selected=null;wrongSquare=item.attempt?.to||null;lastMove=item.setup;
  arrows.length=0;highlights.clear();
  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  $('puzzle-heading').textContent='Review mistake '+(index+1);
  $('puzzle-subtitle').textContent='Practice this position. Your original score stays '+(completedRun?.score??solved)+'.';
- say('Find the right move. Retry or use Hint twice to reveal the answer.');
+ say((item.attempt?.san?'Your move was '+item.attempt.san+'. ':'')+'Find the solution. Retry or use Hint twice.');
  stats();buttons();draw();
 }
 function leaveReview(){
@@ -469,7 +472,7 @@ function revealErrors(){
   const name=document.createElement('strong');
   name.textContent='Wrong puzzle '+(index+1);
   const rating=document.createElement('small');
-  rating.textContent='Puzzle Elo '+(item.rating||'unknown');
+  rating.textContent='Puzzle Elo '+(item.rating||'unknown')+(item.attempt?.san?' · Your move: '+item.attempt.san:'');
   const actions=document.createElement('div');actions.className='puzzle-error-entry-actions';
   const retry=document.createElement('button');retry.type='button';retry.textContent='Try again';
   retry.addEventListener('click',()=>enterReview(index));
