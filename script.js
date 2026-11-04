@@ -750,28 +750,8 @@ document.querySelectorAll(".sample-button[data-username]").forEach(example => {
 });
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
-  usernameInput.value=exampleUsername;
-  results.classList.remove("hidden");
-  const panel=document.getElementById("v87-review");
-  panel.replaceChildren();
-  const note=document.createElement("div");
-  note.className="example-preview-note";
-  const title=document.createElement("h3");title.textContent="Example player profile";
-  const message=document.createElement("p");
-  message.textContent="Public Chess.com profile and ratings. This is not a precomputed game analysis. A full review is available on demand.";
-  const action=document.createElement("button");action.type="button";
-  action.textContent="Run full game analysis";action.className="sample-live-button";
-  action.addEventListener("click",()=>form.requestSubmit());
-  note.append(title,message,action);panel.append(note);
-  const cacheKey="eloscanner-example-v1-"+exampleUsername;
-  let cached=null;
-  try{const entry=JSON.parse(sessionStorage.getItem(cacheKey)||"null");if(entry&&Date.now()-entry.savedAt<900000)cached=entry.data;}catch{}
-  const ready=cached?Promise.resolve(cached):exampleProfiles.get(exampleUsername);
-  ready.then(data=>{
-    playerCard.replaceChildren();
-    renderPlayer(data.profile,data.stats,exampleUsername);
-    statusText.textContent="Example profile ready.";
-  }).catch(error=>{statusText.textContent="Example profile unavailable: "+error.message;});
+ usernameInput.value=exampleUsername;
+ requestAnimationFrame(()=>form.requestSubmit());
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -895,5 +875,6 @@ form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();
 
 const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
+else if(document.body.dataset.examplePlayer)load(document.body.dataset.examplePlayer.toLowerCase());
 })();
 
