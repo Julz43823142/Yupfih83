@@ -35,7 +35,7 @@ function recordVerifiedSolve(){
  proofChain.catch(()=>{});
 }
 
-let deadline=0,startedAt=0,tick=null,auto=null,replyFrame=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,replyFrame=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white',boardFlipped=false;const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
 let soundOn=true,audioCtx=null;
@@ -98,10 +98,10 @@ function buttons(){
  $('puzzle-stop').hidden=!challenge||!runActive;
  $('puzzle-next').hidden=challenge;
  $('puzzle-next').disabled=busy;
- $('puzzle-hint').hidden=runActive||(!reviewing&&challenge);
- $('puzzle-hint').disabled=!ready||busy||hintStage>=2;
- $('puzzle-retry').hidden=runActive||(!reviewing&&challenge);
- $('puzzle-retry').disabled=!puzzle||busy;
+ $('puzzle-hint').hidden=false;
+ $('puzzle-hint').disabled=runActive||(!reviewing&&challenge)||!ready||busy||hintStage>=2;
+ $('puzzle-retry').hidden=false;
+ $('puzzle-retry').disabled=runActive||(!reviewing&&challenge)||!puzzle||busy;
  $('puzzle-review-back').hidden=!reviewing;
  $('puzzle-start').textContent=mode==='sprint'?'Start '+sprintMinutes+'-minute Sprint':'Start Survival';
  $('puzzle-sprint-settings').hidden=mode!=='sprint';
@@ -117,7 +117,7 @@ let lastBoardOrientation=null,lastArrowSignature=null;
 function draw(){
  const moves=selected&&ready&&!busy?position.moves({square:selected,verbose:true}):[];
  const legalBySquare=new Map(moves.map(m=>[m.to,m]));
- const flip=orientation!==lastBoardOrientation;
+ const flip=board.dataset.orientation!==lastBoardOrientation;
  for(const [sq,cell] of cells){
   const pc=position.get(sq),key=pc?pc.color+pc.type:'';
   if(cell.dataset.piece!==key){
@@ -131,7 +131,7 @@ function draw(){
   }else cell.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
   if(flip){
    const whiteIndex=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
-   cell.style.order=orientation==='black'?63-whiteIndex:whiteIndex;
+   cell.style.order=board.dataset.orientation==='black'?63-whiteIndex:whiteIndex;
   }
   cell.classList.toggle('selected-square',selected===sq);
   cell.classList.toggle('recent-square',!!lastMove&&(lastMove.from===sq||lastMove.to===sq));
@@ -140,17 +140,17 @@ function draw(){
   const legal=legalBySquare.get(sq);
   if(legal){const dot=document.createElement('span');dot.className=pc||legal.flags.includes('e')?'legal-capture-ring':'legal-move-dot';cell.append(dot)}
  }
- lastBoardOrientation=orientation;
+ lastBoardOrientation=board.dataset.orientation;
  // Rebuild arrows only when they actually change; selection and piece motion
  // should not recreate the entire SVG annotation layer.
- const signature=orientation+'|'+(lastMove?lastMove.from+lastMove.to:'')+'|'+JSON.stringify(arrows);
+ const signature=board.dataset.orientation+'|'+(lastMove?lastMove.from+lastMove.to:'')+'|'+JSON.stringify(arrows);
  if(signature!==lastArrowSignature){
   board.querySelector('.arrows')?.remove();
   if(lastMove||arrows.length){
    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
    svg.classList.add('arrows');svg.setAttribute('viewBox','0 0 800 800');
    svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
-   if(orientation==='black')svg.style.transform='rotate(180deg)';
+   if(board.dataset.orientation==='black')svg.style.transform='rotate(180deg)';
    if(lastMove)appendChessArrow(svg,lastMove.from,lastMove.to,'#ff962f',.7);
    for(const [from,to,color] of arrows)appendChessArrow(svg,from,to,color,.72);
    board.append(svg);
@@ -308,7 +308,7 @@ async function load(kind=mode){
   position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
   seenPositions.add(p.puzzleKey);
   if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
-  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
   say(kind==='custom'?'Selected an available puzzle rated '+p.rating+'. Find the best move.':'Find the best move. Opponent replies are automatic.');
@@ -493,6 +493,12 @@ function revealErrors(){
  }
  $('puzzle-reveal-errors').textContent='Hide errors';
 }
+$('puzzle-flip').addEventListener('click',()=>{
+ boardFlipped=!boardFlipped;
+ board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
+ $('puzzle-flip').setAttribute('aria-pressed',String(boardFlipped));
+ selected=null;draw();
+});
 function showHint(){
  if(!ready||busy||runActive||(!reviewing&&!isTraining())||hintStage>=2)return;
  const uci=solution[step];if(!uci)return;
@@ -586,14 +592,15 @@ async function updateRanking(id,mode){
   if(!response.ok)throw Error(data.error||'Unavailable');
   list.replaceChildren();
   if(!data.entries.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No scores yet.';list.append(li);return}
-  for(const entry of data.entries){
-   const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('span');
+  data.entries.forEach((entry,index)=>{
+   const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span');
+   rank.className='rank-position';rank.textContent=String(index+1);
    name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
    const report=document.createElement('button');
    report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';
    report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;
-   li.append(name,score,report);list.append(li);
-  }
+   li.append(rank,name,score,report);list.append(li);
+  });
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
 }
 function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint');updateRanking('puzzle-survival-ranking','survival')}
