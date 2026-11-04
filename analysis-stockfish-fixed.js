@@ -513,6 +513,27 @@ function renderNotation(){
   engineHeader.append(arrowToggleLabel);
   if(engineToggle)engineHeader.append(engineToggle);
   panel.prepend(engineHeader);
+  // Normalize each toggle's DOM: one checkbox followed by one text span.
+  // In particular Stockfish's original label contains a bare text node.
+  const normalizeAnalysisSwitches=()=>{
+   for(const label of engineHeader.querySelectorAll('label')){
+    const input=label.querySelector('input[type="checkbox"]');
+    if(!input)continue;
+    input.setAttribute('role','switch');
+    let caption=label.querySelector(':scope > .analysis-switch-caption');
+    if(!caption){
+     const captionText=Array.from(label.childNodes).filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join(' ').trim();
+     for(const n of Array.from(label.childNodes))if(n.nodeType===Node.TEXT_NODE)n.remove();
+     caption=document.createElement('span');caption.className='analysis-switch-caption';
+     caption.textContent=captionText||label.querySelector('span')?.textContent||input.getAttribute('aria-label')||'Toggle';
+     for(const span of Array.from(label.children))if(span!==input)span.remove();
+     label.append(caption);
+    }
+    label.classList.add('analysis-uniform-switch');
+   }
+  };
+  normalizeAnalysisSwitches();
+  new MutationObserver(normalizeAnalysisSwitches).observe(engineHeader,{childList:true});
   // All analysis toggles live in the right-hand engine header.
   boardTop.remove();
   panel.insertBefore(enginePanel,$('opening-name'));
