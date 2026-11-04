@@ -16,9 +16,8 @@ export async function onRequestGet({request,env}){
  try{
   await dbReady(db);
   const current=hour();
-  await db.prepare("DELETE FROM puzzle_hourly_scores WHERE hour < ?").bind(current-1).run();
-  const rows=await db.prepare("SELECT nickname,score FROM puzzle_hourly_scores WHERE hour=? AND mode=? ORDER BY score DESC,created_at ASC LIMIT ?").bind(current,mode,limit).all();
-  return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true});
+  const rows=await db.prepare("SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?").bind(mode,limit).all();
+  return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true,allTime:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
 }
 export async function onRequestPost({request,env}){
@@ -31,8 +30,6 @@ export async function onRequestPost({request,env}){
  try{
   await dbReady(db);
   const now=hour();
-  // Keep only the current and preceding hour; old nicknames expire automatically.
-  await db.prepare("DELETE FROM puzzle_hourly_scores WHERE hour < ?").bind(now-1).run();
   await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at) VALUES(?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at WHERE excluded.score > puzzle_hourly_scores.score").bind(now,mode,nickname,score,Date.now()).run();
   return json({ok:true,hour:now});
  }catch{return json({error:"Could not save score."},503)}
