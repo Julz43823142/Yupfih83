@@ -436,7 +436,7 @@ function resetCurrentPuzzle(){
  position=new Chess(puzzle.startFen);step=0;
  ready=true;busy=false;selected=null;wrongSquare=null;lastMove=puzzle.setup;
  arrows.length=0;highlights.clear();
- orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  say(reviewing?'Try this mistake again. Review has no effect on your score.':'Puzzle reset. Try again.');
  stats();buttons();draw();
@@ -449,7 +449,7 @@ function enterReview(index){
  solution=[...item.line];position=new Chess(item.fen);step=0;
  ready=true;busy=false;selected=null;wrongSquare=item.attempt?.to||null;lastMove=item.setup;
  arrows.length=0;highlights.clear();
- orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  $('puzzle-heading').textContent='Review mistake '+(index+1);
  $('puzzle-subtitle').textContent='Practice this position. Your original score stays '+(completedRun?.score??solved)+'.';
@@ -465,7 +465,7 @@ function leaveReview(){
   solution=[...postRunSnapshot.solution];step=postRunSnapshot.step;
   puzzle=postRunSnapshot.puzzle;lastMove=postRunSnapshot.lastMove;
   wrongSquare=postRunSnapshot.wrongSquare;
-  orientation=postRunSnapshot.orientation;board.dataset.orientation=orientation;
+  orientation=postRunSnapshot.orientation;board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  }
  $('puzzle-heading').textContent=MODES[mode][0];
@@ -519,7 +519,7 @@ function switchMode(next){
  if(!MODES[next])return;
  completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
  $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;
- clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
+ clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation=boardFlipped?'black':'white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
