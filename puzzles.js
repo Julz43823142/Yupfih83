@@ -209,24 +209,24 @@ function clearPrefetch(){
  if(prefetchTimer!==null)clearTimeout(prefetchTimer);
  prefetchTimer=null;
 }
-function prefetchNext(kind){
- if(!runActive||!ready||(kind!=='sprint'&&kind!=='survival'))return;
- const token=++prefetchToken,expectedSolved=solved+1,ratingFloor=lastChallengeRating;
- // Do the potentially expensive search AFTER the current board has had a
- // chance to paint; it never runs synchronously during a solved-puzzle transition.
+function prefetchNext(kind,first=false){
+ if(kind!=='sprint'&&kind!=='survival')return;
+ if(first?runActive||ready:!runActive||!ready)return;
+ const token=++prefetchToken,expectedSolved=first?0:solved+1,ratingFloor=lastChallengeRating;
+ // Do the expensive search in a separate task after the visible board can paint.
  prefetchTimer=setTimeout(async()=>{
   prefetchTimer=null;
   try{
    const candidate=decode(await getPuzzle(kind,nextTarget(kind,expectedSolved)));
-   if(token!==prefetchToken||!runActive||!ready||mode!==kind||
-      solved!==expectedSolved-1||lastChallengeRating!==ratingFloor)return;
+   if(token!==prefetchToken||mode!==kind||lastChallengeRating!==ratingFloor||
+      solved!==(first?0:expectedSolved-1))return;
+   if(first?runActive||ready:!runActive||!ready)return;
    prefetchedPuzzle={kind,expectedSolved,ratingFloor,candidate};
   }catch{
-   // Normal load() remains the fallback if the preview cannot be prepared.
+   // Loading a puzzle normally remains the fallback.
   }
  },0);
 }
-
 async function load(kind=mode){
  // Consume the validated preview synchronously when it matches this run.
  // No timeout, extra animation frame or async work is required in that case.
@@ -348,8 +348,11 @@ function switchMode(next){
   const isActive=tab.dataset.puzzleMode===next;tab.setAttribute('aria-selected',String(isActive));tab.tabIndex=isActive?0:-1;
  }
  stats();buttons();draw();
- if(mode==='sprint'||mode==='survival')say('Press Start when you are ready.');
- else load(next);
+ if(mode==='sprint'||mode==='survival'){
+  say('Press Start when you are ready.');
+  // The opening position is prepared while the player chooses Start.
+  prefetchNext(mode,true);
+ }else load(next);
 }
 document.querySelectorAll('[data-puzzle-mode]').forEach(tab=>{
  tab.addEventListener('click',()=>switchMode(tab.dataset.puzzleMode));
