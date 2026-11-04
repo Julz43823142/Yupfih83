@@ -54,3 +54,29 @@
 @media(max-width:1100px){.play-main-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:13px}.play-selector{padding:10px}.play-bots{gap:5px}.play-bot{min-height:96px;padding:7px 2px}.play-avatar{width:35px;height:35px;font-size:23px}.play-bot-info strong{font-size:10px}.play-bot-info small{font-size:10px}}
 @media(max-width:820px){.play-main-layout{grid-template-columns:1fr}.play-game{order:0}.play-selector{order:1}.play-board-card,.play-panel{max-width:660px}.play-selector{max-width:660px;width:100%;margin-inline:auto}.play-bot{min-height:105px}.play-avatar{width:43px;height:43px;font-size:28px}.play-bot-info strong{font-size:12px}.play-bot-info small{font-size:11px}}
 @media(max-width:450px){.play-main-layout{gap:15px}.play-selector{padding:8px}.play-bots{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.play-bot{min-height:90px;padding:5px 1px}.play-avatar{width:32px;height:32px;font-size:22px}.play-bot-info strong{font-size:9px}.play-bot-info small{font-size:9px}}
+
+/* Center the game board on the page itself, not inside an offset grid column.
+   Bot selection occupies the right rail on wide screens. */
+@media(min-width:1250px){
+ .play-page{width:min(1680px,calc(100% - 24px));position:relative}
+ .play-title{text-align:center}
+ .play-main-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,640px) minmax(0,1fr);gap:16px;align-items:start}
+ .play-game{grid-column:2;width:100%;min-width:0}
+ .play-board-card,.play-panel{max-width:none;width:100%;margin-inline:0}
+ .play-selector{grid-column:3;align-self:start;min-width:0;max-height:calc(100vh - 125px);overflow-y:auto;scrollbar-width:thin}
+ .play-bots{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .play-bot{min-height:87px}
+ .play-avatar{width:38px;height:38px;font-size:24px}
+ .play-bot-info strong{font-size:11px}
+ .play-bot-info small{font-size:11px}
+}
+@media(min-width:1250px) and (max-width:1450px){
+ .play-main-layout{grid-template-columns:minmax(0,1fr) minmax(0,590px) minmax(0,1fr);gap:12px}
+ .play-selector{padding:8px}
+ .play-bots{gap:5px}
+}
+@media(min-width:821px) and (max-width:1249px){
+ .play-main-layout{grid-template-columns:1fr;justify-items:center}
+ .play-game{width:min(100%,680px)}
+ .play-selector{width:min(100%,680px)}
+}
