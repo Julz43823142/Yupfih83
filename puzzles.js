@@ -7,6 +7,14 @@ const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'�
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
 let completedRun=null,verifiedSessionPromise=null,proofChain=Promise.resolve(),proofError=null;
+let reviewItems=[],reviewing=false,reviewIndex=-1,hintStage=0,hintRevealed=false,postRunSnapshot=null;
+const isTraining=()=>mode==='random'||mode==='custom';
+function showSaveScore(visible){
+ $('puzzle-save-run').hidden=!visible;
+ $('puzzles-layout').classList.toggle('has-save-score',Boolean(visible));
+}
+function resetHint(){hintStage=0;hintRevealed=false}
+
 async function verifiedRequest(payload){
  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Verification unavailable');return data;
@@ -76,6 +84,8 @@ function stats(){
  $('puzzle-solved-label').textContent=mode==='sprint'||mode==='survival'?'Score':'Solved';
  $('puzzle-lives-box').hidden=mode!=='sprint'&&mode!=='survival';
  $('puzzle-time-box').hidden=mode!=='sprint';
+ $('puzzle-errors-box').hidden=!isTraining();
+ $('puzzle-errors').textContent=misses;
  $('puzzle-lives').textContent='♥'.repeat(Math.max(0,3-misses))+'♡'.repeat(Math.min(3,misses));
  const sec=mode==='sprint'?(runActive?clock():sprintMinutes*60):0;
  $('puzzle-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
@@ -84,13 +94,18 @@ function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout
 function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';
- $('puzzle-start').hidden=!challenge||runActive;$('puzzle-stop').hidden=!challenge||!runActive;
- $('puzzle-next').hidden=challenge;$('puzzle-next').disabled=busy;
- $('puzzle-hint').hidden=challenge;
- $('puzzle-hint').disabled=!ready||busy;
+ $('puzzle-start').hidden=!challenge||runActive||reviewing;
+ $('puzzle-stop').hidden=!challenge||!runActive;
+ $('puzzle-next').hidden=challenge;
+ $('puzzle-next').disabled=busy;
+ $('puzzle-hint').hidden=runActive||(!reviewing&&challenge);
+ $('puzzle-hint').disabled=!ready||busy||hintStage>=2;
+ $('puzzle-retry').hidden=runActive||(!reviewing&&challenge);
+ $('puzzle-retry').disabled=!puzzle||busy;
+ $('puzzle-review-back').hidden=!reviewing;
  $('puzzle-start').textContent=mode==='sprint'?'Start '+sprintMinutes+'-minute Sprint':'Start Survival';
  $('puzzle-sprint-settings').hidden=mode!=='sprint';
- document.querySelectorAll('[data-duration]').forEach(b=>{b.disabled=runActive;b.setAttribute('aria-pressed',String(Number(b.dataset.duration)===sprintMinutes));});
+ document.querySelectorAll('[data-duration]').forEach(btn=>{btn.disabled=runActive||reviewing;btn.setAttribute('aria-pressed',String(Number(btn.dataset.duration)===sprintMinutes));});
 }
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),button=document.createElement('button');
@@ -148,6 +163,26 @@ attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selecte
 // Static, curated CC0 puzzle bank served by EloScanner itself.
 // No Lichess API calls are needed for standard play, including timed runs.
 let bankPromise=null;
+// Remember a bounded history of public puzzle IDs, not personal gameplay data.
+// Repeated reloads and switching modes no longer immediately recycle the same puzzle.
+const RECENT_KEY='eloscanner-recent-puzzles-v1',RECENT_LIMIT=950;
+const recentIds=(()=>{
+ try{
+  const data=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');
+  return Array.isArray(data)?data.filter(id=>typeof id==='string'&&id.length<=80).slice(-RECENT_LIMIT):[];
+ }catch{return []}
+})();
+const recentSet=new Set(recentIds);
+function rememberPuzzle(id){
+ seen.add(id);
+ if(recentSet.has(id)){
+  const index=recentIds.indexOf(id);if(index>=0)recentIds.splice(index,1);
+ }else recentSet.add(id);
+ recentIds.push(id);
+ while(recentIds.length>RECENT_LIMIT)recentSet.delete(recentIds.shift());
+ try{localStorage.setItem(RECENT_KEY,JSON.stringify(recentIds))}catch{}
+}
+
 async function getPuzzle(which,target=null){
  if(!bankPromise){
   bankPromise=fetch('/assets/puzzle-bank.json?v=1',{cache:'force-cache'}).then(async response=>{
@@ -169,9 +204,18 @@ async function getPuzzle(which,target=null){
    else candidates=candidates.filter(row=>row[3]>=lastChallengeRating);
    if(!candidates.length)throw Error('No harder unused puzzles remain in this session.');
   }
-  candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
-  candidates=candidates.slice(0,Math.min(which==='custom'?25:12,candidates.length));
+  // Choose broadly near the target instead of repeatedly sampling the same
+  // first twelve rows in a sorted Elo dataset.
+  const band=which==='custom'?180:320;
+  const nearby=candidates.filter(row=>Math.abs(row[3]-desired)<=band);
+  if(nearby.length>=6)candidates=nearby;
+  else{
+   candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
+   candidates=candidates.slice(0,Math.min(140,candidates.length));
+  }
  }
+ const fresh=candidates.filter(row=>!recentSet.has(String(row[0])));
+ if(fresh.length)candidates=fresh;
  for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
   const index=Math.floor(Math.random()*candidates.length);
   const [id,fen,moves,rating]=candidates.splice(index,1)[0];
@@ -250,6 +294,7 @@ async function load(kind=mode){
   !seen.has(prefetchedPuzzle.candidate.id)?prefetchedPuzzle.candidate:null;
  clearPrefetch();
  const generation=++requestId;
+ reviewing=false;resetHint();
  busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();
  if(!cached)say('Loading puzzle…');
  try{
@@ -257,10 +302,10 @@ async function load(kind=mode){
   if(cached)p=cached;
   else if(kind==='custom'){
    const target=Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200));
-   p=decode(await getPuzzle('next',target));
+   p=decode(await getPuzzle('custom',target));
   }else p=decode(await getPuzzle(kind,nextTarget(kind,solved)));
   if(generation!==requestId)return;
-  position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
+  position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
   seenPositions.add(p.puzzleKey);
   if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
   orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
@@ -285,36 +330,61 @@ async function load(kind=mode){
 }
 function finish(){
  if(runActive)recordVerifiedSolve();
- ready=false;solved++;
+ ready=false;
+ if(runActive)solved++;
+ else if(!reviewing&&!hintRevealed)solved++;
  if(!position.isCheckmate())playSound('mate');
  if(runActive){
   if(mode==='sprint'&&clock()<=0){finishRun('Time is up!');return}
-  // Absolutely no intentional pause: the prefetched board is shown now.
+  // Competitive runs switch directly to the preloaded next puzzle.
   void load(mode);
   return;
  }
- say('Correct! Puzzle solved.','success');stats();buttons();
- if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
+ if(reviewing)say('Review solved. Your final run score remains '+(completedRun?.score??solved)+'.','success');
+ else if(hintRevealed)say('Puzzle completed with the answer shown. No point added.','success');
+ else say('Correct! Puzzle solved.','success');
+ stats();buttons();
+ if(!reviewing)$('puzzle-next').textContent='Next Puzzle';
+}
+function updateErrorReview(){
+ const panel=$('puzzle-review-panel'),list=$('puzzle-error-list'),button=$('puzzle-reveal-errors');
+ panel.hidden=!reviewItems.length;
+ list.hidden=true;
+ list.replaceChildren();
+ button.textContent='Reveal errors ('+reviewItems.length+')';
 }
 function finishRun(text){
  const score=solved;
+ postRunSnapshot={fen:position.fen(),solution:[...solution],step,puzzle,lastMove,orientation,wrongSquare};
  playSound('end');
- stopTimers();clearPrefetch();closePromotion();runActive=false;ready=false;busy=false;requestId++;
-
+ stopTimers();clearPrefetch();closePromotion();runActive=false;reviewing=false;
+ ready=false;busy=false;requestId++;
  completedRun={mode:mode==='sprint'?'sprint'+sprintMinutes:'survival',score};
  $('puzzle-final-score').textContent='You solved '+score+' puzzle'+(score===1?'':'s')+'.';
-  $('puzzle-save-run').hidden=score<1;
-  $('puzzle-save-status').textContent='';
-  say(text+' Final score: '+score+' solved. You may optionally submit a nickname.','success');
+ showSaveScore(score>=1);
+ $('puzzle-save-status').textContent='';
+ updateErrorReview();
+ say(text+' Final score: '+score+' solved.','success');
  stats();buttons();draw();
 }
-function mistake(to){
+function mistake(to,attempt=null){
  wrongSquare=to;draw();
- if(!runActive){say('That is not the solution. Try another move.','error');return}
  misses++;stats();
+ if(!runActive){
+  say('That is not the solution. Try another move.','error');
+  return;
+ }
+ // Store this puzzle's original FEN and solution for optional practice
+ // AFTER the timed run. These snapshots never enter score verification.
+ if(puzzle?.startFen&&solution.length){
+  reviewItems.push({
+   id:puzzle.id,fen:puzzle.startFen,line:[...solution],rating:puzzle.rating,
+   setup:puzzle.setup,puzzleKey:puzzle.puzzleKey,attempt
+  });
+ }
  if(misses>=3){finishRun('Three mistakes. Game over!');return}
  ready=false;busy=true;say('Incorrect. '+(3-misses)+' lives remaining.','error');buttons();
- auto=setTimeout(()=>{if(runActive)load(mode)},700);
+ auto=setTimeout(()=>{if(runActive)load(mode)},140);
 }
 function play(from,to,promotion=null){
  if(!ready||busy)return false;
@@ -325,33 +395,124 @@ function play(from,to,promotion=null){
   say('Choose a piece to promote your pawn.');return false;
  }
  const chosen=promotion||'q';
- // Reuse the current chess position rather than parsing two duplicate FENs.
  let completedMove;
  try{completedMove=position.move({from,to,promotion:chosen})}catch{return false}
  if(!completedMove)return false;
  const actual=from+to+(completedMove.promotion||'');
- if(actual!==expected&&!position.isCheckmate()){position.undo();mistake(to);return false}
+ if(actual!==expected&&!position.isCheckmate()){
+  const attempt={from,to,san:completedMove.san};
+  position.undo();mistake(to,attempt);return false;
+ }
  unlockAudio();soundForMove(completedMove);closePromotion();
  lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;
- // Avoid rendering the solved board just before replacing it with the next puzzle.
- if(step>=solution.length||position.isCheckmate()){finish();return true}
+ // In practice mode, paint the final position BEFORE showing Puzzle solved.
+ // Competitive runs still skip this intermediate paint for instant transitions.
+ if(step>=solution.length||position.isCheckmate()){
+  if(!runActive)draw();
+  finish();return true;
+ }
  draw();busy=true;buttons();const current=requestId;
- // Respond on the next display frame instead of waiting a fixed 120ms.
  replyFrame=requestAnimationFrame(()=>{
   replyFrame=null;
   if(current!==requestId)return;
   const response=solution[step];
-  try{const reply=position.move({from:response.slice(0,2),to:response.slice(2,4),promotion:response[4]||'q'});soundForMove(reply)}
-  catch{busy=false;ready=false;say('Cannot play the automatic reply. Please load a new puzzle.','error');buttons();return}
+  try{
+   const reply=position.move({from:response.slice(0,2),to:response.slice(2,4),promotion:response[4]||'q'});
+   soundForMove(reply);
+  }catch{
+   busy=false;ready=false;say('Cannot play the automatic reply. Please retry this puzzle.','error');buttons();return;
+  }
   lastMove={from:response.slice(0,2),to:response.slice(2,4)};step++;busy=false;
-  if(step>=solution.length)finish();
-  else{draw();say('Correct. Find the next move.','success');buttons()}
+  if(step>=solution.length){
+   if(!runActive)draw();
+   finish();
+  }else{draw();say('Correct. Find the next move.','success');buttons()}
  });
  return true;
 }
+function resetCurrentPuzzle(){
+ if(runActive||!puzzle?.startFen)return;
+ requestId++;stopTimers();clearPrefetch();closePromotion();resetHint();
+ position=new Chess(puzzle.startFen);step=0;
+ ready=true;busy=false;selected=null;wrongSquare=null;lastMove=puzzle.setup;
+ arrows.length=0;highlights.clear();
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
+ say(reviewing?'Try this mistake again. Review has no effect on your score.':'Puzzle reset. Try again.');
+ stats();buttons();draw();
+}
+function enterReview(index){
+ const item=reviewItems[index];if(!item||runActive)return;
+ stopTimers();clearPrefetch();closePromotion();requestId++;resetHint();
+ reviewing=true;reviewIndex=index;
+ puzzle={id:item.id,startFen:item.fen,setup:item.setup,rating:item.rating,puzzleKey:item.puzzleKey};
+ solution=[...item.line];position=new Chess(item.fen);step=0;
+ ready=true;busy=false;selected=null;wrongSquare=item.attempt?.to||null;lastMove=item.setup;
+ arrows.length=0;highlights.clear();
+ orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
+ $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
+ $('puzzle-heading').textContent='Review mistake '+(index+1);
+ $('puzzle-subtitle').textContent='Practice this position. Your original score stays '+(completedRun?.score??solved)+'.';
+ say((item.attempt?.san?'Your move was '+item.attempt.san+'. ':'')+'Find the solution. Retry or use Hint twice.');
+ stats();buttons();draw();
+}
+function leaveReview(){
+ if(!reviewing)return;
+ reviewing=false;reviewIndex=-1;ready=false;busy=false;selected=null;
+ closePromotion();requestId++;stopTimers();clearPrefetch();resetHint();
+ if(postRunSnapshot){
+  position=new Chess(postRunSnapshot.fen);
+  solution=[...postRunSnapshot.solution];step=postRunSnapshot.step;
+  puzzle=postRunSnapshot.puzzle;lastMove=postRunSnapshot.lastMove;
+  wrongSquare=postRunSnapshot.wrongSquare;
+  orientation=postRunSnapshot.orientation;board.dataset.orientation=orientation;
+  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
+ }
+ $('puzzle-heading').textContent=MODES[mode][0];
+ $('puzzle-subtitle').textContent=MODES[mode][1];
+ say('Select another missed puzzle below. Your final score stays '+(completedRun?.score??solved)+'.');
+ buttons();draw();
+}
+function revealErrors(){
+ const list=$('puzzle-error-list');list.replaceChildren();list.hidden=false;
+ for(let index=0;index<reviewItems.length;index++){
+  const item=reviewItems[index],entry=document.createElement('div');
+  entry.className='puzzle-error-entry';
+  const name=document.createElement('strong');
+  name.textContent='Wrong puzzle '+(index+1);
+  const rating=document.createElement('small');
+  rating.textContent='Puzzle Elo '+(item.rating||'unknown')+(item.attempt?.san?' · Your move: '+item.attempt.san:'');
+  const actions=document.createElement('div');actions.className='puzzle-error-entry-actions';
+  const retry=document.createElement('button');retry.type='button';retry.textContent='Try again';
+  retry.addEventListener('click',()=>enterReview(index));
+  const analysis=document.createElement('a');
+  analysis.href='/analysis.html?fen='+encodeURIComponent(item.fen);
+  analysis.target='_blank';analysis.rel='noopener noreferrer';
+  analysis.textContent='Analyse with Stockfish';
+  actions.append(retry,analysis);entry.append(name,rating,actions);list.append(entry);
+ }
+ $('puzzle-reveal-errors').textContent='Hide errors';
+}
+function showHint(){
+ if(!ready||busy||runActive||(!reviewing&&!isTraining())||hintStage>=2)return;
+ const uci=solution[step];if(!uci)return;
+ if(hintStage===0){
+  hintStage=1;selected=uci.slice(0,2);
+  draw();say('Hint: Look at the selected piece.');buttons();return;
+ }
+ hintStage=2;hintRevealed=true;selected=null;arrows.length=0;
+ arrows.push([uci.slice(0,2),uci.slice(2,4),'#ffb11d']);
+ const test=new Chess(position.fen()),moves=[];
+ for(const move of solution.slice(step)){
+  try{const played=test.move({from:move.slice(0,2),to:move.slice(2,4),promotion:move[4]||'q'});moves.push(played.san)}
+  catch{moves.push(move)}
+ }
+ draw();say('Answer: '+moves.join(' ')+' · Practice only, no point awarded.','success');buttons();
+}
 function switchMode(next){
  if(!MODES[next])return;
- completedRun=null;$('puzzle-save-run').hidden=true;
+ completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
+ $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;
  clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
@@ -384,10 +545,19 @@ document.querySelectorAll('[data-promote]').forEach(button=>button.addEventListe
 $('puzzle-promotion-cancel').onclick=()=>{closePromotion();selected=null;draw();say('Promotion cancelled. Choose a move.')};
 $('puzzle-next').onclick=()=>load(mode);
 $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='custom')load('custom')});
-$('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
+$('puzzle-hint').onclick=showHint;
+$('puzzle-retry').onclick=resetCurrentPuzzle;
+$('puzzle-review-back').onclick=leaveReview;
+$('puzzle-reveal-errors').onclick=()=>{
+ const list=$('puzzle-error-list');
+ if(!list.hidden){
+  list.hidden=true;$('puzzle-reveal-errors').textContent='Reveal errors ('+reviewItems.length+')';
+ }else revealErrors();
+};
 $('puzzle-start').onclick=()=>{
- if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();completedRun=null;$('puzzle-save-run').hidden=true;proofError=null;proofChain=Promise.resolve();verifiedSessionPromise=verifiedRequest({action:'start',mode:mode==='sprint'?'sprint'+sprintMinutes:'survival'});verifiedSessionPromise.catch(()=>{});solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
+ if(runActive||reviewing||(mode!=='sprint'&&mode!=='survival'))return;
+ stopTimers();completedRun=null;showSaveScore(false);reviewItems=[];reviewing=false;reviewIndex=-1;postRunSnapshot=null;resetHint();
+ $('puzzle-review-panel').hidden=true;$('puzzle-error-list').hidden=true;proofError=null;proofChain=Promise.resolve();verifiedSessionPromise=verifiedRequest({action:'start',mode:mode==='sprint'?'sprint'+sprintMinutes:'survival'});verifiedSessionPromise.catch(()=>{});solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
@@ -396,12 +566,12 @@ $('puzzle-start').onclick=()=>{
  stats();buttons();load(mode);
 };
 $('puzzle-stop').onclick=()=>{if(runActive)finishRun('Run ended.')};
-$('puzzle-sound-toggle').addEventListener('click',()=>{
- soundOn=!soundOn;const button=$('puzzle-sound-toggle');button.textContent=soundOn?'Sound: On':'Sound: Off';button.setAttribute('aria-pressed',String(soundOn));button.setAttribute('aria-label',soundOn?'Mute chess move sounds':'Enable chess move sounds');
+$('puzzle-sound-toggle').addEventListener('change',event=>{
+ soundOn=event.target.checked;
  if(soundOn)unlockAudio();
 });
 document.querySelectorAll('[data-duration]').forEach(button=>button.addEventListener('click',()=>{
- if(runActive)return;sprintMinutes=Number(button.dataset.duration)===3?3:5;stats();buttons();
+ if(runActive||reviewing)return;sprintMinutes=Number(button.dataset.duration)===3?3:5;stats();buttons();
 }));
 document.addEventListener('visibilitychange',()=>{if(runActive&&mode==='sprint'){stats();if(clock()<=0)finishRun('Time is up!')}});
 window.addEventListener('beforeunload',stopTimers);
