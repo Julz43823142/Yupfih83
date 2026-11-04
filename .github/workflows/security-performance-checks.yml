@@ -1,0 +1,31 @@
+name: Security and performance regression checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test endpoint JSON validation and cache policy
+        run: node scripts/test-api-security.mjs
+      - name: Check JavaScript syntax
+        run: |
+          node --check puzzles.js
+          node --check puzzle-pool-client.js
+          node --check lib/server-request-guard.js
+          node --check functions/api/puzzle-leaderboard.js
+          node --check functions/api/knight-maze.js
+          node --check functions/api/puzzle-report.js
+          node --check script.js
+          node --check analysis-stockfish-fixed.js

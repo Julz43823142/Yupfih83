@@ -1,15 +1,21 @@
+import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {checkProfanity} from 'glin-profanity';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
-const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
+const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
 const json=(data,status=200)=>Response.json(data,{status,headers});
 const hour=()=>Math.floor(Date.now()/3600000);
 const validMode=m=>["sprint","sprint3","sprint5","survival"].includes(m);
+let schemaPromise=null;
 async function dbReady(db){
+ if(schemaPromise)return schemaPromise;
+ schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_hourly_scores (hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(hour,mode,nickname))").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_runs (id TEXT PRIMARY KEY,mode TEXT NOT NULL,started_at INTEGER NOT NULL,score INTEGER NOT NULL DEFAULT 0,submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_solves (run_id TEXT NOT NULL,puzzle_id TEXT NOT NULL,PRIMARY KEY(run_id,puzzle_id))").run();
+ })().catch(error=>{schemaPromise=null;throw error});
+ return schemaPromise;
 }
 // Keep only the highest score per nickname and the best 110 nicknames (100 public, 10 reserves) in each
 // public ranking. Sprint 3 and Sprint 5 share one combined ranking.
@@ -77,7 +83,6 @@ export async function onRequestGet({request,env}){
  const limit=url.searchParams.get("limit")==="100"?100:10;
  try{
   await dbReady(db);
-  await pruneScores(db);
   const current=hour();
   const sprint=mode==="sprint";
   const sql=sprint?"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ('sprint3','sprint5') AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?":"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?";
@@ -87,7 +92,9 @@ export async function onRequestGet({request,env}){
 }
 export async function onRequestPost({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:"Leaderboard database not configured."},503);
- let data;try{data=await request.json()}catch{return json({error:"Invalid JSON"},400)}
+ const parsed=await readJsonPayload(request);
+ if(parsed.error)return json({error:parsed.error},parsed.status);
+ const data=parsed.data;
  const action=String(data?.action||'submit');
  if(action==='start'){
   const mode=String(data?.mode||'');if(!['sprint3','sprint5','survival'].includes(mode))return json({error:'Invalid game mode.'},400);
@@ -104,6 +111,10 @@ export async function onRequestPost({request,env}){
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
+   // A submitted proof must represent human-paced solving, not a script
+   // uploading hundreds of public puzzle answers immediately after starting.
+   // This is a modest aggregate limit, not a claim of tamper-proof gameplay.
+   if(elapsed<run.score*350)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
