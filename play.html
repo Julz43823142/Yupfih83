@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Play chess against computer bots on EloScanner. Choose a difficulty and practice your chess."><title>Play Bots | EloScanner</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3"><link rel="stylesheet" href="/style.css?v=20261103"><link rel="stylesheet" href="/play.css?v=7"><link rel="stylesheet" href="/elo-global-menu.css?v=3-active"><script src="/elo-global-menu.js?v=3-active" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Play chess against computer bots on EloScanner. Choose a difficulty and practice your chess."><title>Play Bots | EloScanner</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3"><link rel="stylesheet" href="/style.css?v=20261103"><link rel="stylesheet" href="/play.css?v=8-sidepanel"><link rel="stylesheet" href="/elo-global-menu.css?v=3-active"><script src="/elo-global-menu.js?v=3-active" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/unified-board-layout.css?v=1"></head>
 <body><header class="navbar play-navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a><nav class="play-nav" aria-label="Chess tools"><a href="/" >Home</a><a href="/play.html" aria-current="page">Play</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html">Puzzles</a><a href="/minigames.html">Minigames</a></nav><details class="mobile-chess-menu play-mobile-menu"><summary aria-label="Open menu">☰ Menu</summary><nav><a href="/">Home</a><a href="/play.html" aria-current="page">Play</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html">Puzzles</a><a href="/minigames.html">Minigames</a></nav></details></header>
 <main class="play-page"><h1 class="play-title">Play Bots</h1>
 <div class="play-main-layout">
 <section class="play-game" id="play-game" aria-label="Chess game">
-<div class="play-layout"><section class="play-board-card" aria-label="Chessboard"><div class="play-board-top"><strong id="play-opponent">Computer bot</strong><span id="play-side">White to move</span></div><div id="play-board" aria-label="Interactive chessboard"></div><div id="play-promotion" class="play-promotion" hidden><span>Promote to:</span><button type="button" data-promote="q">Queen</button><button type="button" data-promote="r">Rook</button><button type="button" data-promote="b">Bishop</button><button type="button" data-promote="n">Knight</button><button type="button" id="play-cancel-promotion">Cancel</button></div><div class="play-board-footer"><span id="play-you">You · White</span></div>
-<div class="elo-board-toolbar" aria-label="Board controls">
+<div class="play-layout"><aside class="board-control-panel play-controls-panel" aria-label="Board controls"><h2>Board Controls</h2><div class="elo-board-toolbar play-side-toolbar" aria-label="Board controls">
  <button type="button" id="play-undo">Take back</button>
  <button type="button" id="play-resign">Resign</button>
  <button type="button" id="play-flip" aria-pressed="false">Flip Board</button>
  <span class="elo-toolbar-spacer"></span>
  <button type="button" id="play-sound" aria-pressed="true">Sound: On</button>
-</div></section>
-<aside class="play-panel"><div id="play-status" class="play-status" role="status" aria-live="polite">Your move.</div><div class="play-moves"><h3>Moves</h3><div id="play-history" aria-label="Move history">No moves yet.</div></div><p class="play-disclaimer">Bot Elo numbers indicate approximate difficulty tiers, not calibrated engine ratings.</p></aside></div>
+</div></aside><section class="play-board-card" aria-label="Chessboard"><div class="play-board-top"><strong id="play-opponent">Computer bot</strong><span id="play-side">White to move</span></div><div id="play-board" aria-label="Interactive chessboard"></div><div id="play-promotion" class="play-promotion" hidden><span>Promote to:</span><button type="button" data-promote="q">Queen</button><button type="button" data-promote="r">Rook</button><button type="button" data-promote="b">Bishop</button><button type="button" data-promote="n">Knight</button><button type="button" id="play-cancel-promotion">Cancel</button></div><div class="play-board-footer"><span id="play-you">You · White</span></div>
+</section>
+<aside class="play-panel"><div id="play-status" class="play-status" role="status" aria-live="polite"></div><div class="play-moves"><h3>Moves</h3><div id="play-history" aria-label="Move history">No moves yet.</div></div><p class="play-disclaimer">Bot Elo numbers indicate approximate difficulty tiers, not calibrated engine ratings.</p></aside></div>
 </section>
 <section class="play-selector" aria-label="Choose a chess bot">
 <div class="play-bot-tiers"><details class="play-bot-tier" open><summary><span>Rookie Grounds</span><small>300–800 Elo · 6 bots</small></summary><div class="play-bots"><button type="button" class="play-bot" data-bot="bot300" aria-expanded="false" aria-controls="play-bot-options"><span class="play-avatar play-avatar-standard" aria-hidden="true">♟</span><span class="play-bot-info"><strong>Bot</strong><small>300 Elo</small></span></button>
@@ -58,4 +58,4 @@
 </div>
 </section>
 </div>
-</main><script type="module" src="/play.js?v=8-unified"></script></body></html>
+</main><script type="module" src="/play.js?v=9-sidepanel"></script></body></html>
