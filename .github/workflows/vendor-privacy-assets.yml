@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish vendor/avatars
+          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish
           curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm' -o vendor/chess/chess-1.4.0.mjs
           test "$(wc -c < vendor/chess/chess-1.4.0.mjs)" -gt 10000
           mkdir -p /tmp/eloscanner-pyodide
@@ -38,9 +38,6 @@ jobs:
               grep -qi '<svg' "vendor/pieces/cburnett/${color}${piece}.svg"
             done
           done
-          mkdir -p vendor/avatars
-          curl -fL --retry 3 'https://images.chesscomfiles.com/uploads/v1/user/15448422.png' -o vendor/avatars/hikaru.png
-          test "$(wc -c < vendor/avatars/hikaru.png)" -gt 1000
           if [ ! -f vendor/stockfish/stockfish-19-lite-single.wasm ]; then
             mkdir -p /tmp/eloscanner-stockfish
             npm pack stockfish@19.0.1 --pack-destination /tmp/eloscanner-stockfish --silent
