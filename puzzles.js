@@ -333,9 +333,9 @@ async function updateRanking(id,mode){
   for(const entry of data.entries){
    const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('span');
    name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
-   const report=document.createElement('a');
-   report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';
-   report.href='mailto:eloscanner.contact@gmail.com?subject='+encodeURIComponent('EloScanner leaderboard nickname report')+'&body='+encodeURIComponent('Please review this leaderboard entry:\nRanking: '+mode+'\nNickname: '+entry.nickname+'\nScore: '+entry.score+'\nReason: ');
+   const report=document.createElement('button');
+   report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';
+   report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;
    li.append(name,score,report);list.append(li);
   }
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
