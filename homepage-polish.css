@@ -133,3 +133,11 @@ main>.below-hero-layout.no-samples>.features{position:static!important;grid-colu
 }
 main>.below-hero-layout.with-player-previews .sample-options{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
 main>.below-hero-layout.with-player-previews .sample-button{width:100%;text-align:left}
+
+/* Fast example profiles and Chess.com avatars. Keep the sidebar in its original position. */
+main>.below-hero-layout.with-player-previews .sample-button{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;column-gap:11px!important;align-items:center!important}
+main>.below-hero-layout.with-player-previews .sample-avatar{grid-row:1 / span 2;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;overflow:hidden;background:#174760;color:#dff8ff;font-size:12px;font-weight:800}
+main>.below-hero-layout.with-player-previews .sample-avatar img{width:100%;height:100%;object-fit:cover}
+main>.below-hero-layout.with-player-previews .sample-player-name,main>.below-hero-layout.with-player-previews .sample-player-handle{grid-column:2;min-width:0}
+.example-preview-note{padding:18px;border:1px solid #315e7b;border-radius:12px;background:#102b41}
+.example-preview-note h3{margin:0 0 8px}.example-preview-note p{line-height:1.6}
