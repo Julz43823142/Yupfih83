@@ -93,8 +93,13 @@ function stats(){
 }
 function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null;if(replyFrame!==null)cancelAnimationFrame(replyFrame);replyFrame=null}
 function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
+let autoNextEnabled=true;
+try{autoNextEnabled=localStorage.getItem('eloscanner-puzzle-auto-next')!=='off'}catch{}
+$('puzzle-auto-next').checked=autoNextEnabled;
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';
+ $('puzzle-auto-next').disabled=challenge;
+ $('puzzle-auto-next').closest('label').title=challenge?'Sprint and Survival always advance automatically':'Automatically start another puzzle after solving';
  $('puzzle-start').hidden=!challenge||runActive||reviewing;
  $('puzzle-stop').hidden=!challenge||!runActive;
  $('puzzle-next').hidden=challenge;
@@ -348,7 +353,13 @@ function finish(){
  else if(hintRevealed)say('Puzzle completed with the answer shown. No point added.','success');
  else say('Correct! Puzzle solved.','success');
  stats();buttons();
- if(!reviewing)$('puzzle-next').textContent='Next Puzzle';
+ if(!reviewing){
+  $('puzzle-next').textContent='Next Puzzle';
+  if(autoNextEnabled&&(mode==='random'||mode==='custom')){
+   if(auto)clearTimeout(auto);
+   auto=setTimeout(()=>{auto=null;if(!runActive&&!reviewing&&(mode==='random'||mode==='custom'))void load(mode)},260);
+  }
+ }
 }
 function updateErrorReview(){
  const panel=$('puzzle-review-panel'),list=$('puzzle-error-list'),button=$('puzzle-reveal-errors');
@@ -576,6 +587,11 @@ $('puzzle-start').onclick=()=>{
  stats();buttons();load(mode);
 };
 $('puzzle-stop').onclick=()=>{if(runActive)finishRun('Run ended.')};
+$('puzzle-auto-next').addEventListener('change',event=>{
+ autoNextEnabled=event.target.checked;
+ try{localStorage.setItem('eloscanner-puzzle-auto-next',autoNextEnabled?'on':'off')}catch{}
+ if(!autoNextEnabled&&auto){clearTimeout(auto);auto=null}
+});
 $('puzzle-sound-toggle').addEventListener('change',event=>{
  soundOn=event.target.checked;
  if(soundOn)unlockAudio();
