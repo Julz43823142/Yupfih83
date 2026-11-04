@@ -8,8 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=13">
-<link rel="stylesheet" href="/elo-global-menu.css?v=1"><script src="/elo-global-menu.js?v=1" defer></script></head>
+<link rel="stylesheet" href="/puzzles.css?v=14">
+<link rel="stylesheet" href="/elo-global-menu.css?v=2"><script src="/elo-global-menu.js?v=2" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"></head>
 <body>
 <header class="navbar puzzles-navbar">
 <a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
@@ -37,14 +37,17 @@
       <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
       <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
-      <div class="puzzle-board-controls">
-        <button type="button" id="puzzle-retry" hidden>Retry puzzle</button>
+      <div class="puzzle-board-controls elo-board-toolbar" aria-label="Board controls">
+        <button type="button" id="puzzle-retry" disabled>Retry</button>
         <button type="button" id="puzzle-hint" disabled>Hint</button>
         <button type="button" id="puzzle-review-back" hidden>Back to errors</button>
+        <button type="button" id="puzzle-flip" aria-pressed="false">Flip Board</button>
+        <span class="elo-toolbar-spacer"></span>
+        <label class="puzzle-sound-switch elo-toolbar-sound"><span>Sound</span><input type="checkbox" id="puzzle-sound-toggle" role="switch" aria-label="Puzzle sounds" checked><span class="puzzle-switch-track" aria-hidden="true"></span></label>
       </div>
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
-      <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div><label class="puzzle-sound-switch"><span>Sound</span><input type="checkbox" id="puzzle-sound-toggle" role="switch" aria-label="Puzzle sounds" checked><span class="puzzle-switch-track" aria-hidden="true"></span></label></div>
+      <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div></div>
       <div class="puzzle-metrics">
         <div class="puzzle-metric" id="puzzle-elo-box"><span>Puzzle Elo</span><strong id="puzzle-elo">—</strong></div>
         <div class="puzzle-metric"><span id="puzzle-solved-label">Solved</span><strong id="puzzle-solved">0</strong></div>
@@ -77,13 +80,13 @@
     </section>
   </div>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname</span><span>Score</span><span>Report</span></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname</span><span>Score</span><span>Report</span></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <p class="puzzle-ranking-note"></p>
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=19-review-training"></script>
+<script type="module" src="/puzzles.js?v=20-unified-500k"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>
