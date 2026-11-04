@@ -1,5 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
+import {attachPlayBotControls} from './play-bot-controls.mjs?v=1-premove-input';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
@@ -61,6 +61,7 @@ function tone(move){
 function paint(){
  board.dataset.orientation=orientation;
  const moves=selected&&!ended?candidateMoves(selected):[];
+ board.classList.toggle('premove-waiting',!ended&&chess.turn()!==human);
  for(const [sq,cell] of squares){
   const pc=chess.get(sq),key=pc?pc.color+pc.type:'',idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
   cell.style.order=orientation==='black'?63-idx:idx;
@@ -178,7 +179,7 @@ function queuePremove(from,to,promotion){
  const options=candidateMoves(from).filter(m=>m.to===to);
  if(!options.length)return false;
  premove={from,to,promotion:promotion||'q'};
- selected=null;status('Premove queued: '+from+' → '+to+'. Right-click to cancel.');
+ selected=null;status('Premove ready: '+from+' → '+to+'. It plays after the bot moves. Right-click to cancel.');
  paint();return true;
 }
 function runPremove(){
@@ -217,7 +218,7 @@ function play(from,to,promotion=null){
  closePromotion();pending=null;
  if(!terminal())scheduleBot();return true;
 }
-attachChessBoardControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
+attachPlayBotControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
 board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',unlock);
 // Master and grandmaster tiers use Stockfish rather than the shallow JS search.
 let strongWorker=null;
