@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const source=readFileSync(new URL('../functions/_shared/read-json.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../lib/server-request-guard.js',import.meta.url),'utf8');
 const {readJsonPayload}=await import('data:text/javascript;charset=utf-8,'+encodeURIComponent(source));
 function request(body,headers={}){
  return new Request('https://eloscanner.com/api/puzzle-leaderboard',{
