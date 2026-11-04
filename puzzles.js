@@ -95,10 +95,14 @@ function buttons(){
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),button=document.createElement('button');
  button.type='button';button.dataset.square=sq;button.className='puzzle-square '+((row+col)%2?'dark':'light');
+ button.setAttribute('aria-label',sq);
  cells.set(sq,button);board.append(button);
 }
+let lastBoardOrientation=null,lastArrowSignature=null;
 function draw(){
  const moves=selected&&ready&&!busy?position.moves({square:selected,verbose:true}):[];
+ const legalBySquare=new Map(moves.map(m=>[m.to,m]));
+ const flip=orientation!==lastBoardOrientation;
  for(const [sq,cell] of cells){
   const pc=position.get(sq),key=pc?pc.color+pc.type:'';
   if(cell.dataset.piece!==key){
@@ -110,23 +114,34 @@ function draw(){
     cell.append(img);
    }
   }else cell.querySelectorAll('.legal-move-dot,.legal-capture-ring').forEach(x=>x.remove());
-  const whiteIndex=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
-  cell.style.order=orientation==='black'?63-whiteIndex:whiteIndex;
+  if(flip){
+   const whiteIndex=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
+   cell.style.order=orientation==='black'?63-whiteIndex:whiteIndex;
+  }
   cell.classList.toggle('selected-square',selected===sq);
   cell.classList.toggle('recent-square',!!lastMove&&(lastMove.from===sq||lastMove.to===sq));
   cell.classList.toggle('wrong-square',wrongSquare===sq);
   cell.classList.toggle('marked-square',highlights.has(sq));
-  cell.setAttribute('aria-label',sq);
-  const legal=moves.find(m=>m.to===sq);
+  const legal=legalBySquare.get(sq);
   if(legal){const dot=document.createElement('span');dot.className=pc||legal.flags.includes('e')?'legal-capture-ring':'legal-move-dot';cell.append(dot)}
  }
- board.querySelector('.arrows')?.remove();
- const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('arrows');
- svg.setAttribute('viewBox','0 0 800 800');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
- if(orientation==='black')svg.style.transform='rotate(180deg)';
- if(lastMove)appendChessArrow(svg,lastMove.from,lastMove.to,'#ff962f',.7);
- for(const [a,b,c] of arrows)appendChessArrow(svg,a,b,c,.72);
- board.append(svg);
+ lastBoardOrientation=orientation;
+ // Rebuild arrows only when they actually change; selection and piece motion
+ // should not recreate the entire SVG annotation layer.
+ const signature=orientation+'|'+(lastMove?lastMove.from+lastMove.to:'')+'|'+JSON.stringify(arrows);
+ if(signature!==lastArrowSignature){
+  board.querySelector('.arrows')?.remove();
+  if(lastMove||arrows.length){
+   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+   svg.classList.add('arrows');svg.setAttribute('viewBox','0 0 800 800');
+   svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+   if(orientation==='black')svg.style.transform='rotate(180deg)';
+   if(lastMove)appendChessArrow(svg,lastMove.from,lastMove.to,'#ff962f',.7);
+   for(const [from,to,color] of arrows)appendChessArrow(svg,from,to,color,.72);
+   board.append(svg);
+  }
+  lastArrowSignature=signature;
+ }
 }
 attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selected,setSelected:x=>{selected=x},
  playMove:(from,to)=>play(from,to),repaint:draw,getArrows:()=>arrows,getHighlights:()=>highlights});
@@ -310,12 +325,13 @@ function play(from,to,promotion=null){
   say('Choose a piece to promote your pawn.');return false;
  }
  const chosen=promotion||'q';
- let legal;
- try{legal=new Chess(position.fen()).move({from,to,promotion:chosen})}catch{return false}
- const actual=from+to+(legal.promotion||'');
- const copy=new Chess(position.fen());copy.move({from,to,promotion:chosen});
- if(actual!==expected&&!copy.isCheckmate()){mistake(to);return false}
- const completedMove=position.move({from,to,promotion:chosen});unlockAudio();soundForMove(completedMove);closePromotion();
+ // Reuse the current chess position rather than parsing two duplicate FENs.
+ let completedMove;
+ try{completedMove=position.move({from,to,promotion:chosen})}catch{return false}
+ if(!completedMove)return false;
+ const actual=from+to+(completedMove.promotion||'');
+ if(actual!==expected&&!position.isCheckmate()){position.undo();mistake(to);return false}
+ unlockAudio();soundForMove(completedMove);closePromotion();
  lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;
  // Avoid rendering the solved board just before replacing it with the next puzzle.
  if(step>=solution.length||position.isCheckmate()){finish();return true}
