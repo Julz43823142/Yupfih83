@@ -3,7 +3,7 @@
  */
 "use strict";
 const REVISION = "20261103-local-v87-15min-5";
-const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/";
+const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_method3.py", "fairplay_method3_coverage.py",
   "fairplay_method3_windows.py", "fairplay_method3_reliability.py",
