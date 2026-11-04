@@ -24,7 +24,7 @@
   
   
   <link rel="stylesheet" href="./style.css?v=20261103-sparklines-2">
-  <script src="./script.js?v=20261104-example-pages" defer></script>
+  <script src="./script.js?v=20261104-auto-full-analysis" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
 <link rel="stylesheet" href="/homepage-polish.css?v=23"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script></head>
 <body data-example-player='Hikaru'>
@@ -48,8 +48,8 @@
       </aside>
       <div class="hero-content">
         <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
-        <h1>Hikaru Nakamura.<br><span>Example player profile.</span></h1>
-        <p class="subtitle">View a fast public Chess.com player profile. Full game analysis is available on demand.</p>
+        <h1>Analyze up to 5,000 games.<br><span>Discover the patterns.</span></h1>
+        <p class="subtitle">Explore up to 5,000 of a player’s most recent available Chess.com games, with rating trends, accuracy and performance analysis.</p>
         <form id="searchForm" class="search-box">
           <input id="username" name="username" type="text" aria-label="Chess.com username"
             placeholder="Enter Chess.com username" autocomplete="off" maxlength="25" required>
@@ -58,7 +58,7 @@
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </div>
     </section>
-    <section id="results" class="results" aria-live="polite">
+    <section id="results" class="results hidden" aria-live="polite">
       <div class="section-heading">
         <span class="eyebrow">PLAYER PROFILE</span>
         <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
