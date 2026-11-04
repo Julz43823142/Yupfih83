@@ -218,10 +218,9 @@ function finish(){
  }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
- const recordedMode=mode,score=solved,duration=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
+ const score=solved;
  playSound('end');
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
- lastRun={mode:recordedMode,score,duration};
 
  say(text+' Final score: '+score+' solved. Results stay on your device.','success');
  stats();buttons();draw();
