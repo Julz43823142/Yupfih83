@@ -3,6 +3,7 @@ const $=id=>document.getElementById(id),board=$('maze-board');
 const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
 const neighbors=i=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x+dx,y+dy]).filter(([a,b])=>a>=0&&a<8&&b>=0&&b<8).map(([a,b])=>b*8+a)};
 let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
+let drag=null;
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
@@ -17,10 +18,12 @@ function render(){
   cell.className='maze-cell '+((Math.floor(i/8)+i%8)%2?'dark':'light')+(blocked.has(i)?' blocked':'')+(reachable.has(i)?' reachable':'');
   const square=String.fromCharCode(97+i%8)+(8-Math.floor(i/8));
   cell.setAttribute('aria-label',square+(blocked.has(i)?', blocked':run?.position===i?', knight':run?.goal===i?', star':''));
-  cell.disabled=!reachable.has(i)||busy;
-  if(run?.position===i){const piece=document.createElement('span');piece.className='maze-piece';piece.textContent='♞';piece.setAttribute('aria-hidden','true');cell.append(piece)}
+  cell.disabled=(!reachable.has(i)&&run?.position!==i)||busy;
+  cell.dataset.index=String(i);
+  if(run?.position===i&&!finished)cell.classList.add('knight-source');
+  if(run?.position===i){const piece=document.createElement('img');piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';piece.alt='White knight';piece.draggable=false;piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};cell.append(piece)}
   else if(run?.goal===i){const star=document.createElement('span');star.className='maze-star';star.textContent='★';star.setAttribute('aria-hidden','true');cell.append(star)}
-  cell.addEventListener('click',()=>move(i));
+  cell.addEventListener('click',()=>{if(i!==run?.position)move(i)});
   board.append(cell);
  }
  $('maze-score').textContent=run?.score||0;$('maze-level').textContent=run?.level||1;
@@ -87,5 +90,53 @@ $('maze-finish').addEventListener('click',()=>endRun(false));
 $('maze-submit').addEventListener('click',submit);
 $('maze-nickname').addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
 $('maze-show-all').addEventListener('click',()=>{showAll=!showAll;$('maze-show-all').textContent=showAll?'Show Top 10':'View Top 100';$('maze-show-all').setAttribute('aria-expanded',String(showAll));loadRanking()});
+// Pointer-based drag and drop, matching the analysis/puzzle board interaction.
+function squareAt(clientX,clientY){
+ const rect=board.getBoundingClientRect();
+ if(clientX<rect.left||clientX>=rect.right||clientY<rect.top||clientY>=rect.bottom)return -1;
+ const col=Math.floor((clientX-rect.left)*8/rect.width);
+ const row=Math.floor((clientY-rect.top)*8/rect.height);
+ return row*8+col;
+}
+function releaseDrag(){
+ if(!drag)return;
+ drag.ghost?.remove();
+ const d=drag;drag=null;
+ try{if(board.hasPointerCapture(d.id))board.releasePointerCapture(d.id)}catch{}
+}
+board.addEventListener('dragstart',e=>e.preventDefault());
+board.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!run||finished||busy||remaining()===0)return;
+ const square=squareAt(e.clientX,e.clientY);
+ if(square!==run.position)return;
+ e.preventDefault();
+ releaseDrag();
+ drag={id:e.pointerId,x:e.clientX,y:e.clientY,dragging:false,ghost:null};
+ try{board.setPointerCapture(e.pointerId)}catch{}
+});
+board.addEventListener('pointermove',e=>{
+ if(!drag||e.pointerId!==drag.id)return;
+ if(!drag.dragging&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>7){
+  drag.dragging=true;
+  const img=board.querySelector('.knight-source .maze-piece');
+  if(img){
+   drag.ghost=img.cloneNode(true);drag.ghost.className='maze-drag-ghost';
+   const size=board.getBoundingClientRect().width/8*.88;
+   drag.ghost.style.width=size+'px';drag.ghost.style.height=size+'px';
+   document.body.append(drag.ghost);
+  }
+ }
+ if(drag.dragging){
+  e.preventDefault();
+  if(drag.ghost){drag.ghost.style.left=(e.clientX-drag.ghost.offsetWidth/2)+'px';drag.ghost.style.top=(e.clientY-drag.ghost.offsetHeight/2)+'px'}
+ }
+});
+board.addEventListener('pointerup',e=>{
+ if(!drag||drag.id!==e.pointerId)return;
+ const wasDragging=drag.dragging,to=squareAt(e.clientX,e.clientY);
+ releaseDrag();
+ if(wasDragging&&to!==run?.position&&to>=0)move(to);
+});
+board.addEventListener('pointercancel',releaseDrag);
 render();loadRanking();
 })();
