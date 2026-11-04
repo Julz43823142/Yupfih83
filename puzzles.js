@@ -369,8 +369,11 @@ $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname)){label.textContent='Use 2–20 letters, numbers, spaces, _ or -.';return}
  button.disabled=true;label.textContent='Verifying solved puzzles and submitting…';
  try{
-  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...completedRun,nickname})});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Submission failed');
+  await proofChain;
+  if(proofError)throw proofError;
+  if(!verifiedSessionPromise)throw Error('Start a new run to enable verified scores.');
+  const session=(await verifiedSessionPromise).session;
+  await verifiedRequest({...completedRun,action:'submit',nickname,session});
   label.textContent='Score submitted. Top 100 scores appear publicly; places 101-110 may be kept as reserves.';completedRun=null;refreshRankings();
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });
