@@ -718,39 +718,15 @@ function analyzeOnVisitorDevice(username){
     worker.postMessage({type:"run",username});
   });
 }
-const exampleReportStore="eloscanner-report-v2-";
-async function getSavedExampleReport(username){
- let local=null;
- try{local=JSON.parse(localStorage.getItem(exampleReportStore+username)||"null");}catch{}
- try{
-  const response=await fetch("/api/example-report?player="+encodeURIComponent(username),{cache:"no-store"});
-  if(response.ok){const payload=await response.json();return payload.report||local;}
-  if(response.status!==404)console.warn("Shared example report unavailable:",response.status);
- }catch(error){console.warn("Shared example report request failed:",error);}
- return local;
-}
-async function saveExampleReport(username,report){
- let localSaved=false;
- try{localStorage.setItem(exampleReportStore+username,JSON.stringify(report));localSaved=true;}catch(error){console.warn("Local report storage failed:",error);}
- try{
-  const response=await fetch("/api/example-report?player="+encodeURIComponent(username),{
-   method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report})
-  });
-  if(!response.ok)throw Error("HTTP "+response.status+": "+(await response.text()).slice(0,200));
-  return "shared";
- }catch(error){
-  console.warn("Shared example report save failed:",error);
-  return localSaved?"local":"failed";
- }
-}
 async function runReview(username){
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
  const report=await analyzeOnVisitorDevice(username);
- const saveStatus=document.body.dataset.examplePlayer===username?await saveExampleReport(username,report):null;
+
  await finishReviewProgress();renderReview(report);
- statusText.textContent=saveStatus==="shared"?"Analysis complete and saved for all visitors.":saveStatus==="local"?"Analysis complete. Saved in this browser only; shared storage unavailable.":saveStatus==="failed"?"Analysis complete, but saving failed.":"Analysis complete on your device.";
+
+ statusText.textContent="Analysis complete on your device.";
 }
 // Public Chess.com profile previews are prefetched; full game analysis remains opt-in.
 const exampleProfiles=new Map();
@@ -778,22 +754,7 @@ document.querySelectorAll(".sample-button[data-username]").forEach(example => {
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
- requestAnimationFrame(async()=>{
-  try{
-   statusText.textContent="Loading saved analysis…";
-   const saved=await getSavedExampleReport(exampleUsername);
-   if(saved){
-    const {profile,stats}=await exampleProfiles.get(exampleUsername);
-    playerCard.replaceChildren();renderPlayer(profile,stats,exampleUsername);
-    results.classList.remove("hidden");
-    renderReview(saved);
-    statusText.textContent="Saved example analysis loaded.";
-    return;
-   }
-  }catch{}
-  statusText.textContent="No saved report yet. Generating the first analysis…";
-  form.requestSubmit();
- });
+ requestAnimationFrame(()=>form.requestSubmit());
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
