@@ -4,10 +4,14 @@ import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
 const $=id=>document.getElementById(id), opponent=$('opponent'), board=$('board');
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 let games=[],path=[],color='b',loading=false,selectedSquare=null,manualArrows=[],blueSquares=new Set(),candidateMoves=[],redoMoves=[];
+let boardFlipped=false;
+const boardSquare=(row,file)=>boardFlipped?String.fromCharCode(104-file)+(row+1):String.fromCharCode(97+file)+(8-row);
+const displaySquare=square=>boardFlipped?String.fromCharCode(201-square.charCodeAt(0))+(9-Number(square[1])):square;
+
 function setupDateWheels(){for(const group of document.querySelectorAll('.date-wheels')){const id=group.dataset.date;const today=new Date();const parts=[{name:'Day',values:Array.from({length:31},(_,i)=>i+1),initial:id==='from'?1:today.getDate()},{name:'Month',values:Array.from({length:12},(_,i)=>i+1),initial:id==='from'?1:today.getMonth()+1},{name:'Year',values:Array.from({length:20},(_,i)=>today.getFullYear()-19+i),initial:id==='from'?today.getFullYear()-2:today.getFullYear()}];const selects=parts.map(part=>{const label=document.createElement('label');label.className='wheel-column';const name=document.createElement('small');name.textContent=part.name;const sel=document.createElement('select');sel.setAttribute('aria-label',id+' '+part.name);for(const n of part.values){const opt=document.createElement('option');opt.value=n;opt.textContent=String(n).padStart(2,'0');sel.append(opt)}sel.value=part.initial;label.append(name,sel);group.append(label);return sel});function update(){const [d,m,y]=selects.map(s=>Number(s.value));const dt=new Date(Date.UTC(y,m-1,d));$(''+id).value=dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0')}selects.forEach(s=>s.addEventListener('change',update));update()}}setupDateWheels();
 const prepSetup=document.querySelector('.prep-setup');const filterShell=document.createElement('div');filterShell.className='prep-filter-shell';const filterInner=document.createElement('div');filterInner.className='prep-filter-inner';filterShell.append(filterInner);prepSetup.querySelector('.prep-actions').before(filterShell);for(const element of [...prepSetup.querySelectorAll('.prep-advanced')])filterInner.append(element);const prepColorLabel=prepSetup.querySelector('.prep-color');const updatePrepColor=()=>{const name=opponent.value.trim();prepColorLabel.firstChild.textContent=name?'Your color (opponent: '+name+')':'Your color'};opponent.addEventListener('input',updatePrepColor);$('prep-back').onclick=()=>{prepSetup.classList.remove('prep-step-2','prep-show-advanced');prepSetup.querySelector('.prep-wizard-head h2').textContent='Chess.com player'};$('prep-continue').onclick=()=>{if(!/^[a-zA-Z0-9_-]{2,25}$/.test(opponent.value.trim())){status('Enter a valid Chess.com username.');return}prepSetup.classList.add('prep-step-2');prepSetup.querySelector('.prep-wizard-head h2').textContent='Games where '+opponent.value.trim()+' is playing as';};opponent.addEventListener('keydown',e=>{if(e.key==='Enter'){$('prep-continue').click();e.preventDefault()}});$('prep-advanced-toggle').onclick=()=>prepSetup.classList.toggle('prep-show-advanced');
 function status(t){$('fetch-status').textContent=t}
-function renderBoard(){const game=new Chess();for(const m of path)game.move(m);board.replaceChildren();const squares=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){const cell=document.createElement('button');cell.type='button';cell.className=(r+f)%2?'dark':'light';const p=squares[r][f];cell.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.draggable=false;piece.src='/vendor/pieces/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.onerror=()=>{piece.remove();cell.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};cell.append(piece)}cell.setAttribute('aria-label',String.fromCharCode(97+f)+(8-r)+(p?' '+p.color+' '+p.type:''));cell.dataset.square=String.fromCharCode(97+f)+(8-r);cell.classList.toggle('selected-square',selectedSquare===cell.dataset.square);if(selectedSquare&&game.moves({square:selectedSquare,verbose:true}).some(m=>m.to===cell.dataset.square)){const dot=document.createElement('span');dot.className=p?'legal-capture-ring':'legal-move-dot';cell.append(dot)}board.append(cell)}$('position-label').textContent=path.length?path.join(' '):'Starting position';$('prep-notation').textContent=path.length?path.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' '):'Starting position';}
+function renderBoard(){const game=new Chess();for(const m of path)game.move(m);board.replaceChildren();const squares=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){const cell=document.createElement('button');cell.type='button';cell.className=(r+f)%2?'dark':'light';const square=boardSquare(r,f),p=game.get(square);cell.textContent='';if(p){const piece=document.createElement('img');piece.className='chess-piece';piece.draggable=false;piece.src='/vendor/pieces/cburnett/'+p.color+p.type.toUpperCase()+'.svg';piece.alt=p.color+' '+p.type;piece.onerror=()=>{piece.remove();cell.textContent=glyph[p.color==='w'?p.type.toUpperCase():p.type]};cell.append(piece)}cell.setAttribute('aria-label',square+(p?' '+p.color+' '+p.type:''));cell.dataset.square=square;cell.classList.toggle('selected-square',selectedSquare===cell.dataset.square);if(selectedSquare&&game.moves({square:selectedSquare,verbose:true}).some(m=>m.to===cell.dataset.square)){const dot=document.createElement('span');dot.className=p?'legal-capture-ring':'legal-move-dot';cell.append(dot)}board.append(cell)}$('position-label').textContent=path.length?path.join(' '):'Starting position';$('prep-notation').textContent=path.length?path.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' '):'Starting position';}
 function drawCandidateArrows(options){
  const old=board.querySelector('svg.prep-arrows');old?.remove();
  candidateMoves=options;
@@ -21,18 +25,18 @@ function drawCandidateArrows(options){
   try{
    const next=new Chess(pos.fen()),m=next.move(option.move);
    if(!m)return;
-   appendChessArrow(svg,m.from,m.to,'#a640f5',[.92,.62,.38][i]);
+   appendChessArrow(svg,displaySquare(m.from),displaySquare(m.to),'#a640f5',[.92,.62,.38][i]);
   }catch{}
  });
- const pt=sq=>[(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50];for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}if(path.length){
+ const pt=sq=>{sq=displaySquare(sq);return [(sq.charCodeAt(0)-97)*100+50,(8-Number(sq[1]))*100+50]};for(const sq of blueSquares){const [x,y]=pt(sq),rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':'.32'}))rect.setAttribute(k,v);svg.append(rect)}if(path.length){
   try{
    const before=new Chess();
    for(const san of path.slice(0,-1))before.move(san);
    const last=before.move(path[path.length-1]);
-   if(last)appendChessArrow(svg,last.from,last.to,'#ff962f',.84);
+   if(last)appendChessArrow(svg,displaySquare(last.from),displaySquare(last.to),'#ff962f',.84);
   }catch{}
  }
- for(const [from,to,color] of manualArrows)appendChessArrow(svg,from,to,color||'#0a9cff',.78);board.style.position='relative';board.append(svg);
+ for(const [from,to,color] of manualArrows)appendChessArrow(svg,displaySquare(from),displaySquare(to),color||'#0a9cff',.78);board.style.position='relative';board.append(svg);
 }
 const prepBoardControls=attachChessBoardControls({
  board,
@@ -109,6 +113,13 @@ function navigatePrep(direction){
  }
  selectedSquare=null;manualArrows=[];blueSquares.clear();render();
 }
+$('prep-flip').onclick=()=>{
+ boardFlipped=!boardFlipped;
+ $('prep-flip').setAttribute('aria-pressed',String(boardFlipped));
+ $('prep-flip').title=boardFlipped?'View from White side':'View from Black side';
+ // Repaint board and overlays without restarting Stockfish or changing the move list.
+ renderBoard();drawCandidateArrows(candidateMoves);
+};
 $('back').onclick=()=>navigatePrep(-1);
 window.addEventListener('keydown',e=>{
  if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.altKey||e.ctrlKey||e.metaKey)return;
