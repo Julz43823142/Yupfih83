@@ -662,7 +662,7 @@ function renderPlayer(profile, stats, username) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
     const avatar = add(header, "img", "player-avatar");
-    avatar.src = profile.avatar;
+    avatar.src = '/api/avatar?url=' + encodeURIComponent(profile.avatar);
     avatar.alt = "Player avatar";
     avatar.referrerPolicy = "no-referrer";
   }
@@ -792,7 +792,7 @@ async function loadSampleAvatars(){
     try{
       const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
       if(typeof profile.avatar==="string"&&profile.avatar.startsWith("https://"))
-        sources.push(profile.avatar);
+        sources.push('/api/avatar?url='+encodeURIComponent(profile.avatar));
     }catch(error){console.warn("Chess.com sample avatar lookup failed",username,error);}
     if(fallback&&!sources.includes(fallback))sources.push(fallback);
     if(image.getAttribute("src")&&!sources.includes(image.getAttribute("src")))
