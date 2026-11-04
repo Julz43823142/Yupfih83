@@ -2,25 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Play Knight Maze on EloScanner. Jump through chessboard mazes, collect stars in three minutes, and compete in the Top 100.">
+<meta name="description" content="Play Knight Maze on EloScanner. Jump through chessboard mazes, score points in three minutes, and compete in the Top 100.">
 <title>Knight Maze | EloScanner</title>
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
-<link rel="stylesheet" href="/style.css?v=20261103">
-<link rel="stylesheet" href="/knight-maze.css?v=3">
-<link rel="stylesheet" href="/elo-global-menu.css?v=3-active">
-<script src="/elo-global-menu.js?v=3-active" defer></script>
+<link rel="stylesheet" href="/style.css?v=20261104-dark">
+<link rel="stylesheet" href="/knight-maze.css?v=4-sidebar">
+<link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
+<script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/knight-maze.js?v=7" defer></script>
-</head>
+<link rel="stylesheet" href="/unified-board-layout.css?v=1"></head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
 <main class="maze-page">
-<div class="maze-heading"><div><span class="maze-eyebrow">ELOSCANNER MINIGAMES</span><h1>Knight Maze</h1><p>Jump over the maze. Reach the star. Collect as many stars as you can in 3 minutes.</p></div><a href="/minigames.html" class="maze-home">← All Minigames</a></div>
+<div class="maze-heading"><div><span class="maze-eyebrow">ELOSCANNER MINIGAMES</span><h1>Knight Maze</h1></div><a href="/minigames.html" class="maze-home">← All Minigames</a></div>
 <div class="maze-layout">
+<aside class="board-control-panel maze-controls-panel" aria-label="Game statistics"><h2>Board Controls</h2>
+<div class="maze-stats"><div><span>TIME LEFT</span><strong id="maze-time">3:00</strong></div><div><span>SCORE</span><strong id="maze-score">0</strong></div><div><span>LEVEL</span><strong id="maze-level">1</strong></div></div>
+</aside>
 <section class="maze-game" aria-label="Knight Maze game">
-<div class="maze-stats"><div><span>TIME LEFT</span><strong id="maze-time">3:00</strong></div><div><span>STARS</span><strong id="maze-score">0</strong></div><div><span>LEVEL</span><strong id="maze-level">1</strong></div></div>
+
 <div id="maze-board" class="maze-board" role="group" aria-label="Knight maze chessboard"></div>
 <div class="maze-bottom"><p id="maze-status" role="status" aria-live="polite">Press Start Game to begin.</p><button id="maze-start" class="maze-primary">Start Game</button><button id="maze-finish" class="maze-secondary" hidden>Finish run</button></div>
-<p class="maze-hint">Drag the knight or click a highlighted square. Right-drag to draw arrows; right-click to mark squares. Hold Shift, Ctrl or Alt while drawing for different colors. Right-click during a knight drag to cancel.</p>
+
 </section>
 <aside class="maze-sidebar">
 <section class="maze-panel"><h2>How to play</h2><p>Move the knight in an L shape: two squares in one direction and one sideways. Dark blocked squares are walls. Reach the gold star to score a point and unlock a fresh random maze.</p><p>Each run lasts <strong>3 minutes</strong>. The more stars you reach, the higher your score.</p></section>

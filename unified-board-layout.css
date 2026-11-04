@@ -1,0 +1,114 @@
+/* One predictable desktop control rail and a board-first mobile layout. */
+html,body{min-height:100%;background:#010817!important}
+body{min-height:100vh}
+.board-control-panel{box-sizing:border-box;min-width:0;background:#071c2f;border:1px solid #2d5774;border-radius:17px;padding:15px;color:#e9f6ff}
+.board-control-panel h2{font:800 14px/1.3 system-ui,sans-serif;color:#7ee8f8;letter-spacing:.3px;margin:0 0 13px}
+.board-control-panel .elo-board-toolbar{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.board-control-panel .elo-board-toolbar>button{width:100%;min-width:0;text-align:center}
+.board-control-panel .elo-toolbar-spacer{display:none}
+.board-control-panel .elo-toolbar-sound{justify-content:center}
+.play-controls-panel{align-self:start}
+.play-layout{grid-template-columns:minmax(165px,190px) minmax(0,1fr)!important;align-items:start!important;gap:14px!important}
+.play-layout>.play-controls-panel{grid-column:1;grid-row:1}
+.play-layout>.play-board-card{grid-column:2;grid-row:1}
+.play-layout>.play-panel{grid-column:2;grid-row:2}
+.play-board-card{max-width:none!important;box-sizing:border-box}
+.play-status:empty{display:none}
+.play-main-layout{grid-template-columns:minmax(0,1fr) minmax(280px,450px)!important;gap:18px!important;align-items:start}
+.play-game{grid-column:1!important;width:100%!important}
+.play-selector{grid-column:2!important;width:100%!important;max-height:calc(100vh - 130px);overflow:auto}
+.play-page{width:min(1580px,calc(100% - 24px))!important}
+.play-board-card,.play-panel{width:100%!important}
+@media(min-width:821px) and (max-width:1199px){
+ .play-main-layout{grid-template-columns:1fr!important}
+ .play-selector{grid-column:1!important;max-height:none}
+ .play-game{max-width:850px;margin-inline:auto}
+}
+.tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:2/span 5!important;align-self:start!important}
+.tool-page .tool-card:first-of-type>.analysis-controls-panel>.board-controls.elo-board-toolbar{grid-column:auto!important;grid-row:auto!important;display:flex!important}
+.tool-page .tool-card:first-of-type>.analysis-controls-panel .analysis-arrow-toggle{display:flex!important;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 0;padding-top:14px;border-top:1px solid #31526b}
+.tool-page .tool-card:first-of-type>.analysis-controls-panel #turn{font-size:12px;text-align:center}
+.tool-page .tool-card:first-of-type>.review-side-stats{grid-column:1!important;grid-row:7!important;min-height:0!important}
+.tool-page .tool-card:first-of-type>.board-top-switch{grid-column:2!important;grid-row:2!important}
+.tool-page .tool-card:first-of-type>.board-with-eval{grid-column:2!important;grid-row:3!important}
+.tool-page .tool-card:first-of-type>.live-notation{grid-column:3!important;grid-row:2/span 6!important}
+@media(min-width:1000px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{
+  grid-template-columns:minmax(170px,195px) minmax(0,660px) minmax(285px,1fr)!important;
+  column-gap:16px!important
+ }
+ .tool-page:has(.analysis-controls-panel){width:min(1720px,calc(100% - 28px))!important}
+}
+.prep-analysis-layout>.prep-control-stack{grid-column:1!important;grid-row:1!important;min-width:0;display:grid;gap:14px;align-content:start}
+.prep-analysis-layout>.prep-control-stack>.prep-stats-side{grid-column:auto!important;grid-row:auto!important;min-width:0}
+.prep-analysis-layout>.prep-board-area{grid-column:2!important;grid-row:1!important}
+.prep-analysis-layout>.prep-engine-side{grid-column:3!important;grid-row:1!important}
+@media(min-width:1100px){
+ .prep-analysis-layout{grid-template-columns:minmax(170px,230px) minmax(0,660px) minmax(290px,1fr)!important;gap:16px!important}
+}
+.maze-page{max-width:1570px!important}
+.maze-layout{grid-template-columns:minmax(160px,195px) minmax(0,660px) minmax(270px,1fr)!important;gap:16px!important}
+.maze-layout>.maze-controls-panel{grid-column:1;grid-row:1}
+.maze-layout>.maze-game{grid-column:2;grid-row:1;min-width:0}
+.maze-layout>.maze-sidebar{grid-column:3;grid-row:1;min-width:0}
+.maze-controls-panel .maze-stats{display:grid!important;grid-template-columns:1fr!important;gap:9px!important;margin:0!important}
+.maze-controls-panel .maze-stats>div{padding:12px 8px!important}
+.maze-controls-panel .maze-stats strong{font-size:26px!important}
+.maze-game{min-width:0}
+.maze-board{width:100%!important;max-width:100%!important}
+@media(min-width:701px) and (max-width:1099px){
+ .maze-layout{grid-template-columns:minmax(150px,195px) minmax(0,1fr)!important}
+ .maze-layout>.maze-sidebar{grid-column:1/-1;grid-row:2}
+ .prep-analysis-layout{grid-template-columns:minmax(155px,200px) minmax(0,1fr)!important;gap:12px!important}
+ .prep-analysis-layout>.prep-engine-side{grid-column:1/-1!important;grid-row:2!important}
+}
+@media(max-width:1099px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:1!important}
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:3!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:1!important;grid-row:4!important;max-height:none!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:1!important;grid-row:5!important}
+ .tool-page .tool-card:first-of-type>.tool-head{grid-column:1!important;grid-row:6!important}
+ .tool-page .tool-card:first-of-type>.analysis-compact-controls,.tool-page .tool-card:first-of-type>.engine-lines-panel{grid-column:1!important}
+}
+@media(max-width:700px){
+ .play-main-layout{grid-template-columns:minmax(0,1fr)!important}
+ .play-selector{grid-column:1!important;max-height:none}
+ .play-layout{grid-template-columns:minmax(0,1fr)!important}
+ .play-layout>.play-board-card{grid-column:1!important;grid-row:1!important}
+ .play-layout>.play-controls-panel{grid-column:1!important;grid-row:2!important}
+ .play-layout>.play-panel{grid-column:1!important;grid-row:3!important}
+ .play-controls-panel .elo-board-toolbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .board-control-panel{padding:12px}
+ .board-control-panel .elo-board-toolbar>button{font-size:12px!important}
+ .prep-analysis-layout{grid-template-columns:minmax(0,1fr)!important}
+ .prep-analysis-layout>.prep-board-area{grid-column:1!important;grid-row:1!important}
+ .prep-analysis-layout>.prep-control-stack{grid-column:1!important;grid-row:2!important}
+ .prep-analysis-layout>.prep-engine-side{grid-column:1!important;grid-row:3!important}
+ .prep-control-stack .elo-board-toolbar{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ .prep-board-row .prep-eval-bar{width:12px!important;min-width:12px!important;max-width:12px!important;flex:0 0 12px!important}
+ .prep-board-row{gap:5px!important}
+ .prep-eval-bar .board-eval-text{font-size:8px!important;writing-mode:vertical-rl;transform:none!important;left:0!important;bottom:4px!important}
+ .maze-layout{grid-template-columns:minmax(0,1fr)!important}
+ .maze-layout>.maze-game{grid-column:1!important;grid-row:1!important}
+ .maze-layout>.maze-controls-panel{grid-column:1!important;grid-row:2!important}
+ .maze-layout>.maze-sidebar{grid-column:1!important;grid-row:3!important}
+ .maze-controls-panel .maze-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ .maze-controls-panel .maze-stats strong{font-size:22px!important}
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel .elo-board-toolbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats:has(.review-placeholder){display:none!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats{min-height:0!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{max-width:100%!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval .board-eval-wrap{width:12px!important;min-width:12px!important;max-width:12px!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-template-columns:12px minmax(0,1fr)!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval .board-eval-text{font-size:8px!important;writing-mode:vertical-rl;transform:none!important;left:0!important;bottom:4px!important}
+}
+
+/* The arrow switch retains its toggle appearance after moving to the rail. */
+.analysis-controls-panel .analysis-arrow-toggle{color:#c5e8fa;font:700 12px system-ui,sans-serif;cursor:pointer}
+.analysis-controls-panel .analysis-arrow-toggle input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 40px;width:40px;height:22px;margin:0;border-radius:16px;background:#38546b;border:1px solid #6b91a6;cursor:pointer;transition:background .2s}
+.analysis-controls-panel .analysis-arrow-toggle input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#d6e6ee;border-radius:50%;transition:transform .2s}
+.analysis-controls-panel .analysis-arrow-toggle input:checked{background:#079ac1}
+.analysis-controls-panel .analysis-arrow-toggle input:checked::after{transform:translateX(18px)}
+.analysis-controls-panel .analysis-arrow-toggle input:focus-visible{outline:2px solid #fff;outline-offset:3px}
