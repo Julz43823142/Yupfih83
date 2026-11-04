@@ -6,32 +6,51 @@ let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 const arrows=[],highlights=new Set();
 let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0,levelPending=false,moveRetry=0;
+let upcoming=null,confirmedUpcoming=null,previewBuffer=[],confirmedBuffer=[];
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
  const seconds=remaining();$('maze-time').textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
  if(run&&!finished&&seconds===0)endRun(true);
 }
+// Create the 64 squares and one reusable knight image only once.
+// A settled move merely changes existing cells, so no event targets or piece
+// images are destroyed while the player is dragging the knight.
+const cells=[];
+const piece=document.createElement('img');
+piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';
+piece.alt='White knight';piece.draggable=false;
+piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};
 function render(){
- // A server response can redraw the board while the pointer still holds the knight.
- // Keep the board piece hidden whenever the floating drag image is visible.
- board.replaceChildren();
- const blocked=new Set(run?.blocked||[]),reachable=run&&!finished?new Set(neighbors(run.position).filter(i=>!blocked.has(i))):new Set();
- for(let i=0;i<64;i++){
-  const cell=document.createElement('button');cell.type='button';
-  cell.className='maze-cell '+((Math.floor(i/8)+i%8)%2?'dark':'light')+(blocked.has(i)?' blocked':'')+(reachable.has(i)?' reachable':'');
-  const square=String.fromCharCode(97+i%8)+(8-Math.floor(i/8));
-  cell.setAttribute('aria-label',square+(blocked.has(i)?', blocked':run?.position===i?', knight':run?.goal===i?', star':''));
-  cell.disabled=false;
-  cell.classList.toggle('selected-square',selected&&run?.position===i);
-  cell.dataset.index=String(i);
-  if(run?.position===i&&!finished)cell.classList.add('knight-source');
-  if(run?.position===i){const piece=document.createElement('img');piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';piece.alt='White knight';piece.draggable=false;piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};if(drag?.dragging){piece.style.visibility='hidden';drag.source=piece}cell.append(piece)}
-  else if(run?.goal===i){const star=document.createElement('span');star.className='maze-star';star.textContent='★';star.setAttribute('aria-hidden','true');cell.append(star)}
-  cell.addEventListener('click',e=>{if(e.detail===0&&i!==run?.position)move(i)});
-  board.append(cell);
+ if(!cells.length){
+  for(let i=0;i<64;i++){
+   const cell=document.createElement('button');
+   cell.type='button';cell.dataset.index=String(i);
+   cell.addEventListener('click',e=>{if(e.detail===0&&i!==run?.position)move(i)});
+   cells.push(cell);board.append(cell);
+  }
  }
- $('maze-score').textContent=run?.score||0;$('maze-level').textContent=run?.level||1;
+ const blocked=new Set(run?.blocked||[]);
+ const reachable=run&&!finished?new Set(neighbors(run.position).filter(i=>!blocked.has(i))):new Set();
+ for(let i=0;i<64;i++){
+  const cell=cells[i],isKnight=run?.position===i,isGoal=run?.goal===i;
+  const square=String.fromCharCode(97+i%8)+(8-Math.floor(i/8));
+  cell.className='maze-cell '+((Math.floor(i/8)+i%8)%2?'dark':'light')+
+   (blocked.has(i)?' blocked':'')+(reachable.has(i)?' reachable':'')+
+   (isKnight&&!finished?' knight-source':'')+
+   (selected&&isKnight?' selected-square':'');
+  cell.setAttribute('aria-label',square+(blocked.has(i)?', blocked':isKnight?', knight':isGoal?', star':''));
+  if(isKnight){
+   if(piece.parentNode!==cell)cell.replaceChildren(piece);
+  }else if(isGoal){
+   if(!cell.firstElementChild?.classList.contains('maze-star')){
+    const star=document.createElement('span');star.className='maze-star';star.textContent='★';
+    star.setAttribute('aria-hidden','true');cell.replaceChildren(star);
+   }
+  }else if(cell.firstChild)cell.replaceChildren();
+ }
+ $('maze-score').textContent=run?.score||0;
+ $('maze-level').textContent=run?.level||1;
  drawAnnotations();
  updateClock();
 }
@@ -40,9 +59,9 @@ async function api(body){
  const data=await res.json();if(!res.ok)throw Error(data.error||'Request failed.');return data;
 }
 async function start(){
- if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;levelPending=false;moveRetry=0;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
+ if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;upcoming=null;confirmedUpcoming=null;previewBuffer=[];confirmedBuffer=[];levelPending=false;moveRetry=0;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
  try{
-  const data=await api({action:'start'});run=data.run;serverRun=data.run;finished=false;submitted=false;
+  const data=await api({action:'start'});run=data.run;serverRun=data.run;upcoming=data.run.preview||null;previewBuffer=data.run.lookahead||[];confirmedUpcoming=upcoming;confirmedBuffer=[...previewBuffer];finished=false;submitted=false;
   $('maze-submit-panel').hidden=true;$('maze-start').hidden=true;$('maze-finish').hidden=false;
   status('Find the star using knight moves.');render();
   clearInterval(timer);timer=setInterval(updateClock,200);
@@ -55,22 +74,26 @@ function move(to){
  if(busy||levelPending||!run||finished||remaining()===0)return;
  if(!neighbors(run.position).includes(to)||run.blocked.includes(to))return;
  selected=false;clearAnnotations();
- const from=run.position,solved=to===run.goal;
- if(!solved){
-  run={...run,position:to};
-  moveQueue.push({from,to});
-  status('Keep going. Reach the star!');
-  render();
-  void flushMoves();
- }else{
+ const from=run.position,solved=to===run.goal,level=run.level;
+ moveQueue.push({from,to,level,solved});
+ if(solved&&upcoming){
+  // The server already supplied this exact level before the star was reached.
+  // Switch NOW; the network confirmation is processed independently in order.
+  const next=upcoming;upcoming=previewBuffer.shift()||null;
+  run={...run,level:level+1,score:run.score+1,
+   position:next.position,goal:next.goal,blocked:next.blocked};
+  status('Star collected! New maze unlocked.');
+ }else if(solved){
+  // Backward compatibility for a run started before the preview API existed.
   levelPending=true;
-  moveQueue.push({from,to,solved:true});
-  // The next maze is generated on the server; keep the current knight at the star.
   run={...run,position:to};
   status('Star reached! Loading next maze…');
-  render();
-  void flushMoves();
+ }else{
+  run={...run,position:to};
+  status('Keep going. Reach the star!');
  }
+ render();
+ void flushMoves();
 }
 async function flushMoves(){
  if(sendingMoves||!moveQueue.length||!serverRun)return;
@@ -83,29 +106,47 @@ async function flushMoves(){
    if(epoch!==runEpoch)return;
    serverRun=data.run;
    moveQueue.shift();moveRetry=0;
-   if(data.expired){run=serverRun;await endRun(true);return}
-   if(data.solved){
-    // A new random board cannot be predicted. It starts as soon as it arrives.
-    moveQueue=[];levelPending=false;
+   if(data.expired){
+    moveQueue=[];levelPending=false;upcoming=null;
     releaseDrag();run=serverRun;
-    status('Star collected! New maze unlocked.');
-    render();
-   }else if(!moveQueue.length){
-    // Never replace the active drag's source element on a delayed acknowledgement.
-    if(!drag){run=serverRun;render()}
+    // Wait for the sender flag to clear before ending the run.
+    queueMicrotask(()=>endRun(true));
+    return;
+   }
+   if(data.solved){
+    confirmedUpcoming=data.run.preview||null;confirmedBuffer=data.run.lookahead||[];
+    // If the local board already showed this level, never jump backward to
+    // its initial square: the player may have made further moves.
+    if(run.level<data.run.level){
+     releaseDrag();run=data.run;levelPending=false;
+     upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
+     status('Star collected! New maze unlocked.');
+     render();
+    }else if(run.level===data.run.level){
+     upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
+     const waitingAtGoal=levelPending&&moveQueue.some(item=>item.level===run.level&&item.solved);
+     if(waitingAtGoal&&upcoming){
+      const nextMaze=upcoming;upcoming=previewBuffer.shift()||null;levelPending=false;
+      run={...run,level:run.level+1,score:run.score+1,
+       position:nextMaze.position,goal:nextMaze.goal,blocked:nextMaze.blocked};
+      status('Star collected! New maze unlocked.');render();
+     }else if(!waitingAtGoal)levelPending=false;
+    }
+   }else if(!moveQueue.length&&run.level===data.run.level&&run.position!==data.run.position){
+    // Only resynchronize a truly divergent position, not a normal ack.
+    // Avoid destroying the current drag gesture on an unchanged board.
+    releaseDrag();run={...data.run};render();
    }
   }
  }catch(e){
   if(epoch!==runEpoch)return;
-  // Temporary connection failures should not erase moves that are already visible.
-  // Retry in sequence; only a rejected move requires a position correction.
   if(/Failed to fetch|NetworkError|Load failed|temporarily|503|502/i.test(e.message)&&moveRetry<3){
    moveRetry++;
    status('Connection interrupted. Retrying your move…');
    await new Promise(resolve=>setTimeout(resolve,350*moveRetry));
   }else{
    moveQueue=[];levelPending=false;moveRetry=0;
-   releaseDrag();run=serverRun;
+   releaseDrag();run=serverRun;upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
    status(e.message+' Position resynchronized.');render();
   }
  }finally{
@@ -170,6 +211,7 @@ function cancelDrag(){releaseDrag();selected=false;render()}
 function clearAnnotations(){arrows.length=0;highlights.clear()}
 function drawAnnotations(){
  const old=board.querySelector('.maze-annotations');old?.remove();
+ if(!highlights.size&&!arrows.length)return;
  const svg=document.createElementNS(svgNS,'svg');
  svg.setAttribute('viewBox','0 0 800 800');
  svg.setAttribute('class','maze-annotations');
