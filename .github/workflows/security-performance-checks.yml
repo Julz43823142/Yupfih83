@@ -19,8 +19,12 @@ jobs:
           node-version: '22'
       - name: Test endpoint JSON validation and cache policy
         run: node scripts/test-api-security.mjs
+      - name: Test Play Bots premove input
+        run: node scripts/test-play-premoves.mjs
       - name: Check JavaScript syntax
         run: |
+          node --check play.js
+          node --check play-bot-controls.mjs
           node --check puzzles.js
           node --check puzzle-pool-client.js
           node --check lib/server-request-guard.js
