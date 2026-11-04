@@ -513,8 +513,8 @@ function renderNotation(){
   engineHeader.append(arrowToggleLabel);
   if(engineToggle)engineHeader.append(engineToggle);
   panel.prepend(engineHeader);
-  // Keep the board toolbar separate from the engine panel.
-  if(!boardTop.contains(engineToggle)&&engineToggle)boardTop.append(engineToggle);
+  // All analysis toggles live in the right-hand engine header.
+  boardTop.remove();
   panel.insertBefore(enginePanel,$('opening-name'));
   panel.insertBefore(engineSettings,enginePanel);
   panel.insertBefore(depthControl,enginePanel);
