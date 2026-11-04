@@ -24,7 +24,7 @@
   
   
   <link rel="stylesheet" href="./style.css?v=20261103-sparklines-2">
-  <script src="./script.js?v=20261104-privacy-1" defer></script>
+  <script src="./script.js?v=20261104-no-samples" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
 <link rel="stylesheet" href="/homepage-polish.css?v=19"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script></head>
 <body>
@@ -37,13 +37,13 @@
   <main>
     <section class="hero">
       <div class="hero-glow"></div>
-      <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/play.html"><img class="tool-icon" src="/assets/play-bots.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Play</span><span>→</span></a><a href="/analysis.html"><svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="26" height="26" role="img" aria-label="Analyse icon" fill="none"><rect x="10" y="10" width="72" height="76" rx="10" stroke="#F5FBFF" stroke-width="5"/><path fill="#F5FBFF" d="M22 23h17v17H22zm34 0h17v17H56zM39 40h17v17H39zM22 57h17v17H22zM56 57h17v17H56z"/><circle cx="77" cy="76" r="19" fill="#071B30" stroke="#00DFF2" stroke-width="7"/><path d="m91 91 13 13" stroke="#00DFF2" stroke-width="7" stroke-linecap="round"/></svg><span class="tool-label">Analyse</span><span>→</span></a><a href="/player-prep.html"><img class="tool-icon" src="/assets/accuracy-target.svg?v=1" alt=""><span class="tool-label">Player Prep</span><span>→</span></a><a href="/puzzles.html"><img class="tool-icon" src="/assets/puzzles-approved.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Puzzles</span><span>→</span></a><a href="/minigames.html"><img class="tool-icon" src="/assets/minigames-tool.svg?v=2" width="26" height="26" alt="" loading="eager"><span class="tool-label">Minigames</span><span>→</span></a></aside></aside>
+      <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/play.html"><img class="tool-icon" src="/assets/play-bots.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Play</span></a><a href="/analysis.html"><svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="26" height="26" role="img" aria-label="Analyse icon" fill="none"><rect x="10" y="10" width="72" height="76" rx="10" stroke="#F5FBFF" stroke-width="5"/><path fill="#F5FBFF" d="M22 23h17v17H22zm34 0h17v17H56zM39 40h17v17H39zM22 57h17v17H22zM56 57h17v17H56z"/><circle cx="77" cy="76" r="19" fill="#071B30" stroke="#00DFF2" stroke-width="7"/><path d="m91 91 13 13" stroke="#00DFF2" stroke-width="7" stroke-linecap="round"/></svg><span class="tool-label">Analyse</span></a><a href="/player-prep.html"><img class="tool-icon" src="/assets/accuracy-target.svg?v=1" alt=""><span class="tool-label">Player Prep</span></a><a href="/puzzles.html"><img class="tool-icon" src="/assets/puzzles-approved.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Puzzles</span></a><a href="/minigames.html"><img class="tool-icon" src="/assets/minigames-tool.svg?v=2" width="26" height="26" alt="" loading="eager"><span class="tool-label">Minigames</span></a></aside>
       
 
       <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Hourly puzzle leaderboard">
         <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
         <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
-        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 50 →</a>
+        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 50</a>
 
       </aside>
       <div class="hero-content">
@@ -53,7 +53,7 @@
         <form id="searchForm" class="search-box">
           <input id="username" name="username" type="text" aria-label="Chess.com username"
             placeholder="Enter Chess.com username" autocomplete="off" maxlength="25" required>
-          <button type="submit" id="analyzeBtn">Analyze Player →</button>
+          <button type="submit" id="analyzeBtn">Analyze Player</button>
         </form>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </div>
@@ -66,24 +66,7 @@
       <div id="playerCard" class="player-card"></div>
       <section id="v87-review" class="v87-review"></section><section class="insights-integrated"><h2>Chess Insights</h2><p>Extra performance statistics calculated from the completed player review.</p><div id="insights-embedded" aria-live="polite"></div></section>
     </section>
-    <div class="below-hero-layout">
-    <section class="sample-section" aria-labelledby="sample-title">
-      <div class="sample-heading">
-        
-        <h2 id="sample-title">Try a live analysis</h2>
-      </div>
-      <div class="sample-options">
-        <button class="sample-button" type="button" data-username="MagnusCarlsen" data-name="Magnus Carlsen">
-          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="MagnusCarlsen" alt="Magnus Carlsen Chess.com profile picture" loading="eager" hidden></span><span class="sample-player-name">GM Magnus Carlsen</span></span>
-          <span class="sample-player-handle">@MagnusCarlsen <span class="sample-view">Analyze on your device →</span></span>
-        </button>
-        <button class="sample-button" type="button" data-username="Hikaru" data-name="Hikaru Nakamura">
-          <span class="sample-card-main"><span class="sample-avatar-frame"><img class="sample-avatar" data-avatar-for="Hikaru" src="/discord-knight-400.png" alt="Hikaru Nakamura Chess.com profile picture" loading="eager"></span><span class="sample-player-name">GM Hikaru Nakamura</span></span>
-          <span class="sample-player-handle">@Hikaru <span class="sample-view">Analyze on your device →</span></span>
-        </button>
-      </div>
-      <p id="sampleStatus" class="sample-status" role="status" aria-live="polite"></p>
-    </section>
+    <div class="below-hero-layout no-samples">
     <section class="features">
       <div class="feature-card">
         <img class="feature-illustration" src="./assets/opening-explorer.svg?v=1" alt="Opening Explorer icon" width="112" height="112" loading="lazy">

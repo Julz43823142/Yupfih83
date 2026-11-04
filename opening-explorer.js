@@ -1,5 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {fetchOpeningStats} from './opening-stats-client.js?v=2';
+import {fetchOpeningStats} from './opening-stats-client.js?v=4';
 const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('opening-board');
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};

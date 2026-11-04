@@ -106,3 +106,8 @@ main>.below-hero-layout>.features .feature-illustration{
 
 /* Chess Tools: increase only the visible symbol size; preserve the existing 32px alignment slot. */
 .hero-tool-links a:is([href="/analysis.html"],[href="/player-prep.html"],[href="/minigames.html"]) .tool-icon{transform:scale(1.26)!important;transform-origin:center center!important}
+
+/* Without public-figure sample cards, let the feature cards use the full width. */
+main>.below-hero-layout.no-samples{display:block!important;max-width:1320px;margin-left:auto;margin-right:auto}
+main>.below-hero-layout.no-samples>.features{width:100%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+@media(max-width:750px){main>.below-hero-layout.no-samples>.features{grid-template-columns:1fr!important}}

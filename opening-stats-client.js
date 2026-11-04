@@ -4,7 +4,7 @@ export async function fetchOpeningStats(fen,{signal}={}){
  const query=encodeURIComponent(fen);
  let lastError;
  try{
-  const r=await fetch('/api/opening-explorer?fen='+query,{signal});
+  const r=await fetch('/api/opening-explorer?fen='+query,{signal,cache:'no-store'});
   if(r.status===429)throw Error('Rate limit reached. Try again after one minute.');
   const type=r.headers.get('content-type')||'';
   if(!type.includes('json'))throw Error('Unexpected server response');
@@ -18,7 +18,7 @@ export async function fetchOpeningStats(fen,{signal}={}){
   if(String(e?.message||'').includes('Rate limit'))throw e;
  }
  // If the Cloudflare proxy is unavailable, try both public explorer databases.
- for(const base of ['https://explorer.lichess.org/lichess','https://explorer.lichess.org/masters']){
+ for(const base of ['https://explorer.lichess.org/masters','https://explorer.lichess.org/lichess']){
   const url=new URL(base);
   if(fen!=='startpos')url.searchParams.set('fen',fen);
   if(base.endsWith('/lichess')){

@@ -19,8 +19,8 @@ export async function onRequestGet({request,context}) {
  let parsed=null,lastError=null;
  // Try the Lichess games database first; the Masters database is a
  // separate public upstream and remains usable when the first is rate-limited.
- for(const endpoint of [target.toString(),(()=>{const u=new URL('https://explorer.lichess.org/masters');if(fen!=='startpos')u.searchParams.set('fen',fen);u.searchParams.set('topGames','0');u.searchParams.set('moves','12');return u.toString()})()]){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ for(const endpoint of [(()=>{const u=new URL('https://explorer.lichess.org/masters');if(fen!=='startpos')u.searchParams.set('fen',fen);u.searchParams.set('topGames','0');u.searchParams.set('recentGames','0');u.searchParams.set('moves','12');return u.toString()})(),target.toString()]){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
   try{
    const upstream=await fetch(endpoint,{headers:{Accept:'application/json'},signal:controller.signal});
    if(!upstream.ok){lastError='HTTP '+upstream.status;continue}
@@ -29,6 +29,7 @@ export async function onRequestGet({request,context}) {
     for(const line of raw.split(/\r?\n/).reverse()){try{const item=JSON.parse(line);if(Array.isArray(item.moves)){parsed=item;break}}catch{}}
    }
    if(parsed&&Array.isArray(parsed.moves))break;
+   parsed=null;
    lastError='Invalid opening response';
   }catch(e){lastError=String(e?.message||e)}
   finally{clearTimeout(timer)}
