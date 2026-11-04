@@ -1,6 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Hand making a chess move">
-<!-- A bold Z-shaped move trail, drawn by the pointing hand -->
-<path d="M12 11H49L17 35H46" stroke="#22DFF3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M41 48 35 43c-2-2-1-5 1-6 2-1 4 0 6 2l3 2V23c0-3 2-5 5-5s5 2 5 5v15l3-2c2-1 4 0 5 2 1 2 0 4-2 6l-6 8c-2 3-5 5-9 5h-3c-4 0-7-2-10-5l-8-8c-2-2-2-5 0-7 2-2 5-2 7 0l9 9" fill="#123E58" stroke="#EAFBFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M45 53h12" stroke="#22DFF3" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Hand moving a chess pawn">
+<!-- Pawn held between thumb and index finger -->
+<circle cx="27" cy="13" r="6" fill="#20DFF2" stroke="#EAFBFF" stroke-width="2.5"/>
+<path d="M23 21h8l3 13H20l3-13Z" fill="#20DFF2" stroke="#EAFBFF" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M18 34h18v5H18zM14 40h26v5H14z" fill="#EAFBFF"/>
+<!-- Hand approaching from right, fingers grasping the pawn -->
+<path d="M57 52V37c0-4-2-7-6-7h-2V19c0-3-2-5-4-5s-4 2-4 5v15l-4-4c-2-2-5-2-7 0s-2 4 0 6l8 11c3 4 6 7 12 7h7Z" fill="#103D59" stroke="#EAFBFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M41 34v-9" stroke="#20DFF2" stroke-width="3" stroke-linecap="round"/>
 </svg>
