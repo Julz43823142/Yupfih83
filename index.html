@@ -147,14 +147,14 @@
   const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint5':'survival';
   if(mode===lastMode)return;lastMode=mode;
   title.textContent=mode==='sprint5'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
-  label.textContent='Switches each hour (UTC)';
+  label.textContent='Alternates hourly (UTC) · All-time scores';
   more.href='/puzzle-top100.html?mode='+mode;
   list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
   try{
    const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
    if(!r.ok)throw Error('Unavailable');
    list.replaceChildren();
-   if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores this hour yet';list.append(li)}
+   if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
    for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
   }catch{list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
  }
