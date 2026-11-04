@@ -104,3 +104,11 @@ body{min-height:100vh}
  .tool-page .tool-card:first-of-type>.board-with-eval{grid-template-columns:12px minmax(0,1fr)!important}
  .tool-page .tool-card:first-of-type>.board-with-eval .board-eval-text{font-size:8px!important;writing-mode:vertical-rl;transform:none!important;left:0!important;bottom:4px!important}
 }
+
+/* The arrow switch retains its toggle appearance after moving to the rail. */
+.analysis-controls-panel .analysis-arrow-toggle{color:#c5e8fa;font:700 12px system-ui,sans-serif;cursor:pointer}
+.analysis-controls-panel .analysis-arrow-toggle input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 40px;width:40px;height:22px;margin:0;border-radius:16px;background:#38546b;border:1px solid #6b91a6;cursor:pointer;transition:background .2s}
+.analysis-controls-panel .analysis-arrow-toggle input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#d6e6ee;border-radius:50%;transition:transform .2s}
+.analysis-controls-panel .analysis-arrow-toggle input:checked{background:#079ac1}
+.analysis-controls-panel .analysis-arrow-toggle input:checked::after{transform:translateX(18px)}
+.analysis-controls-panel .analysis-arrow-toggle input:focus-visible{outline:2px solid #fff;outline-offset:3px}
