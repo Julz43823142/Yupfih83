@@ -1,6 +1,6 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const values={"p":100,"n":320,"b":330,"r":500,"q":900,"k":20000};
-const ratings={"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
+const ratings={"cashojf3r":800,"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
 ratings["bot300"]=300;
 ratings["bot1550"]=1550;
 ratings["bot1600"]=1600;
@@ -40,16 +40,23 @@ function search(game,depth,alpha,beta,side){
 }
 function chooseBotMove(){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
+ // Rocketleague prefers the Queen's Gambit when White; legal moves only.
+ if(botLevel==='rocket'&&chess.turn()==='w'){
+  const history=chess.history({verbose:true});
+  const preferred=history.length===0?'d4':history.length===2&&history[0]?.san==='d4'&&history[1]?.san.startsWith('d5')?'c4':null;
+  const opening=moves.find(m=>m.san===preferred);
+  if(opening)return opening;
+ }
  const elo=ratings[botLevel]||1000,side=chess.turn();
  // Elo values are approximate difficulty tiers, not independently calibrated ratings.
  // Lower levels search less deeply and make more deliberate suboptimal choices.
- const depth=elo<1000?1:elo<1650?2:3;
+ const depth=elo<1000?1:elo<1650?2:elo<2000?3:4;
  const noise=elo<700?700:elo<1000?480:elo<1300?300:elo<1650?180:elo<1950?115:elo<2200?70:elo<2500?32:10;
  const ranked=moves.map(m=>{
   chess.move(m);
   const score=search(chess,depth-1,-Infinity,Infinity,side);
   chess.undo();
-  const aggression=botLevel==='ominous'?((m.captured?45:0)+(m.san.includes('+')?60:0)):0;
+  const aggression=(botLevel==='ominous'||botLevel==='cashojf3r')?((m.captured?45:0)+(m.san.includes('+')?60:0)+(m.san.includes('#')?150:0)):0;
   return {move:m,score:score+aggression+(Math.random()-.5)*noise};
  }).sort((a,b)=>b.score-a.score);
  const probability=elo<800?.62:elo<1100?.48:elo<1500?.3:elo<1900?.16:elo<2300?.07:.01;
