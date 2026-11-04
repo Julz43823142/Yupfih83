@@ -366,3 +366,29 @@
  .analysis-three-column>.analysis-board-column{max-width:740px!important}
  .analysis-three-column>.analysis-engine-column{margin-left:0!important;position:relative!important;z-index:1!important}
 }
+
+/* Preserve a genuinely square 8x8 board regardless of evaluation bar height. */
+.analysis-three-column .analysis-board-column>.board-with-eval{
+ display:grid!important;
+ grid-template-columns:30px minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,auto)!important;
+ align-items:start!important;
+}
+.analysis-three-column .analysis-board-column>.board-with-eval>#board{
+ display:grid!important;
+ grid-template-columns:repeat(8,minmax(0,1fr))!important;
+ grid-template-rows:repeat(8,minmax(0,1fr))!important;
+ width:100%!important;height:auto!important;
+ aspect-ratio:1 / 1!important;
+ min-height:0!important;max-height:none!important;
+ align-self:start!important;justify-self:stretch!important;
+}
+.analysis-three-column .analysis-board-column>.board-with-eval>#board>.light,
+.analysis-three-column .analysis-board-column>.board-with-eval>#board>.dark{
+ width:100%!important;height:100%!important;
+ min-width:0!important;min-height:0!important;
+ aspect-ratio:1 / 1!important;box-sizing:border-box!important;
+}
+.analysis-three-column .analysis-board-column>.board-with-eval>.board-eval-wrap{
+ align-self:stretch!important;max-height:100%!important;
+}
