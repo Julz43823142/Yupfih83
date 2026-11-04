@@ -26,7 +26,7 @@ export async function onRequestGet({request,context}) {
    if(!upstream.ok){lastError='HTTP '+upstream.status;continue}
    const raw=await upstream.text();
    try{parsed=JSON.parse(raw)}catch{
-    for(const line of raw.split(/\\r?\\n/).reverse()){try{const item=JSON.parse(line);if(Array.isArray(item.moves)){parsed=item;break}}catch{}}
+    for(const line of raw.split(/\r?\n/).reverse()){try{const item=JSON.parse(line);if(Array.isArray(item.moves)){parsed=item;break}}catch{}}
    }
    if(parsed&&Array.isArray(parsed.moves))break;
    lastError='Invalid opening response';
