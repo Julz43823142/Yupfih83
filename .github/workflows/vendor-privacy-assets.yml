@@ -21,9 +21,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish vendor/fonts
+          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish vendor/fonts vendor/gifenc
           curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm' -o vendor/chess/chess-1.4.0.mjs
           test "$(wc -c < vendor/chess/chess-1.4.0.mjs)" -gt 10000
+          curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm' -o vendor/gifenc/gifenc-1.0.3.mjs
+          test "$(wc -c < vendor/gifenc/gifenc-1.0.3.mjs)" -gt 1000
           mkdir -p /tmp/eloscanner-font
           npm pack @fontsource-variable/inter --pack-destination /tmp/eloscanner-font --silent
           tar -xzf /tmp/eloscanner-font/fontsource-variable-inter-*.tgz -C /tmp/eloscanner-font
@@ -56,7 +58,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add vendor/chess vendor/pyodide vendor/pieces vendor/stockfish vendor/fonts
+          git add vendor/chess vendor/pyodide vendor/pieces vendor/stockfish vendor/fonts vendor/gifenc
           if ! git diff --cached --quiet; then
             git commit -m "4"
             git pull --rebase origin privacy-local-assets-20261104
