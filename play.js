@@ -4,7 +4,7 @@ import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
-const names=Object.fromEntries([["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
+const names=Object.fromEntries([["cashojf3r","cashojf3r (800)"],["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
 names["bot300"]="Bot (300)";
 names["bot1550"]="Bot (1550)";
 names["bot1600"]="Bot (1600)";
@@ -21,7 +21,7 @@ names["bot2800"]="Bot (2800)";
 names["bot2850"]="Bot (2850)";
 names["bot2900"]="Bot (2900)";
 names["bot3000"]="Bot (3000)";
-const ratings={"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
+const ratings={"cashojf3r":800,"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
 ratings["bot300"]=300;
 ratings["bot1550"]=1550;
 ratings["bot1600"]=1600;
@@ -39,7 +39,10 @@ ratings["bot2850"]=2850;
 ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premove=null;
-let botLevel='rocket',selectedBot=null,audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
+let botLevel='rocket',selectedBot=null,audio=null,sound=true;
+const botChatLines={cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
+function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
+function botChatMove(){const lines=botChatLines[botLevel]||['Good move.','I am thinking...','Let’s see what happens.','Interesting position.'];if(Math.random()<.42)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),cell=document.createElement('button');
  cell.type='button';cell.className='play-square '+((row+col)%2?'dark':'light');cell.dataset.square=sq;cell.setAttribute('aria-label',sq);squares.set(sq,cell);board.append(cell);
@@ -172,13 +175,13 @@ board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',un
 let botWorker=null;
 function ensureBotWorker(){
  if(botWorker)return botWorker;
- botWorker=new Worker('/play-bot-worker.js?v=1',{type:'module'});
+ botWorker=new Worker('/play-bot-worker.js?v=2-personality',{type:'module'});
  botWorker.onerror=()=>{status('Bot calculation failed. Start a new game to retry.');working=false;botWorker?.terminate();botWorker=null;paint()};
  botWorker.onmessage=e=>{
   const {token,move,error}=e.data;
   if(token!==gameToken||ended||chess.turn()===human)return;
   if(error){working=false;status('Bot calculation failed. Start a new game to retry.');paint();return}
-  try{if(move)apply(move);working=false;if(!terminal()){status('');runPremove()}}
+  try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
   catch(err){working=false;status('Bot move failed. Start a new game to retry.');console.error(err)}
   paint();
  };
@@ -194,19 +197,19 @@ function scheduleBot(){
  },120);
 }
 function newGame(){
- gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
+ stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premove=null;ended=false;working=false;
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
- closePromotion();$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I love attacking chess!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
-$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;premove=null;
+$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopStrongBot();gameToken++;working=false;ended=false;pending=null;premove=null;
  if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
-$('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;premove=null;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
+$('play-resign').addEventListener('click',()=>{if(ended)return;stopStrongBot();gameToken++;working=false;ended=true;premove=null;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
@@ -214,7 +217,7 @@ $('play-promotion').addEventListener('cancel',e=>{e.preventDefault();pending=nul
 document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.bot;
  if(selectedBot===id){selectedBot=null;$('play-bot-options').hidden=true;}
- else{selectedBot=id;$('play-bot-options').hidden=false;$('play-selected-name').textContent=id==='mikhail'?'Mikhail Hal':id==='ominous'?'ominousgenius':id==='rocket'?'ROCKETLEAGUE':'Bot';$('play-selected-elo').textContent=ratings[id]+' Elo';}
+ else{selectedBot=id;$('play-bot-options').hidden=false;$('play-selected-name').textContent=id==='mikhail'?'Mikhail Hal':id==='ominous'?'ominousgenius':id==='rocket'?'ROCKETLEAGUE':id==='cashojf3r'?'cashojf3r':'Bot';$('play-selected-elo').textContent=ratings[id]+' Elo';}
  document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
 }));
 paint();
