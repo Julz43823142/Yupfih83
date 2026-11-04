@@ -41,10 +41,10 @@
       
 
       <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Hourly puzzle leaderboard">
-        <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong><span id="hero-puzzle-hour">Changes hourly</span></div>
+        <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
         <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
-        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint5">View Top 50 →</a>
-        <p>Voluntary nicknames · Unverified scores</p>
+        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 50 →</a>
+
       </aside>
       <div class="hero-content">
         <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
@@ -144,10 +144,10 @@
  async function update(){
   // Switch the displayed leaderboard every UTC hour. Scores remain separate,
   // and the existing hourly scoring windows are unchanged.
-  const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint5':'survival';
+  const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint':'survival';
   if(mode===lastMode)return;lastMode=mode;
-  title.textContent=mode==='sprint5'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
-  label.textContent='Alternates hourly (UTC) · All-time scores';
+  title.textContent=mode==='sprint'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
+  
   more.href='/puzzle-top100.html?mode='+mode;
   list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
   try{
