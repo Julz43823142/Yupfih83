@@ -22,7 +22,7 @@ export async function onRequestPost({request,env}){
  if(!names.has(player))return reply({error:"Unknown player"},400);
  if(!env.SUS_DB)return reply({error:"Storage unavailable"},503);
  const raw=await request.text();
- if(raw.length>1800000)return reply({error:"Report too large"},413);
+ if(raw.length>7500000)return reply({error:"Report too large"},413);
  let data;try{data=JSON.parse(raw)}catch{return reply({error:"Invalid JSON"},400)}
  const report=data?.report;
  if(!report||typeof report!=="object"||!Number.isInteger(report.games)||report.games<1||report.games>5000)return reply({error:"Invalid report"},400);
