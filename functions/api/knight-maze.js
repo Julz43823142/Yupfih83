@@ -60,7 +60,9 @@ export async function onRequestPost({request,env}){
  const action=data?.action;
  if(!['start','move','finish','submit'].includes(action))return json({error:'Invalid action.'},400);
  try{
-  await ready(db);
+  // All move/finish requests refer to a run created by start(), which already
+  // initialized the tables. Avoid redundant DDL checks on every fast move.
+  if(action==='start'||action==='submit')await ready(db);
   const now=Date.now();
   if(action==='start'){
    await db.prepare('DELETE FROM knight_maze_runs WHERE started_at < ?').bind(now-86400000).run();
