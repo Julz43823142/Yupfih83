@@ -16,6 +16,7 @@ export async function onRequestGet({request,env}){
  try{
   await dbReady(db);
   const current=hour();
+  await db.prepare("DELETE FROM puzzle_hourly_scores WHERE hour < ?").bind(current-1).run();
   const rows=await db.prepare("SELECT nickname,score FROM puzzle_hourly_scores WHERE hour=? AND mode=? ORDER BY score DESC,created_at ASC LIMIT ?").bind(current,mode,limit).all();
   return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
