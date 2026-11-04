@@ -1,141 +1,109 @@
-/* Shared visual canvas and board sizing for EloScanner chess tools. */
-html:has(body.elo-unified-chess),body.elo-unified-chess{
- background-color:#010817!important;
-}
-body.elo-unified-chess{
- background-image:linear-gradient(115deg,#031224 0%,#06233a 60%,#031426 100%)!important;
- background-attachment:fixed!important;
- min-height:100vh;
-}
-body.elo-unified-chess .chess-board,
-body.elo-unified-chess #play-board,
-body.elo-unified-chess #puzzle-board,
-body.elo-unified-chess #maze-board{
- aspect-ratio:1 / 1!important;
- box-sizing:border-box!important;
-}
-@media(min-width:1450px){
- body.elo-unified-chess .play-page,
- body.elo-unified-chess .puzzles-page,
- body.elo-unified-chess .maze-page{width:calc(100% - 40px)!important;max-width:1900px!important}
- body.elo-unified-chess .play-layout{grid-template-columns:minmax(0,730px) minmax(300px,1fr)!important}
- body.elo-unified-chess .puzzles-layout,
- body.elo-unified-chess .puzzles-layout.has-save-score{
-  grid-template-columns:minmax(195px,245px) minmax(0,730px) minmax(300px,1fr)!important;
-  gap:18px!important;
- }
- body.elo-unified-chess #puzzle-board{width:100%!important;max-width:730px!important}
- body.elo-unified-chess .maze-layout{grid-template-columns:minmax(0,770px) minmax(300px,1fr)!important}
- body.elo-unified-chess .maze-board{max-width:730px!important;margin-inline:auto!important}
- body.elo-unified-chess .prep-board-row .chess-board{max-width:730px!important}
- body.elo-unified-chess .analysis-three-column .analysis-board-column{max-width:770px!important}
- body.elo-unified-chess .analysis-three-column .analysis-board-column>.board-with-eval{max-width:770px!important}
-}
-@media(min-width:1000px) and (max-width:1449px){
- body.elo-unified-chess .puzzles-page{width:calc(100% - 32px)!important;max-width:none!important}
- body.elo-unified-chess .puzzles-layout,
- body.elo-unified-chess .puzzles-layout.has-save-score{
-  grid-template-columns:minmax(155px,190px) minmax(0,1fr)!important;
- }
- body.elo-unified-chess .puzzles-layout>.puzzle-details{grid-column:2!important}
- body.elo-unified-chess #puzzle-board{max-width:730px!important}
-}
-@media(max-width:999px){
- body.elo-unified-chess #puzzle-board,
- body.elo-unified-chess .maze-board,
- body.elo-unified-chess .chess-board{max-width:100%!important}
-}
-
-/* Single board sizing contract across chess tools.
-   Use the same 700px square as the large repertoire-style board,
-   centered within each board area; never stretch an 8x8 board vertically. */
-body.elo-unified-chess{--elo-board-size:700px}
-body.elo-unified-chess #play-board,
-body.elo-unified-chess #puzzle-board,
-body.elo-unified-chess #maze-board,
-body.elo-unified-chess .prep-board-row .chess-board,
-body.elo-unified-chess .analysis-board-column #board{
- width:100%!important;
- max-width:var(--elo-board-size)!important;
- height:auto!important;
- aspect-ratio:1 / 1!important;
- min-width:0!important;
- min-height:0!important;
- margin-inline:auto!important;
- justify-self:center!important;
- align-self:start!important;
- box-sizing:border-box!important;
-}
-body.elo-unified-chess #play-board,
-body.elo-unified-chess #puzzle-board,
-body.elo-unified-chess #maze-board,
-body.elo-unified-chess .prep-board-row .chess-board,
-body.elo-unified-chess .analysis-board-column #board{
- grid-template-columns:repeat(8,minmax(0,1fr))!important;
+/* EloScanner board-first responsive layout v3.
+   One shared board size, symmetric desktop rails, stacked mobile controls.
+   This stylesheet intentionally replaces earlier experimental overrides. */
+:root{--elo-board-max:700px;--elo-rail-gap:18px;--elo-board-shell:740px}
+html:has(body.elo-unified-chess),body.elo-unified-chess{background-color:#010817!important}
+body.elo-unified-chess{background-image:linear-gradient(115deg,#031224 0%,#06233a 60%,#031426 100%)!important;background-attachment:fixed!important;min-height:100vh}
+body.elo-unified-chess :is(.play-layout,.puzzles-layout,.maze-layout,.prep-analysis-layout,.analysis-three-column)>*{min-width:0!important;box-sizing:border-box!important}
+body.elo-unified-chess :is(#play-board,#puzzle-board,#maze-board,.prep-board-row #board,.analysis-board-column #board){
+ display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;
  grid-template-rows:repeat(8,minmax(0,1fr))!important;
+ width:100%!important;max-width:var(--elo-board-max)!important;
+ height:auto!important;aspect-ratio:1/1!important;
+ min-width:0!important;min-height:0!important;
+ margin-inline:auto!important;box-sizing:border-box!important;
+ align-self:start!important;justify-self:center!important;
 }
-body.elo-unified-chess .play-board-card,
-body.elo-unified-chess .puzzle-board-card,
-body.elo-unified-chess .maze-game,
-body.elo-unified-chess .prep-board-area{
- min-width:0!important;
- box-sizing:border-box!important;
+body.elo-unified-chess :is(#play-board .play-square,#puzzle-board .puzzle-square,#maze-board .maze-cell,.prep-board-row #board>button,.analysis-board-column #board>button){min-width:0!important;min-height:0!important;box-sizing:border-box!important}
+body.elo-unified-chess :is(.play-board-card,.puzzle-board-card,.maze-game){width:100%!important;max-width:var(--elo-board-shell)!important;margin-inline:auto!important;justify-self:center!important;box-sizing:border-box!important}
+body.elo-unified-chess .play-main-layout{display:block!important;width:100%!important;max-width:none!important}
+body.elo-unified-chess .play-game{width:100%!important;max-width:none!important;margin-inline:auto!important}
+body.elo-unified-chess .play-layout{display:grid!important;gap:var(--elo-rail-gap)!important;align-items:start!important}
+body.elo-unified-chess .puzzles-layout,
+body.elo-unified-chess .puzzles-layout.has-save-score{display:grid!important;gap:var(--elo-rail-gap)!important;align-items:start!important}
+body.elo-unified-chess .maze-layout{display:grid!important;gap:var(--elo-rail-gap)!important;align-items:start!important}
+body.elo-unified-chess .prep-analysis-layout{display:grid!important;gap:var(--elo-rail-gap)!important;align-items:start!important}
+body.elo-unified-chess .prep-board-area{width:100%!important;min-width:0!important;grid-column:auto!important;grid-row:auto!important}
+body.elo-unified-chess .prep-board-row{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;gap:8px!important;max-width:738px!important;width:100%!important;margin-inline:auto!important;align-items:start!important}
+body.elo-unified-chess .prep-board-row .prep-eval-bar{grid-column:1!important;grid-row:1!important;width:30px!important;min-width:0!important;max-width:30px!important;height:100%!important;align-self:stretch!important}
+body.elo-unified-chess .prep-board-row #board{grid-column:2!important;grid-row:1!important}
+body.elo-unified-chess .analysis-board-column{width:100%!important;max-width:var(--elo-board-shell)!important;margin-inline:auto!important}
+body.elo-unified-chess .analysis-board-column>.board-with-eval{
+ display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;
+ gap:8px!important;width:100%!important;max-width:738px!important;
+ margin-inline:auto!important;overflow:visible!important;align-items:start!important
 }
-body.elo-unified-chess .play-board-card,
-body.elo-unified-chess .puzzle-board-card,
-body.elo-unified-chess .maze-game{
- width:100%!important;
- max-width:calc(var(--elo-board-size) + 36px)!important;
- margin-inline:auto!important;
- justify-self:center!important;
-}
-@media(min-width:1450px){
- body.elo-unified-chess .play-layout{
-  grid-template-columns:minmax(0,1fr)!important;
-  justify-items:center!important;
- }
- body.elo-unified-chess .play-layout>.play-board-card{grid-column:1!important}
+body.elo-unified-chess .analysis-board-column>.board-with-eval>.board-eval-wrap{grid-column:1!important;grid-row:1!important;width:30px!important;max-width:30px!important;align-self:stretch!important;height:100%!important}
+body.elo-unified-chess .analysis-board-column>.board-with-eval>#board{grid-column:2!important;grid-row:1!important}
+@media(min-width:1500px){
+ body.elo-unified-chess :is(.play-page,.puzzles-page,.maze-page,.tool-page){width:calc(100% - 36px)!important;max-width:1900px!important;margin-inline:auto!important}
+ body.elo-unified-chess .play-layout,
  body.elo-unified-chess .puzzles-layout,
- body.elo-unified-chess .puzzles-layout.has-save-score{
-  grid-template-columns:minmax(185px,1fr) minmax(0,736px) minmax(280px,1fr)!important;
-  gap:18px!important;
- }
- body.elo-unified-chess .puzzles-layout>.puzzle-board-card{
-  grid-column:2!important;justify-self:center!important;
- }
- body.elo-unified-chess .maze-layout{
-  grid-template-columns:minmax(0,1fr) minmax(290px,1fr)!important;
- }
- body.elo-unified-chess .maze-layout>.maze-game{
-  width:min(100%,736px)!important;
-  justify-self:center!important;
- }
- body.elo-unified-chess .prep-analysis-layout{
-  grid-template-columns:minmax(185px,1fr) minmax(0,780px) minmax(300px,1fr)!important;
- }
- body.elo-unified-chess .prep-board-row{
-  max-width:750px!important;
-  width:100%!important;
-  margin-inline:auto!important;
- }
+ body.elo-unified-chess .puzzles-layout.has-save-score,
+ body.elo-unified-chess .maze-layout,
+ body.elo-unified-chess .prep-analysis-layout,
  body.elo-unified-chess .analysis-three-column{
-  grid-template-columns:minmax(230px,1fr) minmax(0,740px) minmax(340px,1.25fr)!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,740px) minmax(0,1fr)!important;
+  justify-content:center!important;gap:var(--elo-rail-gap)!important;
  }
- body.elo-unified-chess .analysis-board-column>.board-with-eval{
-  width:100%!important;max-width:740px!important;
-  grid-template-columns:30px minmax(0,1fr)!important;
-  gap:8px!important;
+ body.elo-unified-chess .play-layout>.play-controls-panel{grid-column:1!important;grid-row:1!important}
+ body.elo-unified-chess .play-layout>.play-board-card{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess .play-layout>.play-panel{grid-column:3!important;grid-row:1!important}
+ body.elo-unified-chess .puzzles-layout>.puzzle-toolbar-card{grid-column:1!important;grid-row:1!important}
+ body.elo-unified-chess .puzzles-layout>.puzzle-board-card{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess .puzzles-layout>.puzzle-details{grid-column:3!important;grid-row:1!important}
+ body.elo-unified-chess .puzzles-layout>.puzzle-save-run:not([hidden]){grid-column:1!important;grid-row:2!important}
+ body.elo-unified-chess .maze-layout>.maze-controls-panel{grid-column:1!important;grid-row:1!important}
+ body.elo-unified-chess .maze-layout>.maze-game{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess .maze-layout>.maze-sidebar{grid-column:3!important;grid-row:1!important;min-width:0!important}
+ body.elo-unified-chess .prep-analysis-layout>.prep-stats-side{grid-column:1!important;grid-row:1!important}
+ body.elo-unified-chess .prep-analysis-layout>.prep-board-area{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess .prep-analysis-layout>.prep-engine-side{grid-column:3!important;grid-row:1!important}
+ body.elo-unified-chess .analysis-three-column>.analysis-controls-panel{grid-column:1!important;grid-row:1!important}
+ body.elo-unified-chess .analysis-three-column>.analysis-board-column{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess .analysis-three-column>.analysis-engine-column{grid-column:3!important;grid-row:1!important;margin-left:0!important}
+ body.elo-unified-chess .play-selector{width:min(100%,1100px)!important;max-width:1100px!important;margin:22px auto!important}
+}
+@media(max-width:1499px){
+ body.elo-unified-chess .play-layout,
+ body.elo-unified-chess .puzzles-layout,
+ body.elo-unified-chess .puzzles-layout.has-save-score,
+ body.elo-unified-chess .maze-layout,
+ body.elo-unified-chess .prep-analysis-layout,
+ body.elo-unified-chess .analysis-three-column{
+  grid-template-columns:minmax(0,1fr)!important;
+  justify-items:center!important;gap:16px!important;
  }
+ body.elo-unified-chess .play-layout>.play-board-card,
+ body.elo-unified-chess .puzzles-layout>.puzzle-board-card,
+ body.elo-unified-chess .maze-layout>.maze-game,
+ body.elo-unified-chess .prep-analysis-layout>.prep-board-area,
+ body.elo-unified-chess .analysis-three-column>.analysis-board-column{
+  grid-column:1!important;grid-row:1!important;
+  width:100%!important;max-width:740px!important;justify-self:center!important;
+ }
+ body.elo-unified-chess .play-layout>.play-controls-panel,
+ body.elo-unified-chess .puzzles-layout>.puzzle-toolbar-card,
+ body.elo-unified-chess .maze-layout>.maze-controls-panel,
+ body.elo-unified-chess .prep-analysis-layout>.prep-stats-side,
+ body.elo-unified-chess .analysis-three-column>.analysis-controls-panel{
+  grid-column:1!important;grid-row:2!important;
+  width:100%!important;max-width:740px!important;justify-self:center!important;
+ }
+ body.elo-unified-chess .play-layout>.play-panel,
+ body.elo-unified-chess .puzzles-layout>.puzzle-details,
+ body.elo-unified-chess .maze-layout>.maze-sidebar,
+ body.elo-unified-chess .prep-analysis-layout>.prep-engine-side,
+ body.elo-unified-chess .analysis-three-column>.analysis-engine-column{
+  grid-column:1!important;grid-row:3!important;
+  width:100%!important;max-width:740px!important;justify-self:center!important;margin-left:0!important;
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-save-run:not([hidden]){grid-column:1!important;grid-row:4!important;width:100%!important;max-width:740px!important}
+ body.elo-unified-chess .play-selector{width:min(100%,740px)!important;max-width:740px!important;margin:18px auto!important}
 }
-@media(min-width:701px) and (max-width:1449px){
- body.elo-unified-chess .play-layout{justify-items:center!important}
- body.elo-unified-chess .play-board-card{max-width:736px!important}
- body.elo-unified-chess .puzzles-layout>.puzzle-board-card{justify-self:center!important}
- body.elo-unified-chess .maze-game{justify-self:center!important}
- body.elo-unified-chess .prep-board-row{max-width:750px!important;margin-inline:auto!important}
-}
-@media(max-width:700px){
- body.elo-unified-chess .play-board-card,
- body.elo-unified-chess .puzzle-board-card,
- body.elo-unified-chess .maze-game{max-width:100%!important}
+@media(max-width:760px){
+ body.elo-unified-chess :is(.play-page,.puzzles-page,.maze-page,.tool-page){width:calc(100% - 20px)!important;max-width:100%!important}
+ body.elo-unified-chess :is(.play-board-card,.puzzle-board-card,.maze-game){max-width:100%!important}
+ body.elo-unified-chess .prep-board-row,
+ body.elo-unified-chess .analysis-board-column>.board-with-eval{max-width:100%!important}
 }
