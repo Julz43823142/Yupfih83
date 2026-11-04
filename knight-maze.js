@@ -6,7 +6,7 @@ let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 const arrows=[],highlights=new Set();
 let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0,levelPending=false,moveRetry=0;
-let upcoming=null,confirmedUpcoming=null;
+let upcoming=null,confirmedUpcoming=null,previewBuffer=[],confirmedBuffer=[];
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
@@ -59,9 +59,9 @@ async function api(body){
  const data=await res.json();if(!res.ok)throw Error(data.error||'Request failed.');return data;
 }
 async function start(){
- if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;upcoming=null;confirmedUpcoming=null;levelPending=false;moveRetry=0;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
+ if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;upcoming=null;confirmedUpcoming=null;previewBuffer=[];confirmedBuffer=[];levelPending=false;moveRetry=0;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
  try{
-  const data=await api({action:'start'});run=data.run;serverRun=data.run;upcoming=data.run.preview||null;confirmedUpcoming=upcoming;finished=false;submitted=false;
+  const data=await api({action:'start'});run=data.run;serverRun=data.run;upcoming=data.run.preview||null;previewBuffer=data.run.lookahead||[];confirmedUpcoming=upcoming;confirmedBuffer=[...previewBuffer];finished=false;submitted=false;
   $('maze-submit-panel').hidden=true;$('maze-start').hidden=true;$('maze-finish').hidden=false;
   status('Find the star using knight moves.');render();
   clearInterval(timer);timer=setInterval(updateClock,200);
@@ -79,7 +79,7 @@ function move(to){
  if(solved&&upcoming){
   // The server already supplied this exact level before the star was reached.
   // Switch NOW; the network confirmation is processed independently in order.
-  const next=upcoming;upcoming=null;
+  const next=upcoming;upcoming=previewBuffer.shift()||null;
   run={...run,level:level+1,score:run.score+1,
    position:next.position,goal:next.goal,blocked:next.blocked};
   status('Star collected! New maze unlocked.');
@@ -114,19 +114,19 @@ async function flushMoves(){
     return;
    }
    if(data.solved){
-    confirmedUpcoming=data.run.preview||null;
+    confirmedUpcoming=data.run.preview||null;confirmedBuffer=data.run.lookahead||[];
     // If the local board already showed this level, never jump backward to
     // its initial square: the player may have made further moves.
     if(run.level<data.run.level){
      releaseDrag();run=data.run;levelPending=false;
-     upcoming=confirmedUpcoming;
+     upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
      status('Star collected! New maze unlocked.');
      render();
     }else if(run.level===data.run.level){
-     upcoming=confirmedUpcoming;
+     upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
      const waitingAtGoal=levelPending&&moveQueue.some(item=>item.level===run.level&&item.solved);
      if(waitingAtGoal&&upcoming){
-      const nextMaze=upcoming;upcoming=null;levelPending=false;
+      const nextMaze=upcoming;upcoming=previewBuffer.shift()||null;levelPending=false;
       run={...run,level:run.level+1,score:run.score+1,
        position:nextMaze.position,goal:nextMaze.goal,blocked:nextMaze.blocked};
       status('Star collected! New maze unlocked.');render();
@@ -146,7 +146,7 @@ async function flushMoves(){
    await new Promise(resolve=>setTimeout(resolve,350*moveRetry));
   }else{
    moveQueue=[];levelPending=false;moveRetry=0;
-   releaseDrag();run=serverRun;upcoming=confirmedUpcoming;
+   releaseDrag();run=serverRun;upcoming=confirmedUpcoming;previewBuffer=[...confirmedBuffer];
    status(e.message+' Position resynchronized.');render();
   }
  }finally{
