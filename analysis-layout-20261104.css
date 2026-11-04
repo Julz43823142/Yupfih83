@@ -8,7 +8,7 @@
 .tool-page .tool-card:first-of-type>.board-with-eval .chess-board{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box}
 .tool-page .tool-card:first-of-type>.live-notation{overflow-x:hidden!important}
 .tool-page .tool-card:first-of-type>.live-notation .analysis-engine-header{display:flex!important;flex-wrap:wrap!important;gap:10px 14px!important;align-items:center!important;min-width:0}
-.tool-page .tool-card:first-of-type>.live-notation .engine-line{min-width:0!important;grid-template-columns:25px minmax(0,1fr) 55px!important;gap:6px!important}
+.tool-page .tool-card:first-of-type>.live-notation .engine-line{min-width:0!important;grid-template-columns:24px minmax(0,1fr) 50px 54px!important;gap:6px!important}
 .tool-page .tool-card:first-of-type>.live-notation .engine-line>*{min-width:0;overflow-wrap:anywhere}
 .tool-page .tool-card:first-of-type>.live-notation .engine-line-moves{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tool-page .tool-card:first-of-type>.review-side-stats{align-self:start!important;margin-top:0!important}
