@@ -23,7 +23,7 @@ jobs:
         run: |
           node --check puzzles.js
           node --check puzzle-pool-client.js
-          node --check functions/_shared/read-json.js
+          node --check lib/server-request-guard.js
           node --check functions/api/puzzle-leaderboard.js
           node --check functions/api/knight-maze.js
           node --check functions/api/puzzle-report.js
