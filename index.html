@@ -78,6 +78,24 @@
       </div>
       <p id="sampleStatus" class="sample-status" role="status" aria-live="polite"></p>
     </section>
+    <section class="homepage-hourly-rankings" aria-label="Hourly puzzle leaderboards">
+      <h2>Puzzle Leaderboards · This Hour</h2>
+      <div class="homepage-hourly-grid">
+        <div><h3>Puzzle Sprint (5 min)</h3><ol id="home-sprint-rank"></ol><a href="/puzzle-top100.html?mode=sprint5">View Top 50</a></div>
+        <div><h3>Puzzle Survival</h3><ol id="home-survival-rank"></ol><a href="/puzzle-top100.html?mode=survival">View Top 50</a></div>
+      </div>
+      <p>Rankings reset hourly (UTC). Voluntary nicknames; scores are not independently verified.</p>
+    </section>
+    <style>
+    .homepage-hourly-rankings{margin:22px 0;padding:22px;border:1px solid #285777;border-radius:15px;background:#081e31;color:#d8effc}
+    .homepage-hourly-rankings h2{margin:0 0 15px;color:#69e3f5}
+    .homepage-hourly-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .homepage-hourly-grid>div{padding:14px;background:#103149;border-radius:12px}
+    .homepage-hourly-grid h3{margin:0 0 10px}.homepage-hourly-grid ol{padding-left:27px;min-height:34px}
+    .homepage-hourly-grid li{padding:4px 0}.homepage-hourly-grid a{color:#6be5f4}
+    .homepage-hourly-rankings p{color:#a5c8db;font-size:12px}
+    @media(max-width:620px){.homepage-hourly-grid{grid-template-columns:1fr}}
+    </style>
     <section class="features">
       <div class="feature-card">
         <img class="feature-illustration" src="./assets/opening-explorer.svg?v=1" alt="Opening Explorer icon" width="112" height="112" loading="lazy">
@@ -108,5 +126,18 @@
     <span>© <span id="year"></span> EloScanner</span>
     <span>Independent chess analysis</span>
   </footer>
+  <script>
+  (async()=>{
+   for(const [mode,id] of [['sprint5','home-sprint-rank'],['survival','home-survival-rank']]){
+    const list=document.getElementById(id);if(!list)continue;
+    try{
+     const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
+     if(!r.ok)throw Error('Unavailable');
+     if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
+     for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+    }catch{const li=document.createElement('li');li.textContent='Rankings unavailable';list.append(li)}
+   }
+  })();
+  </script>
 </body>
 </html>
