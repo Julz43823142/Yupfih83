@@ -27,7 +27,7 @@ function recordVerifiedSolve(){
  proofChain.catch(()=>{});
 }
 
-let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,replyFrame=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
 let soundOn=true,audioCtx=null;
@@ -80,7 +80,7 @@ function stats(){
  const sec=mode==='sprint'?(runActive?clock():sprintMinutes*60):0;
  $('puzzle-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
 }
-function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null}
+function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null;if(replyFrame!==null)cancelAnimationFrame(replyFrame);replyFrame=null}
 function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';
@@ -197,16 +197,53 @@ function decode(data){
  }
  return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen())};
 }
+
+/* While a puzzle is being solved, prepare the NEXT board in memory.
+   A ready board needs no network request, sorting or FEN validation at the moment
+   the user solves the current puzzle. Prefetching never changes the active board. */
+let prefetchedPuzzle=null,prefetchToken=0,prefetchTimer=null;
+const nextTarget=(kind,count)=>kind==='sprint'?750+125*count:kind==='survival'?650+145*count:null;
+function clearPrefetch(){
+ ++prefetchToken;
+ prefetchedPuzzle=null;
+ if(prefetchTimer!==null)clearTimeout(prefetchTimer);
+ prefetchTimer=null;
+}
+function prefetchNext(kind){
+ if(!runActive||!ready||(kind!=='sprint'&&kind!=='survival'))return;
+ const token=++prefetchToken,expectedSolved=solved+1,ratingFloor=lastChallengeRating;
+ // Do the potentially expensive search AFTER the current board has had a
+ // chance to paint; it never runs synchronously during a solved-puzzle transition.
+ prefetchTimer=setTimeout(async()=>{
+  prefetchTimer=null;
+  try{
+   const candidate=decode(await getPuzzle(kind,nextTarget(kind,expectedSolved)));
+   if(token!==prefetchToken||!runActive||!ready||mode!==kind||
+      solved!==expectedSolved-1||lastChallengeRating!==ratingFloor)return;
+   prefetchedPuzzle={kind,expectedSolved,ratingFloor,candidate};
+  }catch{
+   // Normal load() remains the fallback if the preview cannot be prepared.
+  }
+ },0);
+}
+
 async function load(kind=mode){
- const generation=++requestId;busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();say('Loading puzzle…');
+ // Consume the validated preview synchronously when it matches this run.
+ // No timeout, extra animation frame or async work is required in that case.
+ const cached=prefetchedPuzzle&&prefetchedPuzzle.kind===kind&&
+  prefetchedPuzzle.expectedSolved===solved&&prefetchedPuzzle.ratingFloor===lastChallengeRating&&
+  !seen.has(prefetchedPuzzle.candidate.id)?prefetchedPuzzle.candidate:null;
+ clearPrefetch();
+ const generation=++requestId;
+ busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();
+ if(!cached)say('Loading puzzle…');
  try{
   let p;
-  if(kind==='custom'){
+  if(cached)p=cached;
+  else if(kind==='custom'){
    const target=Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200));
    p=decode(await getPuzzle('next',target));
-  }else{
-   p=decode(await getPuzzle(kind,kind==='sprint'?750+125*solved:kind==='survival'?650+145*solved:null));
-  }
+  }else p=decode(await getPuzzle(kind,nextTarget(kind,solved)));
   if(generation!==requestId)return;
   position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
   seenPositions.add(p.puzzleKey);
@@ -214,7 +251,6 @@ async function load(kind=mode){
   orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
-
   say(kind==='custom'?'Selected an available puzzle rated '+p.rating+'. Find the best move.':'Find the best move. Opponent replies are automatic.');
  }catch(e){
   if(generation!==requestId)return;
@@ -223,26 +259,32 @@ async function load(kind=mode){
   }
   busy=false;ready=false;say('Puzzle unavailable: '+e.message+'. '+(runActive?'Retrying automatically…':'Try again.'),'error');
   if(runActive){
-   // A temporary provider outage must not count as a mistake.
-   // Pause the Sprint clock while waiting for the provider.
+   // The Sprint clock is compensated only for unavailable puzzle data.
    if(mode==='sprint')deadline+=5000;
    if(auto)clearTimeout(auto);
    auto=setTimeout(()=>{if(runActive&&generation===requestId)load(mode)},5000);
   }
  }
  stats();buttons();draw();
+ if(generation===requestId&&ready)prefetchNext(kind);
 }
 function finish(){
  if(runActive)recordVerifiedSolve();
- ready=false;solved++;if(!position.isCheckmate())playSound('mate');say('Correct! Puzzle solved.','success');stats();buttons();
+ ready=false;solved++;
+ if(!position.isCheckmate())playSound('mate');
  if(runActive){
-  const activeMode=mode;auto=setTimeout(()=>{if(runActive&&mode===activeMode)load(mode)},100);
- }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
+  if(mode==='sprint'&&clock()<=0){finishRun('Time is up!');return}
+  // Absolutely no intentional pause: the prefetched board is shown now.
+  void load(mode);
+  return;
+ }
+ say('Correct! Puzzle solved.','success');stats();buttons();
+ if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
  const score=solved;
  playSound('end');
- stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
+ stopTimers();clearPrefetch();closePromotion();runActive=false;ready=false;busy=false;requestId++;
 
  completedRun={mode:mode==='sprint'?'sprint'+sprintMinutes:'survival',score};
  $('puzzle-final-score').textContent='You solved '+score+' puzzle'+(score===1?'':'s')+'.';
@@ -274,24 +316,27 @@ function play(from,to,promotion=null){
  const copy=new Chess(position.fen());copy.move({from,to,promotion:chosen});
  if(actual!==expected&&!copy.isCheckmate()){mistake(to);return false}
  const completedMove=position.move({from,to,promotion:chosen});unlockAudio();soundForMove(completedMove);closePromotion();
- lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;draw();
+ lastMove={from,to};selected=null;wrongSquare=null;arrows.length=0;step++;
+ // Avoid rendering the solved board just before replacing it with the next puzzle.
  if(step>=solution.length||position.isCheckmate()){finish();return true}
- busy=true;buttons();const current=requestId;
- auto=setTimeout(()=>{
+ draw();busy=true;buttons();const current=requestId;
+ // Respond on the next display frame instead of waiting a fixed 120ms.
+ replyFrame=requestAnimationFrame(()=>{
+  replyFrame=null;
   if(current!==requestId)return;
   const response=solution[step];
   try{const reply=position.move({from:response.slice(0,2),to:response.slice(2,4),promotion:response[4]||'q'});soundForMove(reply)}
   catch{busy=false;ready=false;say('Cannot play the automatic reply. Please load a new puzzle.','error');buttons();return}
-  lastMove={from:response.slice(0,2),to:response.slice(2,4)};step++;busy=false;draw();
+  lastMove={from:response.slice(0,2),to:response.slice(2,4)};step++;busy=false;
   if(step>=solution.length)finish();
-  else{say('Correct. Find the next move.','success');buttons()}
- },120);
+  else{draw();say('Correct. Find the next move.','success');buttons()}
+ });
  return true;
 }
 function switchMode(next){
  if(!MODES[next])return;
  completedRun=null;$('puzzle-save-run').hidden=true;
- requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
+ clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
