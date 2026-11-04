@@ -12,3 +12,7 @@ body.elo-subpage .elo-global-menu nav a:hover,body.elo-subpage .elo-global-menu 
 body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#136c91!important;border-color:#55dce9!important;color:white!important}
 body.elo-subpage .tool-page>.tool-nav,body.elo-subpage .opening-page>.tool-nav{display:none!important}
 @media(max-width:1099px){body.elo-subpage .navbar{position:sticky!important;top:0;z-index:1000!important;padding:9px 18px!important}}
+
+/* Highlight the current tool before the dropdown is opened as well. */
+body.elo-subpage .elo-global-menu:has(a[aria-current="page"]) summary{border-color:#399bb8!important;background:#143f5b!important;color:#c6f5ff!important}
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#227fa5!important;box-shadow:inset 3px 0 #80efff!important;font-weight:800!important}
