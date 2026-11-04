@@ -338,3 +338,18 @@ main>.results{
   width:min(100%,840px)!important;max-width:840px!important;
  }
 }
+
+/* #29: align the three introductory feature cards with the 1050px transparency section. */
+@media(min-width:1100px){
+ main>.below-hero-layout.with-player-previews>.features{
+  width:min(1050px,100%)!important;max-width:1050px!important;
+  margin-left:auto!important;margin-right:auto!important;
+  transform:translateX(-75px)!important;
+  gap:20px!important;
+ }
+}
+@media(min-width:1400px){
+ main>.below-hero-layout.with-player-previews>.features{
+  transform:translateX(-150px)!important;
+ }
+}
