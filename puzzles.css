@@ -295,3 +295,9 @@ button.rank-report:disabled{opacity:.7;cursor:default}
  .puzzle-toolbar-switches{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
  .puzzle-rank-columns,.puzzle-rank-list li:not(.rank-note){grid-template-columns:30px minmax(0,1.7fr) 42px 55px!important;gap:4px!important}
 }
+
+/* Four equal puzzle modes on a single phone row. */
+@media(max-width:700px){
+ .puzzles-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;padding:5px!important}
+ .puzzles-tabs [data-puzzle-mode]{display:flex!important;align-items:center;justify-content:center;min-width:0!important;min-height:43px!important;padding:8px 3px!important;font-size:clamp(9px,2.6vw,12px)!important;line-height:1.2!important;white-space:normal!important;text-align:center!important;overflow-wrap:break-word!important}
+}
