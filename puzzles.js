@@ -487,6 +487,7 @@ function revealErrors(){
   retry.addEventListener('click',()=>enterReview(index));
   const analysis=document.createElement('a');
   analysis.href='/analysis.html?fen='+encodeURIComponent(item.fen);
+  analysis.target='_blank';analysis.rel='noopener noreferrer';
   analysis.textContent='Analyse with Stockfish';
   actions.append(retry,analysis);entry.append(name,rating,actions);list.append(entry);
  }
