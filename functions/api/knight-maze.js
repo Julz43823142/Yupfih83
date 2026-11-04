@@ -1,6 +1,7 @@
+import {readJsonPayload} from '../_shared/read-json.js';
 import {checkProfanity} from 'glin-profanity';
 
-const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
+const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
 const json=(value,status=200)=>Response.json(value,{status,headers});
 const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
 const neighbors=(i)=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x+dx,y+dy]).filter(([a,b])=>a>=0&&a<8&&b>=0&&b<8).map(([a,b])=>b*8+a)};
@@ -18,10 +19,15 @@ function seededRoll(runId,level){
  };
 }
 const duration=180000;
+let schemaPromise=null;
 async function ready(db){
+ if(schemaPromise)return schemaPromise;
+ schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_runs (id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, level INTEGER NOT NULL, position INTEGER NOT NULL, goal INTEGER NOT NULL, blocked TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0, finished INTEGER NOT NULL DEFAULT 0, submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_scores (nickname TEXT PRIMARY KEY COLLATE NOCASE, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_rank ON knight_maze_scores(score DESC,created_at ASC)").run();
+ })().catch(error=>{schemaPromise=null;throw error});
+ return schemaPromise;
 }
 function maze(level,runId){
  const roll=seededRoll(runId,level);
@@ -50,13 +56,14 @@ export async function onRequestGet({request,env}){
   await ready(db);
   const url=new URL(request.url);
   const limit=url.searchParams.get('limit')==='100'?100:10;
-  await prune(db);
   return json({entries:await ranking(db,limit)});
  }catch{return json({error:'Leaderboard temporarily unavailable.'},503)}
 }
 export async function onRequestPost({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:'Game database unavailable.'},503);
- let data;try{data=await request.json()}catch{return json({error:'Invalid request.'},400)}
+ const parsed=await readJsonPayload(request);
+ if(parsed.error)return json({error:parsed.error},parsed.status);
+ const data=parsed.data;
  const action=data?.action;
  if(!['start','move','finish','submit'].includes(action))return json({error:'Invalid action.'},400);
  try{
