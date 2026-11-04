@@ -20,4 +20,4 @@
   data.entries.forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);tr.append(td)}const td=document.createElement('td'),report=document.createElement('button');report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;td.append(report);tr.append(td);body.append(tr)});
  }catch(e){status.textContent='Rankings temporarily unavailable: '+e.message}
 })();
-</script><script src="/puzzle-report.js?v=2" defer></script></body></html>
+</script><script src="/puzzle-report.js?v=3" defer></script></body></html>

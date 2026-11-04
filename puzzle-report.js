@@ -13,6 +13,18 @@ reportDialog.innerHTML=`
   </div>
  </form>`;
 document.body.append(reportDialog);
+const successDialog=document.createElement("dialog");
+successDialog.className="nickname-report-dialog";
+successDialog.setAttribute("aria-labelledby","nickname-report-success-title");
+successDialog.innerHTML=`
+ <form method="dialog" class="nickname-report-panel">
+  <h2 id="nickname-report-success-title">Successfully reported</h2>
+  <p>Your report has been received. Thank you.</p>
+  <div class="nickname-report-actions">
+   <button type="submit" class="nickname-report-submit">OK</button>
+  </div>
+ </form>`;
+document.body.append(successDialog);
 let pendingReport=null;
 reportDialog.addEventListener("close",async()=>{
  const report=pendingReport;pendingReport=null;
@@ -24,6 +36,7 @@ reportDialog.addEventListener("close",async()=>{
   const result=await response.json();
   if(!response.ok)throw Error(result.error||"Could not send report.");
   button.textContent="Reported";button.title="Report submitted";
+  successDialog.showModal();
  }catch(error){
   button.textContent="Report";button.disabled=false;
   alert(error.message||"Could not send report.");

@@ -18,7 +18,7 @@ export async function onRequestPost({request,env}){
   if(!row||row.score!==score)return json({error:"This leaderboard entry is no longer available. Refresh the page."},404);
   await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_nickname_reports (nickname TEXT PRIMARY KEY COLLATE NOCASE, mode TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
   const inserted=await db.prepare("INSERT OR IGNORE INTO puzzle_nickname_reports(nickname,mode,score,created_at) VALUES(?,?,?,?)").bind(nickname,mode,score,Date.now()).run();
-  if(!inserted.meta?.changes)return json({error:"This nickname has already been reported."},409);
+  if(!inserted.meta?.changes)return json({ok:true,message:"Successfully reported."});
   try{
    const result=await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({secret:env.REPORT_SECRET,nickname,mode,score}),redirect:"follow",signal:AbortSignal.timeout(12000)});
    const message=(await result.text()).trim();
