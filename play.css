@@ -80,3 +80,17 @@
  .play-game{width:min(100%,680px)}
  .play-selector{width:min(100%,680px)}
 }
+
+/* Collapsible difficulty tiers: three cards per row, two rows when six bots are present. */
+.play-bot-tiers{display:grid;gap:9px}
+.play-bot-tier{border:1px solid #285b79;border-radius:11px;background:#09243a;overflow:hidden}
+.play-bot-tier summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 12px;cursor:pointer;color:#e7f8ff;font-weight:800;list-style:none}
+.play-bot-tier summary::-webkit-details-marker{display:none}
+.play-bot-tier summary::before{content:'▸';color:#54def2;transition:transform .18s}
+.play-bot-tier[open] summary::before{transform:rotate(90deg)}
+.play-bot-tier summary span{flex:1}
+.play-bot-tier summary small{font-size:10px;color:#a2cde3;white-space:nowrap}
+.play-bot-tier .play-bots{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;padding:0 9px 10px}
+.play-bot-tier .play-bot{min-width:0;min-height:91px;padding:7px 3px;gap:5px}
+.play-bot-tier .play-bot-info strong{overflow-wrap:anywhere}
+@media(max-width:480px){.play-bot-tier .play-bots{gap:5px!important;padding:0 5px 7px}.play-bot-tier .play-bot{min-height:83px}.play-bot-tier summary{padding:11px 8px}}

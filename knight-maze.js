@@ -5,7 +5,7 @@ const neighbors=i=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x
 let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 const arrows=[],highlights=new Set();
-let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0;
+let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0,levelPending=false,moveRetry=0;
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
@@ -40,7 +40,7 @@ async function api(body){
  const data=await res.json();if(!res.ok)throw Error(data.error||'Request failed.');return data;
 }
 async function start(){
- if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
+ if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;levelPending=false;moveRetry=0;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
  try{
   const data=await api({action:'start'});run=data.run;serverRun=data.run;finished=false;submitted=false;
   $('maze-submit-panel').hidden=true;$('maze-start').hidden=true;$('maze-finish').hidden=false;
@@ -52,7 +52,7 @@ async function start(){
 // Show each ordinary move immediately. Send moves to the server in order
 // without locking the pointer controls between requests.
 function move(to){
- if(busy||!run||finished||remaining()===0)return;
+ if(busy||levelPending||!run||finished||remaining()===0)return;
  if(!neighbors(run.position).includes(to)||run.blocked.includes(to))return;
  selected=false;clearAnnotations();
  const from=run.position,solved=to===run.goal;
@@ -63,6 +63,7 @@ function move(to){
   render();
   void flushMoves();
  }else{
+  levelPending=true;
   moveQueue.push({from,to,solved:true});
   // The next maze is generated on the server; keep the current knight at the star.
   run={...run,position:to};
@@ -81,25 +82,32 @@ async function flushMoves(){
    const data=await api({action:'move',id:serverRun.id,to:next.to});
    if(epoch!==runEpoch)return;
    serverRun=data.run;
-   moveQueue.shift();
+   moveQueue.shift();moveRetry=0;
    if(data.expired){run=serverRun;await endRun(true);return}
    if(data.solved){
     // A new random board cannot be predicted. It starts as soon as it arrives.
-    moveQueue=[];
-    run=serverRun;
+    moveQueue=[];levelPending=false;
+    releaseDrag();run=serverRun;
     status('Star collected! New maze unlocked.');
     render();
    }else if(!moveQueue.length){
-    run=serverRun;
-    render();
+    // Never replace the active drag's source element on a delayed acknowledgement.
+    if(!drag){run=serverRun;render()}
    }
   }
  }catch(e){
   if(epoch!==runEpoch)return;
-  moveQueue=[];
-  run=serverRun;
-  status(e.message+' Your position has been restored.');
-  render();
+  // Temporary connection failures should not erase moves that are already visible.
+  // Retry in sequence; only a rejected move requires a position correction.
+  if(/Failed to fetch|NetworkError|Load failed|temporarily|503|502/i.test(e.message)&&moveRetry<3){
+   moveRetry++;
+   status('Connection interrupted. Retrying your move…');
+   await new Promise(resolve=>setTimeout(resolve,350*moveRetry));
+  }else{
+   moveQueue=[];levelPending=false;moveRetry=0;
+   releaseDrag();run=serverRun;
+   status(e.message+' Position resynchronized.');render();
+  }
  }finally{
   if(epoch===runEpoch){
    sendingMoves=false;
@@ -109,7 +117,7 @@ async function flushMoves(){
 }
 async function endRun(expired){
  if(!run||finished)return;
- if(sendingMoves||moveQueue.length){status('Saving your last move…');setTimeout(()=>endRun(expired),80);return}
+ if(sendingMoves||moveQueue.length){status('Saving your last move…');setTimeout(()=>endRun(expired),180);return}
  finished=true;clearInterval(timer);
  $('maze-finish').hidden=true;$('maze-start').hidden=false;$('maze-start').textContent='Play Again';
  status(expired?"Time's up! Your run is complete.":'Run finished.');

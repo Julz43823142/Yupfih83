@@ -6,7 +6,27 @@ const MODES={random:['Random Puzzle','Train with a random position.'],custom:['C
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
-let completedRun=null;
+let completedRun=null,verifiedSessionPromise=null,proofChain=Promise.resolve(),proofError=null;
+async function verifiedRequest(payload){
+ const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Verification unavailable');return data;
+}
+function recordVerifiedSolve(){
+ const puzzleId=puzzle?.id,answer=solution.join(' '),sessionPromise=verifiedSessionPromise;
+ if(!runActive||!sessionPromise||!puzzleId)return;
+ proofChain=proofChain.then(async()=>{
+  const session=(await sessionPromise).session;
+  let error;
+  for(let attempt=0;attempt<3;attempt++){
+   try{await verifiedRequest({action:'solve',session,puzzleId,solution:answer});return}
+   catch(e){error=e;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)))}
+  }
+  throw error;
+ }).catch(e=>{proofError=e;throw e});
+ // Avoid an unhandled rejection until the user submits.
+ proofChain.catch(()=>{});
+}
+
 let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
@@ -213,9 +233,10 @@ async function load(kind=mode){
  stats();buttons();draw();
 }
 function finish(){
+ if(runActive)recordVerifiedSolve();
  ready=false;solved++;if(!position.isCheckmate())playSound('mate');say('Correct! Puzzle solved.','success');stats();buttons();
  if(runActive){
-  const activeMode=mode;auto=setTimeout(()=>{if(runActive&&mode===activeMode)load(mode)},850);
+  const activeMode=mode;auto=setTimeout(()=>{if(runActive&&mode===activeMode)load(mode)},100);
  }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
@@ -264,7 +285,7 @@ function play(from,to,promotion=null){
   lastMove={from:response.slice(0,2),to:response.slice(2,4)};step++;busy=false;draw();
   if(step>=solution.length)finish();
   else{say('Correct. Find the next move.','success');buttons()}
- },500);
+ },120);
  return true;
 }
 function switchMode(next){
@@ -302,7 +323,7 @@ $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='cu
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();completedRun=null;$('puzzle-save-run').hidden=true;solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
+ stopTimers();completedRun=null;$('puzzle-save-run').hidden=true;proofError=null;proofChain=Promise.resolve();verifiedSessionPromise=verifiedRequest({action:'start',mode:mode==='sprint'?'sprint'+sprintMinutes:'survival'});verifiedSessionPromise.catch(()=>{});solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
@@ -346,10 +367,13 @@ $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!completedRun||completedRun.score<1)return;
  const nickname=$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
  if(!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname)){label.textContent='Use 2–20 letters, numbers, spaces, _ or -.';return}
- button.disabled=true;label.textContent='Submitting…';
+ button.disabled=true;label.textContent='Verifying solved puzzles and submitting…';
  try{
-  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...completedRun,nickname})});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Submission failed');
+  await proofChain;
+  if(proofError)throw proofError;
+  if(!verifiedSessionPromise)throw Error('Start a new run to enable verified scores.');
+  const session=(await verifiedSessionPromise).session;
+  await verifiedRequest({...completedRun,action:'submit',nickname,session});
   label.textContent='Score submitted. Top 100 scores appear publicly; places 101-110 may be kept as reserves.';completedRun=null;refreshRankings();
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });

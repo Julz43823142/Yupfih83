@@ -10,7 +10,7 @@ export async function onRequestPost({request,env}){
  if(origin&&origin!==new URL(request.url).origin)return json({error:"Invalid origin."},403);
  let data;try{data=await request.json()}catch{return json({error:"Invalid request."},400)}
  const mode=data?.mode,nickname=data?.nickname,score=data?.score;
- if(!["sprint","survival"].includes(mode)||typeof nickname!=="string"||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>500)return json({error:"Invalid leaderboard entry."},400);
+ if(!["sprint","survival"].includes(mode)||typeof nickname!=="string"||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)return json({error:"Invalid leaderboard entry."},400);
  const db=env.SUS_DB;
  try{
   const modes=mode==="sprint"?"('sprint3','sprint5')":"('survival')";
