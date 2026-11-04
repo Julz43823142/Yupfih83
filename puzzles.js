@@ -6,6 +6,7 @@ const MODES={random:['Random Puzzle','Train with a random position.'],custom:['C
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
+let completedRun=null;
 let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
@@ -222,7 +223,10 @@ function finishRun(text){
  playSound('end');
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
 
- say(text+' Final score: '+score+' solved. Results stay on your device.','success');
+ completedRun={mode:mode==='sprint'?'sprint'+sprintMinutes:'survival',score};
+  $('puzzle-save-run').hidden=score<1;
+  $('puzzle-save-status').textContent='';
+  say(text+' Final score: '+score+' solved. You may optionally submit a nickname.','success');
  stats();buttons();draw();
 }
 function mistake(to){
@@ -264,6 +268,7 @@ function play(from,to,promotion=null){
 }
 function switchMode(next){
  if(!MODES[next])return;
+ completedRun=null;$('puzzle-save-run').hidden=true;
  requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
@@ -296,7 +301,7 @@ $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='cu
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
+ stopTimers();completedRun=null;$('puzzle-save-run').hidden=true;solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
@@ -316,3 +321,32 @@ document.addEventListener('visibilitychange',()=>{if(runActive&&mode==='sprint')
 window.addEventListener('beforeunload',stopTimers);
 switchMode('random');
 
+
+async function updateRanking(id,mode){
+ const list=$(id);if(!list)return;
+ try{
+  const response=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'Unavailable');
+  list.replaceChildren();
+  if(!data.entries.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No scores yet this hour.';list.append(li);return}
+  for(const entry of data.entries){
+   const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('span');
+   name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
+   li.append(name,score);list.append(li);
+  }
+ }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
+}
+function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint5');updateRanking('puzzle-survival-ranking','survival')}
+$('puzzle-submit-score').addEventListener('click',async()=>{
+ if(!completedRun||completedRun.score<1)return;
+ const nickname=$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
+ if(!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname)){label.textContent='Use 2–20 letters, numbers, spaces, _ or -.';return}
+ button.disabled=true;label.textContent='Submitting…';
+ try{
+  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...completedRun,nickname})});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Submission failed');
+  label.textContent='Score submitted for this hour.';completedRun=null;refreshRankings();
+ }catch(e){label.textContent=e.message}finally{button.disabled=false}
+});
+refreshRankings();
