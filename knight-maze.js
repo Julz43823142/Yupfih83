@@ -5,7 +5,7 @@ const neighbors=i=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x
 let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 const arrows=[],highlights=new Set();
-let pendingMove=null;
+let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0;
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
@@ -38,33 +38,77 @@ async function api(body){
  const data=await res.json();if(!res.ok)throw Error(data.error||'Request failed.');return data;
 }
 async function start(){
- if(busy)return;busy=true;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
+ if(busy)return;busy=true;runEpoch++;moveQueue=[];sendingMoves=false;serverRun=null;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
  try{
-  const data=await api({action:'start'});run=data.run;finished=false;submitted=false;
+  const data=await api({action:'start'});run=data.run;serverRun=data.run;finished=false;submitted=false;
   $('maze-submit-panel').hidden=true;$('maze-start').hidden=true;$('maze-finish').hidden=false;
   status('Find the star using knight moves.');render();
   clearInterval(timer);timer=setInterval(updateClock,200);
  }catch(e){status(e.message)}
  finally{busy=false;$('maze-start').disabled=false;render()}
 }
-async function move(to){
+// Show each ordinary move immediately. Send moves to the server in order
+// without locking the pointer controls between requests.
+function move(to){
  if(busy||!run||finished||remaining()===0)return;
  if(!neighbors(run.position).includes(to)||run.blocked.includes(to))return;
- busy=true;selected=false;clearAnnotations();
- const previous=run;
- const solved=to===run.goal;
- if(!solved){run={...run,position:to};render();}
- else{status('Star reached! Loading next maze…');render();}
+ selected=false;clearAnnotations();
+ const from=run.position,solved=to===run.goal;
+ if(!solved){
+  run={...run,position:to};
+  moveQueue.push({from,to});
+  status('Keep going. Reach the star!');
+  render();
+  void flushMoves();
+ }else{
+  moveQueue.push({from,to,solved:true});
+  // The next maze is generated on the server; keep the current knight at the star.
+  run={...run,position:to};
+  status('Star reached! Loading next maze…');
+  render();
+  void flushMoves();
+ }
+}
+async function flushMoves(){
+ if(sendingMoves||!moveQueue.length||!serverRun)return;
+ sendingMoves=true;
+ const epoch=runEpoch;
  try{
-  const data=await api({action:'move',id:run.id,to});
-  run=data.run;
-  if(data.expired){endRun(true);return}
-  status(data.solved?'Star collected! New maze unlocked.':'Keep going. Reach the star!');
- }catch(e){run=previous;status(e.message);if(/already processed/i.test(e.message))endRun(false)}
- finally{busy=false;render()}
+  while(moveQueue.length&&epoch===runEpoch){
+   const next=moveQueue[0];
+   const data=await api({action:'move',id:serverRun.id,to:next.to});
+   if(epoch!==runEpoch)return;
+   serverRun=data.run;
+   moveQueue.shift();
+   if(data.expired){run=serverRun;await endRun(true);return}
+   if(data.solved){
+    // A new random board cannot be predicted. It starts as soon as it arrives.
+    moveQueue=[];
+    run=serverRun;
+    status('Star collected! New maze unlocked.');
+    render();
+   }else if(!moveQueue.length){
+    run=serverRun;
+    render();
+   }
+  }
+ }catch(e){
+  if(epoch!==runEpoch)return;
+  moveQueue=[];
+  run=serverRun;
+  status(e.message+' Your position has been restored.');
+  render();
+ }finally{
+  if(epoch===runEpoch){
+   sendingMoves=false;
+   if(moveQueue.length)void flushMoves();
+  }
+ }
 }
 async function endRun(expired){
- if(!run||finished)return;finished=true;clearInterval(timer);
+ if(!run||finished)return;
+ if(sendingMoves||moveQueue.length){status('Saving your last move…');setTimeout(()=>endRun(expired),80);return}
+ finished=true;clearInterval(timer);
  $('maze-finish').hidden=true;$('maze-start').hidden=false;$('maze-start').textContent='Play Again';
  status(expired?"Time's up! Your run is complete.":'Run finished.');
  if(!expired){try{await api({action:'finish',id:run.id})}catch(e){status('Run ended. '+e.message)}}
