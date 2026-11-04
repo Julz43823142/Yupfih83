@@ -1,0 +1,41 @@
+/* Analysis layout repair: no overlapping board or engine at intermediate widths. */
+.tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{box-sizing:border-box;min-width:0;align-items:start!important}
+.tool-page .tool-card:first-of-type>.board-with-eval,
+.tool-page .tool-card:first-of-type>.live-notation,
+.tool-page .tool-card:first-of-type>.analysis-controls-panel,
+.tool-page .tool-card:first-of-type>.review-side-stats{min-width:0!important;box-sizing:border-box!important}
+.tool-page .tool-card:first-of-type>.board-with-eval{width:100%!important;max-width:100%!important;overflow:hidden}
+.tool-page .tool-card:first-of-type>.board-with-eval .chess-board{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box}
+.tool-page .tool-card:first-of-type>.live-notation{overflow-x:hidden!important}
+.tool-page .tool-card:first-of-type>.live-notation .analysis-engine-header{display:flex!important;flex-wrap:wrap!important;gap:10px 14px!important;align-items:center!important;min-width:0}
+.tool-page .tool-card:first-of-type>.live-notation .engine-line{min-width:0!important;grid-template-columns:25px minmax(0,1fr) 55px!important;gap:6px!important}
+.tool-page .tool-card:first-of-type>.live-notation .engine-line>*{min-width:0;overflow-wrap:anywhere}
+.tool-page .tool-card:first-of-type>.live-notation .engine-line-moves{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-page .tool-card:first-of-type>.review-side-stats{align-self:start!important;margin-top:0!important}
+@media(min-width:1250px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{
+  display:grid!important;grid-template-columns:minmax(170px,195px) minmax(0,660px) minmax(300px,1fr)!important;
+  gap:12px 18px!important
+ }
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:2/span 2!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:1!important;grid-row:4!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:2!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:2!important;grid-row:3/span 3!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:3!important;grid-row:2/span 5!important;max-height:780px!important}
+}
+@media(max-width:1249px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:3!important;max-width:720px!important}
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:4!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:1!important;grid-row:5!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:1!important;grid-row:6!important;max-height:none!important}
+}
+@media(min-width:760px) and (max-width:1249px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{grid-template-columns:minmax(0,1fr) minmax(280px,.8fr)!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:3/span 3!important}
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:2!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:2!important;grid-row:3!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:2!important;grid-row:4/span 3!important}
+}
