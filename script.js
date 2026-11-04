@@ -725,63 +725,6 @@ async function runReview(username){
  await finishReviewProgress();renderReview(report);
  statusText.textContent="Analysis complete on your device.";
 }
-/* Examples use the same local, browser-only analysis as any other username.
-   No player report is fetched from or stored on EloScanner's servers. */
-const sampleStatus=document.getElementById("sampleStatus");
-function showExample(username,displayName){
-  if(!/^[A-Za-z0-9_-]{3,25}$/.test(username))return;
-  if(button.disabled)return;
-  sampleStatus.textContent="Analyzing "+displayName+" on your device…";
-  usernameInput.value=username;
-  form.requestSubmit();
-}
-// Fetch real public Chess.com avatars; never substitute unrelated player images.
-async function loadSampleAvatars(){
-  const avatars=document.querySelectorAll(".sample-avatar[data-avatar-for]");
-  await Promise.all([...avatars].map(async image=>{
-    const username=image.dataset.avatarFor;
-    const frame=image.closest(".sample-avatar-frame");
-    image.loading="eager";
-    image.referrerPolicy="no-referrer";
-    let fallback=username.toLowerCase()==="hikaru"?
-      "/discord-knight-400.png":"";
-    let sources=[];
-    try{
-      const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
-      if(typeof profile.avatar==="string"&&profile.avatar.startsWith("https://"))
-        sources.push(profile.avatar);
-    }catch(error){console.warn("Chess.com sample avatar lookup failed",username,error);}
-    if(fallback&&!sources.includes(fallback))sources.push(fallback);
-    if(image.getAttribute("src")&&!sources.includes(image.getAttribute("src")))
-      sources.push(image.getAttribute("src"));
-    if(!sources.length)return;
-    let attempt=0;
-    image.addEventListener("load",()=>{
-      image.hidden=false;
-      frame?.classList.add("has-avatar");
-    });
-    image.addEventListener("error",()=>{
-      if(++attempt<sources.length){
-        image.src=sources[attempt];
-      }else{
-        image.hidden=true;
-        frame?.classList.remove("has-avatar");
-      }
-    });
-    image.src=sources[0];
-    if(image.complete&&image.naturalWidth>0){
-      image.hidden=false;
-      frame?.classList.add("has-avatar");
-    }
-  }));
-}
-
-loadSampleAvatars();
-
-document.querySelectorAll(".sample-button").forEach(button=>{
-  button.addEventListener("click",()=>showExample(button.dataset.username,button.dataset.name));
-});
-
 form.addEventListener("submit", async event => {
   event.preventDefault();
   const username = usernameInput.value.trim();
@@ -901,7 +844,7 @@ async function load(user){
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
 }
 form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
-document.querySelectorAll('.sample-button').forEach(button=>button.addEventListener('click',()=>{const user=(button.dataset.username||'').toLowerCase();if(user)load(user)}));
+
 const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
 })();
