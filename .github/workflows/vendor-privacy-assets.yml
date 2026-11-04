@@ -21,9 +21,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish
+          mkdir -p vendor/chess vendor/pyodide vendor/pieces/cburnett vendor/stockfish vendor/fonts
           curl -fL --retry 3 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm' -o vendor/chess/chess-1.4.0.mjs
           test "$(wc -c < vendor/chess/chess-1.4.0.mjs)" -gt 10000
+          mkdir -p /tmp/eloscanner-font
+          npm pack @fontsource-variable/inter --pack-destination /tmp/eloscanner-font --silent
+          tar -xzf /tmp/eloscanner-font/fontsource-variable-inter-*.tgz -C /tmp/eloscanner-font
+          cp /tmp/eloscanner-font/package/files/inter-latin-wght-normal.woff2 vendor/fonts/
+          test "$(wc -c < vendor/fonts/inter-latin-wght-normal.woff2)" -gt 10000
           mkdir -p /tmp/eloscanner-pyodide
           npm pack pyodide@0.27.2 --pack-destination /tmp/eloscanner-pyodide --silent
           tar -xzf /tmp/eloscanner-pyodide/pyodide-0.27.2.tgz -C /tmp/eloscanner-pyodide
