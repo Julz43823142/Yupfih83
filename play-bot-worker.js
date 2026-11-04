@@ -38,8 +38,49 @@ function search(game,depth,alpha,beta,side){
  for(const move of moves){game.move(move);const v=search(game,depth-1,alpha,beta,side);game.undo();if(maximizing){best=Math.max(best,v);alpha=Math.max(alpha,best)}else{best=Math.min(best,v);beta=Math.min(beta,best)}if(beta<=alpha)break}
  return best;
 }
+// Small legal opening repertoire for cashojf3r, usable as either color.
+// A FEN-position lookup works in the worker without relying on lost move history.
+// Each candidate is validated by chess.js when the book is constructed.
+const cashOpeningLines=[
+ // Queen's Gambit, including declined and accepted setups.
+ ['d4','d5','c4','e6','Nc3','Nf6','Bg5'],
+ ['d4','d5','c4','dxc4','Nf3','Nf6','e3'],
+ ['d4','Nf6','c4','e6','Nc3','d5','Bg5'],
+ // London System against common replies.
+ ['d4','d5','Bf4','Nf6','e3','e6','Nf3'],
+ ['d4','Nf6','Bf4','d5','e3','e6','Nf3'],
+ ['d4','d5','Nf3','Nf6','Bf4','e6','e3'],
+ // Four Knights Game.
+ ['e4','e5','Nf3','Nc6','Nc3','Nf6','Bb5'],
+ ['e4','e5','Nc3','Nf6','Nf3','Nc6','Bb5'],
+ ['e4','e5','Nf3','Nf6','Nc3','Nc6','Bb5']
+];
+function openingKey(game){return game.fen().split(' ').slice(0,4).join(' ')}
+const cashBook=new Map();
+for(const line of cashOpeningLines){
+ const game=new Chess();
+ for(const san of line){
+  const key=openingKey(game);
+  const legal=game.moves({verbose:true}).find(m=>m.san===san);
+  if(!legal)break;
+  const choices=cashBook.get(key)||[];
+  if(!choices.includes(legal.san))choices.push(legal.san);
+  cashBook.set(key,choices);
+  game.move(legal);
+ }
+}
+function cashOpeningMove(moves){
+ if(botLevel!=='cashojf3r')return null;
+ const choices=cashBook.get(openingKey(chess));
+ if(!choices?.length)return null;
+ const candidates=moves.filter(m=>choices.includes(m.san));
+ if(!candidates.length)return null;
+ return candidates[Math.floor(Math.random()*candidates.length)];
+}
 function chooseBotMove(){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
+ const cashBookMove=cashOpeningMove(moves);
+ if(cashBookMove)return cashBookMove;
  // Rocketleague prefers the Queen's Gambit when White; legal moves only.
  if(botLevel==='rocket'&&chess.turn()==='w'){
   const history=chess.history({verbose:true});
