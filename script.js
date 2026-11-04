@@ -717,11 +717,27 @@ function analyzeOnVisitorDevice(username){
     worker.postMessage({type:"run",username});
   });
 }
+async function getSavedExampleReport(username){
+ const response=await fetch("/api/example-report?player="+encodeURIComponent(username),{cache:"no-store"});
+ if(response.status===404)return null;
+ if(!response.ok)throw Error("Saved report unavailable");
+ const payload=await response.json();
+ return payload.report||null;
+}
+async function saveExampleReport(username,report){
+ try{
+  await fetch("/api/example-report?player="+encodeURIComponent(username),{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({report})
+  });
+ }catch{}
+}
 async function runReview(username){
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
  const report=await analyzeOnVisitorDevice(username);
+ if(document.body.dataset.examplePlayer===username)saveExampleReport(username,report);
  await finishReviewProgress();renderReview(report);
  statusText.textContent="Analysis complete on your device.";
 }
@@ -751,7 +767,22 @@ document.querySelectorAll(".sample-button[data-username]").forEach(example => {
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
- requestAnimationFrame(()=>form.requestSubmit());
+ requestAnimationFrame(async()=>{
+  try{
+   statusText.textContent="Loading saved analysis…";
+   const saved=await getSavedExampleReport(exampleUsername);
+   if(saved){
+    const {profile,stats}=await exampleProfiles.get(exampleUsername);
+    playerCard.replaceChildren();renderPlayer(profile,stats,exampleUsername);
+    results.classList.remove("hidden");
+    renderReview(saved);
+    statusText.textContent="Latest saved example analysis.";
+    return;
+   }
+  }catch{}
+  statusText.textContent="No saved report yet. Generating the first analysis…";
+  form.requestSubmit();
+ });
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
