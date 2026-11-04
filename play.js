@@ -139,16 +139,31 @@ function runPremove(){
  catch{status('Premove cancelled: move is no longer legal.');paint()}
 }
 function apply(move){const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
+function openPromotion(){
+ const panel=$('play-promotion');
+ panel.hidden=false;
+ if(typeof panel.showModal==='function'&&!panel.open)panel.showModal();
+ panel.querySelector('[data-promote="q"]')?.focus();
+}
+function closePromotion(){
+ const panel=$('play-promotion');
+ if(typeof panel.close==='function'&&panel.open)panel.close();
+ panel.hidden=true;
+}
 function play(from,to,promotion=null){
  if(ended)return false;
- if(chess.turn()!==human)return queuePremove(from,to,promotion);
+ if(chess.turn()!==human){
+  const options=candidateMoves(from).filter(m=>m.to===to);
+  if(options.some(m=>m.promotion)&&!promotion){pending={from,to,premove:true};openPromotion();return true}
+  return queuePremove(from,to,promotion);
+ }
  if(working)return false;
  const choices=chess.moves({square:from,verbose:true}).filter(m=>m.to===to);
  if(!choices.length)return false;
- if(choices.some(m=>m.flags.includes('p'))&&!promotion){pending={from,to};$('play-promotion').hidden=false;return false}
+ if(choices.some(m=>m.promotion)&&!promotion){pending={from,to};openPromotion();return true}
  unlock();
- try{apply({from,to,promotion:promotion||'q'})}catch{return false}
- $('play-promotion').hidden=true;pending=null;
+ try{apply({from,to,promotion:promotion||'q'})}catch{status('That promotion could not be completed. Please try again.');return false}
+ closePromotion();pending=null;
  if(!terminal())scheduleBot();return true;
 }
 attachChessBoardControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
@@ -183,18 +198,18 @@ function newGame(){
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premove=null;ended=false;working=false;
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
- $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ closePromotion();$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
 $('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;premove=null;
- if($('play-result').open)$('play-result').close();$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
+ if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
 $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;premove=null;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
-document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(pending){const p=pending;play(p.from,p.to,b.dataset.promote)}}));
-$('play-cancel-promotion').addEventListener('click',()=>{pending=null;$('play-promotion').hidden=true;selected=null;paint()});
+document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
+$('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
 document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.bot;
  if(selectedBot===id){selectedBot=null;$('play-bot-options').hidden=true;}
