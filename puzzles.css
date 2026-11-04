@@ -139,3 +139,9 @@
 .puzzle-save-controls button{background:#155777;border:1px solid #3b9eb7;border-radius:8px;padding:10px 15px;color:#fff;font-weight:750;cursor:pointer}
 .puzzle-ranking-note{grid-column:1/-1}
 @media(max-width:680px){.puzzle-ranking{grid-template-columns:1fr}}
+
+/* Manual nickname reporting from the puzzle rankings. */
+.rank-report{color:#8de6f7;text-decoration:underline;text-underline-offset:2px;font-size:11px;font-weight:700;white-space:nowrap;flex:none}
+.rank-report:hover{color:#fff}
+.rank-report:focus-visible{outline:2px solid #69ecff;outline-offset:3px}
+.puzzle-top100-table td .rank-report{font-size:12px}

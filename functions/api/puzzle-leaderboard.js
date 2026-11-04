@@ -9,6 +9,25 @@ async function dbReady(db){
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_hourly_scores (hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(hour,mode,nickname))").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
 }
+// Keep only the highest score per nickname and the best 100 nicknames in each
+// public ranking. Sprint 3 and Sprint 5 share one combined ranking.
+async function pruneScores(db){
+ for(const modes of ["('sprint3','sprint5')","('survival')"]){
+  await db.prepare(`DELETE FROM puzzle_hourly_scores
+   WHERE mode IN ${modes} AND rowid NOT IN (
+    SELECT rowid FROM (
+     SELECT rowid,nickname,ROW_NUMBER() OVER (
+      PARTITION BY nickname ORDER BY score DESC,created_at ASC
+     ) AS row_number
+     FROM puzzle_hourly_scores WHERE mode IN ${modes}
+    ) WHERE row_number=1 AND nickname IN (
+     SELECT nickname FROM puzzle_hourly_scores
+     WHERE mode IN ${modes} AND lower(nickname) NOT IN ('tttt','tttttttt')
+     GROUP BY nickname ORDER BY MAX(score) DESC,nickname ASC LIMIT 100
+    )
+   )`).run();
+ }
+}
 export async function onRequestGet({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:"Leaderboard database not configured."},503);
  const url=new URL(request.url),mode=url.searchParams.get("mode")||"sprint5";
@@ -16,6 +35,7 @@ export async function onRequestGet({request,env}){
  const limit=url.searchParams.get("limit")==="100"?100:10;
  try{
   await dbReady(db);
+  await pruneScores(db);
   const current=hour();
   const sprint=mode==="sprint";
   const sql=sprint?"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ('sprint3','sprint5') AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?":"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?";
@@ -41,6 +61,7 @@ export async function onRequestPost({request,env}){
   await dbReady(db);
   const now=hour();
   await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at) VALUES(?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at WHERE excluded.score > puzzle_hourly_scores.score").bind(now,mode,nickname,score,Date.now()).run();
+  await pruneScores(db);
   return json({ok:true,hour:now});
  }catch{return json({error:"Could not save score."},503)}
 }
