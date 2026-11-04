@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=12">
+<link rel="stylesheet" href="/puzzles.css?v=13">
 <link rel="stylesheet" href="/elo-global-menu.css?v=1"><script src="/elo-global-menu.js?v=1" defer></script></head>
 <body>
 <header class="navbar puzzles-navbar">
@@ -26,21 +26,29 @@
     <button type="button" role="tab" data-puzzle-mode="sprint" aria-selected="false">Puzzle Sprint</button>
     <button type="button" role="tab" data-puzzle-mode="survival" aria-selected="false">Puzzle Survival</button>
   </div>
-  <div class="puzzles-layout">
+  <div class="puzzles-layout" id="puzzles-layout">
+    <aside class="puzzle-save-run" id="puzzle-save-run" hidden aria-label="Save your puzzle score">
+      <h3>Save your score</h3><p id="puzzle-final-score"></p>
+      <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
+      <p class="puzzle-footnote" id="puzzle-nickname-publication">Top 100 nicknames and scores are public; places 101–110 may be held in reserve. Use a suitable nickname, not your real name.</p>
+      <p id="puzzle-save-status" role="status"></p>
+    </aside>
     <section class="puzzle-board-card" aria-label="Interactive puzzle board">
       <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
       <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
       <div class="puzzle-board-controls">
+        <button type="button" id="puzzle-retry" hidden>Retry puzzle</button>
         <button type="button" id="puzzle-hint" disabled>Hint</button>
-        <button type="button" id="puzzle-sound-toggle" aria-pressed="true" aria-label="Mute chess move sounds" title="Mute chess sounds">Sound: On</button>
+        <button type="button" id="puzzle-review-back" hidden>Back to errors</button>
       </div>
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
-      <div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div>
+      <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div><label class="puzzle-sound-switch"><span>Sound</span><input type="checkbox" id="puzzle-sound-toggle" role="switch" aria-label="Puzzle sounds" checked><span class="puzzle-switch-track" aria-hidden="true"></span></label></div>
       <div class="puzzle-metrics">
         <div class="puzzle-metric" id="puzzle-elo-box"><span>Puzzle Elo</span><strong id="puzzle-elo">—</strong></div>
         <div class="puzzle-metric"><span id="puzzle-solved-label">Solved</span><strong id="puzzle-solved">0</strong></div>
+        <div class="puzzle-metric" id="puzzle-errors-box"><span>Wrong attempts</span><strong id="puzzle-errors">0</strong></div>
         <div class="puzzle-metric" id="puzzle-lives-box" hidden><span>Lives</span><strong id="puzzle-lives">♥♥♥</strong></div>
         <div class="puzzle-metric" id="puzzle-time-box" hidden><span>Time left</span><strong id="puzzle-time">5:00</strong></div>
       </div>
@@ -59,13 +67,13 @@
         <button type="button" id="puzzle-start" class="puzzle-action primary" hidden>Start</button>
         <button type="button" id="puzzle-stop" class="puzzle-action" hidden>End Run</button>
       </div>
-  <section class="puzzle-save-run" id="puzzle-save-run" hidden>
-    <h3>Save your score</h3><p id="puzzle-final-score"></p>
-    <p>Enter a nickname to submit your score.</p>
-    <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
-    <p class="puzzle-footnote" id="puzzle-nickname-publication">Your nickname and score appear publicly only if you reach the Top 100. Scores ranked 101-110 may be retained as reserves and could become visible if higher-ranked entries are removed. Please do not use your real name or personal information. Choose an appropriate nickname. Inappropriate nicknames will be deleted.</p>
-    <p id="puzzle-save-status" role="status"></p>
-  </section>
+      <section id="puzzle-review-panel" class="puzzle-review-panel" hidden>
+        <h3>Review your mistakes</h3>
+        <p>Your final score stays the same. Practice does not count toward the leaderboard.</p>
+        <button id="puzzle-reveal-errors" class="puzzle-action" type="button">Reveal errors</button>
+        <div id="puzzle-error-list" hidden></div>
+      </section>
+
     </section>
   </div>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
@@ -75,7 +83,7 @@
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=18-instant-render"></script>
+<script type="module" src="/puzzles.js?v=19-review-training"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>
