@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="./style.css?v=20261103-sparklines-2">
   <script src="./script.js?v=20261104-latest5000-24" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
-<link rel="stylesheet" href="/homepage-polish.css?v=27"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script></head>
+<link rel="stylesheet" href="/homepage-polish.css?v=28"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script></head>
 <body data-example-player='Hikaru'>
   <header class="navbar">
     <a class="brand" href="/">
@@ -59,6 +59,16 @@
       </div>
 
     </section>
+
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+      <section id="v87-review" class="v87-review"></section><section class="insights-integrated"><h2>Chess Insights</h2><p>Extra performance statistics calculated from the completed player review.</p><div id="insights-embedded" aria-live="polite"></div></section>
+    </section>
+    <div class="below-hero-layout with-player-previews">
     <section class="sample-section" aria-labelledby="sample-title">
       <div class="sample-heading"><h2 id="sample-title">Example reports</h2></div>
       <div class="sample-options">
@@ -70,15 +80,6 @@
         </button>
       </div>
     </section>
-    <section id="results" class="results hidden" aria-live="polite">
-      <div class="section-heading">
-        <span class="eyebrow">PLAYER PROFILE</span>
-        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
-      </div>
-      <div id="playerCard" class="player-card"></div>
-      <section id="v87-review" class="v87-review"></section><section class="insights-integrated"><h2>Chess Insights</h2><p>Extra performance statistics calculated from the completed player review.</p><div id="insights-embedded" aria-live="polite"></div></section>
-    </section>
-    <div class="below-hero-layout with-player-previews">
     <section class="features">
       <div class="feature-card">
         <img class="feature-illustration" src="./assets/opening-explorer.svg?v=1" alt="Opening Explorer icon" width="112" height="112" loading="lazy">
