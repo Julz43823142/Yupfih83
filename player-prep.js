@@ -121,6 +121,7 @@ $('prep-flip').onclick=()=>{
  renderBoard();drawCandidateArrows(candidateMoves);
 };
 $('back').onclick=()=>navigatePrep(-1);
+$('forward').onclick=()=>navigatePrep(1);
 window.addEventListener('keydown',e=>{
  if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.altKey||e.ctrlKey||e.metaKey)return;
  const target=e.target instanceof Element?e.target:null;
