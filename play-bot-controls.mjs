@@ -33,8 +33,9 @@ export function attachPlayBotControls({board,getPosition,getSelected,setSelected
  board.addEventListener('pointerdown',e=>{
   const sq=squareAt(e.clientX,e.clientY);
   if(e.button===2){
-   e.preventDefault();if(drag)cancelDrag();onRightClick?.();
-   right=sq?{sq,id:e.pointerId}:null;return;
+   e.preventDefault();if(drag)cancelDrag();
+   const cancelled=!!onRightClick?.();
+   right=sq?{sq,id:e.pointerId,cancelled}:null;return;
   }
   if(e.button!==0||!sq)return;
   e.preventDefault();release(drag);
@@ -62,7 +63,8 @@ export function attachPlayBotControls({board,getPosition,getSelected,setSelected
  board.addEventListener('pointerup',e=>{
   if(e.button===2){
    if(!right||right.id!==e.pointerId)return;
-   const from=right.sq,to=squareAt(e.clientX,e.clientY);right=null;
+   const from=right.sq,to=squareAt(e.clientX,e.clientY),cancelled=right.cancelled;right=null;
+   if(cancelled){repaint();return;}
    if(!to)return;
    if(from===to){const marks=getHighlights?.();if(marks?.has(to))marks.delete(to);else marks?.add(to)}
    else{const arrows=getArrows?.();if(arrows){const i=arrows.findIndex(a=>a[0]===from&&a[1]===to);if(i>=0)arrows.splice(i,1);else arrows.push([from,to,e.altKey?'rainbow':e.shiftKey?'#a855f7':e.ctrlKey?'#760018':'#0a9cff'])}}
@@ -75,7 +77,7 @@ export function attachPlayBotControls({board,getPosition,getSelected,setSelected
   setSelected(d.previous===to?null:d.movable?to:null);repaint();
  });
  board.addEventListener('pointercancel',e=>{if(drag?.id===e.pointerId)cancelDrag();if(right?.id===e.pointerId)right=null});
- board.addEventListener('mousedown',e=>{if(e.button===2&&drag){e.preventDefault();cancelDrag();onRightClick?.()}});
+ board.addEventListener('mousedown',e=>{if(e.button===2&&drag){e.preventDefault();cancelDrag()}});
  board.addEventListener('click',e=>{
   if(e.detail!==0)return;
   const sq=e.target?.closest?.('[data-square]')?.dataset?.square;
