@@ -39,3 +39,37 @@
  .tool-page .tool-card:first-of-type>.review-side-stats{grid-column:2!important;grid-row:3!important}
  .tool-page .tool-card:first-of-type>.live-notation{grid-column:2!important;grid-row:4/span 3!important}
 }
+
+/* Final layout: control rail contains statistics; board and engine never share cells. */
+.tool-page .tool-card:first-of-type>.analysis-controls-panel>.review-side-stats{
+ display:block!important;position:static!important;grid-column:auto!important;grid-row:auto!important;
+ margin:14px 0 0!important;padding:13px 10px!important;min-height:0!important;
+ width:100%!important;max-width:100%!important;overflow-wrap:anywhere!important;
+}
+.tool-page .tool-card:first-of-type>.analysis-controls-panel>.review-side-stats .review-graph{max-width:100%;overflow:hidden}
+.tool-page .tool-card:first-of-type>.board-top-switch{min-width:0!important;max-width:100%!important;justify-content:flex-start!important;flex-wrap:wrap!important;overflow:visible!important}
+.tool-page .tool-card:first-of-type>.board-top-switch .switch-label{margin:0!important}
+.tool-page .tool-card:first-of-type>.live-notation .analysis-engine-header>*{max-width:100%;min-width:0}
+.tool-page .tool-card:first-of-type>.board-with-eval{justify-self:stretch!important;align-self:start!important}
+@media(min-width:1250px){
+ .tool-page:has(.analysis-controls-panel)>.tool-card:first-of-type{
+  grid-template-columns:minmax(170px,195px) minmax(0,660px) minmax(310px,1fr)!important;
+  grid-template-rows:auto auto minmax(0,auto)!important;align-items:start!important;
+ }
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:2/span 4!important;align-self:start!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:2!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:2!important;grid-row:3/span 3!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:3!important;grid-row:2/span 4!important}
+}
+@media(min-width:760px) and (max-width:1249px){
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:2!important;grid-row:2/span 2!important}
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:3/span 4!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:2!important;grid-row:4/span 3!important}
+}
+@media(max-width:759px){
+ .tool-page .tool-card:first-of-type>.board-top-switch{grid-column:1!important;grid-row:2!important}
+ .tool-page .tool-card:first-of-type>.board-with-eval{grid-column:1!important;grid-row:3!important}
+ .tool-page .tool-card:first-of-type>.analysis-controls-panel{grid-column:1!important;grid-row:4!important}
+ .tool-page .tool-card:first-of-type>.live-notation{grid-column:1!important;grid-row:5!important}
+}
