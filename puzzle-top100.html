@@ -4,8 +4,8 @@
 <main class="puzzles-page puzzle-leaderboard-page"><a class="puzzles-back" href="/puzzles.html">← Back to puzzles</a><h1>Puzzle Top 100</h1>
 
 <div class="puzzles-tabs"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Survival</a></div>
-<p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
-<table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname</th><th>Score</th></tr></thead><tbody id="ranking-rows"></tbody></table>
+<p class="puzzle-ranking-note">See an inappropriate nickname? Select Report to email us for manual review.</p><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
+<table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname</th><th>Score</th><th>Report</th></tr></thead><tbody id="ranking-rows"></tbody></table>
 </main>
 <script>
 (async()=>{
@@ -17,7 +17,7 @@
   if(!r.ok)throw Error(data.error||'Unavailable');
   
   status.textContent=data.entries.length?'Top '+data.entries.length+' scores':'No scores yet.';
-  data.entries.forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);tr.append(td)}body.append(tr)});
+  data.entries.forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);tr.append(td)}const td=document.createElement('td'),report=document.createElement('a');report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';report.href='mailto:eloscanner.contact@gmail.com?subject='+encodeURIComponent('EloScanner leaderboard nickname report')+'&body='+encodeURIComponent('Please review this leaderboard entry:\nRanking: '+mode+'\nNickname: '+entry.nickname+'\nScore: '+entry.score+'\nReason: ');td.append(report);tr.append(td);body.append(tr)});
  }catch(e){status.textContent='Rankings temporarily unavailable: '+e.message}
 })();
 </script></body></html>
