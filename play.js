@@ -38,11 +38,11 @@ ratings["bot2800"]=2800;
 ratings["bot2850"]=2850;
 ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
-let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premove=null;
+let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
 const botChatLines={cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
 function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
-function botChatMove(){const lines=botChatLines[botLevel]||['Good move.','I am thinking...','Let’s see what happens.','Interesting position.'];if(Math.random()<.42)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
+function botChatMove(){const lines=chess.isCheck()?['Check! Keep an eye on your king.','A forcing move changes the position.']:chess.isCheckmate()?['That is checkmate. Good game!']:chess.history().length<9?['The opening is taking shape.','Center control matters early.']:['Interesting middlegame.','Every tempo counts.'];if(Math.random()<.55)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),cell=document.createElement('button');
  cell.type='button';cell.className='play-square '+((row+col)%2?'dark':'light');cell.dataset.square=sq;cell.setAttribute('aria-label',sq);squares.set(sq,cell);board.append(cell);
@@ -72,8 +72,8 @@ function paint(){
   cell.classList.toggle('selected',selected===sq);
   cell.classList.toggle('last',!!last&&(last.from===sq||last.to===sq));
   cell.classList.toggle('marked',highlights.has(sq));
-  cell.classList.toggle('premove-from',premove?.from===sq);
-  cell.classList.toggle('premove-to',premove?.to===sq);
+  cell.classList.toggle('premove-from',premoves.some(m=>m.from===sq));
+  cell.classList.toggle('premove-to',premoves.some(m=>m.to===sq));
   cell.classList.toggle('check',chess.isCheck()&&pc?.type==='k'&&pc.color===chess.turn());
   if(moves.some(m=>m.to===sq)){const dot=document.createElement('span');dot.className=pc?'capture-ring':'legal-dot';cell.append(dot)}
  }
@@ -103,12 +103,12 @@ function showResult(title,detail,kind){
 $('play-result-ok').addEventListener('click',()=>$('play-result').close());
 function terminal(){
  if(chess.isCheckmate()){
-  ended=true;working=false;premove=null;
+  ended=true;working=false;premoves.length=0;
   const win=chess.turn()!==human;
   status(win?'Checkmate — you win!':'Checkmate — the bot wins.');
   showResult(win?'You won!':'You lost!',win?'Checkmate. Well played!':'Checkmate. Try another game.',win?'win':'loss');
  }else if(chess.isDraw()){
-  ended=true;working=false;premove=null;
+  ended=true;working=false;premoves.length=0;
   status('Draw!');
   showResult('Draw!','The game ended in a draw.','draw');
  }else return false;
@@ -118,8 +118,8 @@ function terminal(){
 // Switching the FEN side-to-move and asking chess.js for legal moves fails when
 // the waiting side is in check (and rejects pawn captures into empty squares).
 // Validate movement geometry now; validate full legality after the bot moves.
-function premoveCandidates(from){
- const piece=chess.get(from);
+function premoveCandidates(from,position=chess){
+ const piece=position.get(from);
  if(!piece||piece.color!==human||ended)return [];
  const x=from.charCodeAt(0)-97,y=Number(from[1])-1;
  const inside=(a,b)=>a>=0&&a<8&&b>=0&&b<8;
@@ -127,13 +127,13 @@ function premoveCandidates(from){
  const result=[];
  const add=(a,b)=>{
   if(!inside(a,b))return;
-  const to=square(a,b),target=chess.get(to);
+  const to=square(a,b),target=position.get(to);
   if(target?.color===human)return;
   result.push({from,to,promotion:piece.type==='p'&&(b===0||b===7)?'q':undefined});
  };
  const ray=(dx,dy)=>{
   for(let a=x+dx,b=y+dy;inside(a,b);a+=dx,b+=dy){
-   const occupant=chess.get(square(a,b));
+   const occupant=position.get(square(a,b));
    if(occupant?.color===human)break;
    add(a,b);
    if(occupant)break;
@@ -141,23 +141,23 @@ function premoveCandidates(from){
  };
  if(piece.type==='p'){
   const dir=human==='w'?1:-1,start=human==='w'?1:6;
-  if(inside(x,y+dir)&&!chess.get(square(x,y+dir))){
+  if(inside(x,y+dir)&&!position.get(square(x,y+dir))){
    add(x,y+dir);
-   if(y===start&&!chess.get(square(x,y+2*dir)))add(x,y+2*dir);
+   if(y===start&&!position.get(square(x,y+2*dir)))add(x,y+2*dir);
   }
   // A diagonal premove can anticipate the opponent occupying the target.
-  for(const dx of [-1,1])if(inside(x+dx,y+dir)&&chess.get(square(x+dx,y+dir))?.color!==human)add(x+dx,y+dir);
+  for(const dx of [-1,1])if(inside(x+dx,y+dir)&&position.get(square(x+dx,y+dir))?.color!==human)add(x+dx,y+dir);
  }else if(piece.type==='n'){
   for(const [dx,dy] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])add(x+dx,y+dy);
  }else if(piece.type==='k'){
   for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)if(dx||dy)add(x+dx,y+dy);
   // Castle as a premove if the king and rook have not moved and path is empty.
-  const rights=chess.fen().split(' ')[2],home=human==='w'?0:7;
+  const rights=position.fen().split(' ')[2],home=human==='w'?0:7;
   if(x===4&&y===home){
    for(const [right,rookX,destX,step] of [[human==='w'?'K':'k',7,6,1],[human==='w'?'Q':'q',0,2,-1]]){
-    if(!rights.includes(right)||chess.get(square(rookX,home))?.type!=='r'||chess.get(square(rookX,home))?.color!==human)continue;
+    if(!rights.includes(right)||position.get(square(rookX,home))?.type!=='r'||position.get(square(rookX,home))?.color!==human)continue;
     let clear=true;
-    for(let f=x+step;f!==rookX;f+=step)if(chess.get(square(f,home))){clear=false;break}
+    for(let f=x+step;f!==rookX;f+=step)if(position.get(square(f,home))){clear=false;break}
     if(clear)add(destX,home);
    }
   }
@@ -168,27 +168,38 @@ function premoveCandidates(from){
  }
  return result;
 }
+// Project queued human moves without advancing the opponent's turn.
+function projectedPremovePosition(){
+ const position=new Chess(chess.fen());
+ for(const move of premoves){
+  const piece=position.get(move.from);
+  if(!piece||piece.color!==human)break;
+  position.remove(move.from);
+  position.remove(move.to);
+  position.put({...piece,type:move.promotion&&piece.type==='p'&&(move.to[1]==='1'||move.to[1]==='8')?move.promotion:piece.type},move.to);
+ }
+ return position;
+}
 function candidateMoves(from){
  if(ended)return [];
- const piece=chess.get(from);
- if(!piece||piece.color!==human)return [];
- return chess.turn()===human?chess.moves({square:from,verbose:true}):premoveCandidates(from);
+ if(chess.turn()===human)return chess.get(from)?.color===human?chess.moves({square:from,verbose:true}):[];
+ return premoveCandidates(from,projectedPremovePosition());
 }
 function queuePremove(from,to,promotion){
- if(ended||chess.turn()===human)return false;
+ if(ended||chess.turn()===human||premoves.length>=12)return false;
  const options=candidateMoves(from).filter(m=>m.to===to);
  if(!options.length)return false;
- premove={from,to,promotion:promotion||'q'};
- selected=null;status('Premove ready: '+from+' → '+to+'. It plays after the bot moves. Right-click to cancel.');
+ premoves.push({from,to,promotion:promotion||'q'});
+ selected=null;status(premoves.length+' premove(s) queued. Right-click to cancel all.');
  paint();return true;
 }
 function runPremove(){
- if(!premove||ended||chess.turn()!==human)return;
- const move=premove;premove=null;
+ if(!premoves.length||ended||chess.turn()!==human)return;
+ const move=premoves.shift();
  const options=chess.moves({square:move.from,verbose:true}).filter(m=>m.to===move.to);
- if(!options.length){status('Premove cancelled: move is no longer legal.');paint();return}
+ if(!options.length){premoves.length=0;status('Premoves cancelled: next move is no longer legal.');paint();return}
  try{apply(move);if(!terminal())scheduleBot()}
- catch{status('Premove cancelled: move is no longer legal.');paint()}
+ catch{premoves.length=0;status('Premoves cancelled: next move is no longer legal.');paint()}
 }
 function apply(move){const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
 function openPromotion(){
@@ -218,7 +229,7 @@ function play(from,to,promotion=null){
  closePromotion();pending=null;
  if(!terminal())scheduleBot();return true;
 }
-attachPlayBotControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
+attachPlayBotControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premoves.length){premoves.length=0;selected=null;status(chess.turn()===human?'':'Premoves cancelled.');paint();return true}return false}});
 board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',unlock);
 // Master and grandmaster tiers use Stockfish rather than the shallow JS search.
 let strongWorker=null;
@@ -282,7 +293,7 @@ function scheduleBot(){
 function newGame(){
  stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
- orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premove=null;ended=false;working=false;
+ orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premoves.length=0;ended=false;working=false;
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
  closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I play the Queen’s Gambit, London System and Four Knights!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
@@ -290,9 +301,9 @@ function newGame(){
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
-$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopStrongBot();gameToken++;working=false;ended=false;pending=null;premove=null;
+$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopStrongBot();gameToken++;working=false;ended=false;pending=null;premoves.length=0;
  if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
-$('play-resign').addEventListener('click',()=>{if(ended)return;stopStrongBot();gameToken++;working=false;ended=true;premove=null;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
+$('play-resign').addEventListener('click',()=>{if(ended)return;stopStrongBot();gameToken++;working=false;ended=true;premoves.length=0;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
@@ -312,7 +323,7 @@ $('play-chat-form').addEventListener('submit',event=>{
  entry.className='play-chat-message play-chat-user';
  const label=document.createElement('strong');label.textContent='You: ';
  entry.append(label,document.createTextNode(message));log.append(entry);
- const replies=/hello|hi|hey|hoi/i.test(message)?['Hey! Ready to play?','Hi! Good luck!']:/queen|gambit|opening/i.test(message)?['I like fighting for the center.','The Queen’s Gambit starts with 1.d4 d5 2.c4.']:/attack|king|check/i.test(message)?['I love tactical chess!','Keep your king safe!']:['Interesting! Your move.','Let’s see what happens on the board.','Good luck!'];
+ const replies=/score|evaluation|position|positie/i.test(message)?['The current board is the best guide. I do not run an AI evaluation in this chat.']: /hello|hi|hey|hoi/i.test(message)?['Hey! Ready to play?','Hi! Good luck!']:/queen|gambit|opening/i.test(message)?['I like fighting for the center.','The Queen’s Gambit starts with 1.d4 d5 2.c4.']:/attack|king|check/i.test(message)?['I love tactical chess!','Keep your king safe!']:['Interesting! Your move.','Let’s see what happens on the board.','Good luck!'];
  botChat(replies[Math.floor(Math.random()*replies.length)]);
 });
 paint();
