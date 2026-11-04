@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Play chess against computer bots on EloScanner. Choose a difficulty and practice your chess."><title>Play Bots | EloScanner</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3"><link rel="stylesheet" href="/style.css?v=20261104-dark"><link rel="stylesheet" href="/play.css?v=8-sidepanel"><link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/unified-board-layout.css?v=1"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Play chess against computer bots on EloScanner. Choose a difficulty and practice your chess."><title>Play Bots | EloScanner</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3"><link rel="stylesheet" href="/style.css?v=20261104-dark"><link rel="stylesheet" href="/play.css?v=9-premoves"><link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/unified-board-layout.css?v=1"></head>
 <body><header class="navbar play-navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a><nav class="play-nav" aria-label="Chess tools"><a href="/" >Home</a><a href="/play.html" aria-current="page">Play</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html">Puzzles</a><a href="/minigames.html">Minigames</a></nav><details class="mobile-chess-menu play-mobile-menu"><summary aria-label="Open menu">☰ Menu</summary><nav><a href="/">Home</a><a href="/play.html" aria-current="page">Play</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html">Puzzles</a><a href="/minigames.html">Minigames</a></nav></details></header>
 <main class="play-page"><h1 class="play-title">Play Bots</h1>
 <div class="play-main-layout">
@@ -14,6 +14,14 @@
 </section>
 <aside class="play-panel"><div id="play-status" class="play-status" role="status" aria-live="polite"></div><div class="play-moves"><h3>Moves</h3><div id="play-history" aria-label="Move history">No moves yet.</div></div><p class="play-disclaimer">Bot Elo numbers indicate approximate difficulty tiers, not calibrated engine ratings.</p></aside></div>
 </section>
+<dialog id="play-result" class="play-result-dialog" aria-labelledby="play-result-title" aria-describedby="play-result-detail">
+ <div class="play-result-content">
+  <div id="play-result-icon" class="play-result-icon" aria-hidden="true">♔</div>
+  <h2 id="play-result-title">Game over</h2>
+  <p id="play-result-detail"></p>
+  <button type="button" id="play-result-ok" class="play-primary">OK</button>
+ </div>
+</dialog>
 <section class="play-selector" aria-label="Choose a chess bot">
 <div class="play-bot-tiers"><details class="play-bot-tier" open><summary><span>Rookie Grounds</span><small>300–800 Elo · 6 bots</small></summary><div class="play-bots"><button type="button" class="play-bot" data-bot="bot300" aria-expanded="false" aria-controls="play-bot-options"><span class="play-avatar play-avatar-standard" aria-hidden="true">♟</span><span class="play-bot-info"><strong>Bot</strong><small>300 Elo</small></span></button>
 <button type="button" class="play-bot" data-bot="bot400" aria-expanded="false" aria-controls="play-bot-options"><span class="play-avatar play-avatar-standard" aria-hidden="true">♟</span><span class="play-bot-info"><strong>Bot</strong><small>400 Elo</small></span></button>
@@ -58,4 +66,4 @@
 </div>
 </section>
 </div>
-</main><script type="module" src="/play.js?v=9-sidepanel"></script></body></html>
+</main><script type="module" src="/play.js?v=10-premoves"></script></body></html>

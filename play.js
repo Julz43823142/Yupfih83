@@ -38,7 +38,7 @@ ratings["bot2800"]=2800;
 ratings["bot2850"]=2850;
 ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
-let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null;
+let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premove=null;
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),cell=document.createElement('button');
@@ -57,7 +57,7 @@ function tone(move){
 }
 function paint(){
  board.dataset.orientation=orientation;
- const moves=selected&&!working&&!ended&&chess.turn()===human?chess.moves({square:selected,verbose:true}):[];
+ const moves=selected&&!ended?candidateMoves(selected):[];
  for(const [sq,cell] of squares){
   const pc=chess.get(sq),key=pc?pc.color+pc.type:'',idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
   cell.style.order=orientation==='black'?63-idx:idx;
@@ -68,6 +68,8 @@ function paint(){
   cell.classList.toggle('selected',selected===sq);
   cell.classList.toggle('last',!!last&&(last.from===sq||last.to===sq));
   cell.classList.toggle('marked',highlights.has(sq));
+  cell.classList.toggle('premove-from',premove?.from===sq);
+  cell.classList.toggle('premove-to',premove?.to===sq);
   cell.classList.toggle('check',chess.isCheck()&&pc?.type==='k'&&pc.color===chess.turn());
   if(moves.some(m=>m.to===sq)){const dot=document.createElement('span');dot.className=pc?'capture-ring':'legal-dot';cell.append(dot)}
  }
@@ -86,15 +88,61 @@ function paint(){
  $('play-undo').disabled=!history.length;
  $('play-resign').disabled=ended;
 }
+function showResult(title,detail,kind){
+ const dialog=$('play-result');
+ $('play-result-title').textContent=title;
+ $('play-result-detail').textContent=detail;
+ $('play-result-icon').textContent=kind==='win'?'♕':kind==='loss'?'♟':'½';
+ dialog.dataset.result=kind;
+ if(!dialog.open)dialog.showModal();
+}
+$('play-result-ok').addEventListener('click',()=>$('play-result').close());
 function terminal(){
- if(chess.isCheckmate()){ended=true;working=false;status((chess.turn()===human?'Checkmate — the bot wins.':'Checkmate — you win!')+' Start a new game to play again.')}
- else if(chess.isDraw()){ended=true;working=false;status('Draw! Start a new game to play again.')}
- else return false;
+ if(chess.isCheckmate()){
+  ended=true;working=false;premove=null;
+  const win=chess.turn()!==human;
+  status(win?'Checkmate — you win!':'Checkmate — the bot wins.');
+  showResult(win?'You won!':'You lost!',win?'Checkmate. Well played!':'Checkmate. Try another game.',win?'win':'loss');
+ }else if(chess.isDraw()){
+  ended=true;working=false;premove=null;
+  status('Draw!');
+  showResult('Draw!','The game ended in a draw.','draw');
+ }else return false;
  paint();return true;
+}
+function premovePosition(){
+ const fields=chess.fen().split(' ');
+ fields[1]=human;
+ fields[3]='-';
+ return new Chess(fields.join(' '));
+}
+function candidateMoves(from){
+ if(ended)return [];
+ const piece=chess.get(from);
+ if(!piece||piece.color!==human)return [];
+ try{return (chess.turn()===human?chess:premovePosition()).moves({square:from,verbose:true})}catch{return []}
+}
+function queuePremove(from,to,promotion){
+ if(ended||chess.turn()===human)return false;
+ const options=candidateMoves(from).filter(m=>m.to===to);
+ if(!options.length)return false;
+ premove={from,to,promotion:promotion||'q'};
+ selected=null;status('Premove queued: '+from+' → '+to+'. Right-click to cancel.');
+ paint();return true;
+}
+function runPremove(){
+ if(!premove||ended||chess.turn()!==human)return;
+ const move=premove;premove=null;
+ const options=chess.moves({square:move.from,verbose:true}).filter(m=>m.to===move.to);
+ if(!options.length){status('Premove cancelled: move is no longer legal.');paint();return}
+ try{apply(move);if(!terminal())scheduleBot()}
+ catch{status('Premove cancelled: move is no longer legal.');paint()}
 }
 function apply(move){const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
 function play(from,to,promotion=null){
- if(working||ended||chess.turn()!==human)return false;
+ if(ended)return false;
+ if(chess.turn()!==human)return queuePremove(from,to,promotion);
+ if(working)return false;
  const choices=chess.moves({square:from,verbose:true}).filter(m=>m.to===to);
  if(!choices.length)return false;
  if(choices.some(m=>m.flags.includes('p'))&&!promotion){pending={from,to};$('play-promotion').hidden=false;return false}
@@ -103,7 +151,7 @@ function play(from,to,promotion=null){
  $('play-promotion').hidden=true;pending=null;
  if(!terminal())scheduleBot();return true;
 }
-attachChessBoardControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights});
+attachChessBoardControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premove){premove=null;status(chess.turn()===human?'':'Premove cancelled.');paint()}}});
 board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',unlock);
 // Bot search runs in a module worker so deeper positions never freeze the board.
 let botWorker=null;
@@ -115,7 +163,7 @@ function ensureBotWorker(){
   const {token,move,error}=e.data;
   if(token!==gameToken||ended||chess.turn()===human)return;
   if(error){working=false;status('Bot calculation failed. Start a new game to retry.');paint();return}
-  try{if(move)apply(move);working=false;if(!terminal())status('')}
+  try{if(move)apply(move);working=false;if(!terminal()){status('');runPremove()}}
   catch(err){working=false;status('Bot move failed. Start a new game to retry.');console.error(err)}
   paint();
  };
@@ -133,15 +181,17 @@ function scheduleBot(){
 function newGame(){
  gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
- orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;ended=false;working=false;highlights.clear();arrows.length=0;
+ orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premove=null;ended=false;working=false;
+ if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
  $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
-$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
-$('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;status('You resigned. '+names[botLevel]+' wins.');paint()});
+$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;premove=null;
+ if($('play-result').open)$('play-result').close();$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
+$('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;premove=null;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(pending){const p=pending;play(p.from,p.to,b.dataset.promote)}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;$('play-promotion').hidden=true;selected=null;paint()});
