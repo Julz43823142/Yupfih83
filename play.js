@@ -5,7 +5,39 @@ const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
 const names=Object.fromEntries([["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
+names["bot300"]="Bot (300)";
+names["bot1550"]="Bot (1550)";
+names["bot1600"]="Bot (1600)";
+names["bot1700"]="Bot (1700)";
+names["bot1900"]="Bot (1900)";
+names["bot2000"]="Bot (2000)";
+names["bot2100"]="Bot (2100)";
+names["bot2250"]="Bot (2250)";
+names["bot2300"]="Bot (2300)";
+names["bot2400"]="Bot (2400)";
+names["bot2450"]="Bot (2450)";
+names["bot2600"]="Bot (2600)";
+names["bot2800"]="Bot (2800)";
+names["bot2850"]="Bot (2850)";
+names["bot2900"]="Bot (2900)";
+names["bot3000"]="Bot (3000)";
 const ratings={"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
+ratings["bot300"]=300;
+ratings["bot1550"]=1550;
+ratings["bot1600"]=1600;
+ratings["bot1700"]=1700;
+ratings["bot1900"]=1900;
+ratings["bot2000"]=2000;
+ratings["bot2100"]=2100;
+ratings["bot2250"]=2250;
+ratings["bot2300"]=2300;
+ratings["bot2400"]=2400;
+ratings["bot2450"]=2450;
+ratings["bot2600"]=2600;
+ratings["bot2800"]=2800;
+ratings["bot2850"]=2850;
+ratings["bot2900"]=2900;
+ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null;
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
@@ -120,3 +152,9 @@ document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEvent
  document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
 }));
 paint();
+
+// Keep the difficulty selector compact: only one tier is expanded at a time.
+document.querySelectorAll('.play-bot-tier').forEach(tier=>tier.addEventListener('toggle',()=>{
+ if(!tier.open)return;
+ document.querySelectorAll('.play-bot-tier').forEach(other=>{if(other!==tier)other.open=false});
+}));
