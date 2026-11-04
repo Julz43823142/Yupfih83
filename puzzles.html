@@ -65,7 +65,7 @@
     <h3>Submit your score</h3>
     <p>Enter a nickname to submit your score.</p>
     <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
-    <p class="puzzle-footnote" id="puzzle-nickname-publication">If your score ranks in the top 100, your nickname and score will be publicly displayed on the leaderboard. Please do not use your real name or personal information.</p>
+    <p class="puzzle-footnote" id="puzzle-nickname-publication">Your nickname and score appear publicly only if you reach the Top 100. Scores ranked 101-110 may be retained as reserves and could become visible if higher-ranked entries are removed. Please do not use your real name or personal information.</p>
     <p id="puzzle-save-status" role="status"></p>
   </section>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
@@ -74,9 +74,8 @@
     <p class="puzzle-ranking-note"></p>
   </section>
 </main>
-<footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
-<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+
 <script type="module" src="/puzzles.js?v=13-nicknames"></script>
-<script src="/puzzle-report.js?v=1" defer></script>
+<script src="/puzzle-report.js?v=2" defer></script>
 </body>
 </html>
