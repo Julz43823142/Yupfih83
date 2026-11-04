@@ -296,6 +296,7 @@ function prefetchNext(kind,first=false){
  },0);
 }
 async function load(kind=mode){
+ if(auto&&!runActive){clearTimeout(auto);auto=null}
  // Consume the validated preview synchronously when it matches this run.
  // No timeout, extra animation frame or async work is required in that case.
  const cached=prefetchedPuzzle&&prefetchedPuzzle.kind===kind&&
