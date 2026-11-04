@@ -725,11 +725,47 @@ async function runReview(username){
  await finishReviewProgress();renderReview(report);
  statusText.textContent="Analysis complete on your device.";
 }
-// Example players reuse the existing on-device Chess.com analysis, not the retired CIP voting API.
+// Public Chess.com profile previews are prefetched; full game analysis remains opt-in.
+const exampleProfiles=new Map();
+for(const username of ["MagnusCarlsen","Hikaru"]){
+  const task=Promise.all([
+    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)),
+    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)+"/stats")
+  ]).then(([profile,stats])=>{
+    const slot=document.querySelector('[data-player-avatar="'+username+'"]');
+    if(slot && typeof profile.avatar==="string" && /^https:\/\//.test(profile.avatar)){
+      const photo=document.createElement("img");
+      photo.src=profile.avatar;photo.alt="";photo.loading="lazy";
+      photo.referrerPolicy="no-referrer";slot.replaceChildren(photo);
+    }
+    return {profile,stats};
+  });
+  exampleProfiles.set(username,task);
+}
 document.querySelectorAll(".sample-button[data-username]").forEach(example => {
-  example.addEventListener("click", () => {
-    usernameInput.value = example.dataset.username;
-    form.requestSubmit();
+  example.addEventListener("click", async () => {
+    const username=example.dataset.username;
+    usernameInput.value=username;
+    statusText.textContent="Opening public player preview…";
+    try{
+      const {profile,stats}=await exampleProfiles.get(username);
+      playerCard.replaceChildren();
+      renderPlayer(profile,stats,username);
+      const panel=document.getElementById("v87-review");
+      panel.replaceChildren();
+      const note=document.createElement("div");note.className="example-preview-note";
+      const heading=document.createElement("h3");heading.textContent="Example player preview";
+      const explanation=document.createElement("p");explanation.textContent="Public Chess.com profile and ratings. A full game-by-game analysis is calculated on your device when requested.";
+      const action=document.createElement("button");action.type="button";action.className="sample-live-button";action.textContent="Run full analysis";
+      action.addEventListener("click",()=>form.requestSubmit());
+      note.append(heading,explanation,action);panel.append(note);
+      results.classList.remove("hidden");
+      statusText.textContent="Public player preview ready.";
+      results.scrollIntoView({behavior:"smooth",block:"start"});
+    }catch(error){
+      statusText.textContent="Preview unavailable. You can still analyze this player.";
+      form.requestSubmit();
+    }
   });
 });
 form.addEventListener("submit", async event => {
