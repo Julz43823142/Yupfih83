@@ -134,6 +134,12 @@ boardControlSidebar.append(arrowToggleLabel);
 sidePanel.insertAdjacentElement('beforebegin',boardControlSidebar);
 // Keep game statistics immediately below the board controls in the same rail.
 boardControlSidebar.append(sidePanel);
+const analysisMain=document.createElement('div');analysisMain.className='analysis-three-column';
+const analysisBoardColumn=document.createElement('div');analysisBoardColumn.className='analysis-board-column';
+const analysisEngineColumn=document.createElement('div');analysisEngineColumn.className='analysis-engine-column';
+boardControlSidebar.insertAdjacentElement('beforebegin',analysisMain);
+analysisMain.append(boardControlSidebar,analysisBoardColumn,analysisEngineColumn);
+analysisBoardColumn.append(boardTop,boardLayout);
 const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
@@ -501,13 +507,14 @@ function renderNotation(){
  if(!panel){
   panel=document.createElement('section');panel.id='live-notation';panel.className='live-notation';
   panel.innerHTML='<div id="opening-name"></div><div id="notation-moves"></div>';
-  boardLayout.insertAdjacentElement('afterend',panel);
+  analysisEngineColumn.append(panel);
   const engineHeader=document.createElement('div');
   engineHeader.className='analysis-engine-header';
   engineHeader.append(arrowToggleLabel);
   if(engineToggle)engineHeader.append(engineToggle);
   panel.prepend(engineHeader);
-  boardTop.remove();
+  // Keep the board toolbar separate from the engine panel.
+  if(!boardTop.contains(engineToggle)&&engineToggle)boardTop.append(engineToggle);
   panel.insertBefore(enginePanel,$('opening-name'));
   panel.insertBefore(engineSettings,enginePanel);
   panel.insertBefore(depthControl,enginePanel);
