@@ -725,6 +725,13 @@ async function runReview(username){
  await finishReviewProgress();renderReview(report);
  statusText.textContent="Analysis complete on your device.";
 }
+// Example players reuse the existing on-device Chess.com analysis, not the retired CIP voting API.
+document.querySelectorAll(".sample-button[data-username]").forEach(example => {
+  example.addEventListener("click", () => {
+    usernameInput.value = example.dataset.username;
+    form.requestSubmit();
+  });
+});
 form.addEventListener("submit", async event => {
   event.preventDefault();
   const username = usernameInput.value.trim();
