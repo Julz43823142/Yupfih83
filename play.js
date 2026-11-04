@@ -186,7 +186,7 @@ function candidateMoves(from){
  return premoveCandidates(from,projectedPremovePosition());
 }
 function queuePremove(from,to,promotion){
- if(ended||chess.turn()===human||premoves.length>=12)return false;
+ if(ended||chess.turn()===human||premoves.length>=1000)return false;
  const options=candidateMoves(from).filter(m=>m.to===to);
  if(!options.length)return false;
  premoves.push({from,to,promotion:promotion||'q'});
