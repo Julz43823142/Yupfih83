@@ -39,3 +39,17 @@
 .maze-board .maze-cell.knight-source:active{cursor:grabbing}
 .maze-drag-ghost{position:fixed;z-index:9999;pointer-events:none;object-fit:contain;opacity:.94;filter:drop-shadow(0 8px 7px #0007)}
 @media(max-width:600px){.maze-board .maze-cell.reachable{box-shadow:inset 0 0 0 3px #48d7ee!important}}
+
+/* Keep annotations above squares without adding a 65th grid cell. */
+.maze-board{position:relative!important;isolation:isolate}
+.maze-board .maze-annotations{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;overflow:visible}
+.maze-board .maze-cell.selected-square{box-shadow:inset 0 0 0 5px #f2d567!important}
+.maze-board .maze-cell.blocked::after{
+ background:
+ linear-gradient(90deg,transparent 0 44%,#142735 44% 50%,transparent 50%),
+ repeating-linear-gradient(0deg,#344c60 0 19px,#152e40 19px 22px,#40596b 22px 40px)!important;
+ border:2px solid #192f40!important;
+ box-shadow:inset 0 2px 4px #6b829255!important;
+}
+/* No duplicate piece while a drag ghost follows the pointer. */
+.maze-board .maze-piece{pointer-events:none}

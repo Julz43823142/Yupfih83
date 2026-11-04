@@ -3,7 +3,9 @@ const $=id=>document.getElementById(id),board=$('maze-board');
 const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
 const neighbors=i=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x+dx,y+dy]).filter(([a,b])=>a>=0&&a<8&&b>=0&&b<8).map(([a,b])=>b*8+a)};
 let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
-let drag=null;
+let drag=null, right=null, selected=false;
+const arrows=[],highlights=new Set();
+let pendingMove=null;
 const status=t=>$('maze-status').textContent=t;
 const remaining=()=>run?Math.max(0,Math.ceil((run.endsAt-Date.now())/1000)):180;
 function updateClock(){
@@ -18,15 +20,17 @@ function render(){
   cell.className='maze-cell '+((Math.floor(i/8)+i%8)%2?'dark':'light')+(blocked.has(i)?' blocked':'')+(reachable.has(i)?' reachable':'');
   const square=String.fromCharCode(97+i%8)+(8-Math.floor(i/8));
   cell.setAttribute('aria-label',square+(blocked.has(i)?', blocked':run?.position===i?', knight':run?.goal===i?', star':''));
-  cell.disabled=(!reachable.has(i)&&run?.position!==i)||busy;
+  cell.disabled=false;
+  cell.classList.toggle('selected-square',selected&&run?.position===i);
   cell.dataset.index=String(i);
   if(run?.position===i&&!finished)cell.classList.add('knight-source');
   if(run?.position===i){const piece=document.createElement('img');piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';piece.alt='White knight';piece.draggable=false;piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};cell.append(piece)}
   else if(run?.goal===i){const star=document.createElement('span');star.className='maze-star';star.textContent='★';star.setAttribute('aria-hidden','true');cell.append(star)}
-  cell.addEventListener('click',()=>{if(i!==run?.position)move(i)});
+  cell.addEventListener('click',e=>{if(e.detail===0&&i!==run?.position)move(i)});
   board.append(cell);
  }
  $('maze-score').textContent=run?.score||0;$('maze-level').textContent=run?.level||1;
+ drawAnnotations();
  updateClock();
 }
 async function api(body){
@@ -34,7 +38,7 @@ async function api(body){
  const data=await res.json();if(!res.ok)throw Error(data.error||'Request failed.');return data;
 }
 async function start(){
- if(busy)return;busy=true;$('maze-start').disabled=true;
+ if(busy)return;busy=true;releaseDrag();clearAnnotations();selected=false;$('maze-start').disabled=true;
  try{
   const data=await api({action:'start'});run=data.run;finished=false;submitted=false;
   $('maze-submit-panel').hidden=true;$('maze-start').hidden=true;$('maze-finish').hidden=false;
@@ -46,13 +50,17 @@ async function start(){
 async function move(to){
  if(busy||!run||finished||remaining()===0)return;
  if(!neighbors(run.position).includes(to)||run.blocked.includes(to))return;
- busy=true;render();
+ busy=true;selected=false;clearAnnotations();
+ const previous=run;
+ const solved=to===run.goal;
+ if(!solved){run={...run,position:to};render();}
+ else{status('Star reached! Loading next maze…');render();}
  try{
   const data=await api({action:'move',id:run.id,to});
   run=data.run;
   if(data.expired){endRun(true);return}
   status(data.solved?'Star collected! New maze unlocked.':'Keep going. Reach the star!');
- }catch(e){status(e.message);if(/already processed/i.test(e.message))endRun(false)}
+ }catch(e){run=previous;status(e.message);if(/already processed/i.test(e.message))endRun(false)}
  finally{busy=false;render()}
 }
 async function endRun(expired){
@@ -90,53 +98,107 @@ $('maze-finish').addEventListener('click',()=>endRun(false));
 $('maze-submit').addEventListener('click',submit);
 $('maze-nickname').addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
 $('maze-show-all').addEventListener('click',()=>{showAll=!showAll;$('maze-show-all').textContent=showAll?'Show Top 10':'View Top 100';$('maze-show-all').setAttribute('aria-expanded',String(showAll));loadRanking()});
-// Pointer-based drag and drop, matching the analysis/puzzle board interaction.
-function squareAt(clientX,clientY){
+// Analysis-style pointer controls: click, drag, cancel, right-drag annotations.
+const svgNS='http://www.w3.org/2000/svg';
+function squareAt(x,y){
  const rect=board.getBoundingClientRect();
- if(clientX<rect.left||clientX>=rect.right||clientY<rect.top||clientY>=rect.bottom)return -1;
- const col=Math.floor((clientX-rect.left)*8/rect.width);
- const row=Math.floor((clientY-rect.top)*8/rect.height);
- return row*8+col;
+ if(x<rect.left||x>=rect.right||y<rect.top||y>=rect.bottom)return -1;
+ return Math.floor((y-rect.top)*8/rect.height)*8+Math.floor((x-rect.left)*8/rect.width);
 }
 function releaseDrag(){
  if(!drag)return;
  drag.ghost?.remove();
+ if(drag.source)drag.source.style.visibility='';
  const d=drag;drag=null;
  try{if(board.hasPointerCapture(d.id))board.releasePointerCapture(d.id)}catch{}
 }
+function cancelDrag(){releaseDrag();selected=false;render()}
+function clearAnnotations(){arrows.length=0;highlights.clear()}
+function drawAnnotations(){
+ const old=board.querySelector('.maze-annotations');old?.remove();
+ const svg=document.createElementNS(svgNS,'svg');
+ svg.setAttribute('viewBox','0 0 800 800');
+ svg.setAttribute('class','maze-annotations');
+ svg.setAttribute('aria-hidden','true');
+ const center=i=>({x:(i%8+.5)*100,y:(Math.floor(i/8)+.5)*100});
+ for(const i of highlights){
+  const {x,y}=center(i),rect=document.createElementNS(svgNS,'rect');
+  rect.setAttribute('x',x-48);rect.setAttribute('y',y-48);rect.setAttribute('width',96);rect.setAttribute('height',96);
+  rect.setAttribute('fill','none');rect.setAttribute('stroke','#0a9cff');rect.setAttribute('stroke-width','9');svg.append(rect);
+ }
+ for(const [from,to,color] of arrows){
+  const a=center(from),b=center(to),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  if(!len)continue;
+  const x=b.x-dx/len*31,y=b.y-dy/len*31;
+  const line=document.createElementNS(svgNS,'line');
+  line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',x);line.setAttribute('y2',y);
+  line.setAttribute('stroke',color==='rainbow'?'#f0a93a':color);line.setAttribute('stroke-width','13');line.setAttribute('stroke-linecap','round');line.setAttribute('opacity','.83');svg.append(line);
+  const angle=Math.atan2(dy,dx),length=26,spread=.55;
+  const poly=document.createElementNS(svgNS,'polygon');
+  poly.setAttribute('points',[x+Math.cos(angle)*length+','+(y+Math.sin(angle)*length),x-Math.cos(angle-spread)*length+','+(y-Math.sin(angle-spread)*length),x-Math.cos(angle+spread)*length+','+(y-Math.sin(angle+spread)*length)].join(' '));
+  poly.setAttribute('fill',color==='rainbow'?'#f0a93a':color);poly.setAttribute('opacity','.85');svg.append(poly);
+ }
+ board.append(svg);
+}
+board.addEventListener('contextmenu',e=>e.preventDefault());
 board.addEventListener('dragstart',e=>e.preventDefault());
+board.addEventListener('mousedown',e=>{if(e.button===2&&drag){e.preventDefault();cancelDrag()}});
 board.addEventListener('pointerdown',e=>{
- if(e.button!==0||!run||finished||busy||remaining()===0)return;
  const square=squareAt(e.clientX,e.clientY);
- if(square!==run.position)return;
- e.preventDefault();
- releaseDrag();
- drag={id:e.pointerId,x:e.clientX,y:e.clientY,dragging:false,ghost:null};
- try{board.setPointerCapture(e.pointerId)}catch{}
+ if(e.button===2){
+  e.preventDefault();
+  if(drag){cancelDrag();return}
+  if(square>=0)right={id:e.pointerId,from:square};
+  return;
+ }
+ if(e.button!==0||square<0||!run||finished||busy||remaining()===0)return;
+ e.preventDefault();releaseDrag();right=null;
+ if(square===run.position){
+  drag={id:e.pointerId,from:square,x:e.clientX,y:e.clientY,dragging:false,source:null,ghost:null};
+  selected=true;render();
+  drag.source=board.querySelector('.knight-source .maze-piece');
+  try{board.setPointerCapture(e.pointerId)}catch{}
+ }else if(neighbors(run.position).includes(square)&&!run.blocked.includes(square)){
+  selected=false;move(square);
+ }else{selected=false;render()}
 });
 board.addEventListener('pointermove',e=>{
  if(!drag||e.pointerId!==drag.id)return;
- if(!drag.dragging&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>7){
+ if(e.buttons&2){cancelDrag();return}
+ if(!drag.dragging&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
   drag.dragging=true;
-  const img=board.querySelector('.knight-source .maze-piece');
-  if(img){
-   drag.ghost=img.cloneNode(true);drag.ghost.className='maze-drag-ghost';
-   const size=board.getBoundingClientRect().width/8*.88;
-   drag.ghost.style.width=size+'px';drag.ghost.style.height=size+'px';
-   document.body.append(drag.ghost);
+  if(drag.source){
+   const ghost=drag.source.cloneNode(true),size=board.getBoundingClientRect().width/8;
+   ghost.className='maze-drag-ghost';ghost.style.width=size+'px';ghost.style.height=size+'px';
+   ghost.style.transform='translate(-50%,-50%)';
+   document.body.append(ghost);drag.ghost=ghost;drag.source.style.visibility='hidden';
   }
  }
  if(drag.dragging){
   e.preventDefault();
-  if(drag.ghost){drag.ghost.style.left=(e.clientX-drag.ghost.offsetWidth/2)+'px';drag.ghost.style.top=(e.clientY-drag.ghost.offsetHeight/2)+'px'}
+  if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px'}
  }
 });
 board.addEventListener('pointerup',e=>{
- if(!drag||drag.id!==e.pointerId)return;
+ if(e.button===2){
+  if(drag){cancelDrag();return}
+  if(!right)return;
+  const from=right.from,to=squareAt(e.clientX,e.clientY);right=null;
+  if(to<0)return;
+  if(from===to){if(highlights.has(to))highlights.delete(to);else highlights.add(to)}
+  else{
+   const idx=arrows.findIndex(a=>a[0]===from&&a[1]===to);
+   if(idx>=0)arrows.splice(idx,1);
+   else arrows.push([from,to,e.altKey?'rainbow':e.shiftKey?'#a855f7':e.ctrlKey?'#760018':'#0a9cff']);
+  }
+  drawAnnotations();return;
+ }
+ if(e.button!==0||!drag||drag.id!==e.pointerId)return;
  const wasDragging=drag.dragging,to=squareAt(e.clientX,e.clientY);
- releaseDrag();
- if(wasDragging&&to!==run?.position&&to>=0)move(to);
+ releaseDrag();selected=false;
+ if(wasDragging&&to>=0&&to!==run?.position)move(to);
+ else render();
 });
-board.addEventListener('pointercancel',releaseDrag);
+board.addEventListener('pointercancel',e=>{if(drag?.id===e.pointerId)cancelDrag();if(right?.id===e.pointerId)right=null});
 render();loadRanking();
 })();

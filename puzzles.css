@@ -168,3 +168,13 @@ button.rank-report:disabled{opacity:.7;cursor:default}
 .nickname-report-submit{border:1px solid #ff5757;background:#d83544;color:#fff}
 .nickname-report-submit:hover{background:#f34c59}
 .nickname-report-actions button:focus-visible{outline:2px solid #80e6ff;outline-offset:3px}
+
+/* Show score submission inside the active puzzle details panel. */
+.puzzle-details .puzzle-save-run{margin:18px 0 0;padding:18px;border:1px solid #366581;border-radius:12px;background:#0e2d44;min-width:0}
+.puzzle-details .puzzle-save-run[hidden]{display:none!important}
+.puzzle-details .puzzle-save-run h3{color:#e8f9ff;margin:0 0 8px}
+.puzzle-details #puzzle-final-score{color:#66e5f6;font-size:18px;font-weight:800;margin:0 0 10px}
+.puzzle-details .puzzle-save-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.puzzle-details .puzzle-save-controls label{flex:1 1 170px;min-width:0}
+.puzzle-details .puzzle-save-controls input{max-width:100%;width:100%;box-sizing:border-box}
+.puzzle-details .puzzle-footnote{line-height:1.6}
