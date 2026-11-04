@@ -787,7 +787,7 @@ async function loadSampleAvatars(){
     image.loading="eager";
     image.referrerPolicy="no-referrer";
     let fallback=username.toLowerCase()==="hikaru"?
-      "https://images.chesscomfiles.com/uploads/v1/user/15448422.png":"";
+      "/vendor/avatars/hikaru.png":"";
     let sources=[];
     try{
       const profile=await getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
