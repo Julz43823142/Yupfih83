@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Discover your Chess Insights, analyze your performance, and learn how to improve at chess.">
+  <link rel="canonical" href="https://eloscanner.com/example-hikaru-nakamura.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="EloScanner">
+  <meta property="og:url" content="https://eloscanner.com/">
+  <meta property="og:title" content="EloScanner | Chess Insights & Improvement">
+  <meta property="og:description" content="Discover your Chess Insights, analyze your performance, and learn how to improve at chess.">
+  <meta property="og:image" content="https://eloscanner.com/discord-knight-400.png">
+  <meta property="og:image:secure_url" content="https://eloscanner.com/discord-knight-400.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="400">
+  <meta property="og:image:height" content="400">
+  <meta property="og:image:alt" content="White EloScanner chess knight logo with transparent background">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="EloScanner | Chess Insights & Improvement">
+  <meta name="twitter:description" content="Discover your Chess Insights, analyze your performance, and learn how to improve at chess.">
+  <meta name="twitter:image" content="https://eloscanner.com/discord-knight-400.png">
+  <title>Hikaru Nakamura | EloScanner Example</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=2">
+  
+  
+  <link rel="stylesheet" href="./style.css?v=20261103-sparklines-2">
+  <script src="./script.js?v=20261104-example-pages" defer></script>
+  <link rel="stylesheet" href="./layout-fix.css?v=1">
+<link rel="stylesheet" href="/homepage-polish.css?v=23"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script></head>
+<body data-example-player='Hikaru'>
+  <header class="navbar">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="./assets/eloscanner-logo.svg" alt="EloScanner">
+    </a>
+    <details class="mobile-chess-menu"><summary aria-label="Open navigatiemenu"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></summary><nav aria-label="Mobiele navigatie"><a href="/play.html">Play</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html">Puzzles</a><a href="/minigames.html">Minigames</a></nav></details>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/play.html"><img class="tool-icon" src="/assets/play-bots.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Play</span></a><a href="/analysis.html"><svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="26" height="26" role="img" aria-label="Analyse icon" fill="none"><rect x="10" y="10" width="72" height="76" rx="10" stroke="#F5FBFF" stroke-width="5"/><path fill="#F5FBFF" d="M22 23h17v17H22zm34 0h17v17H56zM39 40h17v17H39zM22 57h17v17H22zM56 57h17v17H56z"/><circle cx="77" cy="76" r="19" fill="#071B30" stroke="#00DFF2" stroke-width="7"/><path d="m91 91 13 13" stroke="#00DFF2" stroke-width="7" stroke-linecap="round"/></svg><span class="tool-label">Analyse</span></a><a href="/player-prep.html"><img class="tool-icon" src="/assets/accuracy-target.svg?v=1" alt=""><span class="tool-label">Player Prep</span></a><a href="/puzzles.html"><img class="tool-icon" src="/assets/puzzles-approved.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Puzzles</span></a><a href="/minigames.html"><img class="tool-icon" src="/assets/minigames-tool.svg?v=2" width="26" height="26" alt="" loading="eager"><span class="tool-label">Minigames</span></a></aside>
+      
+
+      <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Hourly puzzle leaderboard">
+        <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
+        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
+        <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 50</a>
+
+      </aside>
+      <div class="hero-content">
+        <div class="eyebrow">CHESS.COM PLAYER REVIEW</div>
+        <h1>Hikaru Nakamura.<br><span>Example player profile.</span></h1>
+        <p class="subtitle">View a fast public Chess.com player profile. Full game analysis is available on demand.</p>
+        <form id="searchForm" class="search-box">
+          <input id="username" name="username" type="text" aria-label="Chess.com username"
+            placeholder="Enter Chess.com username" autocomplete="off" maxlength="25" required>
+          <button type="submit" id="analyzeBtn">Analyze Player</button>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section id="results" class="results" aria-live="polite">
+      <div class="section-heading">
+        <span class="eyebrow">PLAYER PROFILE</span>
+        <div class="overview-title-group"><h2>Analysis Overview</h2><span id="analysisDuration" class="analysis-duration" hidden></span></div>
+      </div>
+      <div id="playerCard" class="player-card"></div>
+      <section id="v87-review" class="v87-review"></section><section class="insights-integrated"><h2>Chess Insights</h2><p>Extra performance statistics calculated from the completed player review.</p><div id="insights-embedded" aria-live="polite"></div></section>
+    </section>
+    <div class="below-hero-layout with-player-previews">
+    <section class="sample-section" aria-labelledby="sample-title">
+      <div class="sample-heading"><span class="eyebrow">EXPLORE AN EXAMPLE</span><h2 id="sample-title">Example reports</h2></div>
+      <div class="sample-options">
+        <button class="sample-button" type="button" data-username="MagnusCarlsen" aria-label="Analyze Magnus Carlsen">
+          <span class="sample-avatar" data-player-avatar="MagnusCarlsen" aria-hidden="true">MC</span><span class="sample-player-name">GM Magnus Carlsen</span><span class="sample-player-handle">@MagnusCarlsen <span class="sample-view">View analysis →</span></span>
+        </button>
+        <button class="sample-button" type="button" data-username="Hikaru" aria-label="Analyze Hikaru Nakamura">
+          <span class="sample-avatar" data-player-avatar="Hikaru" aria-hidden="true">HN</span><span class="sample-player-name">GM Hikaru Nakamura</span><span class="sample-player-handle">@Hikaru <span class="sample-view">View analysis →</span></span>
+        </button>
+      </div>
+    </section>
+    <section class="features">
+      <div class="feature-card">
+        <img class="feature-illustration" src="./assets/opening-explorer.svg?v=1" alt="Opening Explorer icon" width="112" height="112" loading="lazy">
+        <h3>Opening Explorer</h3>
+        <p>Discover popular openings, repertoire patterns and practical preparation ideas.</p>
+        <span class="feature-tag">OPENING RESEARCH</span>
+      </div>
+      <div class="feature-card">
+        <img class="feature-illustration" src="./assets/feature-intelligence.svg?v=native-svg-16" alt="Player Insights icon" width="112" height="112" loading="lazy">
+        <h3>Player Insights</h3>
+        <p>Discover performance trends, strengths and weaknesses across your games.</p>
+        <span class="feature-tag">PERFORMANCE INSIGHTS</span>
+      </div>
+      <div class="feature-card">
+        <img class="feature-illustration" src="/assets/head-to-head.svg?v=1" alt="Head-to-head Analysis icon" width="112" height="112" loading="lazy">
+        <h3>Head-to-head Analysis</h3>
+        <p>Compare opponents, results and playing patterns to prepare for your next match.</p>
+        <span class="feature-tag">MATCHUP INSIGHTS</span>
+      </div>
+    </section>
+    </div>
+    <section class="disclaimer">
+      <h3>Independent Analysis &amp; Transparency</h3>
+      <p>This independent project is not affiliated with Chess.com. Public Chess.com data is requested directly by your browser. Analysis runs on your device; the report is not uploaded to EloScanner.</p>
+    </section>
+  </main>
+  <footer>
+    <span>© <span id="year"></span> EloScanner</span>
+    <span>Independent chess analysis</span>
+  </footer>
+  <script>
+  (async()=>{
+   for(const [mode,id] of [['sprint5','home-sprint-rank'],['survival','home-survival-rank']]){
+    const list=document.getElementById(id);if(!list)continue;
+    try{
+     const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
+     if(!r.ok)throw Error('Unavailable');
+     if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
+     for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+    }catch{const li=document.createElement('li');li.textContent='Rankings unavailable';list.append(li)}
+   }
+  })();
+  </script>
+<style>
+.hero .hero-puzzle-ranking{position:absolute;left:clamp(20px,3vw,55px);top:24px;z-index:3;background:rgba(6,25,44,.96);border:1px solid #275a7b;border-radius:14px;padding:18px;color:#eaf7ff;box-sizing:border-box;max-width:calc(100vw - 40px)}
+.hero-puzzle-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;color:#57e4f5}
+.hero-puzzle-heading strong{font-size:17px}.hero-puzzle-heading span{font-size:11px;color:#a9cde0}
+.hero .hero-puzzle-ranking ol{margin:14px 0 12px;padding-left:27px;display:grid;gap:5px}
+.hero .hero-puzzle-ranking li{padding:5px 3px;font-size:13px}
+.hero .hero-puzzle-ranking a{color:#73e4f7;font-weight:750}
+.hero .hero-puzzle-ranking p{color:#a3c3d6;font-size:11px;margin:10px 0 0}
+@media(max-width:1099px){.hero .hero-puzzle-ranking{position:relative;left:auto;top:auto;order:2;margin:15px auto;width:min(480px,calc(100% - 34px))}}
+</style>
+<script>
+(()=>{
+ const title=document.getElementById('hero-puzzle-title'),list=document.getElementById('hero-puzzle-list'),more=document.getElementById('hero-puzzle-more');
+ let lastMode='';
+ async function update(){
+  // Switch the displayed leaderboard every UTC hour. Scores remain separate,
+  // and the existing hourly scoring windows are unchanged.
+  const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint':'survival';
+  if(mode===lastMode)return;lastMode=mode;
+  title.textContent=mode==='sprint'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
+  
+  more.href='/puzzle-top100.html?mode='+mode;
+  list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
+  try{
+   const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
+   if(!r.ok)throw Error('Unavailable');
+   list.replaceChildren();
+   if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
+   for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+  }catch{list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
+ }
+ update();setInterval(update,30000);
+})();
+</script>
+</body>
+</html>
