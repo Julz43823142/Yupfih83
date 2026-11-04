@@ -1,1 +1,41 @@
 .maze-page{max-width:1300px;width:calc(100% - 36px);margin:38px auto 90px;color:#e9f6ff}.maze-page *{box-sizing:border-box}.maze-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}.maze-eyebrow{font-size:12px;letter-spacing:2px;font-weight:800;color:#54def2}.maze-heading h1{font-size:clamp(35px,5vw,58px);letter-spacing:-2px;margin:8px 0}.maze-heading p{color:#a9c8dc;line-height:1.6;margin:0}.maze-home{color:#8be5f4;text-decoration:none;white-space:nowrap}.maze-layout{display:grid;grid-template-columns:minmax(0,710px) minmax(300px,1fr);gap:24px;align-items:start}.maze-game,.maze-panel{background:#081d30;border:1px solid #285777;border-radius:17px;padding:20px}.maze-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.maze-stats>div{background:#12364f;border:1px solid #2b617e;padding:13px;border-radius:10px;text-align:center}.maze-stats span{display:block;font-size:11px;font-weight:800;color:#8bbcd4;letter-spacing:1px}.maze-stats strong{display:block;font-size:29px;margin-top:5px;color:#f5fcff;font-variant-numeric:tabular-nums}.maze-board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border:4px solid #376581;border-radius:7px;overflow:hidden;user-select:none}.maze-cell{position:relative;display:grid;place-items:center;border:0;padding:0;min-width:0;min-height:0;cursor:default;font:inherit}.maze-cell.light{background:#e9d7b8}.maze-cell.dark{background:#a48162}.maze-cell.blocked{background:#243647}.maze-cell.blocked::after{content:'';position:absolute;inset:14%;border:2px solid #4a6070;border-radius:5px;background:repeating-linear-gradient(135deg,#243647 0 7px,#304657 7px 14px)}.maze-cell.reachable{cursor:pointer;box-shadow:inset 0 0 0 5px #39cde5}.maze-cell.reachable::before{content:'';position:absolute;width:22%;height:22%;border-radius:50%;background:#126784a8}.maze-cell:focus-visible{outline:4px solid #f3d85c;outline-offset:-4px;z-index:2}.maze-piece{position:relative;z-index:1;font-size:clamp(28px,5vw,63px);line-height:1;color:#092b48;text-shadow:0 2px 2px #ffffff80;pointer-events:none}.maze-star{position:relative;z-index:1;color:#f7ba18;font-size:clamp(24px,4.8vw,55px);line-height:1;text-shadow:0 2px 1px #543700;pointer-events:none}.maze-bottom{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px}.maze-bottom p{color:#b5d7e8;flex:1 1 190px;line-height:1.5;margin:0}.maze-primary,.maze-secondary{border:1px solid #39c8e7;border-radius:9px;background:#087bb0;color:white;font-weight:800;padding:12px 17px;cursor:pointer}.maze-secondary{background:#183a52;border-color:#49718a}.maze-primary:disabled,.maze-secondary:disabled{opacity:.5;cursor:wait}.maze-hint{font-size:12px;color:#8eb1c6;line-height:1.6;margin:15px 0 0}.maze-sidebar{display:grid;gap:16px}.maze-panel h2{font-size:20px;color:#eafaff;margin:0 0 12px}.maze-panel p{font-size:14px;line-height:1.7;color:#b3d0e1;margin:0 0 12px}.maze-panel label{display:block;font-size:12px;color:#b9dbea;font-weight:800;margin-bottom:8px}.maze-submit-row{display:flex;gap:8px}.maze-submit-row input{width:100%;min-width:0;background:#071a2b;border:1px solid #3b7392;border-radius:8px;color:white;padding:11px;font:inherit}.maze-panel small{display:block;color:#92b4c7;line-height:1.5;margin-top:10px}.maze-rank-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}.maze-text-button{background:none;border:0;color:#60dff4;text-decoration:underline;font-weight:800;cursor:pointer;white-space:nowrap}.maze-ranking{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:550px;overflow:auto;counter-reset:maze-rank}.maze-ranking li{display:flex;gap:10px;align-items:center;min-width:0;background:#102d44;border:1px solid #1e4862;border-radius:8px;padding:10px;font-size:13px;counter-increment:maze-rank}.maze-ranking li::before{content:counter(maze-rank) '.';color:#69d9eb;font-weight:800;min-width:28px}.maze-ranking .maze-rank-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.maze-ranking .maze-rank-score{font-weight:850;color:#fff}.maze-ranking li.maze-empty::before{content:none}.maze-note{margin-top:12px!important;font-size:12px!important}.maze-cell[disabled]{opacity:1}@media(max-width:920px){.maze-layout{grid-template-columns:1fr}.maze-game{max-width:740px}.maze-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.maze-sidebar>.maze-panel:last-child{grid-column:1/-1}}@media(max-width:600px){.maze-page{width:calc(100% - 20px);margin-top:24px}.maze-heading{align-items:flex-start;flex-direction:column}.maze-game,.maze-panel{padding:12px}.maze-sidebar{grid-template-columns:1fr}.maze-sidebar>.maze-panel:last-child{grid-column:auto}.maze-stats strong{font-size:23px}.maze-cell.reachable{box-shadow:inset 0 0 0 3px #39cde5}.maze-submit-row{flex-wrap:wrap}.maze-submit-row button{width:100%}}
+/* Chessboard geometry and pieces match the puzzle/analysis board. */
+.maze-board{
+ display:grid!important;
+ grid-template-columns:repeat(8,minmax(0,1fr))!important;
+ grid-template-rows:repeat(8,minmax(0,1fr))!important;
+ aspect-ratio:1 / 1!important;
+ height:auto!important;
+ min-height:0!important;
+ touch-action:none;
+ background:#9b7856;
+}
+.maze-board .maze-cell{
+ appearance:none;-webkit-appearance:none;
+ box-sizing:border-box!important;
+ display:grid!important;place-items:center!important;
+ width:100%!important;height:100%!important;
+ min-width:0!important;min-height:0!important;
+ aspect-ratio:auto!important;overflow:hidden!important;
+ margin:0!important;border:0!important;padding:0!important;
+ touch-action:none;
+}
+.maze-board .maze-cell.light{background:#e8d7b6!important}
+.maze-board .maze-cell.dark{background:#9b7856!important}
+.maze-board .maze-cell.blocked{background:#26394b!important}
+.maze-board .maze-cell.blocked::after{
+ inset:0!important;border:0!important;border-radius:0!important;
+ background:repeating-linear-gradient(135deg,#26394b 0 9px,#354c5d 9px 18px)!important;
+}
+.maze-board .maze-cell.reachable{box-shadow:inset 0 0 0 4px #48d7ee!important}
+.maze-board .maze-cell.reachable::before{width:23%;height:23%;background:#19334888}
+.maze-board .maze-piece{
+ display:block;width:89%;height:89%;object-fit:contain;
+ user-select:none;-webkit-user-drag:none;touch-action:none;
+ filter:none;text-shadow:none;pointer-events:none;
+}
+.maze-board .maze-star{font-size:clamp(22px,4.5vw,52px)}
+.maze-board .maze-cell.knight-source{cursor:grab}
+.maze-board .maze-cell.knight-source:active{cursor:grabbing}
+.maze-drag-ghost{position:fixed;z-index:9999;pointer-events:none;object-fit:contain;opacity:.94;filter:drop-shadow(0 8px 7px #0007)}
+@media(max-width:600px){.maze-board .maze-cell.reachable{box-shadow:inset 0 0 0 3px #48d7ee!important}}
