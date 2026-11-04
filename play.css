@@ -127,3 +127,11 @@
 .play-chat-form input{flex:1;min-width:0;box-sizing:border-box;background:#061929;border:1px solid #41718c;border-radius:8px;color:#fff;padding:9px;font-size:13px}
 .play-chat-form button{background:#165c7b;border:1px solid #52b8d8;border-radius:8px;color:#fff;font-weight:700;padding:8px 11px;cursor:pointer}
 .play-bot-chat-panel small{color:#90b5c8;font-size:11px}
+
+/* Bot conversation and queued move indicators. */
+.play-bot-chat-panel{padding:16px;border-color:#32708d;background:linear-gradient(145deg,#0d3049,#071d30);box-shadow:0 8px 24px #0002}
+.play-bot-chat-log{min-height:100px;max-height:250px;gap:9px;padding:5px 3px}
+.play-chat-message{max-width:92%;align-self:flex-start;background:#16415c;border:1px solid #326780;border-radius:12px 12px 12px 3px;padding:9px 12px;line-height:1.5}
+.play-chat-user{align-self:flex-end;background:#174c59;border-color:#2a8b91;border-radius:12px 12px 3px 12px}
+.play-chat-form input:focus-visible{outline:2px solid #68dff3;outline-offset:1px}
+#play-board .play-square.premove-from,#play-board .play-square.premove-to{transition:box-shadow .12s ease}
