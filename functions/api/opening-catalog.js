@@ -1,7 +1,7 @@
 import {onRequestGet as getStats} from './opening-explorer.js';
 // Full CC0 opening names from lichess-org/chess-openings, cached at the edge.
-export async function onRequestGet({request}){
- if(new URL(request.url).searchParams.has('fen'))return getStats({request});
+export async function onRequestGet({request,env,context}){
+ if(new URL(request.url).searchParams.has('fen'))return getStats({request,env,context});
  const cache=caches.default,key=new Request(new URL('/api/opening-catalog',request.url).toString());
  const cached=await cache.match(key);if(cached)return cached;
  try{
