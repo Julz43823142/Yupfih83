@@ -1,14 +1,13 @@
+import {readJsonPayload} from '../_shared/read-json.js';
 // Server-side report handling. Never expose REPORT_SECRET to the browser.
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbztviqAs-l4vxnuHdulEg6vmKFpZhMbNatgkQScyOBR5kLRUU-n_z3O_961N6rymr3PVw/exec";
-const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
+const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
 const json=(data,status=200)=>Response.json(data,{status,headers});
 export async function onRequestPost({request,env}){
  if(!env.SUS_DB||!env.REPORT_SECRET)return json({error:"Reporting is not configured yet."},503);
- if(request.headers.get("content-type")?.split(";")[0].trim()!=="application/json")return json({error:"Invalid request."},415);
- if(Number(request.headers.get("content-length")||0)>2048)return json({error:"Request too large."},413);
- const origin=request.headers.get("origin");
- if(origin&&origin!==new URL(request.url).origin)return json({error:"Invalid origin."},403);
- let data;try{data=await request.json()}catch{return json({error:"Invalid request."},400)}
+ const parsed=await readJsonPayload(request);
+ if(parsed.error)return json({error:parsed.error},parsed.status);
+ const data=parsed.data;
  const mode=data?.mode,nickname=data?.nickname,score=data?.score;
  if(!["sprint","survival"].includes(mode)||typeof nickname!=="string"||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)return json({error:"Invalid leaderboard entry."},400);
  const db=env.SUS_DB;
