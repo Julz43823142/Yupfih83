@@ -572,7 +572,8 @@ function renderReview(data) {
   const cleanedReasons = entries.filter(x => x != null)
     .map(x => typeof x === "string" ? x : JSON.stringify(x))
     .map(x => x.replace(/\s*This experimental results flag is not engine or Maia confirmation\.?/gi, "").trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(reason => !/Absolute high Accuracy frequency alone is descriptive\./i.test(reason));
   const highlightedIndex = cleanedReasons.findIndex(reason =>
     /A chronological period scored substantially above its Elo-point expectation and passed the history-search guard/i.test(reason));
   if (highlightedIndex !== -1) {
