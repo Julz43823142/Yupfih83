@@ -177,7 +177,7 @@ function stopStrongBot(){if(strongWorker){strongWorker.terminate();strongWorker=
 function strongBotTurn(token,fen,level){
  stopStrongBot();
  try{
-  const w=new Worker('/play-strong-bot-worker.js?v=1',{type:'module'});strongWorker=w;
+  const w=new Worker('/play-strong-bot-worker.js?v=2-uci-strength',{type:'module'});strongWorker=w;
   const fallback=()=>{
    if(strongWorker!==w)return;
    stopStrongBot();
@@ -203,11 +203,12 @@ function strongBotTurn(token,fen,level){
 let botWorker=null;
 function ensureBotWorker(){
  if(botWorker)return botWorker;
- botWorker=new Worker('/play-bot-worker.js?v=3-cash-openings',{type:'module'});
+ botWorker=new Worker('/play-bot-worker.js?v=4-calibrated-openings',{type:'module'});
  botWorker.onerror=()=>{status('Bot calculation failed. Start a new game to retry.');working=false;botWorker?.terminate();botWorker=null;paint()};
  botWorker.onmessage=e=>{
-  const {token,move,error}=e.data;
+  const {token,move,error,bookMiss}=e.data;
   if(token!==gameToken||ended||chess.turn()===human)return;
+  if(bookMiss){strongBotTurn(token,chess.fen(),botLevel);return}
   if(error){working=false;status('Bot calculation failed. Start a new game to retry.');paint();return}
   try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
   catch(err){working=false;status('Bot move failed. Start a new game to retry.');console.error(err)}
@@ -220,7 +221,12 @@ function scheduleBot(){
  working=true;status(names[botLevel]+' is thinking…');paint();
  const token=gameToken,fen=chess.fen(),level=botLevel;
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
-  try{if((ratings[level]||0)>=2000)strongBotTurn(token,fen,level);else ensureBotWorker().postMessage({token,fen,level})}
+  try{
+   const elo=ratings[level]||1000;
+   if(elo>=800&&(level==='cashojf3r'||level==='rocket'))ensureBotWorker().postMessage({token,fen,level,bookOnly:true});
+   else if(elo>=800)strongBotTurn(token,fen,level);
+   else ensureBotWorker().postMessage({token,fen,level});
+  }
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
  },120);
 }

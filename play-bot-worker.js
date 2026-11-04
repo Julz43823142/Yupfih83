@@ -77,7 +77,7 @@ function cashOpeningMove(moves){
  if(!candidates.length)return null;
  return candidates[Math.floor(Math.random()*candidates.length)];
 }
-function chooseBotMove(){
+function chooseBotMove(bookOnly=false){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
  const cashBookMove=cashOpeningMove(moves);
  if(cashBookMove)return cashBookMove;
@@ -88,19 +88,20 @@ function chooseBotMove(){
   const opening=moves.find(m=>m.san===preferred);
   if(opening)return opening;
  }
+ if(bookOnly)return null;
  const elo=ratings[botLevel]||1000,side=chess.turn();
  // Elo values are approximate difficulty tiers, not independently calibrated ratings.
  // Lower levels search less deeply and make more deliberate suboptimal choices.
- const depth=elo<1000?1:elo<1650?2:elo<2000?3:4;
- const noise=elo<700?700:elo<1000?480:elo<1300?300:elo<1650?180:elo<1950?115:elo<2200?70:elo<2500?32:10;
+ const depth=elo<600?1:elo<800?2:elo<1650?3:elo<2000?3:4;
+ const noise=elo<500?600:elo<700?360:elo<900?115:elo<1100?90:elo<1300?70:elo<1650?55:elo<1950?35:elo<2200?25:elo<2500?18:8;
  const ranked=moves.map(m=>{
   chess.move(m);
   const score=search(chess,depth-1,-Infinity,Infinity,side);
   chess.undo();
-  const aggression=(botLevel==='ominous'||botLevel==='cashojf3r')?((m.captured?45:0)+(m.san.includes('+')?60:0)+(m.san.includes('#')?150:0)):0;
+  const aggression=(botLevel==='ominous'||botLevel==='cashojf3r')?((m.captured?16:0)+(m.san.includes('+')?24:0)+(m.san.includes('#')?100:0)):0;
   return {move:m,score:score+aggression+(Math.random()-.5)*noise};
  }).sort((a,b)=>b.score-a.score);
- const probability=elo<800?.62:elo<1100?.48:elo<1500?.3:elo<1900?.16:elo<2300?.07:.01;
+ const probability=elo<500?.42:elo<700?.28:elo<900?.12:elo<1100?.1:elo<1500?.07:elo<1900?.04:elo<2300?.025:.01;
  if(ranked.length>1&&Math.random()<probability){
   const options=ranked.slice(1,Math.min(5,ranked.length));
   return options[Math.floor(Math.random()*options.length)].move;
@@ -108,4 +109,4 @@ function chooseBotMove(){
  return ranked[0].move;
 }
 
-self.onmessage=e=>{const {fen,level,token}=e.data;try{chess=new Chess(fen);botLevel=level;const m=chooseBotMove();self.postMessage({token,move:m?{from:m.from,to:m.to,promotion:m.promotion||'q'}:null})}catch(err){self.postMessage({token,error:String(err)})}};
+self.onmessage=e=>{const {fen,level,token,bookOnly=false}=e.data;try{chess=new Chess(fen);botLevel=level;const m=chooseBotMove(bookOnly);self.postMessage({token,bookMiss:bookOnly&&!m,move:m?{from:m.from,to:m.to,promotion:m.promotion||'q'}:null})}catch(err){self.postMessage({token,error:String(err)})}};
