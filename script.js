@@ -8,10 +8,8 @@ function performanceLabel(value){
   const key=String(value||"").toUpperCase().replace(/[-_]/g," ").trim();
   return PERFORMANCE_LABELS[key] || value || "Unavailable";
 }
-/* EloScanner — v87 statistical review.
- * Configure API_URL after deploying fairplay_web_api.py from the bot repo.
- */
-const API_URL = "/api"; // Same-origin Cloudflare Pages Functions; token remains server-side.
+/* EloScanner — on-device v87 statistical review. */
+// Chess analysis runs in the browser without a server-side review API.
 const form = document.getElementById("searchForm");
 const usernameInput = document.getElementById("username");
 const button = document.getElementById("analyzeBtn");
@@ -660,56 +658,6 @@ function renderReview(data) {
   const foot = add(panel, "p", "v87-note",
     "Charts summarize patterns in the available game data.");
 }
-// The SUS control is not constructed until the server confirms a finished analysis.
-let activeSusProof=null;
-async function showSusVoting(username,proof){
-  const identity=playerCard.querySelector(".player-identity");
-  if(!identity||!proof)return;
-  const normalized=String(username||"").trim().toLowerCase();
-  if(!/^[a-z0-9_-]{3,25}$/.test(normalized))return;
-  playerCard.querySelector(".sus-widget")?.remove();
-  const widget=add(identity,"div","sus-widget");
-  const action=add(widget,"button","sus-button","CIP +1");
-  action.type="button";action.disabled=true;
-  const count=add(widget,"span","sus-count","— CIP points");
-  const hint=add(widget,"span","sus-description","CIP means Community Interest Points — community interest in analysis.");
-  hint.setAttribute("role","status");
-  let voted=false;
-  function renderState(state){
-    voted=!!state.voted;
-    count.textContent=number(state.count,0)+" CIP points";
-    action.textContent=voted?"CIP added ✓":"CIP +1";
-    action.setAttribute("aria-pressed",String(voted));
-    action.setAttribute("aria-label",voted?"Undo your CIP point":"Add one CIP point");
-    action.disabled=false;
-    hint.textContent=voted?"Click CIP added ✓ to remove your CIP point.":"CIP means Community Interest Points — community interest in analysis.";
-  }
-  action.addEventListener("click",async()=>{
-    const wasVoted=voted;
-    action.disabled=true;
-    hint.textContent=wasVoted?"Removing your vote…":"Recording your vote…";
-    try{
-      const reply=await getJSON("/api/sus/"+encodeURIComponent(normalized),
-        wasVoted?{method:"DELETE"}:{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({proof})
-        });
-      renderState(reply);
-      refreshSusTop5();
-    }catch(error){
-      action.disabled=false;
-      hint.textContent=(wasVoted?"Unable to undo vote: ":"Vote unavailable: ")+error.message;
-    }
-  });
-  try{
-    renderState(await getJSON("/api/sus/"+encodeURIComponent(normalized)));
-  }catch(error){
-    action.disabled=true;
-    count.textContent="Voting unavailable";
-    hint.textContent="The community voting service is temporarily unavailable.";
-  }
-}
-
 function renderPlayer(profile, stats, username) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
@@ -770,37 +718,12 @@ function analyzeOnVisitorDevice(username){
   });
 }
 async function runReview(username){
-  const panel=document.getElementById("v87-review");
-  panel.replaceChildren();
-  if(!API_URL)throw new Error("The analysis API is unavailable.");
-  reviewProgressStage="preparing";
-  startReviewProgress();
-  statusText.textContent="";
-  const base=API_URL.replace(/\/$/,"");
-  // This server request reserves 1 of 15 reviews per rolling 10 minutes.
-  // It does not start or poll any GitHub Actions runner.
-  const started=await getJSON(base+"/review",{
-    method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username})
-  });
-  if(started.mode!=="browser-v87"||!started.ticket)
-    throw new Error("Local analysis is not configured.");
-  showReviewProgress("Starting the original v87 engine on your device…","preparing");
-  const report=await analyzeOnVisitorDevice(username);
-  // The completed report is not uploaded or trusted as a server-side score.
-  // Only issue a signed CIP interaction proof for this rate-limited session.
-  let susProof=null;
-  try{
-    const done=await getJSON(base+"/local-review-complete",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({username,ticket:started.ticket})
-    });
-    susProof=done.sus_proof||null;
-  }catch(error){console.warn("CIP review proof temporarily unavailable:",error);}
-  await finishReviewProgress();
-  renderReview(report);
-  if(susProof)await showSusVoting(report.username||username,susProof);
-  statusText.textContent="Analysis complete on your device.";
+ const panel=document.getElementById("v87-review");panel.replaceChildren();
+ reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
+ showReviewProgress("Starting analysis on your device…","preparing");
+ const report=await analyzeOnVisitorDevice(username);
+ await finishReviewProgress();renderReview(report);
+ statusText.textContent="Analysis complete on your device.";
 }
 /* Verified sample reports are generated by the separate GitHub workflow.
    These buttons never synthesize Fair Play findings or a fake runtime. */
@@ -855,33 +778,6 @@ async function showExample(username,displayName){
     controls.forEach(btn=>btn.disabled=false);
   }
 }
-// Real D1 SUS vote leaderboard; never display fictional example totals.
-const susTop5=document.getElementById("sus-top10-list");
-function showSusRanking(target,players){
- target.replaceChildren();
- const valid=(Array.isArray(players)?players:[]).filter(entry=>/^[a-z0-9_-]{3,25}$/i.test(String(entry.username||''))).slice(0,10);
- for(let i=0;i<10;i++){
-  const row=add(target,'li','');
-  if(i>=valid.length){add(row,'span','sus-rank-name','·');continue}
-  const entry=valid[i],name=String(entry.username);
-  const link=add(row,'a','sus-rank-name',name.charAt(0).toUpperCase()+name.slice(1));
-  link.href='https://www.chess.com/member/'+encodeURIComponent(name);
-  link.target='_blank';link.rel='noopener noreferrer';
-  // Chess.com usernames are case-insensitive identifiers, but their public profile preserves display capitalization.
-  getJSON('https://api.chess.com/pub/player/'+encodeURIComponent(name)).then(profile=>{
-    const candidates=[profile?.name,profile?.username];
-    const official=candidates.find(value=>typeof value==='string'&&value.toLowerCase()===name.toLowerCase()&&/[A-Z]/.test(value));
-    if(official)link.textContent=official;
-  }).catch(()=>{});
-  add(row,'span','sus-rank-count',number(Number(entry.votes)||0,0));
- }
-}
-async function refreshSusTop5(){
-  try{showSusRanking(susTop5,(await getJSON("/api/sus/top?limit=10")).players);}
-  catch{showSusRanking(susTop5,[]);}
-}
-refreshSusTop5();
-
 // Fetch real public Chess.com avatars; never substitute unrelated player images.
 async function loadSampleAvatars(){
   const avatars=document.querySelectorAll(".sample-avatar[data-avatar-for]");
@@ -971,45 +867,6 @@ form.addEventListener("submit", async event => {
   }
 });
 
-const requestedSavedReview=new URLSearchParams(location.search).get("review");
-if(requestedSavedReview&&/^[a-z0-9_-]{3,25}$/i.test(requestedSavedReview)){
-  usernameInput.value=requestedSavedReview;
-  (async()=>{
-    let panel=document.getElementById("v87-review");
-    if(!panel){
-      panel=add(results,"section","v87-review");
-      panel.id="v87-review";
-    }
-    results.classList.remove("hidden");
-    panel.replaceChildren();
-    add(panel,"p","v87-muted","Loading latest saved performance review…");
-    try{
-      const saved=await getJSON("/api/sus/latest/"+encodeURIComponent(requestedSavedReview),{cache:"no-store"});
-      // The saved report opens immediately without starting another GitHub analysis.
-      try{
-        const encoded=encodeURIComponent(requestedSavedReview);
-        const [profile,stats]=await Promise.all([
-          getJSON("https://api.chess.com/pub/player/"+encoded),
-          getJSON("https://api.chess.com/pub/player/"+encoded+"/stats")
-        ]);
-        playerCard.replaceChildren();
-        renderPlayer(profile,stats,requestedSavedReview);
-      }catch(error){
-        playerCard.replaceChildren();
-        const header=add(playerCard,"div","player-header");
-        const identity=add(header,"div","player-identity");
-        add(identity,"h3","player-name",saved.result.username||requestedSavedReview);
-      }
-      renderReview(saved.result);
-      statusText.textContent="Showing latest saved performance review — no new analysis started.";
-      // Keep the homepage layout and example cards at their original position.
-    }catch(error){
-      panel.replaceChildren();
-      add(panel,"p","v87-warning","Saved review unavailable: "+error.message);
-      statusText.textContent="Unable to load saved review.";
-    }
-  })();
-}
 const requestedAnalysis=new URLSearchParams(location.search).get("analyze");
 if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
   usernameInput.value=requestedAnalysis;

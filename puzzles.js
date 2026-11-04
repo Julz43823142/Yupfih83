@@ -6,7 +6,7 @@ const MODES={random:['Random Puzzle','Train with a random position.'],custom:['C
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
-let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,lastRun=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
+let deadline=0,startedAt=0,tick=null,auto=null,pendingPromotion=null,sprintMinutes=5,lastChallengeRating=0,orientation='white';const seen=new Set(),seenPositions=new Set(),cells=new Map();
 function say(text,kind=''){status.textContent=text;status.className='puzzle-status'+(kind?' '+kind:'')}
 
 let soundOn=true,audioCtx=null;
@@ -218,13 +218,11 @@ function finish(){
  }else if(mode!=='daily')$('puzzle-next').textContent='Next Puzzle';
 }
 function finishRun(text){
- const recordedMode=mode,score=solved,duration=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
+ const score=solved;
  playSound('end');
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
- lastRun={mode:recordedMode,score,duration};
- $('puzzle-save-run').hidden=false;
- $('puzzle-save-status').textContent='';
- say(text+' Final score: '+score+' solved. Enter your nickname to save this run.','success');
+
+ say(text+' Final score: '+score+' solved. Results stay on your device.','success');
  stats();buttons();draw();
 }
 function mistake(to){
@@ -266,8 +264,8 @@ function play(from,to,promotion=null){
 }
 function switchMode(next){
  if(!MODES[next])return;
- requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastRun=null;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
- $('puzzle-save-run').hidden=true;
+ requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation='white';
+
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
  $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
  $('puzzle-custom-controls').hidden=mode!=='custom';
@@ -298,7 +296,7 @@ $('puzzle-target').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='cu
 $('puzzle-hint').onclick=()=>{if(!ready||busy)return;selected=solution[step]?.slice(0,2)||null;draw();say('Hint: Look at the selected piece.')};
 $('puzzle-start').onclick=()=>{
  if(runActive||mode!=='sprint'&&mode!=='survival')return;
- stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();lastRun=null;$('puzzle-save-run').hidden=true;
+ stopTimers();solved=0;misses=0;lastChallengeRating=0;runActive=true;startedAt=Date.now();
  unlockAudio();
  if(mode==='sprint'){
   deadline=Date.now()+sprintMinutes*60000;
@@ -318,34 +316,3 @@ document.addEventListener('visibilitychange',()=>{if(runActive&&mode==='sprint')
 window.addEventListener('beforeunload',stopTimers);
 switchMode('random');
 
-async function showRanks(which){
- const list=$('puzzle-top10-'+which);
- if(!list)return;
- try{
-  const res=await fetch('/api/puzzle-leaderboard?mode='+which+'&limit=10',{cache:'no-store'});
-  const data=await res.json();if(!res.ok)throw Error(data.error||'Leaderboard unavailable');
-  list.replaceChildren();
-  if(!data.scores?.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No runs yet.';list.append(li);return;}
-  for(const entry of data.scores){
-   const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('strong');
-   name.className='rank-name';score.className='rank-score';name.textContent=entry.nickname;score.textContent=entry.score;
-   li.append(name,score);list.append(li);
-  }
- }catch(e){list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li);}
-}
-$('puzzle-save-form').addEventListener('submit',async event=>{
- event.preventDefault();if(!lastRun)return;
- const nickname=$('puzzle-nickname').value.trim(),message=$('puzzle-save-status');
- if(nickname.length<2||nickname.length>25){message.textContent='Nickname must contain 2–25 characters.';return}
- const button=$('puzzle-save-form').querySelector('button[type=submit]');
- button.disabled=true;message.textContent='Saving…';
- try{
-  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({...lastRun,nickname})});
-  const data=await response.json();
-  if(!response.ok)throw Error(data.error||'Could not save this run.');
-  message.textContent='Saved! Your run is in the community leaderboard.';
-  lastRun=null;await showRanks(mode);button.textContent='Saved';
- }catch(e){message.textContent=e.message;button.disabled=false}
-});
-showRanks('sprint');showRanks('survival');
