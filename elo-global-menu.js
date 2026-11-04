@@ -12,7 +12,19 @@
  for(const d of ['M4 7h16','M4 12h16','M4 17h16']){const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',d);svg.append(p)}
  const caption=document.createElement('span');caption.textContent='Menu';summary.append(svg,caption);
  const nav=document.createElement('nav');nav.setAttribute('aria-label','Chess Tools');
- routes.forEach(([name,href])=>{const a=document.createElement('a');a.textContent=name;a.href=href;if(location.pathname===href||((location.pathname==='/puzzle-top100.html')&&href==='/puzzles.html')||(location.pathname==='/knight-maze.html'&&href==='/minigames.html')||(location.pathname==='/opening-explorer.html'&&href==='/analysis.html'))a.setAttribute('aria-current','page');nav.append(a)});
+ const path=location.pathname.replace(/\/$/,'')||'/';
+ const currentSection=path==='/play.html'?'Play':path==='/analysis.html'||path==='/opening-explorer.html'?'Analyse':path==='/player-prep.html'?'Player Prep':path==='/puzzles.html'||path==='/puzzle-top100.html'?'Puzzels':path==='/minigames.html'||path==='/knight-maze.html'?'Mini Games':path==='/'?'Home':null;
+ routes.forEach(([name,href])=>{
+  const a=document.createElement('a');a.textContent=name;a.href=href;
+  if(name===currentSection){
+   a.setAttribute('aria-current','page');
+   a.style.setProperty('background','#247da5','important');
+   a.style.setProperty('border-color','#74e8ff','important');
+   a.style.setProperty('color','#fff','important');
+   a.style.setProperty('box-shadow','inset 4px 0 #8cf2ff','important');
+  }
+  nav.append(a);
+ });
  const current=nav.querySelector('a[aria-current="page"]');
  if(current){
   document.body.dataset.activeTool=current.textContent.toLowerCase().replace(/\s+/g,'-');
