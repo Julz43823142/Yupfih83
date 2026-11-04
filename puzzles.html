@@ -8,8 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261103">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=14">
-<link rel="stylesheet" href="/elo-global-menu.css?v=2"><script src="/elo-global-menu.js?v=2" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"></head>
+<link rel="stylesheet" href="/puzzles.css?v=15-sidepanel">
+<link rel="stylesheet" href="/elo-global-menu.css?v=3-active"><script src="/elo-global-menu.js?v=3-active" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"></head>
 <body>
 <header class="navbar puzzles-navbar">
 <a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
@@ -33,18 +33,24 @@
       <p class="puzzle-footnote" id="puzzle-nickname-publication">Top 100 nicknames and scores are public; places 101–110 may be held in reserve. Use a suitable nickname, not your real name.</p>
       <p id="puzzle-save-status" role="status"></p>
     </aside>
-    <section class="puzzle-board-card" aria-label="Interactive puzzle board">
-      <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
-      <div id="puzzle-board" aria-label="Interactive chessboard"></div>
-      <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
-      <div class="puzzle-board-controls elo-board-toolbar" aria-label="Board controls">
+    <aside class="puzzle-toolbar-card" aria-label="Puzzle board controls">
+      <h2>Board Controls</h2>
+      <div class="puzzle-board-controls elo-board-toolbar puzzle-side-toolbar" aria-label="Puzzle controls">
         <button type="button" id="puzzle-retry" disabled>Retry</button>
         <button type="button" id="puzzle-hint" disabled>Hint</button>
         <button type="button" id="puzzle-review-back" hidden>Back to errors</button>
         <button type="button" id="puzzle-flip" aria-pressed="false">Flip Board</button>
-        <span class="elo-toolbar-spacer"></span>
+        <div class="puzzle-toolbar-switches">
         <label class="puzzle-sound-switch elo-toolbar-sound"><span>Sound</span><input type="checkbox" id="puzzle-sound-toggle" role="switch" aria-label="Puzzle sounds" checked><span class="puzzle-switch-track" aria-hidden="true"></span></label>
+        <label class="puzzle-sound-switch elo-toolbar-sound"><span>Auto Next</span><input type="checkbox" id="puzzle-auto-next" role="switch" aria-label="Automatically load the next puzzle" checked><span class="puzzle-switch-track" aria-hidden="true"></span></label>
+        </div>
       </div>
+    </aside>
+    <section class="puzzle-board-card" aria-label="Interactive puzzle board">
+      <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
+      <div id="puzzle-board" aria-label="Interactive chessboard"></div>
+      <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
+
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
       <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div></div>
@@ -86,7 +92,7 @@
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=20-unified-500k"></script>
+<script type="module" src="/puzzles.js?v=21-auto-next"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>

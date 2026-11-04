@@ -32,6 +32,18 @@ footer.home-footer-edge{padding-left:clamp(10px,1.4vw,22px)!important;padding-ri
 footer.home-footer-edge>span:last-child{margin-left:auto;text-align:right}
 @media(max-width:700px){footer.home-footer-edge{flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important}footer.home-footer-edge>span:last-child{margin-left:auto}}
 .mobile-chess-menu nav a[aria-current="page"]{background:#185270!important;color:#bdf2ff!important;border-left:3px solid #6ee4f9!important;font-weight:800!important}
+</style><style>
+/* On phones, show the example player cards after the search, before the
+   puzzle leaderboard and the Opening Explorer / feature section. */
+@media(max-width:700px){
+ main>.hero{display:flex!important;flex-direction:column!important;align-items:stretch!important}
+ main>.hero>.hero-glow{order:-1!important;pointer-events:none}
+ main>.hero>.hero-content{order:0!important;position:relative!important}
+ main>.hero>.sample-section{order:1!important;position:relative!important;inset:auto!important;transform:none!important;margin:18px auto 20px!important;width:calc(100% - 32px)!important;max-width:480px!important}
+ main>.hero>.hero-puzzle-ranking{order:2!important;position:relative!important;inset:auto!important;transform:none!important;margin:0 auto 20px!important;width:calc(100% - 32px)!important;max-width:480px!important}
+ main>.hero>.hero-tool-links{order:3!important;position:relative!important;inset:auto!important;transform:none!important;margin:0 auto 20px!important;width:calc(100% - 32px)!important;max-width:480px!important}
+ main>.hero>.sample-section .sample-options{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+}
 </style></head>
 <body>
   <header class="navbar">
