@@ -148,3 +148,9 @@
 
 .rank-report{background:transparent;border:0;padding:2px 0;cursor:pointer;font-family:inherit}
 .rank-report:disabled{cursor:default;opacity:.65}
+
+/* Explicit button styling overrides browser defaults on all leaderboard pages. */
+button.rank-report{appearance:none;-webkit-appearance:none;display:inline-block;background:rgba(255,87,87,.12);color:#ff6565;border:1px solid #ff5757;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;line-height:1.2;font-family:inherit;text-decoration:none;cursor:pointer;transition:background .15s,color .15s}
+button.rank-report:hover{background:#ff5757;color:#08121f}
+button.rank-report:focus-visible{outline:2px solid #ff8989;outline-offset:2px}
+button.rank-report:disabled{opacity:.7;cursor:default}
