@@ -1,6 +1,7 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js?v=puzzles-black-2';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
+import {createPuzzlePool} from './puzzle-pool-client.js?v=1';
 const $=id=>document.getElementById(id),board=$('puzzle-board'),status=$('puzzle-status');
 const MODES={random:['Random Puzzle','Train with a random position.'],custom:['Custom Puzzle','Choose your target puzzle Elo.'],sprint:['Puzzle Sprint','Three or five minutes, three mistakes. How many can you solve?'],survival:['Puzzle Survival','Three mistakes, no time limit. Keep your streak alive.']};
 const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
@@ -20,13 +21,13 @@ async function verifiedRequest(payload){
  const data=await response.json();if(!response.ok)throw Error(data.error||'Verification unavailable');return data;
 }
 function recordVerifiedSolve(){
- const puzzleId=puzzle?.id,answer=solution.join(' '),sessionPromise=verifiedSessionPromise;
+ const puzzleId=puzzle?.id,answer=solution.join(' '),sessionPromise=verifiedSessionPromise,shard=puzzle?.shard??null;
  if(!runActive||!sessionPromise||!puzzleId)return;
  proofChain=proofChain.then(async()=>{
   const session=(await sessionPromise).session;
   let error;
   for(let attempt=0;attempt<3;attempt++){
-   try{await verifiedRequest({action:'solve',session,puzzleId,solution:answer});return}
+   try{await verifiedRequest({action:'solve',session,puzzleId,solution:answer,shard});return}
    catch(e){error=e;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)))}
   }
   throw error;
@@ -163,6 +164,17 @@ attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selecte
 // Static, curated CC0 puzzle bank served by EloScanner itself.
 // No Lichess API calls are needed for standard play, including timed runs.
 let bankPromise=null;
+const largePool=createPuzzlePool();
+function offlineRowToPuzzle(row,poolShard=null){
+ const [id,fen,moves,rating]=row;
+ const line=String(moves).split(' ').filter(Boolean);
+ if(line.length<2)throw Error('Invalid puzzle moves');
+ const setup=line.shift(),chess=new Chess(fen);
+ chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
+ return {game:{pgn:'offline puzzle'},puzzle:{id,initialPly:1,fen:chess.fen(),lastMove:setup,
+  rating,originalKey:fen+'|'+setup,solution:line,poolShard},source:'Lichess CC0 offline dataset'};
+}
+
 // Remember a bounded history of public puzzle IDs, not personal gameplay data.
 // Repeated reloads and switching modes no longer immediately recycle the same puzzle.
 const RECENT_KEY='eloscanner-recent-puzzles-v1',RECENT_LIMIT=950;
@@ -184,6 +196,8 @@ function rememberPuzzle(id){
 }
 
 async function getPuzzle(which,target=null){
+ const poolResult=await largePool.pick(which,target,{seen,seenPositions,recentSet,ratingFloor:lastChallengeRating});
+ if(poolResult){try{return offlineRowToPuzzle(poolResult.row,poolResult.shard)}catch{}}
  if(!bankPromise){
   bankPromise=fetch('/assets/puzzle-bank.json?v=1',{cache:'force-cache'}).then(async response=>{
    if(!response.ok)throw Error('Puzzle library is not available on this deployment.');
@@ -218,19 +232,9 @@ async function getPuzzle(which,target=null){
  if(fresh.length)candidates=fresh;
  for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
   const index=Math.floor(Math.random()*candidates.length);
-  const [id,fen,moves,rating]=candidates.splice(index,1)[0];
-  try{
-   const fullLine=String(moves).split(' ').filter(Boolean);
-   if(fullLine.length<2)continue;
-   const setup=fullLine.shift();
-   const chess=new Chess(fen);
-   chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
-   // The API-style shape keeps the same legality checks and board renderer.
-   return {game:{pgn:'offline puzzle'},puzzle:{
-    id,initialPly:1,fen:chess.fen(),lastMove:setup,
-    rating,originalKey:fen+'|'+setup,solution:fullLine
-   },source:'Lichess CC0 offline dataset'};
-  }catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
+  const row=candidates.splice(index,1)[0];
+  try{return offlineRowToPuzzle(row)}
+  catch{/* Ignore a malformed source row, never show an unplayable puzzle. */}
  }
  throw Error('No playable puzzle was found in the local puzzle library.');
 }
@@ -254,7 +258,7 @@ function decode(data){
   if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))throw Error('Invalid puzzle move');
   test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
  }
- return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen())};
+ return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen()),shard:data.puzzle.poolShard??null};
 }
 
 /* While a puzzle is being solved, prepare the NEXT board in memory.
