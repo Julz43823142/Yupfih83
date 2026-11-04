@@ -224,6 +224,7 @@ function finishRun(text){
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
 
  completedRun={mode:mode==='sprint'?'sprint'+sprintMinutes:'survival',score};
+ $('puzzle-final-score').textContent='You solved '+score+' puzzle'+(score===1?'':'s')+'.';
   $('puzzle-save-run').hidden=score<1;
   $('puzzle-save-status').textContent='';
   say(text+' Final score: '+score+' solved. You may optionally submit a nickname.','success');
