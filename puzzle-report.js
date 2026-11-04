@@ -36,5 +36,6 @@ document.addEventListener("click",event=>{
  if(!nickname||!["sprint","survival"].includes(mode)||!Number.isInteger(score))return;
  pendingReport={button,nickname,mode,score};
  reportDialog.querySelector(".nickname-report-question").textContent='Are you sure you want to report "'+nickname+'"?';
+ reportDialog.returnValue="cancel";
  reportDialog.showModal();
 });
