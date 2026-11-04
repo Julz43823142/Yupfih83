@@ -1,5 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {attachPlayBotControls} from './play-bot-controls.mjs?v=1-premove-input';
+import {attachPlayBotControls} from './play-bot-controls.mjs?v=2-multi-premoves';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
