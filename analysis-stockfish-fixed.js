@@ -132,6 +132,8 @@ const boardControlButtons=document.querySelector('.tool-page .tool-card:first-of
 if(boardControlButtons)boardControlSidebar.append(boardControlButtons);
 boardControlSidebar.append(arrowToggleLabel);
 sidePanel.insertAdjacentElement('beforebegin',boardControlSidebar);
+// Keep game statistics immediately below the board controls in the same rail.
+boardControlSidebar.append(sidePanel);
 const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
