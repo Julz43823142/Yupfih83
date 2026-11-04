@@ -9,7 +9,7 @@ async function dbReady(db){
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_hourly_scores (hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(hour,mode,nickname))").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
 }
-// Keep only the highest score per nickname and the best 100 nicknames in each
+// Keep only the highest score per nickname and the best 110 nicknames (100 public, 10 reserves) in each
 // public ranking. Sprint 3 and Sprint 5 share one combined ranking.
 async function pruneScores(db){
  for(const modes of ["('sprint3','sprint5')","('survival')"]){
@@ -23,7 +23,7 @@ async function pruneScores(db){
     ) WHERE row_number=1 AND nickname IN (
      SELECT nickname FROM puzzle_hourly_scores
      WHERE mode IN ${modes} AND lower(nickname) NOT IN ('tttt','tttttttt')
-     GROUP BY nickname ORDER BY MAX(score) DESC,nickname ASC LIMIT 100
+     GROUP BY nickname ORDER BY MAX(score) DESC,nickname ASC LIMIT 110
     )
    )`).run();
  }
