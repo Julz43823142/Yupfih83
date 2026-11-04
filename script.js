@@ -868,7 +868,7 @@ function summary(items){
 }
 function render(user,games,months,failed){
  target.replaceChildren();
- const top=node('p','insights-intro','Public Chess.com game statistics for @'+user+' · latest '+months+' archive months'+(failed?' · '+failed+' months unavailable':'')+'.');
+ const top=node('p','insights-intro','Public Chess.com game statistics for @'+user+' · '+games.length+' most recent available games (up to 5,000)'+(failed?' · '+failed+' archive months unavailable':'')+'.');
  target.append(top);
  if(!games.length){target.append(node('p','insights-intro','No standard chess games were found in the available archives.'));return}
  const grid=node('div','homepage-insights-grid');target.append(grid);
@@ -891,7 +891,7 @@ async function load(user){
  try{
   const res=await fetch('https://api.chess.com/pub/player/'+encodeURIComponent(user)+'/games/archives');
   if(!res.ok)throw Error('Chess.com returned '+res.status);
-  const urls=((await res.json()).archives||[]).slice(-24);
+  const urls=((await res.json()).archives||[]).slice().reverse();
   const games=[];let failed=0;
   // Chess.com's PubAPI recommends serial requests; parallel archive fetches can trigger HTTP 429.
   for(let i=0;i<urls.length;i++){
@@ -904,10 +904,10 @@ async function load(user){
    }catch{failed++}
    if(current!==generation)return;
    // Show usable insights early, even if a complete multi-month load is still in progress.
-   if((i+1)%3===0||i===urls.length-1){
+   if((i+1)%3===0||i===urls.length-1||games.length>=5000){
     games.sort((a,b)=>b.date-a.date);
     render(user,games,i+1,failed);
-    if(i<urls.length-1)target.prepend(node('p','insights-intro','Loading additional months: '+(i+1)+' / '+urls.length));
+    if(i<urls.length-1&&games.length<5000)target.prepend(node('p','insights-intro','Loading recent games: '+games.length+' / 5,000 · '+(i+1)+' months checked'));
    }
   }
   if(!urls.length)render(user,[],0,0);
