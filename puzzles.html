@@ -65,16 +65,17 @@
     <h3>Submit your score</h3>
     <p>Enter a nickname to submit your score.</p>
     <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
+    <p class="puzzle-footnote" id="puzzle-nickname-publication">If your score ranks in the top 100, your nickname and score will be publicly displayed on the leaderboard. Please do not use your real name or personal information.</p>
     <p id="puzzle-save-status" role="status"></p>
   </section>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 50 →</a></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 50 →</a></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <p class="puzzle-ranking-note"></p>
   </section>
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=12-clean"></script>
+<script type="module" src="/puzzles.js?v=13-nicknames"></script>
 </body>
 </html>

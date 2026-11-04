@@ -1,3 +1,4 @@
+import {checkProfanity} from 'glin-profanity';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
@@ -12,7 +13,7 @@ export async function onRequestGet({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:"Leaderboard database not configured."},503);
  const url=new URL(request.url),mode=url.searchParams.get("mode")||"sprint5";
  if(!validMode(mode))return json({error:"Invalid mode"},400);
- const limit=url.searchParams.get("limit")==="50"?50:10;
+ const limit=url.searchParams.get("limit")==="100"?100:10;
  try{
   await dbReady(db);
   const current=hour();
@@ -29,6 +30,11 @@ export async function onRequestPost({request,env}){
  if(mode==="sprint"||!validMode(mode)||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>500)
   return json({error:"Use a nickname (2–20 letters/numbers) and a valid score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
+ // Always moderate on the server: browser-only filters can be bypassed.
+ try {
+  if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:"moderate",normalizeUnicode:true}).containsProfanity)
+   return json({error:"This nickname is not family-friendly. Please choose another."},400);
+ } catch {return json({error:"Nickname moderation temporarily unavailable."},503)}
  try{
   await dbReady(db);
   const now=hour();

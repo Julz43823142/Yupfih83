@@ -346,7 +346,7 @@ $('puzzle-submit-score').addEventListener('click',async()=>{
  try{
   const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...completedRun,nickname})});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Submission failed');
-  label.textContent='Score submitted.';completedRun=null;refreshRankings();
+  label.textContent='Score submitted. Your nickname and score will appear publicly if you reach the top 100.';completedRun=null;refreshRankings();
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });
 refreshRankings();
