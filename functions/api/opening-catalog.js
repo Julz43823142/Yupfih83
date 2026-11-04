@@ -7,9 +7,18 @@ export async function onRequestGet({request}){
  try{
   const groups=['a','b','c','d','e'];
   const files=await Promise.all(groups.map(async letter=>{
-   const r=await fetch('https://raw.githubusercontent.com/lichess-org/chess-openings/master/'+letter+'.tsv',{headers:{Accept:'text/plain'}});
-   if(!r.ok)throw Error('Opening catalogue unavailable');
-   return r.text();
+   const sources=[
+    'https://cdn.jsdelivr.net/gh/lichess-org/chess-openings@master/'+letter+'.tsv',
+    'https://raw.githubusercontent.com/lichess-org/chess-openings/master/'+letter+'.tsv'
+   ];
+   for(const source of sources){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+    try{
+     const r=await fetch(source,{headers:{Accept:'text/plain'},signal:controller.signal});
+     if(r.ok){const body=await r.text();if(body.startsWith('eco\tname\tpgn'))return body}
+    }catch{}finally{clearTimeout(timer)}
+   }
+   throw Error('Opening catalogue unavailable');
   }));
   const rows=files.flatMap(t=>t.trim().split(/\r?\n/).slice(1).map(line=>{const [eco,name,pgn]=line.split('\t');return {eco,name,pgn}}).filter(x=>x.name&&x.pgn));
   if(rows.length<100)throw Error('Incomplete catalogue');

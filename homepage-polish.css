@@ -111,3 +111,11 @@ main>.below-hero-layout>.features .feature-illustration{
 main>.below-hero-layout.no-samples{display:block!important;max-width:1320px;margin-left:auto;margin-right:auto}
 main>.below-hero-layout.no-samples>.features{width:100%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
 @media(max-width:750px){main>.below-hero-layout.no-samples>.features{grid-template-columns:1fr!important}}
+
+/* Homepage after removal of the sample-player column. */
+main>.below-hero-layout.no-samples{display:block!important;width:min(1200px,calc(100% - 44px))!important;margin:0 auto!important;padding:36px 0 65px!important}
+main>.below-hero-layout.no-samples>.features{position:static!important;grid-column:auto!important;grid-row:auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:18px!important;width:100%!important;max-width:none!important;margin:0 auto!important;padding:0!important;transform:none!important}
+.hero-tool-links a{justify-content:flex-start!important;gap:14px!important}
+.hero-tool-links a>.tool-label,.hero-tool-links a>span:last-child{flex:0 1 auto!important;margin:0!important;text-align:left!important}
+@media(max-width:900px){main>.below-hero-layout.no-samples>.features{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:600px){main>.below-hero-layout.no-samples>.features{grid-template-columns:1fr!important}}

@@ -17,23 +17,29 @@ export async function onRequestGet({request,context}) {
  const cache=caches.default;
  try{const hit=await cache.match(key);if(hit)return hit}catch{}
  let parsed=null,lastError=null;
- // Try the Lichess games database first; the Masters database is a
- // separate public upstream and remains usable when the first is rate-limited.
- for(const endpoint of [(()=>{const u=new URL('https://explorer.lichess.org/masters');if(fen!=='startpos')u.searchParams.set('fen',fen);u.searchParams.set('topGames','0');u.searchParams.set('recentGames','0');u.searchParams.set('moves','12');return u.toString()})(),target.toString()]){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+ // Query both public explorer pools concurrently. A slow or throttled pool
+ // must not block the other one; accept only valid completed JSON responses.
+ const masters=new URL('https://explorer.lichess.org/masters');
+ if(fen!=='startpos')masters.searchParams.set('fen',fen);
+ masters.searchParams.set('topGames','0');masters.searchParams.set('recentGames','0');masters.searchParams.set('moves','12');
+ async function queryExplorer(endpoint){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
   try{
    const upstream=await fetch(endpoint,{headers:{Accept:'application/json'},signal:controller.signal});
-   if(!upstream.ok){lastError='HTTP '+upstream.status;continue}
-   const raw=await upstream.text();
-   try{parsed=JSON.parse(raw)}catch{
-    for(const line of raw.split(/\r?\n/).reverse()){try{const item=JSON.parse(line);if(Array.isArray(item.moves)){parsed=item;break}}catch{}}
+   if(!upstream.ok)throw Error('Upstream HTTP '+upstream.status);
+   const raw=await upstream.text();let result;
+   try{result=JSON.parse(raw)}catch{
+    for(const line of raw.split(/\r?\n/).reverse()){
+     try{const candidate=JSON.parse(line);if(Array.isArray(candidate.moves)){result=candidate;break}}catch{}
+    }
    }
-   if(parsed&&Array.isArray(parsed.moves))break;
-   parsed=null;
-   lastError='Invalid opening response';
-  }catch(e){lastError=String(e?.message||e)}
-  finally{clearTimeout(timer)}
+   if(!result||!Array.isArray(result.moves))throw Error('Invalid explorer response');
+   return result;
+  }finally{clearTimeout(timer)}
  }
+ const attempts=await Promise.allSettled([queryExplorer(masters.toString()),queryExplorer(target.toString())]);
+ parsed=attempts.find(x=>x.status==='fulfilled')?.value||null;
+ if(!parsed)lastError=attempts.map(x=>String(x.reason?.message||x.reason)).join('; ');
  if(!parsed||!Array.isArray(parsed.moves)){
   console.warn('Opening statistics upstream failed:',lastError);
   return Response.json({error:'Opening statistics temporarily unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});
