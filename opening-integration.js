@@ -1,4 +1,4 @@
-import {fetchOpeningStats} from './opening-stats-client.js?v=4';
+import {fetchOpeningStats} from './opening-stats-client.js?v=5';
 // EloScanner analysis database switch; actual move statistics from Lichess.
 export function createOpeningIntegration({Chess,getState,onMove}){
  const label=document.createElement('label');label.className='elo-db-toggle';label.title='Toggle game database';
