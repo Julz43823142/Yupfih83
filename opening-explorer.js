@@ -77,7 +77,9 @@ function choose(entry){
  $('opening-query').value=entry.name;
 }
 function search(){
- const q=$('opening-query').value.trim().toLowerCase(),root=$('opening-results');root.replaceChildren();
+ const typed=$('opening-query').value.trim().toLowerCase();
+ const q=/^sicili(?:ë|e|an|aans?)/.test(typed)?'sicilian':typed;
+ const root=$('opening-results');root.replaceChildren();
  if(!q)return;
  const results=catalog.filter(o=>o.name.toLowerCase().includes(q)||o.eco.toLowerCase()===q).slice(0,55);
  if(!results.length){const p=document.createElement('p');p.className='opening-status';p.textContent=catalog.length?'No opening names found. Try another spelling.':'Opening catalogue temporarily unavailable.';root.append(p);return}
