@@ -1,4 +1,4 @@
-import {readJsonPayload} from '../_shared/read-json.js';
+import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {checkProfanity} from 'glin-profanity';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
