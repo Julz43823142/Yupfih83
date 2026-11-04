@@ -40,7 +40,7 @@ ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premove=null;
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
-const botChatLines={cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
+const botChatLines={cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
 function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
 function botChatMove(){const lines=botChatLines[botLevel]||['Good move.','I am thinking...','Let’s see what happens.','Interesting position.'];if(Math.random()<.42)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
@@ -203,7 +203,7 @@ function strongBotTurn(token,fen,level){
 let botWorker=null;
 function ensureBotWorker(){
  if(botWorker)return botWorker;
- botWorker=new Worker('/play-bot-worker.js?v=2-personality',{type:'module'});
+ botWorker=new Worker('/play-bot-worker.js?v=3-cash-openings',{type:'module'});
  botWorker.onerror=()=>{status('Bot calculation failed. Start a new game to retry.');working=false;botWorker?.terminate();botWorker=null;paint()};
  botWorker.onmessage=e=>{
   const {token,move,error}=e.data;
@@ -229,7 +229,7 @@ function newGame(){
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premove=null;ended=false;working=false;
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
- closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I love attacking chess!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
+ closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I play the Queen’s Gambit, London System and Four Knights!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
