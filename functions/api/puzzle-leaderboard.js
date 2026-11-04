@@ -1,4 +1,4 @@
-import {readJsonPayload} from '../_shared/read-json.js';
+import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {checkProfanity} from 'glin-profanity';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
