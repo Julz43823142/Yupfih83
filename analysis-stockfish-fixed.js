@@ -125,7 +125,14 @@ arrowToggleLabel.append(arrowToggle,arrowToggleText);
 boardTop.prepend(arrowToggleLabel);
 let previewEngineMove=null;
 arrowToggle.addEventListener('change',()=>drawArrows());
-const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats';sidePanel.className='review-side-stats';sidePanel.innerHTML='<h3>GAME REVIEW</h3>';boardTop.insertAdjacentElement('beforebegin',sidePanel);const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
+const sidePanel=document.createElement('aside');sidePanel.id='review-side-stats';sidePanel.className='review-side-stats';sidePanel.innerHTML='<h3>GAME REVIEW</h3>';boardTop.insertAdjacentElement('beforebegin',sidePanel);
+const boardControlSidebar=document.createElement('aside');boardControlSidebar.className='board-control-panel analysis-controls-panel';boardControlSidebar.setAttribute('aria-label','Board controls');
+const boardControlHeading=document.createElement('h2');boardControlHeading.textContent='Board Controls';boardControlSidebar.append(boardControlHeading);
+const boardControlButtons=document.querySelector('.tool-page .tool-card:first-of-type>.board-controls');
+if(boardControlButtons)boardControlSidebar.append(boardControlButtons);
+boardControlSidebar.append(arrowToggleLabel);
+sidePanel.insertAdjacentElement('beforebegin',boardControlSidebar);
+const engineToggle=engineSwitch.closest('label');if(engineToggle)boardTop.append(engineToggle);
 function updateEvalBar(){
  const item=engineLines.get(1);
  if(!engineSwitch.checked||!engineReady||!item){
