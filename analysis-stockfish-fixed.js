@@ -8,6 +8,8 @@ let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightS
 let engineFallback=false,engineWorkerUrl=null;
 let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
 let sanMoves=[],reviewResults=[],reviewEvaluations=[],reviewBusy=false;const boardCells=new Map();
+let analysisFlipped=false;
+const visualSquare=s=>analysisFlipped?String.fromCharCode(201-s.charCodeAt(0))+(9-Number(s[1])):s;
 const engineInfo=$('engine-info'),engineSwitch=$('engine');
 const ENGINE_JS='/vendor/stockfish/stockfish-19-lite-single.js';
 const CDN_BASE='/vendor/stockfish/';
@@ -361,8 +363,8 @@ function drawArrows(){
  const make=(tag,attrs={})=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el};
  const svg=make('svg',{viewBox:'0 0 800 800',class:'arrows','aria-hidden':'true'});
  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3';
- const point=s=>[(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50];
- const arrow=(a,b,color,opacity)=>appendChessArrow(svg,a,b,color,opacity);
+ const point=s=>{s=visualSquare(s);return [(s.charCodeAt(0)-97)*100+50,(8-Number(s[1]))*100+50]};
+ const arrow=(a,b,color,opacity)=>appendChessArrow(svg,visualSquare(a),visualSquare(b),color,opacity);
  for(const sq of blueSquares){const [x,y]=point(sq);svg.append(make('rect',{x:x-50,y:y-50,width:100,height:100,fill:'#328aff','fill-opacity':.32}))}
  // Always show the last move of the position currently on the board.
  if(cursor>0){
@@ -421,6 +423,8 @@ function render(){
  const pos=new Chess(history[cursor]),possible=selected?pos.moves({square:selected,verbose:true}):[];
  const highlight=reviewCurrentMove();
  for(const [sq,b] of boardCells){
+  const idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
+  b.style.order=analysisFlipped?63-idx:idx;
   const p=pos.get(sq),key=p?p.color+p.type:'';
   if(b.dataset.piece!==key){
    b.dataset.piece=key;b.replaceChildren();
@@ -547,6 +551,12 @@ window.addEventListener('keydown',e=>{
  if(e.key==='ArrowLeft'&&cursor>0){cursor--;selected=null;render();requestAnalysis()}
  if(e.key==='ArrowRight'&&cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}
 },true);
+$('analysis-flip').onclick=()=>{
+ analysisFlipped=!analysisFlipped;
+ board.dataset.orientation=analysisFlipped?'black':'white';
+ $('analysis-flip').setAttribute('aria-pressed',String(analysisFlipped));
+ selected=null;render();
+};
 $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysis()}};$('forward').onclick=()=>{if(cursor<history.length-1){cursor++;selected=null;render();requestAnalysis()}};$('reset').onclick=()=>{history=[new Chess().fen()];sanMoves=[];reviewResults=[];cursor=0;selected=null;arrows=[];playerMeta={white:{name:'White',elo:null},black:{name:'Black',elo:null}};positionClocks=[];render();requestAnalysis()};
 // Import now lives inside Game Review. One action both imports and starts review.
 let importedPlayers={white:'White',black:'Black'};
