@@ -1,6 +1,22 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const values={"p":100,"n":320,"b":330,"r":500,"q":900,"k":20000};
 const ratings={"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
+ratings["bot300"]=300;
+ratings["bot1550"]=1550;
+ratings["bot1600"]=1600;
+ratings["bot1700"]=1700;
+ratings["bot1900"]=1900;
+ratings["bot2000"]=2000;
+ratings["bot2100"]=2100;
+ratings["bot2250"]=2250;
+ratings["bot2300"]=2300;
+ratings["bot2400"]=2400;
+ratings["bot2450"]=2450;
+ratings["bot2600"]=2600;
+ratings["bot2800"]=2800;
+ratings["bot2850"]=2850;
+ratings["bot2900"]=2900;
+ratings["bot3000"]=3000;
 let chess,botLevel;
 const evaluate=(game,side)=>{
  if(game.isCheckmate())return game.turn()===side?-999999:999999;
