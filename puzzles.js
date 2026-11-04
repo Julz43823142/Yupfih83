@@ -223,8 +223,8 @@ function finishRun(text){
  stopTimers();closePromotion();runActive=false;ready=false;busy=false;requestId++;
  lastRun={mode:recordedMode,score,duration};
  $('puzzle-save-run').hidden=false;
- $('puzzle-save-status').textContent='';
- say(text+' Final score: '+score+' solved. Enter your nickname to save this run.','success');
+ $('puzzle-save-status').textContent='Score submissions are temporarily disabled while we secure the leaderboard.';
+ say(text+' Final score: '+score+' solved. Score submissions are temporarily disabled.','success');
  stats();buttons();draw();
 }
 function mistake(to){
@@ -333,6 +333,9 @@ async function showRanks(which){
   }
  }catch(e){list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li);}
 }
+// Score submissions are paused until server-authoritative puzzle validation exists.
+// Do not invite users to enter nicknames when a score cannot be stored securely.
+$('puzzle-save-form').hidden=true;
 $('puzzle-save-form').addEventListener('submit',async event=>{
  event.preventDefault();if(!lastRun)return;
  const nickname=$('puzzle-nickname').value.trim(),message=$('puzzle-save-status');
