@@ -329,7 +329,7 @@ async function updateRanking(id,mode){
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'Unavailable');
   list.replaceChildren();
-  if(!data.entries.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No scores yet this hour.';list.append(li);return}
+  if(!data.entries.length){const li=document.createElement('li');li.className='rank-note';li.textContent='No scores yet.';list.append(li);return}
   for(const entry of data.entries){
    const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('span');
    name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
@@ -337,7 +337,7 @@ async function updateRanking(id,mode){
   }
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
 }
-function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint5');updateRanking('puzzle-survival-ranking','survival')}
+function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint');updateRanking('puzzle-survival-ranking','survival')}
 $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!completedRun||completedRun.score<1)return;
  const nickname=$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
@@ -346,7 +346,7 @@ $('puzzle-submit-score').addEventListener('click',async()=>{
  try{
   const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...completedRun,nickname})});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Submission failed');
-  label.textContent='Score submitted for this hour.';completedRun=null;refreshRankings();
+  label.textContent='Score submitted.';completedRun=null;refreshRankings();
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });
 refreshRankings();
