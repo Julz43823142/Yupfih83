@@ -11,6 +11,20 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
-  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Strict-Transport-Security: max-age=31536000
+  X-Permitted-Cross-Domain-Policies: none
+
+# Cache only public static resources; the HTML and API remain fresh.
+# Page assets already use versioned references, so updated files take new URLs.
+/*.css
+  Cache-Control: public, max-age=300, must-revalidate
+/*.js
+  Cache-Control: public, max-age=300, must-revalidate
+/vendor/*
+  Cache-Control: public, max-age=604800, must-revalidate
+/assets/puzzle-bank.json
+  Cache-Control: public, max-age=86400, must-revalidate
+/assets/puzzle-pool/*
+  Cache-Control: public, max-age=3600, must-revalidate
