@@ -302,7 +302,7 @@ async function load(kind=mode){
   if(cached)p=cached;
   else if(kind==='custom'){
    const target=Math.min(4000,Math.max(100,Number($('puzzle-target').value)||1200));
-   p=decode(await getPuzzle('next',target));
+   p=decode(await getPuzzle('custom',target));
   }else p=decode(await getPuzzle(kind,nextTarget(kind,solved)));
   if(generation!==requestId)return;
   position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
