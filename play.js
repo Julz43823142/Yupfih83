@@ -115,7 +115,7 @@ function ensureBotWorker(){
   const {token,move,error}=e.data;
   if(token!==gameToken||ended||chess.turn()===human)return;
   if(error){working=false;status('Bot calculation failed. Start a new game to retry.');paint();return}
-  try{if(move)apply(move);working=false;if(!terminal())status('Your move.')}
+  try{if(move)apply(move);working=false;if(!terminal())status('')}
   catch(err){working=false;status('Bot move failed. Start a new game to retry.');console.error(err)}
   paint();
  };
@@ -135,12 +135,12 @@ function newGame(){
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;ended=false;working=false;highlights.clear();arrows.length=0;
  $('play-promotion').hidden=true;$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
- unlock();paint();status(human==='w'?'Your move.':'You are Black. The bot moves first.');
+ unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
  if(human==='b')scheduleBot();
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
-$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back. Your move.')});
+$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;gameToken++;working=false;ended=false;pending=null;$('play-promotion').hidden=true;chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
 $('play-resign').addEventListener('click',()=>{if(ended)return;gameToken++;working=false;ended=true;status('You resigned. '+names[botLevel]+' wins.');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(pending){const p=pending;play(p.from,p.to,b.dataset.promote)}}));
