@@ -301,3 +301,5 @@ button.rank-report:disabled{opacity:.7;cursor:default}
  .puzzles-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;padding:5px!important}
  .puzzles-tabs [data-puzzle-mode]{display:flex!important;align-items:center;justify-content:center;min-width:0!important;min-height:43px!important;padding:8px 3px!important;font-size:clamp(9px,2.6vw,12px)!important;line-height:1.2!important;white-space:normal!important;text-align:center!important;overflow-wrap:break-word!important}
 }
+
+@media(min-width:1121px){.puzzles-page{width:min(1550px,calc(100% - 28px))!important}.puzzles-layout,.puzzles-layout.has-save-score{grid-template-columns:minmax(165px,195px) minmax(0,660px) minmax(280px,370px)!important;gap:16px!important}#puzzle-board{max-width:660px!important}}
