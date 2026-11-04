@@ -77,7 +77,7 @@ function cashOpeningMove(moves){
  if(!candidates.length)return null;
  return candidates[Math.floor(Math.random()*candidates.length)];
 }
-function chooseBotMove(){
+function chooseBotMove(bookOnly=false){
  const moves=chess.moves({verbose:true});if(!moves.length)return null;
  const cashBookMove=cashOpeningMove(moves);
  if(cashBookMove)return cashBookMove;
@@ -88,6 +88,7 @@ function chooseBotMove(){
   const opening=moves.find(m=>m.san===preferred);
   if(opening)return opening;
  }
+ if(bookOnly)return null;
  const elo=ratings[botLevel]||1000,side=chess.turn();
  // Elo values are approximate difficulty tiers, not independently calibrated ratings.
  // Lower levels search less deeply and make more deliberate suboptimal choices.
@@ -108,4 +109,4 @@ function chooseBotMove(){
  return ranked[0].move;
 }
 
-self.onmessage=e=>{const {fen,level,token}=e.data;try{chess=new Chess(fen);botLevel=level;const m=chooseBotMove();self.postMessage({token,move:m?{from:m.from,to:m.to,promotion:m.promotion||'q'}:null})}catch(err){self.postMessage({token,error:String(err)})}};
+self.onmessage=e=>{const {fen,level,token,bookOnly=false}=e.data;try{chess=new Chess(fen);botLevel=level;const m=chooseBotMove(bookOnly);self.postMessage({token,bookMiss:bookOnly&&!m,move:m?{from:m.from,to:m.to,promotion:m.promotion||'q'}:null})}catch(err){self.postMessage({token,error:String(err)})}};
