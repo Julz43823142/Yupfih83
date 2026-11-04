@@ -1,0 +1,47 @@
+/* Shared visual canvas and board sizing for EloScanner chess tools. */
+html:has(body.elo-unified-chess),body.elo-unified-chess{
+ background-color:#010817!important;
+}
+body.elo-unified-chess{
+ background-image:linear-gradient(115deg,#031224 0%,#06233a 60%,#031426 100%)!important;
+ background-attachment:fixed!important;
+ min-height:100vh;
+}
+body.elo-unified-chess .chess-board,
+body.elo-unified-chess #play-board,
+body.elo-unified-chess #puzzle-board,
+body.elo-unified-chess #maze-board{
+ aspect-ratio:1 / 1!important;
+ box-sizing:border-box!important;
+}
+@media(min-width:1450px){
+ body.elo-unified-chess .play-page,
+ body.elo-unified-chess .puzzles-page,
+ body.elo-unified-chess .maze-page{width:calc(100% - 40px)!important;max-width:1900px!important}
+ body.elo-unified-chess .play-layout{grid-template-columns:minmax(0,730px) minmax(300px,1fr)!important}
+ body.elo-unified-chess .puzzles-layout,
+ body.elo-unified-chess .puzzles-layout.has-save-score{
+  grid-template-columns:minmax(195px,245px) minmax(0,730px) minmax(300px,1fr)!important;
+  gap:18px!important;
+ }
+ body.elo-unified-chess #puzzle-board{width:100%!important;max-width:730px!important}
+ body.elo-unified-chess .maze-layout{grid-template-columns:minmax(0,770px) minmax(300px,1fr)!important}
+ body.elo-unified-chess .maze-board{max-width:730px!important;margin-inline:auto!important}
+ body.elo-unified-chess .prep-board-row .chess-board{max-width:730px!important}
+ body.elo-unified-chess .analysis-three-column .analysis-board-column{max-width:770px!important}
+ body.elo-unified-chess .analysis-three-column .analysis-board-column>.board-with-eval{max-width:770px!important}
+}
+@media(min-width:1000px) and (max-width:1449px){
+ body.elo-unified-chess .puzzles-page{width:calc(100% - 32px)!important;max-width:none!important}
+ body.elo-unified-chess .puzzles-layout,
+ body.elo-unified-chess .puzzles-layout.has-save-score{
+  grid-template-columns:minmax(155px,190px) minmax(0,1fr)!important;
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-details{grid-column:2!important}
+ body.elo-unified-chess #puzzle-board{max-width:730px!important}
+}
+@media(max-width:999px){
+ body.elo-unified-chess #puzzle-board,
+ body.elo-unified-chess .maze-board,
+ body.elo-unified-chess .chess-board{max-width:100%!important}
+}
