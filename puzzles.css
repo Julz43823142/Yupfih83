@@ -145,3 +145,6 @@
 .rank-report:hover{color:#fff}
 .rank-report:focus-visible{outline:2px solid #69ecff;outline-offset:3px}
 .puzzle-top100-table td .rank-report{font-size:12px}
+
+.rank-report{background:transparent;border:0;padding:2px 0;cursor:pointer;font-family:inherit}
+.rank-report:disabled{cursor:default;opacity:.65}
