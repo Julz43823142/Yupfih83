@@ -27,11 +27,6 @@
     <button type="button" role="tab" data-puzzle-mode="survival" aria-selected="false">Puzzle Survival</button>
   </div>
   <div class="puzzles-layout">
-    <aside class="puzzle-ranking" aria-label="Puzzle leaderboards">
-      <section class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>TOP 10 SPRINT</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><ol id="puzzle-top10-sprint" class="puzzle-rank-list"><li>Loading…</li></ol></section>
-      <section class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>TOP 10 SURVIVAL</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><ol id="puzzle-top10-survival" class="puzzle-rank-list"><li>Loading…</li></ol></section>
-      <p class="puzzle-ranking-note">Community-submitted scores. Not independently verified.</p>
-    </aside>
     <section class="puzzle-board-card" aria-label="Interactive puzzle board">
       <div class="puzzle-board-top"><strong>Find the best move</strong><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
@@ -64,16 +59,11 @@
         <button type="button" id="puzzle-start" class="puzzle-action primary" hidden>Start</button>
         <button type="button" id="puzzle-stop" class="puzzle-action" hidden>End Run</button>
       </div>
-      <div id="puzzle-save-run" class="puzzle-save-run" hidden>
-       <h3>Save your run</h3><p>Type your nickname to save this run to the community leaderboard.</p>
-       <form id="puzzle-save-form"><label for="puzzle-nickname">Nickname</label><div class="puzzle-save-controls"><input id="puzzle-nickname" name="nickname" maxlength="25" minlength="2" autocomplete="nickname" placeholder="Your nickname" required><button type="submit" class="puzzle-action primary">Save run</button></div></form>
-       <div id="puzzle-save-status" role="status" aria-live="polite"></div>
-      </div>
     </section>
   </div>
 </main>
 <footer><span>© <span id="year">2026</span> EloScanner</span><span>Independent chess analysis · <a href="/credits.html" style="color:inherit">Credits</a></span></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<script type="module" src="/puzzles.js?v=9"></script>
+<script type="module" src="/puzzles.js?v=10-privacy"></script>
 </body>
 </html>
