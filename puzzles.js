@@ -7,6 +7,14 @@ const glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'�
 let mode='random',position=new Chess(),solution=[],step=0,puzzle=null,selected=null,lastMove=null;
 let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,requestId=0,solved=0,misses=0,runActive=false;
 let completedRun=null,verifiedSessionPromise=null,proofChain=Promise.resolve(),proofError=null;
+let reviewItems=[],reviewing=false,reviewIndex=-1,hintStage=0,hintRevealed=false;
+const isTraining=()=>mode==='random'||mode==='custom';
+function showSaveScore(visible){
+ $('puzzle-save-run').hidden=!visible;
+ $('puzzles-layout').classList.toggle('has-save-score',Boolean(visible));
+}
+function resetHint(){hintStage=0;hintRevealed=false}
+
 async function verifiedRequest(payload){
  const response=await fetch('/api/puzzle-leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Verification unavailable');return data;
@@ -76,6 +84,8 @@ function stats(){
  $('puzzle-solved-label').textContent=mode==='sprint'||mode==='survival'?'Score':'Solved';
  $('puzzle-lives-box').hidden=mode!=='sprint'&&mode!=='survival';
  $('puzzle-time-box').hidden=mode!=='sprint';
+ $('puzzle-errors-box').hidden=!isTraining();
+ $('puzzle-errors').textContent=misses;
  $('puzzle-lives').textContent='♥'.repeat(Math.max(0,3-misses))+'♡'.repeat(Math.min(3,misses));
  const sec=mode==='sprint'?(runActive?clock():sprintMinutes*60):0;
  $('puzzle-time').textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
@@ -84,13 +94,18 @@ function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout
 function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';
- $('puzzle-start').hidden=!challenge||runActive;$('puzzle-stop').hidden=!challenge||!runActive;
- $('puzzle-next').hidden=challenge;$('puzzle-next').disabled=busy;
- $('puzzle-hint').hidden=challenge;
- $('puzzle-hint').disabled=!ready||busy;
+ $('puzzle-start').hidden=!challenge||runActive||reviewing;
+ $('puzzle-stop').hidden=!challenge||!runActive;
+ $('puzzle-next').hidden=challenge;
+ $('puzzle-next').disabled=busy;
+ $('puzzle-hint').hidden=runActive||(!reviewing&&challenge);
+ $('puzzle-hint').disabled=!ready||busy||hintStage>=2;
+ $('puzzle-retry').hidden=runActive||(!reviewing&&challenge);
+ $('puzzle-retry').disabled=!puzzle||busy;
+ $('puzzle-review-back').hidden=!reviewing;
  $('puzzle-start').textContent=mode==='sprint'?'Start '+sprintMinutes+'-minute Sprint':'Start Survival';
  $('puzzle-sprint-settings').hidden=mode!=='sprint';
- document.querySelectorAll('[data-duration]').forEach(b=>{b.disabled=runActive;b.setAttribute('aria-pressed',String(Number(b.dataset.duration)===sprintMinutes));});
+ document.querySelectorAll('[data-duration]').forEach(btn=>{btn.disabled=runActive||reviewing;btn.setAttribute('aria-pressed',String(Number(btn.dataset.duration)===sprintMinutes));});
 }
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
  const sq=String.fromCharCode(97+col)+(8-row),button=document.createElement('button');
@@ -148,6 +163,26 @@ attachChessBoardControls({board,getPosition:()=>position,getSelected:()=>selecte
 // Static, curated CC0 puzzle bank served by EloScanner itself.
 // No Lichess API calls are needed for standard play, including timed runs.
 let bankPromise=null;
+// Remember a bounded history of public puzzle IDs, not personal gameplay data.
+// Repeated reloads and switching modes no longer immediately recycle the same puzzle.
+const RECENT_KEY='eloscanner-recent-puzzles-v1',RECENT_LIMIT=950;
+const recentIds=(()=>{
+ try{
+  const data=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');
+  return Array.isArray(data)?data.filter(id=>typeof id==='string'&&id.length<=80).slice(-RECENT_LIMIT):[];
+ }catch{return []}
+})();
+const recentSet=new Set(recentIds);
+function rememberPuzzle(id){
+ seen.add(id);
+ if(recentSet.has(id)){
+  const index=recentIds.indexOf(id);if(index>=0)recentIds.splice(index,1);
+ }else recentSet.add(id);
+ recentIds.push(id);
+ while(recentIds.length>RECENT_LIMIT)recentSet.delete(recentIds.shift());
+ try{localStorage.setItem(RECENT_KEY,JSON.stringify(recentIds))}catch{}
+}
+
 async function getPuzzle(which,target=null){
  if(!bankPromise){
   bankPromise=fetch('/assets/puzzle-bank.json?v=1',{cache:'force-cache'}).then(async response=>{
@@ -169,9 +204,18 @@ async function getPuzzle(which,target=null){
    else candidates=candidates.filter(row=>row[3]>=lastChallengeRating);
    if(!candidates.length)throw Error('No harder unused puzzles remain in this session.');
   }
-  candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
-  candidates=candidates.slice(0,Math.min(which==='custom'?25:12,candidates.length));
+  // Choose broadly near the target instead of repeatedly sampling the same
+  // first twelve rows in a sorted Elo dataset.
+  const band=which==='custom'?180:320;
+  const nearby=candidates.filter(row=>Math.abs(row[3]-desired)<=band);
+  if(nearby.length>=6)candidates=nearby;
+  else{
+   candidates.sort((a,b)=>Math.abs(a[3]-desired)-Math.abs(b[3]-desired));
+   candidates=candidates.slice(0,Math.min(140,candidates.length));
+  }
  }
+ const fresh=candidates.filter(row=>!recentSet.has(String(row[0])));
+ if(fresh.length)candidates=fresh;
  for(let attempt=0;attempt<Math.min(30,candidates.length);attempt++){
   const index=Math.floor(Math.random()*candidates.length);
   const [id,fen,moves,rating]=candidates.splice(index,1)[0];
@@ -250,6 +294,7 @@ async function load(kind=mode){
   !seen.has(prefetchedPuzzle.candidate.id)?prefetchedPuzzle.candidate:null;
  clearPrefetch();
  const generation=++requestId;
+ reviewing=false;resetHint();
  busy=true;ready=false;selected=null;wrongSquare=null;closePromotion();buttons();
  if(!cached)say('Loading puzzle…');
  try{
@@ -260,7 +305,7 @@ async function load(kind=mode){
    p=decode(await getPuzzle('next',target));
   }else p=decode(await getPuzzle(kind,nextTarget(kind,solved)));
   if(generation!==requestId)return;
-  position=p.position;solution=p.line;step=0;puzzle=p;lastMove=p.setup;seen.add(p.id);
+  position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
   seenPositions.add(p.puzzleKey);
   if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
   orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=orientation;
