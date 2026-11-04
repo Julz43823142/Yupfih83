@@ -111,6 +111,10 @@ export async function onRequestPost({request,env}){
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
+   // A submitted proof must represent human-paced solving, not a script
+   // uploading hundreds of public puzzle answers immediately after starting.
+   // This is a modest aggregate limit, not a claim of tamper-proof gameplay.
+   if(elapsed<run.score*350)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
