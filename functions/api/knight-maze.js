@@ -35,6 +35,7 @@ function maze(level,runId){
  }
  return {position:0,goal:63,blocked:[]};
 }
+const futureLevels=(id,nextLevel)=>[1,2,3].map(offset=>maze(nextLevel+offset-1,id));
 const publicRun=(r)=>({id:r.id,level:r.level,score:r.score,position:r.position,goal:r.goal,blocked:JSON.parse(r.blocked),endsAt:r.started_at+duration,finished:!!r.finished});
 async function ranking(db,limit){
  const result=await db.prepare("SELECT nickname,score FROM knight_maze_scores ORDER BY score DESC,created_at ASC,nickname ASC LIMIT ?").bind(limit).all();
@@ -65,7 +66,7 @@ export async function onRequestPost({request,env}){
    await db.prepare('DELETE FROM knight_maze_runs WHERE started_at < ?').bind(now-86400000).run();
    const id=crypto.randomUUID(),m=maze(1,id);
    await db.prepare('INSERT INTO knight_maze_runs(id,started_at,level,position,goal,blocked,score) VALUES(?,?,?,?,?,?,0)').bind(id,now,1,m.position,m.goal,JSON.stringify(m.blocked)).run();
-   return json({run:{id,level:1,score:0,position:m.position,goal:m.goal,blocked:m.blocked,endsAt:now+duration,finished:false,preview:maze(2,id)}});
+   return json({run:{id,level:1,score:0,position:m.position,goal:m.goal,blocked:m.blocked,endsAt:now+duration,finished:false,preview:maze(2,id),lookahead:futureLevels(id,3)}});
   }
   const id=String(data?.id||'');
   if(!/^[0-9a-f-]{36}$/i.test(id))return json({error:'Invalid game session.'},400);
@@ -79,7 +80,7 @@ export async function onRequestPost({request,env}){
     const next=maze(run.level+1,id);
     const updated=await db.prepare('UPDATE knight_maze_runs SET level=?,position=?,goal=?,blocked=?,score=score+1 WHERE id=? AND level=? AND position=? AND finished=0 AND started_at>?').bind(run.level+1,next.position,next.goal,JSON.stringify(next.blocked),id,run.level,run.position,now-duration).run();
     if(!updated.meta?.changes)return json({error:'Move already processed. Restart if necessary.'},409);
-    return json({run:{id,level:run.level+1,score:run.score+1,position:next.position,goal:next.goal,blocked:next.blocked,endsAt:run.started_at+duration,finished:false,preview:maze(run.level+2,id)},solved:true});
+    return json({run:{id,level:run.level+1,score:run.score+1,position:next.position,goal:next.goal,blocked:next.blocked,endsAt:run.started_at+duration,finished:false,preview:maze(run.level+2,id),lookahead:futureLevels(id,run.level+3)},solved:true});
    }
    const updated=await db.prepare('UPDATE knight_maze_runs SET position=? WHERE id=? AND level=? AND position=? AND finished=0 AND started_at>?').bind(to,id,run.level,run.position,now-duration).run();
    if(!updated.meta?.changes)return json({error:'Move already processed. Restart if necessary.'},409);
