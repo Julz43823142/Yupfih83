@@ -8,6 +8,50 @@ async function login(page,username){
  await page.getByRole('button',{name:'Log in',exact:true}).click();
  await expect(page.locator('#profile-username')).toHaveText(username,{timeout:30000});
 }
+test('optimistic move appears without a server reply and rolls back on rejection',async({browser})=>{
+ const a=await browser.newContext(),b=await browser.newContext();
+ const pa=await a.newPage(),pb=await b.newPage();
+ try{
+  await pa.goto(base+'/online.html?friend=1');
+  await pa.locator('#online-name').fill('FastAlice');
+  await pa.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+  await expect(pa.locator('#online-link')).toHaveValue(/invite=[a-f0-9]{32}/);
+  const invitation=await pa.locator('#online-link').inputValue();
+  await pb.goto(invitation);
+  await pb.locator('#online-name').fill('FastBob');
+  await pb.getByRole('button',{name:'Join game'}).click();
+  await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
+  await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  let unblock;
+  const blocked=new Promise(resolve=>{unblock=resolve});
+  let requested;
+  const submitted=new Promise(resolve=>{requested=resolve});
+  await pa.route('**/api/online/move',async route=>{
+   requested();
+   await blocked;
+   await route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'Move rejected by server'})});
+  });
+  const sample=await pa.evaluate(()=>{
+   const start=performance.now();
+   document.querySelector('#online-board button[data-sq="e2"]').click();
+   document.querySelector('#online-board button[data-sq="e4"]').click();
+   const displayed=!!document.querySelector('#online-board button[data-sq="e4"] img');
+   return {displayed,elapsed:performance.now()-start,status:document.querySelector('#online-status').textContent};
+  });
+  expect(sample.displayed).toBe(true);
+  expect(sample.status).toContain('Sending move');
+  console.log('LOCAL OPTIMISTIC CHESS DISPLAY: visible synchronously after',sample.elapsed.toFixed(3),'ms of JavaScript interaction; not server latency');
+  await submitted;
+  await expect(pa.locator('#online-board button[data-sq="e4"] img')).toHaveCount(1);
+  await expect(pb.locator('#online-board button[data-sq="e4"] img')).toHaveCount(0);
+  unblock();
+  await expect(pa.locator('#online-status')).toContainText('Move rejected by server',{timeout:15000});
+  await expect(pa.locator('#online-board button[data-sq="e4"] img')).toHaveCount(0);
+  await expect(pa.locator('#online-board button[data-sq="e2"] img')).toHaveCount(1);
+  await expect(pa.locator('#online-moves')).not.toContainText('e4');
+ }finally{await a.close();await b.close()}
+});
+
 test('benchmark: measure local move acknowledgement and opponent visibility, without external traffic',async({browser})=>{
  const a=await browser.newContext(),b=await browser.newContext();
  const pa=await a.newPage(),pb=await b.newPage();
