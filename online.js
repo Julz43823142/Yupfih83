@@ -16,7 +16,7 @@ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r
 // Cache piece identity by square. During a normal move only the source and
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
-let paintedSide=null,lastHighlights=new Set();
+let paintedSide=null,lastHighlights=new Set(),boardFen=null;
 function paintSquare(sq){
  const button=squares.get(sq),pc=game.get(sq),piece=pc?pc.color+pc.type:'';
  if(painted.get(sq)===piece)return;
@@ -41,7 +41,9 @@ function previewMove(from,to,move){
  squares.get(from).classList.remove('selected');
  $('online-status').textContent='Sending move…';
 }
-function render(){if(!state)return;game=previewBoard||new Chess(state.fen);
+function render(){if(!state)return;
+ if(previewBoard)game=previewBoard;
+ else if(boardFen!==state.fen){game=new Chess(state.fen);boardFen=state.fen}
  const rotated=paintedSide!==side;
  if(rotated){$('online-board').dataset.side=side;paintedSide=side}
  const legal=new Set(selected&&game.turn()===side?selectedMoves.map(m=>m.to):[]);
@@ -69,7 +71,10 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
    previewMove(from,sq,move);
    const committed=await post('move',{id,secret,from,to:sq,promotion});
    previewBoard=null;
+   // Server acknowledgement reuses the speculative position if it matches.
+   // A mismatched authoritative FEN is still rebuilt and wins.
    if(committed.id===id&&committed.fen){
+    if(game.fen()===committed.fen)boardFen=committed.fen;
     state=committed;side=committed.side;serverOffset=committed.serverTime-Date.now();render()
    }else await poll();
   }catch(e){
