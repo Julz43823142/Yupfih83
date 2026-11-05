@@ -88,7 +88,8 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Runner already includes Chromium system libraries; avoid slow apt for this test.
+      - run: npx playwright install chromium
       - run: npm run build
       - run: npm run auth:migrate:local
       - name: Exercise actual WebSocket transport using local workerd and Durable Objects
