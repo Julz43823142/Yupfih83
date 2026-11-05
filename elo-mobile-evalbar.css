@@ -185,3 +185,33 @@
   min-width:0!important;overflow-wrap:anywhere!important;
  }
 }
+
+/* EloFlow v6: full-width mobile Repertoire Explorer controls and statistics. */
+@media(max-width:760px){
+ body.elo-unified-chess .tool-page .prep-analysis-layout{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;gap:18px!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-board-area{
+  order:0!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;grid-column:auto!important;grid-row:auto!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-control-stack{
+  order:1!important;display:flex!important;flex-direction:column!important;
+  align-items:stretch!important;align-self:stretch!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;grid-column:auto!important;grid-row:auto!important;gap:18px!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-control-stack>.prep-controls-panel,
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-control-stack>.prep-stats-side{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  box-sizing:border-box!important;margin:0!important;align-self:stretch!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-control-stack>.prep-controls-panel .board-controls{
+  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout>.prep-engine-side{
+  order:2!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;margin:0!important;grid-column:auto!important;grid-row:auto!important;
+ }
+}
