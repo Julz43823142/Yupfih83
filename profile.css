@@ -5,3 +5,5 @@
 
 /* Online multiplayer member and profile controls */
 .member-row{display:flex;gap:10px;align-items:stretch}.member-row .member-item{flex:1;min-width:0}.member-challenge,.online-profile-actions a,.online-profile-actions button{display:inline-flex;align-items:center;justify-content:center;background:#126b91;border:1px solid #4fb7d8;color:#f6ffff;border-radius:9px;padding:10px 14px;font-weight:700;text-decoration:none;cursor:pointer}.member-challenge:hover,.online-profile-actions a:hover,.online-profile-actions button:hover{background:#218bac}.online-profile-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.profile-game-row{padding:10px 0;border-bottom:1px solid #25536a;overflow-wrap:anywhere}@media(max-width:600px){.member-row{flex-wrap:wrap}.member-challenge{width:100%}}
+
+.profile-game-row a,.profile-game-row a:visited{color:#fff;text-decoration:none}.profile-game-row a:hover{text-decoration:underline}
