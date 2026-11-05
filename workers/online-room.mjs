@@ -51,8 +51,20 @@ export class OnlineChessRoom {
   }
   return new Response('Not found',{status:404});
  }
- async webSocketMessage(socket){
-  // Clients never submit moves on this channel: all moves use authorized POST /move.
+ async webSocketMessage(socket,message){
+  // Read-only ping/pong measures actual socket round trips. Moves and
+  // credentials are never accepted over the public-facing WebSocket.
+  if(typeof message==='string'&&message.length<=96){
+   let packet;try{packet=JSON.parse(message)}catch{}
+   if(packet?.type==='ping'&&Number.isSafeInteger(packet.nonce)&&packet.nonce>=0){
+    const attachment=socket.deserializeAttachment()||{};
+    const now=Date.now();
+    if(now-(attachment.lastPing||0)<1000)return;
+    socket.serializeAttachment({side:attachment.side,lastPing:now});
+    try{socket.send(JSON.stringify({type:'pong',nonce:packet.nonce}))}catch{}
+    return;
+   }
+  }
   try{socket.close(1008,'Read-only game updates')}catch{}
  }
  async webSocketClose(socket,code,reason){try{socket.close(code,reason)}catch{}}
