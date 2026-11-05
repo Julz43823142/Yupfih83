@@ -109,7 +109,7 @@ export async function onRequestGet({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:"Leaderboard database not configured."},503);
  const url=new URL(request.url),mode=url.searchParams.get("mode")||"sprint5";
  if(!validMode(mode))return json({error:"Invalid mode"},400);
- const limit=url.searchParams.get("limit")==="100"?100:10;
+ const requestedLimit=Number(url.searchParams.get("limit"));const limit=[10,50,100].includes(requestedLimit)?requestedLimit:10;
  try{
   await dbReady(db);
   const current=hour();
@@ -186,7 +186,7 @@ export async function onRequestPost({request,env}){
    nickname=current.user.username;
   }catch{return json({error:'Unable to verify your account session.'},503)}
  }
- if(mode==="sprint"||!validMode(mode)||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)
+ if(mode==="sprint"||!validMode(mode)||!(sourceType==='account'?/^[a-zA-Z0-9_]{3,24}$/.test(nickname):/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)
   return json({error:"Use a valid name (2–20 characters) and score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
  // Disallowed leaderboard entries cannot be submitted again.
