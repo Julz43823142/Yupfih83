@@ -27,3 +27,16 @@ async function poll(){if(!id||!secret)return;try{const r=await fetch(api+'state?
 const invitation=new URL(location.href).searchParams.get('invite');if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
 setInterval(()=>{if(id)poll()},1500);setInterval(clocks,250);
+
+async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
+async function socialRefresh(){try{
+ const [friends,inbox]=await Promise.all([fetch('/api/social/friends',{cache:'no-store'}).then(r=>r.json()),fetch('/api/social/inbox',{cache:'no-store'}).then(r=>r.json())]);
+ if(friends.authenticated){$('online-account').textContent='Your friends';socialPost('presence',{}).catch(()=>{});}
+ const list=$('online-friends');list.replaceChildren();
+ for(const f of friends.friends||[]){const p=document.createElement('p'),a=document.createElement('a');a.href='/profile/'+encodeURIComponent(f.username);a.textContent=(f.online?'● ':'○ ')+f.username;p.append(a,' ');const b=document.createElement('button');b.textContent='Challenge';b.onclick=()=>challenge(f.username);p.append(b);list.append(p)}
+ const box=$('online-inbox');box.replaceChildren();
+ for(const v of inbox.challenges||[]){const p=document.createElement('p'),a=document.createElement('a');a.href='/online.html?invite='+encodeURIComponent(v.gameId);a.textContent='Accept challenge from '+v.fromUser;p.append(a);box.append(p)}
+}catch{}}
+async function challenge(username){try{const game=await post('create',{kind:'invite',name:name()});await socialPost('challenge',{username,gameId:game.id});id=game.id;secret=game.secret;enter();$('online-status').textContent='Challenge sent to '+username}catch(e){setupError(e)}}
+const direct=new URL(location.href).searchParams.get('challenge');if(direct&&/^[A-Za-z0-9_]{3,24}$/.test(direct)){$('online-random').hidden=true;$('online-invite').textContent='Challenge '+direct;$('online-invite').onclick=()=>challenge(direct)}
+socialRefresh();setInterval(socialRefresh,30000);
