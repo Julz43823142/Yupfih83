@@ -79,7 +79,7 @@ test('live multiplayer keeps peer IPs private and makes no peer-to-peer or third
   const response=await pa.goto(base+'/online.html');
   expect(response.status()).toBe(200);
   // Local Wrangler can serve the global _headers CSP; the page-level policy must still enforce restrictions.
-  const csp=await pa.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  const csp=await pa.locator('meta[http-equiv="Content-Security-Policy"]').last().getAttribute('content');
   expect(csp).toContain("connect-src 'self'");
   expect(csp).toContain("frame-src 'none'");
   expect(await pa.locator('meta[name="referrer"]').getAttribute('content')).toBe('no-referrer');
