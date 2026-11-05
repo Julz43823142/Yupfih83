@@ -151,7 +151,9 @@ export async function onRequest({request,env,waitUntil}){
   const digest=await secretHash(b.secret);
   const limited=await guarded(db,env,request,route,route==='state'?80:route==='move'?90:12,60000,digest);if(limited)return limited;
   let g=await getGame(db,b.id);
-  if(!g||!publicGame(g,digest))return reply({error:'Game not found.'},404);
+  // Compare the hashed seat token before parsing any game history. Reconstruct
+  // the public game only for requests that actually need its fields.
+  if(!g||(g.white_token!==digest&&g.black_token!==digest))return reply({error:'Game not found.'},404);
   // A bearer secret is insufficient for a registered player's seat: also require
   // that account's current session. Guest seats remain capability-token based.
   const accountId=g.white_token===digest?g.white_user_id:g.black_user_id;
