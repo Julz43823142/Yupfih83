@@ -134,7 +134,7 @@ export async function onRequestPost({request,env}){
   }
   const claimed=await db.prepare('UPDATE knight_maze_runs SET submitted=1,finished=1 WHERE id=? AND submitted=0 AND (finished=1 OR started_at<=?)').bind(id,now-duration).run();
   if(!claimed.meta?.changes)return json({error:'This score has already been submitted.'},409);
-  await db.prepare('INSERT INTO knight_maze_scores(nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?) ON CONFLICT(nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at,source_type=excluded.source_type,account_id=excluded.account_id WHERE excluded.score>knight_maze_scores.score OR (excluded.score=knight_maze_scores.score AND excluded.source_type='account' AND knight_maze_scores.source_type='nickname')').bind(nickname,run.score,now,sourceType,accountId).run();
+  await db.prepare(`INSERT INTO knight_maze_scores(nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?) ON CONFLICT(nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at,source_type=excluded.source_type,account_id=excluded.account_id WHERE excluded.score>knight_maze_scores.score OR (excluded.score=knight_maze_scores.score AND excluded.source_type='account' AND knight_maze_scores.source_type='nickname')`).bind(nickname,run.score,now,sourceType,accountId).run();
   await prune(db);
   return json({ok:true,entries:await ranking(db,10)});
  }catch{return json({error:'Could not process the game. Please try again.'},503)}
