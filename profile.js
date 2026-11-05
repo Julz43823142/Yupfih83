@@ -12,7 +12,7 @@
  const addLink=(parent,text,url)=>{const a=document.createElement('a');a.textContent=text;a.href=url;parent.append(a);return a};
  const populateGames=(target,data)=>{
   if(!data.games?.length){addText(target,'No saved online games yet.','div');return}
-  for(const item of data.games){const row=document.createElement('p');row.className='profile-game-row';addLink(row,(item.white||'White')+' vs '+(item.black||'Black'),'/online.html?review='+encodeURIComponent(item.id));row.append(document.createTextNode(' · '+(item.result||'—')+' · 3+0 Unrated · '+item.moves+' moves'));target.append(row)}
+  for(const item of data.games){const row=document.createElement('p');row.className='profile-game-row';addLink(row,(item.white||'White')+' vs '+(item.black||'Black'),'/analysis.html?online='+encodeURIComponent(item.id));row.append(document.createTextNode(' · '+(item.result||'—')+' · 3+0 Unrated · '+item.moves+' moves'));target.append(row)}
  };
  try{
   const data=await get('/api/profile/'+encodeURIComponent(name));
