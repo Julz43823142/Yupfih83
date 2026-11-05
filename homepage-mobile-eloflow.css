@@ -69,3 +69,15 @@
  header.navbar>.mobile-chess-menu summary{display:flex!important;visibility:visible!important}
  header.navbar>.mobile-chess-menu nav{right:0!important;left:auto!important;z-index:30!important}
 }
+
+/* EloFlow: one-row mobile header; account actions only inside opened menu. */
+@media(max-width:1099px){
+ body>header.navbar>.account-nav{display:none!important}
+ body>header.navbar>.mobile-chess-menu{display:block!important;visibility:visible!important;position:relative!important;z-index:100!important;margin-left:auto!important}
+ body>header.navbar>.mobile-chess-menu nav{z-index:200!important}
+}
+@media(max-width:700px){
+ body>header.navbar{display:flex!important;flex-wrap:nowrap!important;justify-content:space-between!important;align-items:center!important;gap:10px!important}
+ body>header.navbar>.brand{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:calc(100% - 105px)!important;margin:0!important}
+ body>header.navbar>.mobile-chess-menu{flex:0 0 auto!important;margin-left:auto!important}
+}
