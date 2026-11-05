@@ -1,0 +1,1 @@
+export async function onRequestGet({request,env}){return env.ASSETS.fetch(new Request(new URL('/members.html',request.url)))}
