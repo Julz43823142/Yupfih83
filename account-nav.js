@@ -6,7 +6,7 @@
   header.append(nav);
   function render(user) {
     nav.replaceChildren();
-    const links = user ? [[user.username, '/account.html']] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
+    const links = user ? [[user.username, '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
     for (const [label, href] of links) { const a = document.createElement('a'); a.textContent = label; a.href = href; if (user) a.className = 'account-nav-user'; nav.append(a); }
   }
   // Keep desktop account links in the header. On phones, put the same
@@ -22,7 +22,7 @@
       menu.prepend(section);
     }
     section.replaceChildren();
-    const links = user ? [[user.username, '/account.html']] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
+    const links = user ? [[user.username, '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
     for (const [label, href] of links) {
       const a = document.createElement('a');
       a.textContent = label;
