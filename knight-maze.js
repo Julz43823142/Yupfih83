@@ -192,7 +192,7 @@ $('maze-start').addEventListener('click',start);
 $('maze-finish').addEventListener('click',()=>endRun(false));
 $('maze-submit').addEventListener('click',submit);
 $('maze-nickname').addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
-$('maze-show-all').addEventListener('click',()=>{showAll=!showAll;$('maze-show-all').textContent=showAll?'Show Top 10':'View Top 100';$('maze-show-all').setAttribute('aria-expanded',String(showAll));loadRanking()});
+
 // Analysis-style pointer controls: click, drag, cancel, right-drag annotations.
 const svgNS='http://www.w3.org/2000/svg';
 function squareAt(x,y){
