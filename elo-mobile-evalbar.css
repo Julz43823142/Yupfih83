@@ -140,3 +140,48 @@
   font-size:7px!important;letter-spacing:-.5px!important;
  }
 }
+
+/* EloFlow v5: Analysis mobile layout. Keep review and controls out of the board cell. */
+@media(max-width:760px){
+ body.elo-unified-chess .tool-page .tool-card:first-of-type>.analysis-three-column{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:16px!important;width:100%!important;min-width:0!important;
+  height:auto!important;overflow:visible!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-board-column{
+  order:0!important;display:block!important;position:relative!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;transform:none!important;overflow:visible!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-controls-panel{
+  order:1!important;position:relative!important;grid-column:auto!important;grid-row:auto!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;transform:none!important;z-index:auto!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-engine-column{
+  order:2!important;position:relative!important;grid-column:auto!important;grid-row:auto!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;transform:none!important;z-index:auto!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .analysis-board-column>.board-with-eval{
+  display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;
+  gap:6px!important;position:relative!important;isolation:isolate!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;overflow:visible!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .analysis-board-column>.board-with-eval>.board-eval-wrap{
+  grid-column:1!important;grid-row:1!important;display:block!important;
+  position:relative!important;z-index:1!important;box-sizing:border-box!important;
+  width:18px!important;min-width:18px!important;max-width:18px!important;
+  margin:0!important;overflow:hidden!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .analysis-board-column>.board-with-eval>#board{
+  grid-column:2!important;grid-row:1!important;position:relative!important;
+  z-index:1!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;margin:0!important;transform:none!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .analysis-controls-panel>.review-side-stats{
+  position:static!important;transform:none!important;max-width:100%!important;
+  min-width:0!important;overflow-wrap:anywhere!important;
+ }
+}
