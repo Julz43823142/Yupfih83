@@ -57,7 +57,14 @@ test('real D1 adapter: login, isolation, secure cookies, no raw token/email/IP d
   assert.equal(login.status, 200, await login.clone().text());
   const content = await login.clone().text(); assert.ok(!content.includes('token')); assert.ok(!content.includes('@'));
   assert.match(login.headers.get('set-cookie'), /HttpOnly/i); assert.match(login.headers.get('set-cookie'), /Secure/i); assert.match(login.headers.get('set-cookie'), /SameSite=Lax/i);
+  for (const header of login.headers.getSetCookie()) {
+    assert.match(header, /^__Host-eloscanner\./);
+    assert.match(header, /; Secure(?:;|$)/i);
+    assert.match(header, /; Path=\/(?:;|$)/i);
+    assert.doesNotMatch(header, /; Domain=/i);
+  }
   const c = cookie(login);
+  assert.equal((await (await call('get-session', undefined, c.replaceAll('__Host-', '__Secure-'))).json()).user, null);
   const session = await (await call('get-session', undefined, c)).json(); assert.equal(session.user.username, 'johan');
   assert.equal((await (await call('get-session')).json()).user, null);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT ipAddress FROM session LIMIT 1').get().ipAddress, null);

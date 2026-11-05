@@ -145,3 +145,30 @@ Before public registration: independent security review, production load/CPU che
 retention scheduling, monitoring/edge protections, incident/secret-recovery procedures,
 and a separately approved registration and account-recovery policy. Privacy text was
 updated for the implemented test accounts; this is not a certification of GDPR compliance.
+
+## Site security deployment notes (second review)
+
+The build adds a per-document script CSP. Deploy **dist/** using `npm run build`,
+not the repository root; this also excludes developer consoles, nested hidden files,
+symlinks and common secret/backup artifacts. Inline script hashes are recalculated
+by the build, so future inline edits need no manual hash update.
+
+HTTPS auth cookies now use __Host-eloscanner names; existing test users must log in
+again after upgrading. Secure/HttpOnly and host-only scope remain mandatory. Local
+HTTP test cookies keep their existing name and do not pretend to be HTTPS cookies.
+
+The game handlers create additive SUS_DB tables/indexes/trigger on first use. No
+manual destructive migration is required. Puzzle and Knight Maze each permit up to
+60 new runs per UTC minute and 3,000 per UTC day globally. This creates no visitor
+identifier. Rejected starts receive 429; existing runs continue. Revisit these shared
+capacity budgets alongside real traffic, edge controls, and D1/CPU pricing before
+increasing them. They do not make public rankings cheat-proof or prevent DoS.
+
+Local browser tests use **two synthetic local D1 databases** (AUTH_DB and SUS_DB).
+Neither has a real remote database ID or touches production users or scores.
+
+Rollback note: `puzzle_verified_score_insert` owns score increments after this
+release. Do not roll back to the old handler (which increments scores itself)
+while retaining that trigger. Coordinate any rollback with dropping the trigger,
+or keep the current atomic-proof handler. Re-running the current schema setup is
+idempotent; it does not rewrite existing scores.

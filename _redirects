@@ -1,3 +1,4 @@
 /privacy /P-Policy 301
 /privacy.html /P-Policy 301
 /P-Policy /P-Policy.html 200
+/stockfish-worker.wasm /vendor/stockfish/stockfish-19-lite-single.wasm 200

@@ -1,4 +1,5 @@
 import {readJsonPayload} from '../../lib/server-request-guard.js';
+import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
@@ -6,16 +7,38 @@ const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Re
 const json=(data,status=200)=>Response.json(data,{status,headers});
 const hour=()=>Math.floor(Date.now()/3600000);
 const validMode=m=>["sprint","sprint3","sprint5","survival"].includes(m);
-let schemaPromise=null;
+const schemas=new WeakMap();
 async function dbReady(db){
- if(schemaPromise)return schemaPromise;
- schemaPromise=(async()=>{
+ if(schemas.has(db))return schemas.get(db);
+ const schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_hourly_scores (hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(hour,mode,nickname))").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_runs (id TEXT PRIMARY KEY,mode TEXT NOT NULL,started_at INTEGER NOT NULL,score INTEGER NOT NULL DEFAULT 0,submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_solves (run_id TEXT NOT NULL,puzzle_id TEXT NOT NULL,PRIMARY KEY(run_id,puzzle_id))").run();
- })().catch(error=>{schemaPromise=null;throw error});
+ await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_verified_runs_expiry ON puzzle_verified_runs(started_at)").run();
+ // A proof and its score increment are one SQLite statement/transaction. A
+ // concurrent submit cannot see a proof without its corresponding score.
+ await db.prepare(`CREATE TRIGGER IF NOT EXISTS puzzle_verified_score_insert
+   AFTER INSERT ON puzzle_verified_solves BEGIN
+     UPDATE puzzle_verified_runs SET score=score+1 WHERE id=NEW.run_id;
+   END`).run();
+ })().catch(error=>{schemas.delete(db);throw error});
+ schemas.set(db,schemaPromise);
  return schemaPromise;
+}
+async function cleanExpiredRuns(db,now){
+ // Survival is the longest run (24h plus 60s to submit). Bounded, indexed
+ // cleanup leaves active games and public rankings intact. Never cascade a
+ // large number of solves in one request or leave newly orphaned solves.
+ const cutoff=now-86460000;
+ await db.prepare(`DELETE FROM puzzle_verified_solves WHERE rowid IN (
+   SELECT s.rowid FROM puzzle_verified_runs r JOIN puzzle_verified_solves s ON s.run_id=r.id
+   WHERE r.started_at<? ORDER BY r.started_at LIMIT 500
+ )`).bind(cutoff).run();
+ await db.prepare(`DELETE FROM puzzle_verified_runs WHERE id IN (
+   SELECT r.id FROM puzzle_verified_runs r WHERE r.started_at<?
+   AND NOT EXISTS (SELECT 1 FROM puzzle_verified_solves s WHERE s.run_id=r.id) LIMIT 100
+ )`).bind(cutoff).run();
 }
 // Keep only the highest score per nickname and the best 110 nicknames (100 public, 10 reserves) in each
 // public ranking. Sprint 3 and Sprint 5 share one combined ranking.
@@ -98,14 +121,19 @@ export async function onRequestPost({request,env}){
  const action=String(data?.action||'submit');
  if(action==='start'){
   const mode=String(data?.mode||'');if(!['sprint3','sprint5','survival'].includes(mode))return json({error:'Invalid game mode.'},400);
-  try{await dbReady(db);const id=crypto.randomUUID();await db.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').bind(id,mode,Date.now()).run();return json({session:id})}
+  try{
+   if(!await consumeGameStart(db,'puzzle'))return json({error:'New games are temporarily at capacity. Please try again later.'},429);
+   await dbReady(db);const now=Date.now();await cleanExpiredRuns(db,now);
+   const id=crypto.randomUUID();await db.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').bind(id,mode,now).run();return json({session:id});
+  }
   catch{return json({error:'Could not start verified run.'},503)}
  }
  if(action==='solve'){
   const id=String(data?.session||''),puzzleId=String(data?.puzzleId||''),line=String(data?.solution||'').trim().toLowerCase();
   if(!/^[a-f0-9-]{36}$/i.test(id)||!puzzleId||puzzleId.length>80||line.length>400)return json({error:'Invalid puzzle proof.'},400);
   try{
-   // The run's start request already created the required tables.
+   // Also initializes the new score trigger for runs started before this deploy.
+   await dbReady(db);
    const run=await db.prepare('SELECT * FROM puzzle_verified_runs WHERE id=?').bind(id).first();
    if(!run||run.submitted)return json({error:'Run not available.'},409);
    const elapsed=Date.now()-run.started_at;
@@ -119,8 +147,16 @@ export async function onRequestPost({request,env}){
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
    if(bank.get(puzzleId)!==line)return json({error:'Puzzle solution not verified.'},400);
-   const inserted=await db.prepare('INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id) VALUES(?,?)').bind(id,puzzleId).run();
-   if(inserted.meta?.changes)await db.prepare('UPDATE puzzle_verified_runs SET score=score+1 WHERE id=? AND score<100000').bind(id).run();
+   // Recheck against current state at the actual write, after async asset I/O.
+   // A prior SELECT alone lets parallel requests evade pacing and submission.
+   const now=Date.now();
+   const inserted=await db.prepare(`INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id)
+    SELECT id,? FROM puzzle_verified_runs WHERE id=? AND submitted=0 AND score<100000
+    AND started_at<=? AND started_at>=? AND ?-started_at>=score*350`).bind(puzzleId,id,now,now-duration-15000,now).run();
+   if(!inserted.meta?.changes){
+    const duplicate=await db.prepare('SELECT 1 AS solved FROM puzzle_verified_solves WHERE run_id=? AND puzzle_id=?').bind(id,puzzleId).first();
+    if(!duplicate)return json({error:'Run changed or puzzle proofs are arriving too quickly. Please retry.'},409);
+   }
    return json({ok:true});
   }catch{return json({error:'Could not verify puzzle. Please retry.'},503)}
  }
@@ -146,7 +182,7 @@ export async function onRequestPost({request,env}){
   const duration=mode==='sprint3'?180000:mode==='sprint5'?300000:86400000;
   if(elapsed<0||elapsed>duration+60000)return json({error:'Run expired before submission.'},409);
   if(verified.score!==score)return json({error:'Score verification incomplete. Please retry.'},409);
-  const claim=await db.prepare('UPDATE puzzle_verified_runs SET submitted=1 WHERE id=? AND submitted=0').bind(session).run();
+  const claim=await db.prepare('UPDATE puzzle_verified_runs SET submitted=1 WHERE id=? AND submitted=0 AND score=?').bind(session,score).run();
   if(!claim.meta?.changes)return json({error:'This run was already submitted.'},409);
   const now=hour();
   await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at) VALUES(?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at WHERE excluded.score > puzzle_hourly_scores.score").bind(now,mode,nickname,score,Date.now()).run();

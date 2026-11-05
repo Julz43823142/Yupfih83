@@ -25,9 +25,9 @@ export async function onRequestPost({request,env}){
   }catch(error){
    // A failed or timed-out request may still have sent an email. Keep the
    // reservation to prevent accidental duplicate notifications.
-   console.error("Nickname report delivery unconfirmed:",error);
+   console.error("Nickname report delivery unconfirmed.");
    return json({error:"Report delivery could not be confirmed. Please contact us if needed."},502);
   }
   return json({ok:true,message:"Report submitted. Thank you."});
- }catch(error){console.error("Nickname reporting error:",error);return json({error:"Reporting is temporarily unavailable."},503)}
+ }catch{console.error("Nickname reporting unavailable.");return json({error:"Reporting is temporarily unavailable."},503)}
 }
