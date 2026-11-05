@@ -22,6 +22,7 @@ piece.className='maze-piece';piece.src='/vendor/pieces/cburnett/wN.svg';
 piece.alt='White knight';piece.draggable=false;
 piece.onerror=()=>{piece.replaceWith(document.createTextNode('♘'))};
 function render(){
+ board.classList.toggle('maze-not-started',!run);
  if(!cells.length){
   for(let i=0;i<64;i++){
    const cell=document.createElement('button');
