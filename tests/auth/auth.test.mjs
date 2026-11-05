@@ -130,3 +130,18 @@ test('concurrent expensive credential work is bounded before hashing', async () 
   assert.equal(two.status, 429);
   release(); assert.equal((await one).status, 401);
 });
+test('forged session, injection fields and malicious Turnstile responses cannot grant access',async()=>{
+ const env=envFor();await provision(env);
+ const signIn={username:'johan',password, userId:'victim', role:'admin', email:'attacker@example.com',callbackURL:'https://evil.example'};
+ const response=await handleAuth({request:req('sign-in/username',signIn),env});
+ assert.equal(response.status,200);assert.equal(response.headers.get('Location'),null);
+ const user=(await response.json()).user;assert.equal(user.username,'johan');assert.notEqual(user.id,'victim');assert.equal(user.role,undefined);assert.equal(user.email,undefined);
+ const forged=await handleAuth({request:req('get-session',undefined,'__Secure-eloscanner.session_token=forged'),env});
+ assert.equal((await forged.json()).user,null);
+ for(let i=0;i<5;i++)await handleAuth({request:req('sign-in/username',{username:'unused',password:'incorrect'}),env},{createAuth:()=>({handler:async()=>Response.json({}, {status:401})})});
+ for(const result of [{success:true,hostname:'eloscanner.com',action:'register'},{success:false,hostname:'eloscanner.com',action:'login'}]){
+  let reached=false;
+  const check=await handleAuth({request:req('sign-in/username',{username:'unused',password,turnstileToken:'replayed-or-wrong-action'}),env},{fetch:async()=>Response.json(result),createAuth:()=>({handler:async()=>{reached=true;return Response.json({});}})});
+  assert.equal(check.status,403);assert.equal(reached,false);
+ }
+});
