@@ -152,6 +152,12 @@ else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').queryS
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
 // A websocket is read-only. Every move still goes through the authorized HTTPS
 // endpoint; the room only publishes server-confirmed board states.
+function markLiveDisconnected(socket){
+ if(liveSocket!==socket)return;
+ liveSocket=null;liveConnected=false;networkRttMs=null;networkRttAt=0;pingStartedAt=0;
+ scheduleLiveRetry();
+ poll();
+}
 function scheduleLiveRetry(){
  liveFailures=Math.min(liveFailures+1,5);
  const delay=Math.min(15000,1000*2**(liveFailures-1));
@@ -198,13 +204,7 @@ function connectLive(){
    }catch{}
   };
   socket.onerror=()=>{};
-  socket.onclose=()=>{
-   if(liveSocket===socket){
-    liveSocket=null;liveConnected=false;networkRttMs=null;networkRttAt=0;
-    scheduleLiveRetry();
-    poll();
-   }
-  };
+  socket.onclose=()=>markLiveDisconnected(socket);
  }catch{scheduleLiveRetry()}
 }
 function sendSocketPing(){
@@ -216,7 +216,14 @@ function sendSocketPing(){
 // Detect silent half-open sockets; a reconnect starts with a fresh
 // authoritative state read. Hidden tabs resume checking on visibility.
 setInterval(()=>{
- if(!id||!liveSocket||liveSocket.readyState!==WebSocket.OPEN)return;
+ if(!id||!liveSocket)return;
+ // Browsers can remain stuck in CLOSING if the peer never completes the
+ // close handshake. Don't wait indefinitely for an onclose callback.
+ if(liveSocket.readyState===WebSocket.CLOSED||
+    (liveSocket.readyState===WebSocket.CLOSING&&performance.now()-lastSocketMessageAt>2000)){
+  markLiveDisconnected(liveSocket);return;
+ }
+ if(liveSocket.readyState!==WebSocket.OPEN)return;
  const now=performance.now();
  if(document.visibilityState==='hidden')return;
  if(now-lastSocketMessageAt>30000){
