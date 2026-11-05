@@ -1007,6 +1007,10 @@ const mobileQuickNav=document.createElement('div');mobileQuickNav.className='elo
 const mobileQuickToggles=document.createElement('div');mobileQuickToggles.className='elo-analysis-mobile-toggles';
 analysisBoardColumn.insertBefore(mobileQuickNav,boardLayout);
 analysisBoardColumn.insertBefore(mobileQuickToggles,boardLayout.nextSibling);
+const mobileEngineResults=document.createElement('div');mobileEngineResults.className='elo-analysis-mobile-results';
+const mobileEngineDetails=document.createElement('div');mobileEngineDetails.className='elo-analysis-mobile-details';
+analysisBoardColumn.insertBefore(mobileEngineResults,mobileQuickToggles);
+analysisBoardColumn.insertBefore(mobileEngineDetails,mobileQuickToggles);
 const desktopNavHome=boardControlButtons?.querySelector('.elo-nav-pair');
 const desktopToggleHome=document.querySelector('.analysis-engine-header');
 const mobileNavPair=boardControlButtons?.querySelector('.elo-nav-pair');
@@ -1015,6 +1019,27 @@ function syncMobileQuickActions(){
  if(mobile&&mobileNavPair)mobileQuickNav.append(mobileNavPair);
  else if(!mobile&&mobileNavPair&&boardControlButtons)boardControlButtons.prepend(mobileNavPair);
  const engineHeader=document.querySelector('.analysis-engine-header');
+ const notation=document.getElementById('live-notation');
+ if(mobile){
+  // First show best lines, then analysis settings, then opening and database.
+  mobileEngineResults.append(enginePanel);
+  mobileEngineDetails.append(engineSettings,depthControl,engineInfo);
+  if(notation){
+   const opening=document.getElementById('opening-name');
+   const moves=document.getElementById('notation-moves');
+   if(opening)mobileEngineDetails.append(opening);
+   if(moves)mobileEngineDetails.append(moves);
+  }
+ }else if(notation){
+  const opening=document.getElementById('opening-name');
+  const moves=document.getElementById('notation-moves');
+  if(opening)notation.append(opening);
+  if(moves)notation.append(moves);
+  if(opening)notation.insertBefore(enginePanel,opening);
+  if(enginePanel.parentElement===notation)notation.insertBefore(depthControl,enginePanel);
+  if(depthControl.parentElement===notation)notation.insertBefore(engineSettings,depthControl);
+  if(engineInfo.parentElement===mobileEngineDetails)notation.insertBefore(engineInfo,engineSettings);
+ }
  // Keep Game statistics after the Stockfish analysis and move list on mobile.
  if(mobile&&sidePanel.parentElement!==analysisMain)analysisMain.append(sidePanel);
  else if(!mobile&&sidePanel.parentElement!==boardControlSidebar)boardControlSidebar.append(sidePanel);
