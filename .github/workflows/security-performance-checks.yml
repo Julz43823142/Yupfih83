@@ -1,9 +1,9 @@
 name: Security and performance regression checks
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feature/online-chess-3plus0]
   push:
-    branches: [main]
+    branches: [main, security/online-beta-prelaunch-20261105]
 
 permissions:
   contents: read
@@ -23,6 +23,8 @@ jobs:
         run: npm run test:auth
       - name: Adversarial online chess and security tests
         run: node --test tests/online/security.test.mjs
+      - name: Audit production dependencies for high-severity advisories
+        run: npm audit --omit=dev --audit-level=high
       - name: Build public assets
         run: npm run build
       - name: Test endpoint JSON validation and cache policy
