@@ -24,6 +24,7 @@ onlineBoard.addEventListener('pointerdown',e=>{
  const from=button.dataset.sq,piece=game.get(from);
  if(piece?.color!==side)return;
  dragStart={from,x:e.clientX,y:e.clientY,id:e.pointerId,moved:false,source:button,ghost:null};
+ try{onlineBoard.setPointerCapture(e.pointerId)}catch{}
 });
 onlineBoard.addEventListener('pointermove',e=>{
  if(dragStart?.id!==e.pointerId)return;
