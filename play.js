@@ -42,6 +42,31 @@ ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
+const timedPractice=new URL(location.href).searchParams.has('practice');
+let practiceWhiteMs=180000,practiceBlackMs=180000,practiceAt=0,practiceStarted=false;
+const practiceFmt=ms=>{const sec=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
+function practiceTick(){
+ if(!timedPractice||!practiceStarted||ended)return;
+ const now=Date.now(),elapsed=Math.max(0,now-practiceAt);practiceAt=now;
+ if(chess.turn()==='w')practiceWhiteMs=Math.max(0,practiceWhiteMs-elapsed);else practiceBlackMs=Math.max(0,practiceBlackMs-elapsed);
+ $('play-human-clock').textContent=practiceFmt(human==='w'?practiceWhiteMs:practiceBlackMs);
+ $('play-bot-clock').textContent=practiceFmt(human==='w'?practiceBlackMs:practiceWhiteMs);
+ if(!practiceWhiteMs||!practiceBlackMs){
+  ended=true;working=false;premoves.length=0;gameToken++;stopStrongBot();
+  const won=(practiceWhiteMs===0?'b':'w')===human;
+  status('Time out — '+(won?'you win!':'the bot wins.'));
+  showResult(won?'You won!':'You lost!','Time out.',won?'win':'loss');paint();
+ }
+}
+if(timedPractice){
+ document.body.classList.add('play-timed-practice');
+ $('play-human-clock').hidden=false;$('play-bot-clock').hidden=false;
+ const title=document.querySelector('.play-page > .play-title');if(title)title.textContent='3+0 Practice Against Bot';
+ const entry=document.querySelector('.online-entry');if(entry){entry.innerHTML='<a class="play-practice-back" href="/online.html">← Back to Online Chess</a><h1 class="play-title">Choose Your Bot · 3+0 Practice</h1><p>Choose any bot below, select White or Black, then start your timed practice game.</p>'}
+ $('play-undo').hidden=true;
+ setInterval(practiceTick,120);
+}
+
 const botChatLines={chessmass:['I love attacking chess!','The Scotch Gambit is my kind of opening.'],pls90a:['Second-best is best!','My rook has a plan.'],peanut:['The middlegame is where I shine!','Italian Game, anyone?'],cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
 function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
 function botChatMove(){const lines=chess.isCheck()?['Check! Keep an eye on your king.','A forcing move changes the position.']:chess.isCheckmate()?['That is checkmate. Good game!']:chess.history().length<9?['The opening is taking shape.','Center control matters early.']:['Interesting middlegame.','Every tempo counts.'];if(Math.random()<.55)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
@@ -104,6 +129,8 @@ function showResult(title,detail,kind){
 }
 $('play-result-ok').addEventListener('click',()=>$('play-result').close());
 function terminal(){
+ if(timedPractice)practiceTick();
+ if(ended)return true;
  if(chess.isCheckmate()){
   ended=true;working=false;premoves.length=0;
   const win=chess.turn()!==human;
@@ -334,6 +361,7 @@ function scheduleBot(){
  },120);
 }
 function newGame(){
+ if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00'}
  stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premoves.length=0;ended=false;working=false;
