@@ -34,7 +34,9 @@ or Cloudflare settings are modified by the repository's build or tests.
 
 ## Abuse controls and privacy
 
-Atomic shared D1 counters prevent parallel read/increment races. Source requests
+Atomic shared D1 counters prevent parallel read/increment races. Source addresses are canonicalized (IPv6 /64, mapped IPv4 normalized).
+Counters stop incrementing at their limit; blocked login sources do not allocate
+new account counters. Source requests
 are capped at 60/minute. Login attempts are capped at 30/account and 30/source in
 10 minutes; attempts after the first five require a server-verified Turnstile token.
 Counters count all attempts, not only failed ones, to gate hashing before it happens.
