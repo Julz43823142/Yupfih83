@@ -39,7 +39,7 @@ async function socialRefresh(){try{
  const box=$('online-inbox');box.replaceChildren();for(const req of friends.requests||[]){const p=document.createElement('p');p.textContent='Friend request from '+req.fromUser+' ';for(const action of ['accept','decline']){const button=document.createElement('button');button.textContent=action==='accept'?'Accept':'Decline';button.onclick=async()=>{try{await socialPost('friend-respond',{id:req.id,action});socialRefresh()}catch(e){$('online-account').textContent=e.message}};p.append(button)}box.append(p)}
  for(const v of inbox.challenges||[]){const p=document.createElement('p'),a=document.createElement('a');a.href='/online.html?invite='+encodeURIComponent(v.gameId);a.textContent='Accept challenge from '+v.fromUser;p.append(a);box.append(p)}
 }catch{}}
-async function challenge(username){try{const game=await post('create',{kind:'invite',name:name()});await socialPost('challenge',{username,gameId:game.id,gameSecret:game.secret});id=game.id;secret=game.secret;enter();$('online-status').textContent='Challenge sent to '+username}catch(e){setupError(e)}}
+async function challenge(username){try{const game=await post('create',{kind:'invite',name:name(),targetUsername:username});await socialPost('challenge',{username,gameId:game.id,gameSecret:game.secret});id=game.id;secret=game.secret;enter();$('online-status').textContent='Challenge sent to '+username}catch(e){setupError(e)}}
 const direct=new URL(location.href).searchParams.get('challenge');if(direct&&/^[A-Za-z0-9_]{3,24}$/.test(direct)){$('online-random').hidden=true;$('online-invite').textContent='Challenge '+direct;$('online-invite').onclick=()=>challenge(direct)}
 socialRefresh();setInterval(socialRefresh,30000);
 
