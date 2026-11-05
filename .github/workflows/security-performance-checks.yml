@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main, feature/online-chess-3plus0]
   push:
-    branches: [main, security/online-beta-prelaunch-20261105]
+    branches: [main, security/online-beta-prelaunch-20261105, feature/online-websocket-delivery-20261105]
 
 permissions:
   contents: read
