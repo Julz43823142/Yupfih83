@@ -258,7 +258,7 @@ function strongBotTurn(token,fen,level){
    catch{working=false;status('Bot move failed.');}
    paint();
   };
-  w.postMessage({token,fen,elo:ratings[level]||2000});
+  w.postMessage({token,fen,elo:ratings[level]||2000,secondBest:level==='pls90a'});
  }catch{try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
 }
 // Bot search runs in a module worker so deeper positions never freeze the board.
@@ -278,6 +278,43 @@ function ensureBotWorker(){
  };
  return botWorker;
 }
+function communityOpeningMove(level){
+ const moves=chess.moves({verbose:true}),ply=chess.history().length;
+ const pick=san=>moves.find(m=>m.san===san)||null;
+ if(level==='chessmass'){
+  if(chess.turn()==='w'){
+   if(ply===0)return pick('e4');
+   if(ply===2)return pick('Nf3');
+   if(ply===4)return pick('d4');
+   if(ply===6)return pick('Bc4');
+  }else{
+   if(ply===1)return pick('Nf6');
+   if(ply===3)return pick('g6');
+   if(ply===5)return pick('Bg7');
+   if(ply===7)return pick('d6');
+  }
+ }
+ if(level==='peanut'){
+  if(chess.turn()==='w'){
+   if(ply===0)return pick('e4');
+   if(ply===2)return pick('Nf3');
+   if(ply===4)return pick('Bc4');
+  }else{
+   if(ply===1)return pick('e5');
+   if(ply===3)return pick('Nc6');
+   if(ply===5)return pick('Bc5');
+  }
+ }
+ if(level==='pls90a'&&chess.turn()==='b'){
+  const first=chess.history({verbose:true})[0];
+  const flank=first?.to?.[0];
+  const queenside=['e','f','g','h'].includes(flank);
+  const kingside=['a','b','c','d'].includes(flank);
+  if(ply===1)return pick(queenside?'a5':kingside?'h5':'a5');
+  if(ply===3)return pick(queenside?'Ra6':kingside?'Rh6':'Ra6');
+ }
+ return null;
+}
 function scheduleBot(){
  if(terminal())return;
  working=true;status(names[botLevel]+' is thinking…');paint();
@@ -285,6 +322,8 @@ function scheduleBot(){
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
   try{
    const elo=ratings[level]||1000;
+   const special=communityOpeningMove(level);
+   if(special){try{apply(special);working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}return;}
    if(elo>=800&&(level==='cashojf3r'||level==='rocket'))ensureBotWorker().postMessage({token,fen,level,bookOnly:true});
    else if(elo>=800)strongBotTurn(token,fen,level);
    else ensureBotWorker().postMessage({token,fen,level});
