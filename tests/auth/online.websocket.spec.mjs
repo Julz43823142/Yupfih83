@@ -25,6 +25,7 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
         window.__eloWsOpened = false;
         window.__eloWsOpenCount = 0;
         window.__eloWsPongCount = 0;
+        window.__eloWsCloseCount = 0;
         window.__eloWsSockets = [];
         window.__eloWsEvents = [];
         window.__eloSentMoves = [];
@@ -43,6 +44,7 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
             super(...args);
             window.__eloWsSockets.push(this);
             this.addEventListener('open',()=>{ window.__eloWsOpened = true;window.__eloWsOpenCount++ });
+            this.addEventListener('close',()=>{ window.__eloWsCloseCount++ });
             this.addEventListener('message',event=>{
               try {
                 const data=JSON.parse(event.data);
@@ -101,7 +103,16 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
         // Force a dropped browser socket midgame. The exponential retry
         // must reconnect and sync before subsequent moves.
         await other.evaluate(()=>window.__eloWsSockets.at(-1).close());
-        await expect.poll(()=>other.evaluate(()=>window.__eloWsOpenCount),{timeout:15000}).toBeGreaterThanOrEqual(2);
+        try{
+          await expect.poll(()=>other.evaluate(()=>window.__eloWsOpenCount),{timeout:15000}).toBeGreaterThanOrEqual(2);
+        }catch(error){
+          console.log('WEBSOCKET RECONNECT DIAGNOSTICS',JSON.stringify(await other.evaluate(()=>({
+            closes:window.__eloWsCloseCount,opens:window.__eloWsOpenCount,
+            readyStates:window.__eloWsSockets.map(x=>x.readyState),
+            urls:window.__eloWsSockets.map(x=>new URL(x.url).pathname)
+          }))));
+          throw error;
+        }
         await expect.poll(()=>other.evaluate(()=>window.__eloWsSockets.at(-1).readyState),{timeout:15000}).toBe(1);
       }
     }
