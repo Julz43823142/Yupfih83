@@ -59,7 +59,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
    const response=await responsePromise;
    expect(response.status()).toBe(200);
    const timing=await response.headerValue('Server-Timing');
-   expect(timing).toMatch(/^chess;dur=\\d+(?:\\.\\d+)?$/);
+   expect(timing).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
    samples.push(Number(timing.split('=')[1]));
    await expect(peer.locator('#online-moves')).toContainText(san,{timeout:15000});
    deliverySamples.push(Date.now()-started);
