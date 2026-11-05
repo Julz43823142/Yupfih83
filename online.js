@@ -16,7 +16,7 @@ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r
 // Cache piece identity by square. During a normal move only the source and
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
-let paintedSide=null,lastHighlights=new Set(),boardFen=null;
+let paintedSide=null,lastHighlights=new Set(),boardFen=null,paintedSelected=null;
 function paintSquare(sq){
  const button=squares.get(sq),pc=game.get(sq),piece=pc?pc.color+pc.type:'';
  if(painted.get(sq)===piece)return;
@@ -29,6 +29,15 @@ function paintSquare(sq){
   button.append(image);
  }
 }
+function paintSelection(){
+ if(paintedSelected&&paintedSelected!==selected)squares.get(paintedSelected).classList.remove('selected');
+ if(selected)squares.get(selected).classList.add('selected');
+ paintedSelected=selected;
+ const legal=new Set(selectedMoves.map(m=>m.to));
+ for(const sq of lastHighlights)if(!legal.has(sq))squares.get(sq).classList.remove('legal');
+ for(const sq of legal)if(!lastHighlights.has(sq))squares.get(sq).classList.add('legal');
+ lastHighlights=legal;
+}
 function previewMove(from,to,move){
  // Paint only altered squares; castling and en passant affect additional squares.
  const changed=new Set([from,to]);
@@ -38,7 +47,7 @@ function previewMove(from,to,move){
  for(const sq of changed)paintSquare(sq);
  for(const sq of lastHighlights)squares.get(sq).classList.remove('legal');
  lastHighlights.clear();
- squares.get(from).classList.remove('selected');
+ squares.get(from).classList.remove('selected');paintedSelected=null;
  $('online-status').textContent='Sending move…';
 }
 function render(){if(!state)return;
@@ -53,7 +62,7 @@ function render(){if(!state)return;
   b.classList.toggle('selected',selected===sq);
   b.classList.toggle('legal',legal.has(sq));
  }
- lastHighlights=legal;
+ lastHighlights=legal;paintedSelected=selected;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
@@ -84,7 +93,7 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
    previewBoard=null;render();$('online-status').textContent=e.message
   }finally{busy=false}
   return}}
- if(pc?.color===side){selected=sq;selectedMoves=game.moves({square:sq,verbose:true})}render()}
+ if(pc?.color===side){selected=sq;selectedMoves=game.moves({square:sq,verbose:true})}paintSelection()}
 // Repeated state polls must not reconstruct the chess board or touch 64
 // squares when nothing relevant changed. Server timestamps still resync clocks.
 function acceptState(next){
