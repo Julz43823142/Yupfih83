@@ -331,3 +331,40 @@
   font-size:11px!important;white-space:normal!important;
  }
 }
+
+/* EloFlow v10: Stockfish results immediately after toggles, controls next, stats last. */
+@media(max-width:760px){
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-board-column{order:1!important}
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-engine-column{order:2!important}
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-controls-panel{order:3!important}
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>#review-side-stats{order:4!important}
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>.review-side-stats{
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  margin:8px 0 0!important;box-sizing:border-box!important;
+  position:relative!important;transform:none!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]{
+  appearance:none!important;-webkit-appearance:none!important;
+  display:block!important;position:relative!important;
+  flex:0 0 42px!important;width:42px!important;height:24px!important;
+  min-width:42px!important;max-width:42px!important;
+  min-height:24px!important;max-height:24px!important;
+  border-radius:20px!important;border:1px solid #47758c!important;
+  background:#244359!important;cursor:pointer!important;
+  box-sizing:border-box!important;transform:none!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]::before{
+  content:""!important;position:absolute!important;top:3px!important;left:3px!important;
+  width:16px!important;height:16px!important;border-radius:50%!important;
+  background:#bdd2df!important;transition:left .15s ease!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]:checked{
+  background:#079ac1!important;border-color:#3bc5ec!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]:checked::before{
+  left:21px!important;background:#e5faff!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]:focus-visible{
+  outline:2px solid white!important;outline-offset:3px!important;
+ }
+}
