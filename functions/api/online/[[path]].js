@@ -10,7 +10,7 @@ async function json(request){if(!request.headers.get('content-type')?.startsWith
 function view(g,token){const side=g.white_token===token?'w':g.black_token===token?'b':null;if(!side)return null;return {id:g.id,status:g.status,kind:g.kind,side,white:g.white_name,black:g.black_name,fen:g.fen,moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,result:g.result};}
 async function expire(g,db){if(g.status!=='active'||!g.last_move_at)return g;const elapsed=Math.max(0,now()-g.last_move_at);const key=g.turn==='w'?'white_ms':'black_ms';if(elapsed<g[key])return g;const result=g.turn==='w'?'0-1':'1-0';await db.prepare('UPDATE online_games SET status=\'finished\', result=?, '+key+'=0,updated_at=? WHERE id=? AND status=\'active\' AND last_move_at=?').bind(result,now(),g.id,g.last_move_at).run();return await db.prepare('SELECT * FROM online_games WHERE id=?').bind(g.id).first();}
 export async function onRequest({request,env,params}){
- const url=new URL(request.url),route=(params.path||[]).join('/').replace(/\/$/,'');
+ const url=new URL(request.url),route=url.pathname.replace(/^\/api\/online\/?/,'').replace(/\/$/,'');
  if(!env.AUTH_DB)return reply({error:'Multiplayer database is not configured.'},503);
  if(request.method==='POST'&&(request.headers.get('Origin')!==url.origin||request.headers.get('Sec-Fetch-Site')==='cross-site'))return reply({error:'Origin rejected.'},403);
  try{
