@@ -135,3 +135,6 @@
 .play-chat-user{align-self:flex-end;background:#174c59;border-color:#2a8b91;border-radius:12px 12px 3px 12px}
 .play-chat-form input:focus-visible{outline:2px solid #68dff3;outline-offset:1px}
 #play-board .play-square.premove-from,#play-board .play-square.premove-to{transition:box-shadow .12s ease}
+
+/* Multiplayer entry menu */
+.online-entry{margin-bottom:34px}.online-entry-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.online-entry-option{display:flex;flex-direction:column;gap:9px;background:#10334d;border:1px solid #347c9c;border-radius:14px;padding:22px;text-decoration:none;color:#f1fbff;min-height:100px;justify-content:center}.online-entry-option:hover,.online-entry-option:focus-visible{background:#185577;border-color:#6be0ff}.online-entry-option strong{font-size:21px}.online-entry-option small{font-size:13px;color:#b9dce9}@media(max-width:650px){.online-entry-options{grid-template-columns:1fr}}
