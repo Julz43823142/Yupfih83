@@ -150,6 +150,7 @@ test('opponent and unauthenticated probes cannot obtain player IP or private bro
   assert.match(cookie,/HttpOnly; SameSite=Strict; Max-Age=2592000; Secure/);
   assert.equal(first.headers.get('Cache-Control'),'no-store, private');
   assert.equal(first.headers.get('Referrer-Policy'),'no-referrer');
+  assert.equal(first.headers.get('Cross-Origin-Resource-Policy'),'same-origin');
   const second=await api(db,'create',{kind:'random',name:'Bob'},{origin,ip:ipB});
   assert.equal(second.status,200);
   const black=await second.json();
