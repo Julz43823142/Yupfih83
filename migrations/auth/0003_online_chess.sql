@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS online_games (
  black_token TEXT,
  white_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
  black_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
+ invited_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
  white_name TEXT NOT NULL,
  black_name TEXT,
  fen TEXT NOT NULL,
