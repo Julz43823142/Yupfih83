@@ -32,6 +32,20 @@ export async function onRequest({request,env}){
   const rows=await db.prepare("SELECT id,white_name AS white,black_name AS black,result,kind,updated_at AS finishedAt,moves FROM online_games WHERE status='finished' AND (white_user_id=? OR black_user_id=?) ORDER BY updated_at DESC LIMIT 25 OFFSET ?").bind(who.id,who.id,page*25).all();
   return reply({games:(rows.results||[]).map(g=>({...g,moves:JSON.parse(g.moves).length})),total:count?.total||0,page});
  }
+ if(route==='public-friends'&&request.method==='GET'){
+  const username=url.searchParams.get('username');if(!validUsername(username))return reply({error:'Invalid username.'},400);
+  const capped=await limit(env,request,'public-friends',30,60000);if(capped)return capped;
+  const who=await member(db,username);if(!who)return reply({friends:[]});
+  const rows=await db.prepare('SELECT u.username,CASE WHEN p.seen_at>? THEN 1 ELSE 0 END AS online FROM online_friends f JOIN "user" u ON u.id=f.friend_id LEFT JOIN online_presence p ON p.user_id=u.id WHERE f.user_id=? ORDER BY u.username LIMIT 200').bind(t-90000,who.id).all();
+  return reply({friends:rows.results||[]});
+ }
+ if(route==='game'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!isToken(id))return reply({error:'Invalid game ID.'},400);
+  const capped=await limit(env,request,'public-game',40,60000);if(capped)return capped;
+  const g=await db.prepare("SELECT id,white_name AS white,black_name AS black,result,kind,moves,updated_at AS finishedAt FROM online_games WHERE id=? AND status='finished'").bind(id).first();
+  if(!g)return reply({error:'Game not found.'},404);
+  const moves=JSON.parse(g.moves);return reply({id:g.id,white:g.white,black:g.black,result:g.result,kind:g.kind,moves,finishedAt:g.finishedAt});
+ }
  const capped=await limit(env,request,request.method==='POST'?route:'read',route==='presence'?8:route==='challenge'?6:route==='add'?8:30,route==='presence'?60000:600000);if(capped)return capped;
  const me=await fetchMe(request,env);
  if(route==='presence'&&request.method==='POST'){
