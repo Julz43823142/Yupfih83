@@ -60,6 +60,7 @@ jobs:
       - run: npm run build
       - run: npm run auth:migrate:local
       - run: npm run auth:provision -- --local --fixture
+      - run: npm run auth:provision -- --local --fixture2
       - name: Exercise real local Workers and D1 in Chromium
         env:
           WRANGLER_SEND_METRICS: 'false'
