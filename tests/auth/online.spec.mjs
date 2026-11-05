@@ -108,11 +108,14 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
  const a=await browser.newContext(),b=await browser.newContext();
  const pa=await a.newPage(),pb=await b.newPage();
  try{
-  await pa.goto(base+'/online.html');await pb.goto(base+'/online.html');
+  await pa.goto(base+'/online.html?friend=1');
   await pa.locator('#online-name').fill('BenchAlice');
+  await pa.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+  const invitation=await pa.locator('#online-link').inputValue();
+  expect(invitation).toMatch(/invite=[a-f0-9]{32}/);
+  await pb.goto(invitation);
   await pb.locator('#online-name').fill('BenchBob');
-  await pa.getByRole('button',{name:'Find opponent'}).click();
-  await pb.getByRole('button',{name:'Find opponent'}).click();
+  await pb.getByRole('button',{name:'Join game'}).click();
   await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
   const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
@@ -126,7 +129,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   const origin=Date.now();
   const moveResponse=await moveResponsePromise;
   const serverTiming=await moveResponse.headerValue('Server-Timing');
-  expect(serverTiming).toMatch(/^chess;dur=\\d+(?:\\.\\d+)?$/);
+  expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
   await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const ownMs=Date.now()-origin;
   await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
