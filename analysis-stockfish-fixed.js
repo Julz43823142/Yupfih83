@@ -1001,7 +1001,36 @@ $('review-gif').addEventListener('click',async()=>{
  finally{button.disabled=false}
 });
 
+
+// EloFlow mobile quick actions: reuse the actual controls so state and handlers stay intact.
+const mobileQuickNav=document.createElement('div');mobileQuickNav.className='elo-analysis-mobile-nav';
+const mobileQuickToggles=document.createElement('div');mobileQuickToggles.className='elo-analysis-mobile-toggles';
+analysisBoardColumn.insertBefore(mobileQuickNav,boardLayout);
+analysisBoardColumn.insertBefore(mobileQuickToggles,boardLayout.nextSibling);
+const desktopNavHome=boardControlButtons?.querySelector('.elo-nav-pair');
+const desktopToggleHome=document.querySelector('.analysis-engine-header');
+const mobileNavPair=boardControlButtons?.querySelector('.elo-nav-pair');
+function syncMobileQuickActions(){
+ const mobile=window.matchMedia('(max-width:760px)').matches;
+ if(mobile&&mobileNavPair)mobileQuickNav.append(mobileNavPair);
+ else if(!mobile&&mobileNavPair&&boardControlButtons)boardControlButtons.prepend(mobileNavPair);
+ const engineHeader=document.querySelector('.analysis-engine-header');
+ const labels=[arrowToggleLabel,engineToggle];
+ const databaseLabel=Array.from(document.querySelectorAll('.analysis-engine-header label,.elo-analysis-mobile-toggles label')).find(label=>/database/i.test(label.textContent||''));
+ if(databaseLabel)labels.push(databaseLabel);
+ for(const label of labels){if(!label)continue;
+  if(mobile)mobileQuickToggles.append(label);
+  else if(engineHeader)engineHeader.append(label);
+ }
+}
+window.addEventListener('resize',syncMobileQuickActions,{passive:true});
+new MutationObserver(()=>{if(window.matchMedia('(max-width:760px)').matches){
+ const header=document.querySelector('.analysis-engine-header');
+ if(header?.querySelector('label'))syncMobileQuickActions();
+}}).observe(analysisEngineColumn,{childList:true,subtree:true});
+
 render();
+syncMobileQuickActions();
 // A puzzle-error review can open this analysis board with its original FEN.
 // No analysis is started automatically; the visitor controls the engine toggle.
 const linkedPuzzleFen=new URLSearchParams(window.location.search).get('fen');
