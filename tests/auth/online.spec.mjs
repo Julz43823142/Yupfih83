@@ -138,7 +138,7 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
  const a=await browser.newContext(),b=await browser.newContext(),pageA=await a.newPage(),pageB=await b.newPage();const errors=[];
  pageA.on('pageerror',error=>errors.push(error.message));pageB.on('pageerror',error=>errors.push(error.message));
  try{
-  await pageA.goto(base+'/play.html');await expect(pageA.getByText('Play Online',{exact:true})).toBeVisible();
+  await pageA.goto(base+'/play.html');await expect(pageA.getByText('Online Chess (BETA)',{exact:true})).toBeVisible();
   await pageA.goto(base+'/online.html?friend=1');
   await pageA.locator('#online-name').fill('Alice');
   await pageA.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
