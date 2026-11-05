@@ -21,6 +21,7 @@ class DB{
   }}};
  }
  async batch(statements){this.sqlite.exec('BEGIN');try{const values=[];for(const stmt of statements)values.push(await stmt.run());this.sqlite.exec('COMMIT');return values}catch(e){this.sqlite.exec('ROLLBACK');throw e}}
+ async exec(sql){this.sqlite.exec(sql);return {}}
  close(){this.sqlite.close()}
 }
 function api(db,path,data={},options={}){
