@@ -264,6 +264,25 @@ board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',un
 // Master and grandmaster tiers use Stockfish rather than the shallow JS search.
 let strongWorker=null;
 function stopStrongBot(){if(strongWorker){strongWorker.terminate();strongWorker=null}}
+let pendingBotTiming=null;
+function calculateBotThinkMs(){
+ const elo=ratings[botLevel]||1000;
+ const remaining=chess.turn()==='w'?practiceWhiteMs:practiceBlackMs;
+ const base=elo<900?7500:elo<1500?4800:elo<2000?3200:elo<2400?2100:1000;
+ const variance=0.35+Math.random()*1.45;
+ const urgency=remaining<12000?0.12:remaining<30000?0.3:remaining<60000?0.55:1;
+ return Math.max(180,Math.min(remaining*0.2,base*variance*urgency));
+}
+function finishBotCalculation(token,move){
+ const timing=pendingBotTiming;
+ const wait=timedPractice&&timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
+ setTimeout(()=>{
+  if(token!==gameToken||ended||chess.turn()===human)return;
+  try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
+  catch{working=false;status('Bot move failed.')}
+  paint();
+ },wait);
+}
 function strongBotTurn(token,fen,level){
  stopStrongBot();
  try{
@@ -282,9 +301,7 @@ function strongBotTurn(token,fen,level){
    if(error){fallback();return}
    stopStrongBot();
    if(token!==gameToken||ended||chess.turn()===human)return;
-   try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
-   catch{working=false;status('Bot move failed.');}
-   paint();
+   finishBotCalculation(token,move);
   };
   const first=chess.history({verbose:true})[0];
   const lockedRook=level==='pls90a'&&chess.history().length>=4?( ['e','f','g','h'].includes(first?.to?.[0])?'a6':'h6'):null;
@@ -302,9 +319,7 @@ function ensureBotWorker(){
   if(token!==gameToken||ended||chess.turn()===human)return;
   if(bookMiss){strongBotTurn(token,chess.fen(),botLevel);return}
   if(error){working=false;status('Bot calculation failed. Start a new game to retry.');paint();return}
-  try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
-  catch(err){working=false;status('Bot move failed. Start a new game to retry.');console.error(err)}
-  paint();
+  finishBotCalculation(token,move);
  };
  return botWorker;
 }
@@ -349,6 +364,7 @@ function scheduleBot(){
  if(terminal())return;
  const startedAt=Date.now();
  const botDelay=timedPractice?calculateBotThinkMs():120;
+ pendingBotTiming={token:gameToken,started:startedAt,delay:botDelay};
  const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
  working=true;status(names[botLevel]+' is thinking…');paint();
  const token=gameToken,fen=chess.fen(),level=botLevel;
