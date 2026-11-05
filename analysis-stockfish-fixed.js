@@ -1015,6 +1015,9 @@ function syncMobileQuickActions(){
  if(mobile&&mobileNavPair)mobileQuickNav.append(mobileNavPair);
  else if(!mobile&&mobileNavPair&&boardControlButtons)boardControlButtons.prepend(mobileNavPair);
  const engineHeader=document.querySelector('.analysis-engine-header');
+ // Keep Game statistics after the Stockfish analysis and move list on mobile.
+ if(mobile&&sidePanel.parentElement!==analysisMain)analysisMain.append(sidePanel);
+ else if(!mobile&&sidePanel.parentElement!==boardControlSidebar)boardControlSidebar.append(sidePanel);
  const labels=[arrowToggleLabel,engineToggle];
  const databaseLabel=Array.from(document.querySelectorAll('.analysis-engine-header label,.elo-analysis-mobile-toggles label')).find(label=>/database/i.test(label.textContent||''));
  if(databaseLabel)labels.push(databaseLabel);
