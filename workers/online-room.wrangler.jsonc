@@ -1,0 +1,14 @@
+{
+ "$schema": "../node_modules/wrangler/config-schema.json",
+ "name": "eloscanner-online-room",
+ "main": "online-room.mjs",
+ "compatibility_date": "2026-11-01",
+ "durable_objects": {
+  "bindings": [
+   {"name":"ONLINE_ROOM","class_name":"OnlineChessRoom"}
+  ]
+ },
+ "migrations": [
+  {"tag":"v1","new_sqlite_classes":["OnlineChessRoom"]}
+ ]
+}
