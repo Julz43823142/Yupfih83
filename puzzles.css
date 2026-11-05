@@ -303,3 +303,15 @@ button.rank-report:disabled{opacity:.7;cursor:default}
 }
 
 @media(min-width:1121px){.puzzles-page{width:min(1550px,calc(100% - 28px))!important}.puzzles-layout,.puzzles-layout.has-save-score{grid-template-columns:minmax(165px,195px) minmax(0,660px) minmax(280px,370px)!important;gap:16px!important}#puzzle-board{max-width:660px!important}}
+
+/* Leaderboard identity: orange = nickname, green = verified signed-in account. */
+.rank-nickname{color:#ffae58!important;font-weight:750}
+.rank-account{color:#79ec9a!important;font-weight:750}
+.puzzle-publish-choice{display:grid;gap:8px;margin:10px 0 13px}
+.puzzle-publish-choice label{display:flex;align-items:center;gap:8px;cursor:pointer;color:#d8ecf5;font-size:13px}
+.puzzle-publish-choice input{accent-color:#69d990}
+.puzzle-ranking-limits{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px}
+.puzzle-ranking-limits button{background:#103149;color:#d7eefa;border:1px solid #35637b;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+.puzzle-ranking-limits button[aria-pressed="true"]{border-color:#5ee99c;background:#18533e;color:#d6ffe5}
+.puzzle-rank-columns,.puzzle-rank-list li:not(.rank-note){grid-template-columns:minmax(34px,.65fr) minmax(95px,2fr) minmax(45px,.9fr) minmax(58px,1fr)!important}
+@media(max-width:850px){.puzzle-rank-columns,.puzzle-rank-list li:not(.rank-note){grid-template-columns:30px minmax(95px,1.7fr) 42px 55px!important}}
