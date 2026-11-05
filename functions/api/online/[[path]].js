@@ -104,5 +104,5 @@ export async function onRequest({request,env}){
    return reply({ok:true});
   }
   return reply({error:'Route not found.'},404);
- }catch{return safeError()}
+ }catch(error){if(env.ONLINE_TEST_DEBUG==='true')console.error('Online test diagnostics:',error);return safeError()}
 }
