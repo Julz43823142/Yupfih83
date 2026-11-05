@@ -14,6 +14,31 @@ $('online-invite').onclick=async()=>{try{const r=await post('create',{kind:'invi
 $('online-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('online-link').value);$('online-copy').textContent='Copied!'}catch{$('online-link').select()}};
 $('online-resign').onclick=async()=>{if(!confirm('Resign this game?'))return;try{await post('resign',{id,secret});poll()}catch(e){$('online-status').textContent=e.message}};
 for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),b=document.createElement('button');b.type='button';b.className=(r+c)%2?'dark':'light';b.dataset.sq=sq;b.setAttribute('aria-label',sq);b.onclick=()=>choose(sq);squares.set(sq,b);$('online-board').append(b)}
+// Drag pieces using the same move validation as click-to-move.
+let dragStart=null;
+const onlineBoard=$('online-board');
+onlineBoard.addEventListener('dragstart',e=>e.preventDefault());
+onlineBoard.addEventListener('pointerdown',e=>{
+ const button=e.target.closest('button[data-sq]');
+ if(e.button!==0||!button||!state||state.status!=='active'||busy)return;
+ const from=button.dataset.sq,piece=game.get(from);
+ if(piece?.color!==side)return;
+ dragStart={from,x:e.clientX,y:e.clientY,id:e.pointerId,moved:false};
+});
+onlineBoard.addEventListener('pointermove',e=>{
+ if(dragStart?.id===e.pointerId&&Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)>8)dragStart.moved=true;
+});
+onlineBoard.addEventListener('pointerup',e=>{
+ if(!dragStart||dragStart.id!==e.pointerId)return;
+ const drag=dragStart;dragStart=null;
+ if(!drag.moved)return;
+ const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#online-board button[data-sq]');
+ if(!target||target.dataset.sq===drag.from)return;
+ selected=drag.from;
+ selectedMoves=state.turn===side?game.moves({square:drag.from,verbose:true}):premoveCandidates(drag.from);
+ choose(target.dataset.sq);
+});
+onlineBoard.addEventListener('pointercancel',()=>{dragStart=null});
 // Cache piece identity by square. During a normal move only the source and
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
