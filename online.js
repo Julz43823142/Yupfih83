@@ -24,8 +24,10 @@ function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.ma
 async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!==side)return;const pc=game.get(sq);if(selected){const from=selected;selected=null;const legal=game.moves({square:from,verbose:true}).filter(m=>m.to===sq);if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}busy=true;try{await post('move',{id,secret,from,to:sq,promotion});await poll()}catch(e){$('online-status').textContent=e.message}finally{busy=false}return}}
  if(pc?.color===side)selected=sq;render()}
 let polling=false;async function poll(){if(!id||!secret||polling)return;polling=true;try{const j=await post('state',{id,secret});state=j;side=j.side;serverOffset=j.serverTime-Date.now();render()}catch(e){$('online-status').textContent=e.message}finally{polling=false}}
-const invitation=new URL(location.href).searchParams.get('invite');if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
-else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!new URL(location.href).searchParams.has('friend')&&!new URL(location.href).searchParams.has('challenge')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
+const urlParams=new URL(location.href).searchParams;
+const invitation=urlParams.get('invite');const reviewId=urlParams.get('review');if(reviewId&&/^[a-f0-9]{32}$/.test(reviewId)){initializeReplay(reviewId)}
+else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
+else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
 setInterval(()=>{if(id)poll()},1500);setInterval(clocks,250);
 
 async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
@@ -40,3 +42,18 @@ async function socialRefresh(){try{
 async function challenge(username){try{const game=await post('create',{kind:'invite',name:name()});await socialPost('challenge',{username,gameId:game.id,gameSecret:game.secret});id=game.id;secret=game.secret;enter();$('online-status').textContent='Challenge sent to '+username}catch(e){setupError(e)}}
 const direct=new URL(location.href).searchParams.get('challenge');if(direct&&/^[A-Za-z0-9_]{3,24}$/.test(direct)){$('online-random').hidden=true;$('online-invite').textContent='Challenge '+direct;$('online-invite').onclick=()=>challenge(direct)}
 socialRefresh();setInterval(socialRefresh,30000);
+
+async function initializeReplay(gameId){
+ $('online-setup').hidden=true;$('online-social').hidden=true;$('online-game').hidden=false;$('online-resign').hidden=true;
+ const msg=$('online-status');msg.textContent='Loading completed game…';
+ try{
+  const response=await fetch('/api/social/game?id='+encodeURIComponent(gameId),{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Replay unavailable');
+  const moves=data.moves,control=document.createElement('div');control.className='online-actions';
+  const back=document.createElement('button');back.type='button';back.textContent='← Previous';
+  const next=document.createElement('button');next.type='button';next.textContent='Next →';
+  control.append(back,next);msg.after(control);let index=moves.length;
+  const frame=()=>{const board=new Chess();for(let n=0;n<index;n++)board.move(moves[n]);state={status:'finished',side:'w',white:data.white,black:data.black,fen:board.fen(),moves:moves.slice(0,index),turn:board.turn(),whiteMs:180000,blackMs:180000,result:data.result,lastMoveAt:0};side='w';selected=null;render();msg.textContent='Replay · '+index+' of '+moves.length+' half-moves · '+data.result;back.disabled=index===0;next.disabled=index===moves.length};
+  back.onclick=()=>{index=Math.max(0,index-1);frame()};next.onclick=()=>{index=Math.min(moves.length,index+1);frame()};frame();
+ }catch(error){msg.textContent=error.message||'Replay unavailable'}
+}
