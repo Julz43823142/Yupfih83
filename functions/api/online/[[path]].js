@@ -56,8 +56,13 @@ async function nameAndAccount(request,env,provided){
  return {name:'Guest · '+provided.trim(),userId:null};
 }
 async function guarded(db,env,request,scope,limit=20,window=60000,identity=''){
- if(!await rateLimit(env,request,scope+':ip',scope==='state'?150:scope==='move'?200:limit,window))return reply({error:'Too many requests. Try again shortly.'},429);
- if(!await rateLimit(env,request,scope,limit,window,identity))return reply({error:'Too many requests. Try again shortly.'},429);
+ // Independent IP and seat budgets can be checked concurrently. Both must
+ // pass; we never weaken either rate limit to improve move latency.
+ const [ipAllowed,seatAllowed]=await Promise.all([
+  rateLimit(env,request,scope+':ip',scope==='state'?150:scope==='move'?200:limit,window),
+  rateLimit(env,request,scope,limit,window,identity)
+ ]);
+ if(!ipAllowed||!seatAllowed)return reply({error:'Too many requests. Try again shortly.'},429);
  return null;
 }
 export async function onRequest({request,env,waitUntil}){
