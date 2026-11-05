@@ -24,6 +24,8 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
   const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
+  // Start before submitting clicks; otherwise we underreport end-to-end latency.
+  const origin=Date.now();
   const starts=await pa.evaluate(()=>{
    const start=performance.now();
    window.__benchMoveStart=start;
@@ -31,7 +33,6 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
    document.querySelector('#online-board button[data-sq="e4"]').click();
    return start;
   });
-  const origin=Date.now();
   const moveResponse=await moveResponsePromise;
   const serverTiming=await moveResponse.headerValue('Server-Timing');
   expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
