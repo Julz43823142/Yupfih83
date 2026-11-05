@@ -1,7 +1,7 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,game=new Chess(),busy=false,serverOffset=0;
-let liveSocket=null,liveConnected=false,liveRetryAt=0,previewFen=null;
+let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -17,7 +17,7 @@ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
 let paintedSide=null;
-function render(){if(!state)return;game=new Chess(previewFen||state.fen);
+function render(){if(!state)return;game=previewBoard||new Chess(state.fen);
  const rotated=paintedSide!==side;
  if(rotated){$('online-board').dataset.side=side;paintedSide=side}
  const legal=new Set(selected&&game.turn()===side?game.moves({square:selected,verbose:true}).map(m=>m.to):[]);
@@ -35,7 +35,7 @@ function render(){if(!state)return;game=new Chess(previewFen||state.fen);
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
- $('online-status').textContent=previewFen?'Sending move…':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
+ $('online-status').textContent=previewBoard?'Sending move…':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
 function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));$('online-top-clock').textContent=fmt(side==='w'?b:w);$('online-bottom-clock').textContent=fmt(side==='w'?w:b)}
@@ -44,17 +44,16 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
   // until the server confirms this position.
   busy=true;
   try{
-   const speculative=new Chess(state.fen);
-   speculative.move({from,to:sq,promotion});
-   previewFen=speculative.fen();
+   game.move({from,to:sq,promotion});
+   previewBoard=game;
    render();
    const committed=await post('move',{id,secret,from,to:sq,promotion});
-   previewFen=null;
+   previewBoard=null;
    if(committed.id===id&&committed.fen){
     state=committed;side=committed.side;serverOffset=committed.serverTime-Date.now();render()
    }else await poll();
   }catch(e){
-   previewFen=null;render();$('online-status').textContent=e.message
+   previewBoard=null;render();$('online-status').textContent=e.message
   }finally{busy=false}
   return}}
  if(pc?.color===side)selected=sq;render()}
