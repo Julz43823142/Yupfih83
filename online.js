@@ -114,6 +114,23 @@ function premoveCandidates(square){
   return new Chess(fen.join(' ')).moves({square,verbose:true});
  }catch{return []}
 }
+function choosePromotion(){
+ return new Promise(resolve=>{
+  const overlay=document.createElement('div');overlay.className='online-promotion-overlay';
+  const panel=document.createElement('div');panel.className='online-promotion-panel';
+  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Choose promotion piece');
+  const title=document.createElement('strong');title.textContent='Promote pawn to';panel.append(title);
+  const buttons=document.createElement('div');buttons.className='online-promotion-options';
+  const finish=value=>{overlay.remove();resolve(value)};
+  for(const [piece,label] of [['q','Queen'],['r','Rook'],['b','Bishop'],['n','Knight']]){
+   const button=document.createElement('button');button.type='button';button.setAttribute('aria-label',label);
+   const image=document.createElement('img');image.src='/vendor/pieces/cburnett/'+side+piece.toUpperCase()+'.svg';image.alt=label;
+   button.append(image);button.onclick=()=>finish(piece);buttons.append(button);
+  }
+  panel.append(buttons);overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)finish(null)});
+  document.body.append(overlay);buttons.querySelector('button').focus();
+ });
+}
 async function choose(sq){
  if(busy||!state||state.status!=='active')return;
  const pc=game.get(sq);
@@ -129,7 +146,7 @@ async function choose(sq){
   }
   if(pc?.color===side){selected=sq;selectedMoves=premoveCandidates(sq)}
   paintSelection();return;
- }if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}// Optimistic *display only*: the server remains authoritative.
+ }if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=await choosePromotion();if(!p){render();return}promotion=p}// Optimistic *display only*: the server remains authoritative.
   // Do not advance clocks, game state, results, or permit another move
   // until the server confirms this position.
   busy=true;
