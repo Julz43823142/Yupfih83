@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test';
+const base = 'http://localhost:8788';
+test('real Workers/D1 login, closed signup, responsive account UI and logout', async ({ page }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base + '/account.html?view=signup');
+  await expect(page.getByRole('heading', { name: 'Registration is not open yet.' })).toBeVisible();
+  await expect(page.locator('#login-form')).toBeHidden();
+  const closed = await page.request.post(base + '/api/auth/sign-up/email', { headers: { Origin: base }, data: { email: 'must-not-register@example.com', name: 'someone', password: 'LongButNeverUsed-password!' } });
+  expect(closed.status()).toBe(403);
+  await page.goto(base + '/account.html');
+  await expect(page.locator('#login-form button')).toBeEnabled();
+  await page.locator('#username').fill('local_tester');
+  await page.locator('#password').fill('Local-test-only-orchard-57931!');
+  await page.getByRole('button', { name: 'Log in', exact: true }).click();
+  await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
+  await expect(page.locator('.account-nav')).toHaveText('local_tester');
+  const cookies = await page.context().cookies();
+  expect(cookies.some(c => c.httpOnly && c.name.includes('session_token'))).toBeTruthy();
+  expect(await page.evaluate(() => Object.keys(localStorage).some(k => /token|session/i.test(k)))).toBe(false);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '/tmp/eloscanner-account-mobile.png', fullPage: true });
+  await page.locator('#sign-out').click();
+  await expect(page.locator('#login-form')).toBeVisible();
+  await page.reload(); await expect(page.locator('#login-form')).toBeVisible();
+  expect(errors).toEqual([]);
+  // Homepage chess API calls may fail offline; assess only new auth scripts there.
+  errors.length = 0;
+  await page.goto(base + '/');
+  await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
+  await expect(page.locator('header .mobile-chess-menu')).toHaveCount(0);
+  await page.goto(base + '/minigames.html');
+  await expect(page.locator('header .elo-global-menu')).toBeVisible();
+  await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
+});

@@ -57,5 +57,6 @@ assert.ok(painted>0);
 const play=readFileSync(new URL('../play.js',import.meta.url),'utf8');
 assert.ok(play.includes('attachPlayBotControls({board'));
 assert.ok(play.includes('runPremove()'));
-assert.ok(play.includes('premove={from,to,promotion:promotion'));
+// The current implementation queues multiple premoves, rather than one object.
+assert.ok(play.includes("premoves.push({from,to,promotion:promotion||'q'})"));
 console.log('PASS: premove clicks, drag and drop, right-click cancellation, flipped board and integration.');

@@ -1,0 +1,16 @@
+{
+  "name": "eloscanner-auth-local-test",
+  "pages_build_output_dir": "../../dist",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{
+    "binding": "AUTH_DB",
+    "database_name": "eloscanner-auth-local-test",
+    "database_id": "00000000-0000-0000-0000-000000000001",
+    "migrations_dir": "../../migrations/auth"
+  }],
+  "vars": {
+    "BETTER_AUTH_URL": "http://localhost:8788",
+    "BETTER_AUTH_SECRET": "LOCAL-TEST-ONLY-never-use-in-production-1234567890"
+  }
+}
