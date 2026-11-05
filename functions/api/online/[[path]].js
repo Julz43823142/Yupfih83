@@ -4,6 +4,25 @@ import {reply,readJSON,rateLimit,sameOrigin,secretHash,random,isToken,validGuest
 const gameId=s=>isToken(s);
 const time=()=>Date.now();
 const turns=JSON.stringify;
+// The Durable Object receives only public game state; it never sees IP addresses,
+// login cookies, bearer secrets, or raw request headers.
+async function pushState(env,g){
+ if(!env.ONLINE_ROOM)return;
+ try{
+  const room=env.ONLINE_ROOM.get(env.ONLINE_ROOM.idFromName(g.id));
+  const state=publicGame(g,g.white_token);
+  if(!state)return;
+  const {side,...publicState}=state;
+  await room.fetch('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(publicState)});
+ }catch(error){
+  if(env.ONLINE_TEST_DEBUG==='true')console.error('Optional live push failed:',error);
+ }
+}
+async function announceGame(env,db,id){
+ if(!env.ONLINE_ROOM)return;
+ const game=await getGame(db,id);
+ if(game)await pushState(env,game);
+}
 function browserIdentity(request){
  const match=(request.headers.get('Cookie')||'').match(/(?:^|;\s*)elo_chess_browser=([a-f0-9]{32})(?:;|$)/);
  const value=match?match[1]:random();
@@ -41,11 +60,37 @@ async function guarded(db,env,request,scope,limit=20,window=60000,identity=''){
  if(!await rateLimit(env,request,scope,limit,window,identity))return reply({error:'Too many requests. Try again shortly.'},429);
  return null;
 }
-export async function onRequest({request,env}){
+export async function onRequest({request,env,waitUntil}){
  const url=new URL(request.url),route=url.pathname.replace(/^\/api\/online\/?/,'').replace(/\/$/,'');
  if(!env.AUTH_DB||typeof env.BETTER_AUTH_SECRET!=='string'||env.BETTER_AUTH_SECRET.length<32)return reply({error:'Multiplayer unavailable.'},503);
- if(request.method!=='POST')return reply({error:'Method not allowed.'},405);
  if(!sameOrigin(request))return reply({error:'Request origin rejected.'},403);
+ // WebSocket upgrade: authorize the seat before invoking the private room.
+ // The bearer secret is transmitted as a WebSocket subprotocol, not in the URL.
+ if(route==='live'&&request.method==='GET'){
+  if(!env.ONLINE_ROOM)return reply({error:'Realtime unavailable.'},503);
+  if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return reply({error:'Upgrade required.'},426);
+  const id=url.searchParams.get('id');
+  const protocols=(request.headers.get('Sec-WebSocket-Protocol')||'').split(',').map(v=>v.trim());
+  const seat=protocols.find(v=>/^elo-seat-[a-f0-9]{32}$/.test(v));
+  if(!isToken(id)||!protocols.includes('elo-chess-v1')||!seat)return reply({error:'Invalid credentials.'},400);
+  const digest=await secretHash(seat.slice('elo-seat-'.length));
+  try{
+   const limited=await guarded(env.AUTH_DB,env,request,'live-connect',12,60000,digest);
+   if(limited)return limited;
+   const game=await getGame(env.AUTH_DB,id);
+   const publicView=game&&publicGame(game,digest);
+   if(!publicView)return reply({error:'Game not found.'},404);
+   const accountId=publicView.side==='w'?game.white_user_id:game.black_user_id;
+   if(accountId&&(await sessionUser(request,env))?.id!==accountId)return reply({error:'Game not found.'},404);
+   const room=env.ONLINE_ROOM.get(env.ONLINE_ROOM.idFromName(id));
+   // Construct a fresh request. Do NOT forward Cookie, CF-Connecting-IP,
+   // Sec-WebSocket-Protocol bearer material or other original headers.
+   return room.fetch(new Request('https://room.internal/connect',{
+    headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'elo-chess-v1','X-Authorized-Side':publicView.side}
+   }));
+  }catch(error){if(env.ONLINE_TEST_DEBUG==='true')console.error('Live connect:',error);return safeError()}
+ }
+ if(request.method!=='POST')return reply({error:'Method not allowed.'},405);
  const b=await readJSON(request);
  if(!b)return reply({error:'Invalid JSON request.'},400);
  const db=env.AUTH_DB;
@@ -67,7 +112,7 @@ export async function onRequest({request,env}){
     const pending=await db.prepare("SELECT id FROM online_games WHERE kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (white_browser_id IS NULL OR white_browser_id<>?) ORDER BY created_at LIMIT 1").bind(t-120000,player.userId||'',browserId).first();
     if(pending){
      const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (white_browser_id IS NULL OR white_browser_id<>?)").bind(digest,player.name,player.userId,t,t,pending.id,t-120000,player.userId||'',browserId).run();
-     if(updated.meta.changes===1)return gameReply({id:pending.id,secret,matched:true},identity);
+     if(updated.meta.changes===1){if(waitUntil)waitUntil(announceGame(env,db,pending.id));else await announceGame(env,db,pending.id);return gameReply({id:pending.id,secret,matched:true},identity);}
     }
    }
    await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,invited_user_id,white_name,fen,created_at,updated_at,white_browser_id) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,intended,player.name,new Chess().fen(),t,t,browserId).run();
@@ -93,6 +138,7 @@ export async function onRequest({request,env}){
    const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='invite' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (invited_user_id IS NULL OR invited_user_id=?) AND (white_browser_id IS NULL OR white_browser_id<>?)").bind(digest,player.name,player.userId,t,t,b.id,t-86400000,player.userId||'',player.userId||'',browserId).run();
    if(updated.meta.changes!==1)return reply({error:'Invitation expired, unavailable, or self-challenge.'},409);
    await db.prepare("UPDATE online_challenges SET status='accepted' WHERE game_id=? AND status='pending'").bind(b.id).run();
+   if(waitUntil)waitUntil(announceGame(env,db,b.id));else await announceGame(env,db,b.id);
    return gameReply({id:b.id,secret},identity);
   }
   if(!gameId(b.id)||!isToken(b.secret))return reply({error:'Invalid credentials.'},400);
@@ -115,6 +161,7 @@ export async function onRequest({request,env}){
    // A resignation must not overwrite a move committed after the state was read.
    const update=await db.prepare("UPDATE online_games SET status='finished',result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?").bind(result,time(),b.id,g.fen,g.last_move_at).run();
    if(update.meta.changes!==1)return reply({error:'Game already finished.'},409);
+   if(waitUntil)waitUntil(announceGame(env,db,b.id));else await announceGame(env,db,b.id);
    return reply({ok:true});
   }
   if(route==='move'){
@@ -136,6 +183,7 @@ export async function onRequest({request,env}){
    // Return the authoritative committed board immediately, avoiding a second
    // browser-to-server round trip after every move.
    const committed={...g,fen:board.fen(),moves:turns(moves),turn:board.turn(),white_ms:side==='w'?remaining:g.white_ms,black_ms:side==='b'?remaining:g.black_ms,last_move_at:t,status:result?'finished':'active',result};
+   if(waitUntil)waitUntil(pushState(env,committed));else await pushState(env,committed);
    return reply({...publicGame(committed,digest),ok:true});
   }
   return reply({error:'Route not found.'},404);
