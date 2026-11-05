@@ -91,7 +91,7 @@ export async function onRequest({request,env}){
   if(!validUsername(b.username)||!isToken(b.gameId)||!isToken(b.gameSecret))return reply({error:'Invalid challenge.'},400);
   const target=await member(db,b.username);if(!target||target.id===me.id)return reply({error:'Member not found.'},404);
   const digest=await secretHash(b.gameSecret);
-  const game=await db.prepare("SELECT id FROM online_games WHERE id=? AND kind='invite' AND white_user_id=? AND white_token=? AND status='waiting' AND created_at>?").bind(b.gameId,me.id,digest,t-86400000).first();
+  const game=await db.prepare("SELECT id FROM online_games WHERE id=? AND kind='invite' AND white_user_id=? AND invited_user_id=? AND white_token=? AND status='waiting' AND created_at>?").bind(b.gameId,me.id,target.id,digest,t-86400000).first();
   if(!game)return reply({error:'Cannot challenge with a game you do not own.'},403);
   const existing=await db.prepare("SELECT id FROM online_challenges WHERE game_id=? AND status='pending'").bind(b.gameId).first();
   if(existing)return reply({error:'This game already has a challenge.'},409);
