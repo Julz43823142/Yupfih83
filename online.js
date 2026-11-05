@@ -23,14 +23,21 @@ onlineBoard.addEventListener('pointerdown',e=>{
  if(e.button!==0||!button||!state||state.status!=='active'||busy)return;
  const from=button.dataset.sq,piece=game.get(from);
  if(piece?.color!==side)return;
- dragStart={from,x:e.clientX,y:e.clientY,id:e.pointerId,moved:false};
+ dragStart={from,x:e.clientX,y:e.clientY,id:e.pointerId,moved:false,source:button,ghost:null};
 });
 onlineBoard.addEventListener('pointermove',e=>{
- if(dragStart?.id===e.pointerId&&Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)>8)dragStart.moved=true;
+ if(dragStart?.id!==e.pointerId)return;
+ if(!dragStart.moved&&Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)>8){
+  dragStart.moved=true;
+  const img=dragStart.source.querySelector('img');
+  if(img){dragStart.ghost=img.cloneNode(true);dragStart.ghost.className='online-drag-ghost';document.body.append(dragStart.ghost);dragStart.source.classList.add('online-drag-source')}
+ }
+ if(dragStart.ghost){dragStart.ghost.style.left=e.clientX+'px';dragStart.ghost.style.top=e.clientY+'px'}
 });
 onlineBoard.addEventListener('pointerup',e=>{
  if(!dragStart||dragStart.id!==e.pointerId)return;
  const drag=dragStart;dragStart=null;
+ drag.ghost?.remove();drag.source?.classList.remove('online-drag-source');
  if(!drag.moved)return;
  ignoreDragClick=true;setTimeout(()=>{ignoreDragClick=false},0);
  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#online-board button[data-sq]');
@@ -39,7 +46,7 @@ onlineBoard.addEventListener('pointerup',e=>{
  selectedMoves=state.turn===side?game.moves({square:drag.from,verbose:true}):premoveCandidates(drag.from);
  choose(target.dataset.sq);
 });
-onlineBoard.addEventListener('pointercancel',()=>{dragStart=null});
+onlineBoard.addEventListener('pointercancel',()=>{dragStart?.ghost?.remove();dragStart?.source?.classList.remove('online-drag-source');dragStart=null});
 // Cache piece identity by square. During a normal move only the source and
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
