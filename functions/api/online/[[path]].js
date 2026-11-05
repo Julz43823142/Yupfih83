@@ -42,6 +42,7 @@ function publicGame(g,digest){
    moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,updatedAt:g.updated_at,result:g.result,serverTime:time()};
 }
 async function getGame(db,id){return db.prepare('SELECT * FROM online_games WHERE id=?').bind(id).first()}
+async function drawOffer(db,g){if(g.status!=='active')return null;const row=await db.prepare('SELECT offered_by FROM online_draw_offers WHERE game_id=?').bind(g.id).first();return row?.offered_by||null}
 async function expire(db,g){
  if(g.status!=='active'||!g.last_move_at)return g;
  const elapsed=Math.max(0,time()-g.last_move_at),clock=g.turn==='w'?'white_ms':'black_ms';
@@ -165,7 +166,34 @@ export async function onRequest({request,env,waitUntil}){
   const wasActive=g.status==='active';
   g=await expire(db,g);
   if(wasActive&&g.status==='finished'){if(waitUntil)waitUntil(pushState(env,g));else await pushState(env,g)}
-  if(route==='state')return reply(publicGame(g,digest));
+  if(route==='state')return reply({...publicGame(g,digest),drawOffer:await drawOffer(db,g)});
+  if(route==='draw-offer'){
+   if(g.status!=='active')return reply({error:'Game is not active.'},409);
+   const side=g.white_token===digest?'w':'b';
+   const existing=await drawOffer(db,g);
+   if(existing===side)return reply({error:'Draw already offered.'},409);
+   if(existing&&existing!==side)return reply({error:'Accept the pending draw offer instead.'},409);
+   await db.prepare("INSERT OR IGNORE INTO online_draw_offers(game_id,offered_by,created_at) SELECT id,?,? FROM online_games WHERE id=? AND status='active'").bind(side,time(),b.id).run();
+   if(waitUntil)waitUntil(announceGame(env,db,b.id));else await announceGame(env,db,b.id);
+   return reply({ok:true});
+  }
+  if(route==='draw-decline'){
+   const side=g.white_token===digest?'w':'b';
+   await db.prepare('DELETE FROM online_draw_offers WHERE game_id=? AND offered_by<>?').bind(b.id,side).run();
+   if(waitUntil)waitUntil(announceGame(env,db,b.id));else await announceGame(env,db,b.id);
+   return reply({ok:true});
+  }
+  if(route==='draw-accept'){
+   if(g.status!=='active')return reply({error:'Game is not active.'},409);
+   const side=g.white_token===digest?'w':'b';
+   const existing=await drawOffer(db,g);
+   if(!existing||existing===side)return reply({error:'No opponent draw offer.'},409);
+   const update=await db.prepare("UPDATE online_games SET status='finished',result='1/2-1/2',updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=? AND EXISTS(SELECT 1 FROM online_draw_offers WHERE game_id=? AND offered_by<>?)").bind(time(),b.id,g.fen,g.last_move_at,b.id,side).run();
+   if(update.meta.changes!==1)return reply({error:'Position changed. Retry.'},409);
+   await db.prepare('DELETE FROM online_draw_offers WHERE game_id=?').bind(b.id).run();
+   if(waitUntil)waitUntil(announceGame(env,db,b.id));else await announceGame(env,db,b.id);
+   return reply({ok:true});
+  }
   if(route==='resign'){
    if(g.status!=='active')return reply({error:'Game is not active.'},409);
    const result=g.white_token===digest?'0-1':'1-0';
@@ -201,6 +229,8 @@ export async function onRequest({request,env,waitUntil}){
       g.white_lag_used_ms+(side==='w'?credit:0),g.black_lag_used_ms+(side==='b'?credit:0),
       t,result?'finished':'active',result,t,b.id,g.fen,g.last_move_at).run();
    if(updated.meta.changes!==1)return reply({error:'Position already changed. Retry.'},409);
+   // A draw offer expires when its recipient makes a move.
+   await db.prepare('DELETE FROM online_draw_offers WHERE game_id=? AND offered_by<>?').bind(b.id,side).run();
    const afterCommit=performance.now();
    // Return the authoritative committed board immediately, avoiding a second
    // browser-to-server round trip after every move.
