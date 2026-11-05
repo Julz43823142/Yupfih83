@@ -1,7 +1,7 @@
 (() => {
   const header = document.querySelector('header.navbar');
   if (!header || header.querySelector('.account-nav')) return;
-  if (location.pathname === '/' || location.pathname === '/index.html') header.querySelectorAll('.mobile-chess-menu').forEach(node => node.remove());
+  // Preserve the homepage mobile menu: account links are rendered inside it.
   const nav = document.createElement('nav'); nav.className = 'account-nav'; nav.setAttribute('aria-label', 'Account');
   header.append(nav);
   function render(user) {
