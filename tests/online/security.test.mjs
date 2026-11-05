@@ -12,7 +12,7 @@ function databaseWithOnline(){
  db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
- const req=new Request(ORIGIN+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.40'},body:options.method==='GET'?undefined:JSON.stringify(data)});
+ const req=new Request(ORIGIN+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.40',...(options.cookie?{'Cookie':options.cookie}:{})},body:options.method==='GET'?undefined:JSON.stringify(data)});
  return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_TEST_DEBUG:'true'}});
 }
 async function call(db,path,data,options){const r=await api(db,path,data,options);return {status:r.status,data:await r.json()}}
@@ -112,6 +112,29 @@ test('stale resignation is rejected after the board changes',async()=>{
   assert.equal(result.status,409);
   assert.equal((await state(db,black)).data.status,'active');
   assert.equal(injected,true);
+ }finally{db.close()}
+});
+
+
+test('same browser cannot match its own random game or join its own invite',async()=>{
+ const db=databaseWithOnline();try{
+  const first=await api(db,'create',{kind:'random',name:'First'});
+  assert.equal(first.status,200);
+  const cookie=first.headers.get('set-cookie')?.split(';')[0];
+  assert.match(cookie,/^elo_chess_browser=[a-f0-9]{32}$/);
+  assert.match(first.headers.get('set-cookie'),/HttpOnly/);
+  assert.match(first.headers.get('set-cookie'),/SameSite=Strict/);
+  const waiting=await first.json();
+  const second=await call(db,'create',{kind:'random',name:'Second'},{cookie});
+  assert.equal(second.status,200);
+  assert.notEqual(second.data.id,waiting.id);
+  const differentBrowser=await call(db,'create',{kind:'random',name:'Third'});
+  assert.equal(differentBrowser.status,200);
+  assert.equal(differentBrowser.data.id,waiting.id);
+  const invitation=await api(db,'create',{kind:'invite',name:'Host'},{cookie});
+  const invite=await invitation.json();
+  assert.equal((await call(db,'join',{id:invite.id,name:'Self'},{cookie})).status,409);
+  assert.equal((await call(db,'join',{id:invite.id,name:'Other'})).status,200);
  }finally{db.close()}
 });
 
