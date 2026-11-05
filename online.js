@@ -67,6 +67,9 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
   busy=true;
   try{
    const move=game.move({from,to:sq,promotion});
+   // Invalidate the confirmed-position cache until server acknowledgement.
+   // Rejections must reconstruct the original board, not reuse a preview.
+   boardFen=null;
    previewBoard=game;
    previewMove(from,sq,move);
    const committed=await post('move',{id,secret,from,to:sq,promotion});
