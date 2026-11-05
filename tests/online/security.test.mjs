@@ -24,7 +24,7 @@ async function state(db,player){return call(db,'state',{id:player.id,secret:play
 async function move(db,player,from,to,promotion){return call(db,'move',{id:player.id,secret:player.secret,from,to,promotion})}
 async function pair(db){const w=await create(db);const b=await create(db);assert.equal(w.id,b.id);return [w,b]}
 test('reserved guest identity variants cannot impersonate site staff',()=>{
- for(const name of ['Admin','a_d_m_i_n','Elo Scanner','support','mod_erator','S Y S T E M'])assert.equal(validGuest(name),false,name);
+ for(const name of ['Admin','a_d_m_i_n','Elo Scanner','EloScanner Support','Support Team','support','mod_erator','S Y S T E M'])assert.equal(validGuest(name),false,name);
  for(const name of ['Alice','Chess Visitor','rook_123'])assert.equal(validGuest(name),true,name);
 });
 
