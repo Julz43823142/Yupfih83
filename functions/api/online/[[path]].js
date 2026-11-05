@@ -38,7 +38,7 @@ function publicGame(g,digest){
  const side=g.white_token===digest?'w':g.black_token===digest?'b':null;
  if(!side)return null;
  return {id:g.id,kind:g.kind,status:g.status,side,white:g.white_name,black:g.black_name,fen:g.fen,
-   moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,result:g.result,serverTime:time()};
+   moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,updatedAt:g.updated_at,result:g.result,serverTime:time()};
 }
 async function getGame(db,id){return db.prepare('SELECT * FROM online_games WHERE id=?').bind(id).first()}
 async function expire(db,g){
@@ -61,6 +61,7 @@ async function guarded(db,env,request,scope,limit=20,window=60000,identity=''){
  return null;
 }
 export async function onRequest({request,env,waitUntil}){
+ const requestStarted=performance.now();
  const url=new URL(request.url),route=url.pathname.replace(/^\/api\/online\/?/,'').replace(/\/$/,'');
  if(!env.AUTH_DB||typeof env.BETTER_AUTH_SECRET!=='string'||env.BETTER_AUTH_SECRET.length<32)return reply({error:'Multiplayer unavailable.'},503);
  if(!sameOrigin(request))return reply({error:'Request origin rejected.'},403);
@@ -153,7 +154,9 @@ export async function onRequest({request,env,waitUntil}){
    const current=await sessionUser(request,env);
    if(current?.id!==accountId)return reply({error:'Game not found.'},404);
   }
+  const wasActive=g.status==='active';
   g=await expire(db,g);
+  if(wasActive&&g.status==='finished'){if(waitUntil)waitUntil(pushState(env,g));else await pushState(env,g)}
   if(route==='state')return reply(publicGame(g,digest));
   if(route==='resign'){
    if(g.status!=='active')return reply({error:'Game is not active.'},409);
@@ -182,9 +185,13 @@ export async function onRequest({request,env,waitUntil}){
    if(updated.meta.changes!==1)return reply({error:'Position already changed. Retry.'},409);
    // Return the authoritative committed board immediately, avoiding a second
    // browser-to-server round trip after every move.
-   const committed={...g,fen:board.fen(),moves:turns(moves),turn:board.turn(),white_ms:side==='w'?remaining:g.white_ms,black_ms:side==='b'?remaining:g.black_ms,last_move_at:t,status:result?'finished':'active',result};
+   const committed={...g,fen:board.fen(),moves:turns(moves),turn:board.turn(),white_ms:side==='w'?remaining:g.white_ms,black_ms:side==='b'?remaining:g.black_ms,last_move_at:t,updated_at:t,status:result?'finished':'active',result};
    if(waitUntil)waitUntil(pushState(env,committed));else await pushState(env,committed);
-   return reply({...publicGame(committed,digest),ok:true});
+   const response=reply({...publicGame(committed,digest),ok:true});
+   // Measure full API processing (authentication, D1, chess validation),
+   // independently from client network RTT or opponent delivery latency.
+   response.headers.set('Server-Timing','chess;dur='+(performance.now()-requestStarted).toFixed(2));
+   return response;
   }
   return reply({error:'Route not found.'},404);
  }catch(error){if(env.ONLINE_TEST_DEBUG==='true')console.error('Online test diagnostics:',error);return safeError()}
