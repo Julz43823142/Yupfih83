@@ -1,3 +1,4 @@
+import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
@@ -12,6 +13,11 @@ async function dbReady(db){
  if(schemas.has(db))return schemas.get(db);
  const schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_hourly_scores (hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(hour,mode,nickname))").run();
+ // Preserve historical nickname entries as anonymous; only authenticated submissions become account entries.
+ const columns=await db.prepare("PRAGMA table_info(puzzle_hourly_scores)").all();
+ const existing=new Set((columns.results||[]).map(row=>row.name));
+ if(!existing.has('source_type')){try{await db.prepare("ALTER TABLE puzzle_hourly_scores ADD COLUMN source_type TEXT NOT NULL DEFAULT 'nickname'").run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
+ if(!existing.has('account_id')){try{await db.prepare("ALTER TABLE puzzle_hourly_scores ADD COLUMN account_id TEXT").run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_runs (id TEXT PRIMARY KEY,mode TEXT NOT NULL,started_at INTEGER NOT NULL,score INTEGER NOT NULL DEFAULT 0,submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_solves (run_id TEXT NOT NULL,puzzle_id TEXT NOT NULL,PRIMARY KEY(run_id,puzzle_id))").run();
@@ -108,7 +114,13 @@ export async function onRequestGet({request,env}){
   await dbReady(db);
   const current=hour();
   const sprint=mode==="sprint";
-  const sql=sprint?"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ('sprint3','sprint5') AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?":"SELECT nickname,MAX(score) AS score FROM puzzle_hourly_scores WHERE mode=? AND lower(nickname) NOT IN ('tttt','tttttttt') GROUP BY nickname ORDER BY score DESC,nickname ASC LIMIT ?";
+  const where=sprint?"mode IN ('sprint3','sprint5')":"mode=?";
+  const sql=`SELECT nickname,score,source_type AS sourceType FROM (
+   SELECT nickname,score,source_type,ROW_NUMBER() OVER (
+    PARTITION BY lower(nickname) ORDER BY score DESC,created_at ASC
+   ) AS rank_for_name FROM puzzle_hourly_scores
+   WHERE ${where} AND lower(nickname) NOT IN ('tttt','tttttttt')
+  ) WHERE rank_for_name=1 ORDER BY score DESC,nickname ASC LIMIT ?`;
   const rows=await db.prepare(sql).bind(...(sprint?[limit]:[mode,limit])).all();
   return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true,allTime:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
@@ -161,13 +173,31 @@ export async function onRequestPost({request,env}){
   }catch{return json({error:'Could not verify puzzle. Please retry.'},503)}
  }
  if(action!=='submit')return json({error:'Invalid action.'},400);
- const mode=String(data?.mode||''),nickname=String(data?.nickname||'').trim(),session=String(data?.session||'');
+ const mode=String(data?.mode||''),sourceType=data?.sourceType==='account'?'account':'nickname',session=String(data?.session||'');
+ let nickname=String(data?.nickname||'').trim(),accountId=null;
  let score=Number(data?.score);
+ if(sourceType==='account'){
+  if(!env.AUTH_DB||!env.BETTER_AUTH_SECRET)return json({error:'Account authentication unavailable.'},503);
+  try{
+   const auth=createAuth(env);
+   const current=await auth.api.getSession({headers:request.headers});
+   if(!current?.user?.id||!current.user.username)return json({error:'Sign in to publish using your account.'},401);
+   accountId=current.user.id;
+   nickname=current.user.username;
+  }catch{return json({error:'Unable to verify your account session.'},503)}
+ }
  if(mode==="sprint"||!validMode(mode)||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)
-  return json({error:"Use a nickname (2–20 letters/numbers) and a valid score."},400);
+  return json({error:"Use a valid name (2–20 characters) and score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
  // Disallowed leaderboard entries cannot be submitted again.
  if(["tttt","tttttttt"].includes(nickname.toLowerCase()))return json({error:"This nickname is not available. Please choose another."},400);
+ // Anonymous entries must not impersonate registered account names.
+ if(sourceType==='nickname'&&env.AUTH_DB){
+  try{
+   const reserved=await env.AUTH_DB.prepare('SELECT id FROM user WHERE lower(username)=lower(?) LIMIT 1').bind(nickname).first();
+   if(reserved)return json({error:'That name belongs to a registered account. Choose another nickname.'},409);
+  }catch{return json({error:'Unable to check nickname availability.'},503)}
+ }
  // Always moderate on the server: browser-only filters can be bypassed.
  try {
   if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:"moderate",normalizeUnicode:true}).containsProfanity)
@@ -185,7 +215,7 @@ export async function onRequestPost({request,env}){
   const claim=await db.prepare('UPDATE puzzle_verified_runs SET submitted=1 WHERE id=? AND submitted=0 AND score=?').bind(session,score).run();
   if(!claim.meta?.changes)return json({error:'This run was already submitted.'},409);
   const now=hour();
-  await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at) VALUES(?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at WHERE excluded.score > puzzle_hourly_scores.score").bind(now,mode,nickname,score,Date.now()).run();
+  await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at,source_type=excluded.source_type,account_id=excluded.account_id WHERE excluded.score > puzzle_hourly_scores.score OR (excluded.score = puzzle_hourly_scores.score AND excluded.source_type='account' AND puzzle_hourly_scores.source_type='nickname')").bind(now,mode,nickname,score,Date.now(),sourceType,accountId).run();
   await pruneScores(db);
   return json({ok:true,hour:now});
  }catch{return json({error:"Could not save score."},503)}
