@@ -3,7 +3,9 @@ const base = 'http://localhost:8788';
 test('real Workers/D1 login, closed signup, responsive account UI and logout', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(base + '/account.html?view=signup');
-  await expect(page.getByRole('heading', { name: 'Registration is not open yet.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
+  await expect(page.locator('#signup-submit')).toBeDisabled();
+  await expect(page.locator('#account-status')).toContainText('Registration is currently unavailable.');
   await expect(page.locator('#login-form')).toBeHidden();
   const closed = await page.request.post(base + '/api/auth/sign-up/email', { headers: { Origin: base }, data: { email: 'must-not-register@example.com', name: 'someone', password: 'LongButNeverUsed-password!' } });
   expect(closed.status()).toBe(403);
@@ -13,7 +15,7 @@ test('real Workers/D1 login, closed signup, responsive account UI and logout', a
   await page.locator('#password').fill('Local-test-only-orchard-57931!');
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
-  await expect(page.locator('.account-nav')).toHaveText('local_tester');
+  await expect(page.locator('.account-nav')).toHaveText('Local_tester');
   const cookies = await page.context().cookies();
   expect(cookies.some(c => c.httpOnly && c.name.includes('session_token'))).toBeTruthy();
   expect(await page.evaluate(() => Object.keys(localStorage).some(k => /token|session/i.test(k)))).toBe(false);
@@ -28,7 +30,7 @@ test('real Workers/D1 login, closed signup, responsive account UI and logout', a
   errors.length = 0;
   await page.goto(base + '/');
   await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
-  await expect(page.locator('header .mobile-chess-menu')).toHaveCount(0);
+  await expect(page.locator('header .mobile-chess-menu')).toHaveCount(1);
   await page.goto(base + '/minigames.html');
   await expect(page.locator('header .elo-global-menu')).toBeVisible();
   await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
