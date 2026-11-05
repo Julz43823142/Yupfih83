@@ -283,4 +283,45 @@ test('Durable Object room strips injected private fields and closes unauthorized
  assert.equal(invalid.status,400);
 });
 
+test('WebSocket notifications reject delayed stale states and finished-game rollback',async()=>{
+ const packets=[];
+ const socket={send:s=>packets.push(JSON.parse(s).game),close:()=>{},deserializeAttachment:()=>({side:'b'})};
+ const room=new OnlineChessRoom({getWebSockets:()=>[socket]});
+ const notify=async changes=>room.fetch(new Request('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'a'.repeat(32),fen:'board',moves:[],status:'waiting',updatedAt:100,...changes})}));
+ assert.equal((await notify({status:'active',updatedAt:110})).status,204);
+ assert.equal((await notify({status:'active',moves:['e4'],updatedAt:120})).status,204);
+ assert.equal((await notify({status:'active',moves:[],updatedAt:100})).status,204);
+ assert.equal((await notify({status:'finished',moves:['e4'],updatedAt:125,result:'1-0'})).status,204);
+ assert.equal((await notify({status:'active',moves:['e4'],updatedAt:124})).status,204);
+ assert.deepEqual(packets.map(g=>g.status),['active','active','finished']);
+ assert.deepEqual(packets.map(g=>g.moves.length),[0,1,1]);
+});
+
+test('a committed move pushes to opponent socket through the private room without waiting for polling',async()=>{
+ const db=databaseWithOnline();try{
+  const packets=[];
+  const socket={send:s=>packets.push({at:performance.now(),packet:JSON.parse(s)}),close:()=>{},deserializeAttachment:()=>({side:'b'})};
+  const durable=new OnlineChessRoom({getWebSockets:()=>[socket]});
+  const binding={idFromName:id=>id,get:()=>({fetch:(url,options)=>durable.fetch(new Request(url,options))})};
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_ROOM:binding};
+  const send=async(path,data)=>{
+   const req=new Request(ORIGIN+'/api/online/'+path,{method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.49'},body:JSON.stringify(data)});
+   return gameApi({request:req,env});
+  };
+  const first=await send('create',{kind:'invite',name:'First'});assert.equal(first.status,200);const white=await first.json();
+  const second=await send('join',{id:white.id,name:'Second'});assert.equal(second.status,200);
+  packets.length=0;
+  const started=performance.now();
+  const moved=await send('move',{id:white.id,secret:white.secret,from:'e2',to:'e4'});
+  assert.equal(moved.status,200);
+  assert.equal(packets.length,1);
+  assert.equal(packets[0].packet.type,'state');
+  assert.deepEqual(packets[0].packet.game.moves,['e4']);
+  assert.equal(packets[0].packet.game.side,undefined);
+  assert.ok(packets[0].at>=started);
+  assert.ok(packets[0].at<=performance.now());
+  console.log('MOCK PRIVATE ROOM PUSH: confirmed state published in same request flow, without client polling; not real Cloudflare network latency');
+ }finally{db.close()}
+});
+
 console.log('Online security and chess logic regression tests completed.');
