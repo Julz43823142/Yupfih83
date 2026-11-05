@@ -97,7 +97,13 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
    [pa,pb,'g1','f3','Nf3'],
    [pb,pa,'b8','c6','Nc6'],
    [pa,pb,'f1','c4','Bc4'],
-   [pb,pa,'g8','f6','Nf6']
+   [pb,pa,'g8','f6','Nf6'],
+   [pa,pb,'d2','d3','d3'],
+   [pb,pa,'f8','c5','Bc5'],
+   [pa,pb,'c2','c3','c3'],
+   [pb,pa,'d7','d6','d6'],
+   [pa,pb,'e1','g1','O-O'],
+   [pb,pa,'e8','g8','O-O']
   ]){
    const responsePromise=player.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
    const started=Date.now();
@@ -117,7 +123,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   console.log('CHESS SERVER PHASE BREAKDOWN',JSON.stringify(phaseSamples));
   const ordered=[...samples].sort((a,b)=>a-b);
   const deliveryOrdered=[...deliverySamples].sort((a,b)=>a-b);
-  console.log('LOCAL CHESS BENCHMARK 6 MOVES (not internet): handler samples ms',JSON.stringify(samples),
+  console.log('LOCAL CHESS BENCHMARK 12 MOVES (not internet): handler samples ms',JSON.stringify(samples),
    'median',ordered[Math.floor(ordered.length/2)],'p95-observed',ordered[Math.ceil(ordered.length*.95)-1],
    'opponent delivery samples ms',JSON.stringify(deliverySamples),
    'p95-observed delivery',deliveryOrdered[Math.ceil(deliveryOrdered.length*.95)-1]);
