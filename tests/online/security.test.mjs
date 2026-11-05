@@ -4,6 +4,7 @@ import {database} from '../auth/fixture.mjs';
 import {readFileSync} from 'node:fs';
 import {onRequest as gameApi} from '../../functions/api/online/[[path]].js';
 import {onRequest as socialApi} from '../../functions/api/social/[[path]].js';
+import {OnlineChessRoom} from '../../workers/online-room.mjs';
 
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
 function databaseWithOnline(){
@@ -240,6 +241,25 @@ test('live upgrade rejects unauthorized requests and unavailable binding without
   assert.equal(calls[0].headers.get('X-Authorized-Side'),'w');
   assert.ok(!calls[0].url.includes(game.secret));
  }finally{db.close()}
+});
+
+
+test('Durable Object room strips injected private fields and closes unauthorized client messages',async()=>{
+ const messages=[],closes=[];
+ const socket={send:s=>messages.push(JSON.parse(s)),close:(...args)=>closes.push(args),deserializeAttachment:()=>({side:'w'})};
+ const room=new OnlineChessRoom({getWebSockets:()=>[socket]});
+ const accepted={id:'a'.repeat(32),fen:'board',moves:['e4'],turn:'b',white:'Guest · A',black:'Guest · B',ip:'203.0.113.123',secret:'should-never-leak',cookie:'nope'};
+ const response=await room.fetch(new Request('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(accepted)}));
+ assert.equal(response.status,204);
+ assert.equal(messages.length,1);
+ assert.equal(messages[0].type,'state');
+ assert.equal(messages[0].game.ip,undefined);
+ assert.equal(messages[0].game.secret,undefined);
+ assert.equal(messages[0].game.cookie,undefined);
+ await room.webSocketMessage(socket,JSON.stringify({type:'move',from:'e2',to:'e4'}));
+ assert.equal(closes[0][0],1008);
+ const invalid=await room.fetch(new Request('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}));
+ assert.equal(invalid.status,400);
 });
 
 console.log('Online security and chess logic regression tests completed.');
