@@ -368,3 +368,35 @@
   outline:2px solid white!important;outline-offset:3px!important;
  }
 }
+
+/* EloFlow v11: best lines, engine details, opening, then switches. */
+.elo-analysis-mobile-results,.elo-analysis-mobile-details{display:none}
+@media(max-width:760px){
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-results,
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-details{
+  display:block!important;width:100%!important;min-width:0!important;
+  max-width:100%!important;box-sizing:border-box!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-results{margin:12px 0 4px!important}
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-details{margin:4px 0 10px!important}
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-results>.engine-lines-panel{
+  display:flex!important;flex-direction:column!important;gap:6px!important;
+  width:100%!important;min-width:0!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-results>.engine-lines-panel:empty{display:none!important}
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-details>:is(.engine-lines-settings,.engine-depth-control){
+  margin:7px 0!important;max-width:100%!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]{
+  box-sizing:border-box!important;overflow:hidden!important;
+  padding:0!important;margin:0!important;vertical-align:middle!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]::before{
+  box-sizing:border-box!important;top:3px!important;left:3px!important;
+  width:16px!important;height:16px!important;max-width:16px!important;max-height:16px!important;
+  transform:none!important;translate:none!important;inset-inline-start:3px!important;
+ }
+ body.elo-unified-chess .analysis-board-column>.elo-analysis-mobile-toggles>label>input[type=checkbox]:checked::before{
+  left:21px!important;inset-inline-start:21px!important;transform:none!important;translate:none!important;
+ }
+}
