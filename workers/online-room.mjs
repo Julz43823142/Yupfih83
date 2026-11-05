@@ -5,7 +5,7 @@ export default {
  async fetch(){return new Response('Not found',{status:404})}
 };
 
-const publicFields=['id','kind','status','white','black','fen','moves','turn','whiteMs','blackMs','lastMoveAt','result','serverTime'];
+const publicFields=['id','kind','status','white','black','fen','moves','turn','whiteMs','blackMs','lastMoveAt','updatedAt','result','serverTime'];
 
 export class OnlineChessRoom {
  constructor(state){this.state=state}
