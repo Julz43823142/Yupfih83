@@ -133,7 +133,10 @@ export async function onRequest({request,env}){
    const t=time();
    const updated=await db.prepare("UPDATE online_games SET fen=?,moves=?,turn=?,white_ms=?,black_ms=?,last_move_at=?,status=?,result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?").bind(board.fen(),turns(moves),board.turn(),side==='w'?remaining:g.white_ms,side==='b'?remaining:g.black_ms,t,result?'finished':'active',result,t,b.id,g.fen,g.last_move_at).run();
    if(updated.meta.changes!==1)return reply({error:'Position already changed. Retry.'},409);
-   return reply({ok:true});
+   // Return the authoritative committed board immediately, avoiding a second
+   // browser-to-server round trip after every move.
+   const committed={...g,fen:board.fen(),moves:turns(moves),turn:board.turn(),white_ms:side==='w'?remaining:g.white_ms,black_ms:side==='b'?remaining:g.black_ms,last_move_at:t,status:result?'finished':'active',result};
+   return reply({...publicGame(committed,digest),ok:true});
   }
   return reply({error:'Route not found.'},404);
  }catch(error){if(env.ONLINE_TEST_DEBUG==='true')console.error('Online test diagnostics:',error);return safeError()}
