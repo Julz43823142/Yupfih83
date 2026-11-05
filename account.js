@@ -40,16 +40,30 @@
     if (widgetId !== undefined) { window.turnstile.reset(widgetId); return; }
     widgetId = window.turnstile.render('#turnstile-container', { sitekey: config.turnstileSiteKey, action: 'login', callback: value => { token = value; }, 'expired-callback': () => { token = ''; }, 'error-callback': () => { token = ''; message('Security check failed. Please try again.', true); } });
   }
+  let signupWidgetId, signupToken = '';
+  async function signupChallenge() {
+    if (!config?.turnstileSiteKey) throw new Error('Registration security check is not configured.');
+    if (!window.turnstile) {
+      turnstileLoading ||= new Promise((resolve,reject)=>{ const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.onload=resolve;script.onerror=reject;document.head.append(script); });
+      await turnstileLoading;
+    }
+    if (signupWidgetId !== undefined) return;
+    signupWidgetId = window.turnstile.render('#signup-turnstile', { sitekey: config.turnstileSiteKey, action: 'signup', callback: value => { signupToken=value; }, 'expired-callback':()=>{signupToken='';}, 'error-callback':()=>{signupToken='';} });
+  }
   byId('registration-preview-form').addEventListener('submit', event => {
-    event.preventDefault();
-    const username = byId('signup-username').value;
-    const password = byId('signup-password').value;
-    const confirmation = byId('signup-confirm').value;
-    const status = byId('registration-preview-status');
-    if (password !== confirmation) { status.textContent = 'Passwords do not match.'; return; }
-    status.textContent = 'Preview only: registration is currently closed. No account was created for ' + username + '.';
-    byId('signup-password').value = '';
-    byId('signup-confirm').value = '';
+    event.preventDefault(); const form=event.currentTarget;
+    busy(form, async()=>{
+      const username=byId('signup-username').value.trim();
+      const password=byId('signup-password').value;
+      if(password!==byId('signup-confirm').value) throw new Error('Passwords do not match.');
+      if(!config?.registrationOpen) throw new Error('Registration is temporarily unavailable.');
+      if(!signupToken) throw new Error('Complete the security check first.');
+      const result=await post('sign-up/email',{username,password,turnstileToken:signupToken});
+      form.reset(); signupToken='';
+      if(signupWidgetId!==undefined)window.turnstile.reset(signupWidgetId);
+      showUser(result.user); message('Account created successfully.');
+      location.href='/profile/'+encodeURIComponent(result.user.username);
+    });
   });
   byId('login-form').addEventListener('submit', event => {
     event.preventDefault(); const form = event.currentTarget;
@@ -84,7 +98,7 @@
     const response = await fetch('/api/auth/config', { cache: 'no-store' });
     if (!response.ok) throw new Error('Account services are not available yet.');
     config = await response.json();
-    if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; message(''); return; }
+    if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; byId('signup-submit').disabled = !config.registrationOpen; message(config.registrationOpen ? '' : 'Registration is currently unavailable.'); if(config.registrationOpen) await signupChallenge(); return; }
     const session = await (window.eloAccountSession || fetch('/api/auth/get-session', { cache: 'no-store' }).then(async r => ({ available: r.ok, ...(r.ok ? await r.json() : {}) })));
     showUser(session.user || null);
     message(config.loginConfigured && session.available ? '' : 'Account services are not available yet. Registration remains closed.');
