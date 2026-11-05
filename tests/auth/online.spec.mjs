@@ -8,6 +8,42 @@ async function login(page,username){
  await page.getByRole('button',{name:'Log in',exact:true}).click();
  await expect(page.locator('#profile-username')).toHaveText(username,{timeout:30000});
 }
+test('benchmark: measure local move acknowledgement and opponent visibility, without external traffic',async({browser})=>{
+ const a=await browser.newContext(),b=await browser.newContext();
+ const pa=await a.newPage(),pb=await b.newPage();
+ try{
+  await pa.goto(base+'/online.html?friend=1');
+  await pa.locator('#online-name').fill('BenchAlice');
+  await pa.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+  const invitation=await pa.locator('#online-link').inputValue();
+  expect(invitation).toMatch(/invite=[a-f0-9]{32}/);
+  await pb.goto(invitation);
+  await pb.locator('#online-name').fill('BenchBob');
+  await pb.getByRole('button',{name:'Join game'}).click();
+  await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
+  await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
+  const starts=await pa.evaluate(()=>{
+   const start=performance.now();
+   window.__benchMoveStart=start;
+   document.querySelector('#online-board button[data-sq="e2"]').click();
+   document.querySelector('#online-board button[data-sq="e4"]').click();
+   return start;
+  });
+  const origin=Date.now();
+  const moveResponse=await moveResponsePromise;
+  const serverTiming=await moveResponse.headerValue('Server-Timing');
+  expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
+  await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
+  const ownMs=Date.now()-origin;
+  await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
+  const opponentMs=Date.now()-origin;
+  console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): server processing',serverTiming,'; own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
+  const expected=await pb.evaluate(()=>document.querySelector('#online-moves').textContent);
+  expect(expected).toContain('e4');
+ }finally{await a.close();await b.close()}
+});
+
 test('two isolated guest browsers join once, exchange moves and safely resume',async({browser})=>{
  const a=await browser.newContext(),b=await browser.newContext(),pageA=await a.newPage(),pageB=await b.newPage();const errors=[];
  pageA.on('pageerror',error=>errors.push(error.message));pageB.on('pageerror',error=>errors.push(error.message));
@@ -100,42 +136,5 @@ test('live multiplayer keeps peer IPs private and makes no peer-to-peer or third
   expect(urls.length).toBeGreaterThan(0);
   expect(urls.every(url=>new URL(url).origin===base)).toBe(true);
   expect(issues).toEqual([]);
- }finally{await a.close();await b.close()}
-});
-
-
-test('benchmark: measure local move acknowledgement and opponent visibility, without external traffic',async({browser})=>{
- const a=await browser.newContext(),b=await browser.newContext();
- const pa=await a.newPage(),pb=await b.newPage();
- try{
-  await pa.goto(base+'/online.html?friend=1');
-  await pa.locator('#online-name').fill('BenchAlice');
-  await pa.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
-  const invitation=await pa.locator('#online-link').inputValue();
-  expect(invitation).toMatch(/invite=[a-f0-9]{32}/);
-  await pb.goto(invitation);
-  await pb.locator('#online-name').fill('BenchBob');
-  await pb.getByRole('button',{name:'Join game'}).click();
-  await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
-  await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
-  const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
-  const starts=await pa.evaluate(()=>{
-   const start=performance.now();
-   window.__benchMoveStart=start;
-   document.querySelector('#online-board button[data-sq="e2"]').click();
-   document.querySelector('#online-board button[data-sq="e4"]').click();
-   return start;
-  });
-  const origin=Date.now();
-  const moveResponse=await moveResponsePromise;
-  const serverTiming=await moveResponse.headerValue('Server-Timing');
-  expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
-  await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
-  const ownMs=Date.now()-origin;
-  await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
-  const opponentMs=Date.now()-origin;
-  console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): server processing',serverTiming,'; own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
-  const expected=await pb.evaluate(()=>document.querySelector('#online-moves').textContent);
-  expect(expected).toContain('e4');
  }finally{await a.close();await b.close()}
 });
