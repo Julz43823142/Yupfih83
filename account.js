@@ -18,12 +18,21 @@
     changed(user);
   }
   async function post(route, body) {
-    const response = await fetch(`/api/auth/${route}`, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const type = response.headers.get('content-type') || '';
-    if (!type.toLowerCase().includes('application/json')) throw new Error('Account server returned a webpage instead of API data. Check the Cloudflare Pages Functions deployment and /api/auth routing.');
-    const data = await response.json();
-    if (!response.ok) throw Object.assign(new Error(data.message || 'Unable to complete this request.'), { code: data.code });
-    return data;
+    // A password hash may still be running in the same Worker isolate.
+    // Retry only the explicit BUSY response, never login failures or rate limits.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(`/api/auth/${route}`, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const type = response.headers.get('content-type') || '';
+      if (!type.toLowerCase().includes('application/json')) throw new Error('Account server returned a webpage instead of API data. Check the Cloudflare Pages Functions deployment and /api/auth routing.');
+      const data = await response.json();
+      if (response.status === 429 && data.code === 'AUTH_BUSY' && attempt < 2) {
+        const seconds = Math.min(5, Math.max(1, Number(response.headers.get('Retry-After')) || 2));
+        await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+        continue;
+      }
+      if (!response.ok) throw Object.assign(new Error(data.message || 'Unable to complete this request.'), { code: data.code });
+      return data;
+    }
   }
   async function busy(form, action) {
     const button = form.querySelector('button') || form; button.disabled = true;
