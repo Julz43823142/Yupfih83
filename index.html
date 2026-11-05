@@ -148,7 +148,7 @@ footer.home-footer-edge>span:last-child{margin-left:auto;text-align:right}
      const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
      if(!r.ok)throw Error('Unavailable');
      if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
-     for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+     for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
     }catch{const li=document.createElement('li');li.textContent='Rankings unavailable';list.append(li)}
    }
   })();
@@ -181,7 +181,7 @@ footer.home-footer-edge>span:last-child{margin-left:auto;text-align:right}
    if(!r.ok)throw Error('Unavailable');
    list.replaceChildren();
    if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
-   for(const entry of data.entries){const li=document.createElement('li');li.textContent=entry.nickname+' — '+entry.score;list.append(li)}
+   for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
   }catch{list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
  }
  update();setInterval(update,30000);
