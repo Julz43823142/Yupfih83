@@ -29,11 +29,11 @@ test('Argon2id: random salts, correct verification, pepper separation, bounded h
   assert.equal(await p.verify({ password, hash: a.replace('m=32768', 'm=9999999') }), false);
 });
 test('Registration and unneeded library routes fail closed even without configuration', async () => {
-  for (const route of ['sign-up/email', 'sign-up/email/', 'register', 'signup']) {
+  for (const route of ['sign-up/email', 'sign-up/email/']) {
     const result = await handleAuth({ request: req(route, { username: 'johan', password }), env: {} });
     assert.equal(result.status, 403);
   }
-  for (const route of ['sign-in/email', 'request-password-reset', 'reset-password', 'update-user', 'sign-up%2femail', 'admin/create-user']) {
+  for (const route of ['register', 'signup', 'sign-in/email', 'request-password-reset', 'reset-password', 'update-user', 'sign-up%2femail', 'admin/create-user']) {
     assert.equal((await handleAuth({ request: req(route, {}), env: {} })).status, 404);
   }
   const env = envFor();
