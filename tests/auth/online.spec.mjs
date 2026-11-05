@@ -41,8 +41,35 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const opponentMs=Date.now()-origin;
   console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): server processing',serverTiming,'; own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
-  const expected=await pb.evaluate(()=>document.querySelector('#online-moves').textContent);
-  expect(expected).toContain('e4');
+  const samples=[Number(serverTiming.split('=')[1])];
+  const deliverySamples=[opponentMs];
+  for(const [player,peer,from,to,san] of [
+   [pb,pa,'e7','e5','e5'],
+   [pa,pb,'g1','f3','Nf3'],
+   [pb,pa,'b8','c6','Nc6'],
+   [pa,pb,'f1','c4','Bc4'],
+   [pb,pa,'g8','f6','Nf6']
+  ]){
+   const responsePromise=player.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
+   const started=Date.now();
+   await player.evaluate(({from,to})=>{
+    document.querySelector('#online-board button[data-sq="'+from+'"]').click();
+    document.querySelector('#online-board button[data-sq="'+to+'"]').click();
+   },{from,to});
+   const response=await responsePromise;
+   expect(response.status()).toBe(200);
+   const timing=await response.headerValue('Server-Timing');
+   expect(timing).toMatch(/^chess;dur=\\d+(?:\\.\\d+)?$/);
+   samples.push(Number(timing.split('=')[1]));
+   await expect(peer.locator('#online-moves')).toContainText(san,{timeout:15000});
+   deliverySamples.push(Date.now()-started);
+  }
+  const ordered=[...samples].sort((a,b)=>a-b);
+  const deliveryOrdered=[...deliverySamples].sort((a,b)=>a-b);
+  console.log('LOCAL CHESS BENCHMARK 6 MOVES (not internet): handler samples ms',JSON.stringify(samples),
+   'median',ordered[Math.floor(ordered.length/2)],'p95-observed',ordered[Math.ceil(ordered.length*.95)-1],
+   'opponent delivery samples ms',JSON.stringify(deliverySamples),
+   'p95-observed delivery',deliveryOrdered[Math.ceil(deliveryOrdered.length*.95)-1]);
  }finally{await a.close();await b.close()}
 });
 
