@@ -159,7 +159,9 @@ function scheduleLiveRetry(){
  if(liveRetryTimer!==null)clearTimeout(liveRetryTimer);
  liveRetryTimer=setTimeout(()=>{
   liveRetryTimer=null;
-  if(document.visibilityState==='visible')connectLive();
+  // Reconnect even when Chromium has backgrounded this tab; otherwise a
+  // hidden opponent can remain disconnected until foregrounded.
+  connectLive();
  },delay+25);
 }
 function connectLive(){
