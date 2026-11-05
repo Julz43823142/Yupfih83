@@ -1,3 +1,4 @@
+import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
@@ -27,6 +28,10 @@ async function ready(db){
  schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_runs (id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, level INTEGER NOT NULL, position INTEGER NOT NULL, goal INTEGER NOT NULL, blocked TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0, finished INTEGER NOT NULL DEFAULT 0, submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_scores (nickname TEXT PRIMARY KEY COLLATE NOCASE, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
+ const cols=await db.prepare("PRAGMA table_info(knight_maze_scores)").all();
+ const names=new Set((cols.results||[]).map(x=>x.name));
+ if(!names.has('source_type'))await db.prepare("ALTER TABLE knight_maze_scores ADD COLUMN source_type TEXT NOT NULL DEFAULT 'nickname'").run();
+ if(!names.has('account_id'))await db.prepare("ALTER TABLE knight_maze_scores ADD COLUMN account_id TEXT").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_rank ON knight_maze_scores(score DESC,created_at ASC)").run();
  })().catch(error=>{schemaPromise=null;throw error});
  return schemaPromise;
@@ -46,7 +51,7 @@ function maze(level,runId){
 const futureLevels=(id,nextLevel)=>[1,2,3].map(offset=>maze(nextLevel+offset-1,id));
 const publicRun=(r)=>({id:r.id,level:r.level,score:r.score,position:r.position,goal:r.goal,blocked:JSON.parse(r.blocked),endsAt:r.started_at+duration,finished:!!r.finished});
 async function ranking(db,limit){
- const result=await db.prepare("SELECT nickname,score FROM knight_maze_scores ORDER BY score DESC,created_at ASC,nickname ASC LIMIT ?").bind(limit).all();
+ const result=await db.prepare("SELECT nickname,score,source_type AS sourceType FROM knight_maze_scores ORDER BY score DESC,created_at ASC,nickname ASC LIMIT ?").bind(limit).all();
  return result.results||[];
 }
 async function prune(db){
@@ -57,7 +62,7 @@ export async function onRequestGet({request,env}){
  try{
   await ready(db);
   const url=new URL(request.url);
-  const limit=url.searchParams.get('limit')==='100'?100:10;
+  const limit=[10,50,100].includes(Number(url.searchParams.get('limit')))?Number(url.searchParams.get('limit')):10;
   return json({entries:await ranking(db,limit)});
  }catch{return json({error:'Leaderboard temporarily unavailable.'},503)}
 }
@@ -110,14 +115,26 @@ export async function onRequestPost({request,env}){
   if(run.submitted)return json({error:'This score has already been submitted.'},409);
   if(!run.finished&&now<run.started_at+duration)return json({error:'Finish the game before submitting.'},400);
   if(run.score<1)return json({error:'Reach at least one star to enter the leaderboard.'},400);
-  const nickname=String(data?.nickname||'').trim();
-  if(!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))return json({error:'Use a nickname of 2–20 letters, numbers, spaces, _ or -.'},400);
+  let nickname=String(data?.nickname||'').trim();
+  const sourceType=data?.sourceType==='account'?'account':'nickname';
+  let accountId=null;
+  if(sourceType==='account'){
+   if(!env.AUTH_DB||!env.BETTER_AUTH_SECRET)return json({error:'Account authentication unavailable.'},503);
+   try{const session=await createAuth(env).api.getSession({headers:request.headers});
+    if(!session?.user?.id||!session.user.username)return json({error:'Sign in to publish using your account.'},401);
+    accountId=session.user.id;nickname=session.user.username;
+   }catch{return json({error:'Unable to verify your account session.'},503)}
+  }
+  if(!(sourceType==='account'?/^[a-zA-Z0-9_]{3,24}$/:/^[a-zA-Z0-9 _-]{2,20}$/).test(nickname))return json({error:'Use a nickname of 2–20 letters, numbers, spaces, _ or -.'},400);
   if(['tttt','tttttttt'].includes(nickname.toLowerCase()))return json({error:'Please choose another nickname.'},400);
   try{if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:'moderate',normalizeUnicode:true}).containsProfanity)return json({error:'Please choose a family-friendly nickname.'},400)}
   catch{return json({error:'Nickname moderation temporarily unavailable.'},503)}
+  if(sourceType==='nickname'&&env.AUTH_DB){
+   try{const reserved=await env.AUTH_DB.prepare('SELECT id FROM user WHERE lower(username)=lower(?) LIMIT 1').bind(nickname).first();if(reserved)return json({error:'That nickname belongs to an account. Choose another.'},409)}catch{return json({error:'Nickname verification unavailable.'},503)}
+  }
   const claimed=await db.prepare('UPDATE knight_maze_runs SET submitted=1,finished=1 WHERE id=? AND submitted=0 AND (finished=1 OR started_at<=?)').bind(id,now-duration).run();
   if(!claimed.meta?.changes)return json({error:'This score has already been submitted.'},409);
-  await db.prepare('INSERT INTO knight_maze_scores(nickname,score,created_at) VALUES(?,?,?) ON CONFLICT(nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at WHERE excluded.score>knight_maze_scores.score').bind(nickname,run.score,now).run();
+  await db.prepare('INSERT INTO knight_maze_scores(nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?) ON CONFLICT(nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at,source_type=excluded.source_type,account_id=excluded.account_id WHERE excluded.score>knight_maze_scores.score OR (excluded.score=knight_maze_scores.score AND excluded.source_type='account' AND knight_maze_scores.source_type='nickname')').bind(nickname,run.score,now,sourceType,accountId).run();
   await prune(db);
   return json({ok:true,entries:await ranking(db,10)});
  }catch{return json({error:'Could not process the game. Please try again.'},503)}
