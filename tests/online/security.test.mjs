@@ -25,7 +25,7 @@ class DB{
 }
 function api(db,path,data={},options={}){
  const req=new Request(ORIGIN+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.40'},body:options.method==='GET'?undefined:JSON.stringify(data)});
- return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN}});
+ return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_TEST_DEBUG:'true'}});
 }
 async function call(db,path,data,options){const r=await api(db,path,data,options);return {status:r.status,data:await r.json()}}
 async function create(db,kind='random',name='Visitor'){const a=await call(db,'create',{kind,name});assert.equal(a.status,200,JSON.stringify(a));return a.data}
