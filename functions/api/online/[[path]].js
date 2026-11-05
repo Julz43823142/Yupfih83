@@ -54,7 +54,7 @@ export async function onRequest({request,env}){
    if(b.kind==='random'){
     const pending=await db.prepare("SELECT id FROM online_games WHERE kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) ORDER BY created_at LIMIT 1").bind(t-120000,player.userId||'').first();
     if(pending){
-     const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='random' AND status='waiting' AND created_at>?").bind(digest,player.name,player.userId,t,t,pending.id,t-120000).run();
+     const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?)").bind(digest,player.name,player.userId,t,t,pending.id,t-120000,player.userId||'').run();
      if(updated.meta.changes===1)return reply({id:pending.id,secret,matched:true});
     }
    }
@@ -99,7 +99,8 @@ export async function onRequest({request,env}){
   if(route==='resign'){
    if(g.status!=='active')return reply({error:'Game is not active.'},409);
    const result=g.white_token===digest?'0-1':'1-0';
-   const update=await db.prepare("UPDATE online_games SET status='finished',result=?,updated_at=? WHERE id=? AND status='active'").bind(result,time(),b.id).run();
+   // A resignation must not overwrite a move committed after the state was read.
+   const update=await db.prepare("UPDATE online_games SET status='finished',result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?").bind(result,time(),b.id,g.fen,g.last_move_at).run();
    if(update.meta.changes!==1)return reply({error:'Game already finished.'},409);
    return reply({ok:true});
   }
