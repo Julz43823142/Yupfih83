@@ -4,6 +4,17 @@ import {reply,readJSON,rateLimit,sameOrigin,secretHash,random,isToken,validGuest
 const gameId=s=>isToken(s);
 const time=()=>Date.now();
 const turns=JSON.stringify;
+function browserIdentity(request){
+ const match=(request.headers.get('Cookie')||'').match(/(?:^|;\s*)elo_chess_browser=([a-f0-9]{32})(?:;|$)/);
+ const value=match?match[1]:random();
+ const secure=new URL(request.url).protocol==='https:'?'; Secure':'';
+ return {value,header:match?null:'elo_chess_browser='+value+'; Path=/api/online; HttpOnly; SameSite=Strict; Max-Age=2592000'+secure};
+}
+function gameReply(data,identity){
+ const response=reply(data);
+ if(identity.header)response.headers.set('Set-Cookie',identity.header);
+ return response;
+}
 function publicGame(g,digest){
  const side=g.white_token===digest?'w':g.black_token===digest?'b':null;
  if(!side)return null;
@@ -50,15 +61,16 @@ export async function onRequest({request,env}){
     if(!target||target.id===player.userId)return reply({error:'Invalid challenge target.'},404);
     intended=target.id;
    }
+   const identity=browserIdentity(request),browserId=await secretHash(identity.value);
    const secret=random(),digest=await secretHash(secret),id=random(),t=time();
    if(b.kind==='random'){
-    const pending=await db.prepare("SELECT id FROM online_games WHERE kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) ORDER BY created_at LIMIT 1").bind(t-120000,player.userId||'').first();
+    const pending=await db.prepare("SELECT id FROM online_games WHERE kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (white_browser_id IS NULL OR white_browser_id<>?) ORDER BY created_at LIMIT 1").bind(t-120000,player.userId||'',browserId).first();
     if(pending){
-     const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?)").bind(digest,player.name,player.userId,t,t,pending.id,t-120000,player.userId||'').run();
-     if(updated.meta.changes===1)return reply({id:pending.id,secret,matched:true});
+     const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (white_browser_id IS NULL OR white_browser_id<>?)").bind(digest,player.name,player.userId,t,t,pending.id,t-120000,player.userId||'',browserId).run();
+     if(updated.meta.changes===1)return gameReply({id:pending.id,secret,matched:true},identity);
     }
    }
-   await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,invited_user_id,white_name,fen,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,intended,player.name,new Chess().fen(),t,t).run();
+   await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,invited_user_id,white_name,fen,created_at,updated_at,white_browser_id) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,intended,player.name,new Chess().fen(),t,t,browserId).run();
    // Retention: abandoned lobby games 24h, completed games 30d. No raw IP stored.
    if(Math.random()<0.1){try{
     await db.prepare("UPDATE online_games SET status='finished',result=CASE WHEN turn='w' THEN '0-1' ELSE '1-0' END,white_ms=CASE WHEN turn='w' THEN 0 ELSE white_ms END,black_ms=CASE WHEN turn='b' THEN 0 ELSE black_ms END,updated_at=? WHERE status='active' AND last_move_at<?").bind(t,t-180001).run();
@@ -68,7 +80,7 @@ export async function onRequest({request,env}){
     await db.prepare("DELETE FROM online_games WHERE (status='waiting' AND created_at<?) OR (status='finished' AND updated_at<?)").bind(t-86400000,t-2592000000).run();
     await db.prepare("DELETE FROM auth_attempts WHERE key LIKE 'online:%' AND expiresAt<?").bind(t).run();
    }catch{}}
-   return reply({id,secret,matched:false});
+   return gameReply({id,secret,matched:false},identity);
   }
   if(route==='join'){
    if(!gameId(b.id))return reply({error:'Invalid invitation.'},400);
@@ -76,11 +88,12 @@ export async function onRequest({request,env}){
    const player=await nameAndAccount(request,env,b.name);if(!player)return reply({error:'Invalid nickname.'},400);
    const restrictions=await db.prepare("SELECT to_user FROM online_challenges WHERE game_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1").bind(b.id).first();
    if(restrictions&&restrictions.to_user!==player.userId)return reply({error:'This challenge is for another account.'},403);
+   const identity=browserIdentity(request),browserId=await secretHash(identity.value);
    const secret=random(),digest=await secretHash(secret),t=time();
-   const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='invite' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (invited_user_id IS NULL OR invited_user_id=?)").bind(digest,player.name,player.userId,t,t,b.id,t-86400000,player.userId||'',player.userId||'').run();
+   const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='invite' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (invited_user_id IS NULL OR invited_user_id=?) AND (white_browser_id IS NULL OR white_browser_id<>?)").bind(digest,player.name,player.userId,t,t,b.id,t-86400000,player.userId||'',player.userId||'',browserId).run();
    if(updated.meta.changes!==1)return reply({error:'Invitation expired, unavailable, or self-challenge.'},409);
    await db.prepare("UPDATE online_challenges SET status='accepted' WHERE game_id=? AND status='pending'").bind(b.id).run();
-   return reply({id:b.id,secret});
+   return gameReply({id:b.id,secret},identity);
   }
   if(!gameId(b.id)||!isToken(b.secret))return reply({error:'Invalid credentials.'},400);
   const digest=await secretHash(b.secret);
