@@ -150,7 +150,9 @@ export async function onRequest({request,env,waitUntil}){
   if(!gameId(b.id)||!isToken(b.secret))return reply({error:'Invalid credentials.'},400);
   const digest=await secretHash(b.secret);
   const limited=await guarded(db,env,request,route,route==='state'?80:route==='move'?90:12,60000,digest);if(limited)return limited;
+  const afterGuard=performance.now();
   let g=await getGame(db,b.id);
+  const afterGameRead=performance.now();
   // Compare the hashed seat token before parsing any game history. Reconstruct
   // the public game only for requests that actually need its fields.
   if(!g||(g.white_token!==digest&&g.black_token!==digest))return reply({error:'Game not found.'},404);
@@ -181,6 +183,7 @@ export async function onRequest({request,env,waitUntil}){
    const moves=JSON.parse(g.moves);if(!Array.isArray(moves)||moves.length>500)return safeError();
    const board=new Chess();try{for(const san of moves)board.move(san)}catch{return safeError()}
    if(board.fen()!==g.fen)return safeError();
+   const afterReplay=performance.now();
    let resultMove;try{resultMove=board.move({from:b.from,to:b.to,promotion:['q','r','b','n'].includes(b.promotion)?b.promotion:'q'})}catch{return reply({error:'Illegal move.'},400)}
    if(!resultMove)return reply({error:'Illegal move.'},400);
    const elapsed=Math.max(0,time()-g.last_move_at),remaining=Math.max(0,(side==='w'?g.white_ms:g.black_ms)-elapsed);
@@ -190,6 +193,7 @@ export async function onRequest({request,env,waitUntil}){
    const t=time();
    const updated=await db.prepare("UPDATE online_games SET fen=?,moves=?,turn=?,white_ms=?,black_ms=?,last_move_at=?,status=?,result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?").bind(board.fen(),turns(moves),board.turn(),side==='w'?remaining:g.white_ms,side==='b'?remaining:g.black_ms,t,result?'finished':'active',result,t,b.id,g.fen,g.last_move_at).run();
    if(updated.meta.changes!==1)return reply({error:'Position already changed. Retry.'},409);
+   const afterCommit=performance.now();
    // Return the authoritative committed board immediately, avoiding a second
    // browser-to-server round trip after every move.
    const committed={...g,fen:board.fen(),moves:turns(moves),turn:board.turn(),white_ms:side==='w'?remaining:g.white_ms,black_ms:side==='b'?remaining:g.black_ms,last_move_at:t,updated_at:t,status:result?'finished':'active',result};
@@ -197,7 +201,13 @@ export async function onRequest({request,env,waitUntil}){
    const response=reply({...publicGame(committed,digest),ok:true});
    // Measure full API processing (authentication, D1, chess validation),
    // independently from client network RTT or opponent delivery latency.
-   response.headers.set('Server-Timing','chess;dur='+(performance.now()-requestStarted).toFixed(2));
+   response.headers.set('Server-Timing',[
+    'chess;dur='+(performance.now()-requestStarted).toFixed(2),
+    'limit;dur='+(afterGuard-requestStarted).toFixed(2),
+    'read;dur='+(afterGameRead-afterGuard).toFixed(2),
+    'replay;dur='+(afterReplay-afterGameRead).toFixed(2),
+    'commit;dur='+(afterCommit-afterReplay).toFixed(2)
+   ].join(', '));
    return response;
   }
   return reply({error:'Route not found.'},404);
