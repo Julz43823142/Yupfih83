@@ -7,6 +7,7 @@ const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).pa
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 function persist(){sessionStorage.setItem('elo-online-game',JSON.stringify({id,secret}))}
+function clearFinishedSession(){sessionStorage.removeItem('elo-online-game');id='';secret='';state=null;queuedPremove=null;}
 function enter(){ $('online-setup').hidden=true;$('online-game').hidden=false;persist();history.replaceState(null,'','/online.html');connectLive();poll()}
 function setupError(e){$('online-setup-status').textContent=e.message||String(e)}
 $('online-random').onclick=async()=>{try{const r=await post('create',{kind:'random',name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}};
@@ -187,6 +188,7 @@ function acceptState(next){
  }
  const previous=state;
  if(previous?.id!==next.id||next.status==='finished')queuedPremove=null;
+ if(next.status==='finished'&&id&&secret){sessionStorage.removeItem('elo-online-game')}
  const changed=!previous||previous.id!==next.id||previous.fen!==next.fen||previous.status!==next.status||previous.result!==next.result||previous.white!==next.white||previous.black!==next.black||previous.whiteMs!==next.whiteMs||previous.blackMs!==next.blackMs||previous.lastMoveAt!==next.lastMoveAt||previous.moves.length!==next.moves.length||previous.drawOffer!==next.drawOffer;
  if(previous?.fen!==next.fen){selected=null;selectedMoves=[]}
  state=next;serverOffset=next.serverTime-Date.now();
@@ -205,7 +207,7 @@ let polling=false;async function poll(){if(!id||!secret||polling)return;polling=
 const urlParams=new URL(location.href).searchParams;
 const invitation=urlParams.get('invite');const reviewId=urlParams.get('review');if(reviewId&&/^[a-f0-9]{32}$/.test(reviewId)){initializeReplay(reviewId)}
 else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
-else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
+else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){post('state',{id:previous.id,secret:previous.secret}).then(saved=>{if(saved.status==='active'||saved.status==='waiting'){const reconnect=confirm('You have an unfinished online game. Reconnect? Cancel starts a new game.');if(reconnect){id=previous.id;secret=previous.secret;enter()}else sessionStorage.removeItem('elo-online-game')}else sessionStorage.removeItem('elo-online-game')}).catch(()=>sessionStorage.removeItem('elo-online-game'))}}catch{}}
 // A websocket is read-only. Every move still goes through the authorized HTTPS
 // endpoint; the room only publishes server-confirmed board states.
 function markLiveDisconnected(socket){
