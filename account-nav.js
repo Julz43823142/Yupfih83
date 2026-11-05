@@ -4,9 +4,10 @@
   // Preserve the homepage mobile menu: account links are rendered inside it.
   const nav = document.createElement('nav'); nav.className = 'account-nav'; nav.setAttribute('aria-label', 'Account');
   header.append(nav);
+  const displayName = user => user.username ? user.username[0].toUpperCase() + user.username.slice(1) : '';
   function render(user) {
     nav.replaceChildren();
-    const links = user ? [[user.username, '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
+    const links = user ? [[displayName(user), '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
     for (const [label, href] of links) { const a = document.createElement('a'); a.textContent = label; a.href = href; if (user) a.className = 'account-nav-user'; nav.append(a); }
   }
   // Keep desktop account links in the header. On phones, put the same
@@ -22,7 +23,7 @@
       menu.prepend(section);
     }
     section.replaceChildren();
-    const links = user ? [[user.username, '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
+    const links = user ? [[displayName(user), '/profile/' + encodeURIComponent(user.username)]] : [['Log in', '/account.html'], ['Sign up', '/account.html?view=signup']];
     for (const [label, href] of links) {
       const a = document.createElement('a');
       a.textContent = label;
