@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS online_games (
  kind TEXT NOT NULL CHECK(kind IN ('random','invite')),
  white_token TEXT NOT NULL,
  black_token TEXT,
+ white_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
+ black_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
  white_name TEXT NOT NULL,
  black_name TEXT,
  fen TEXT NOT NULL,
@@ -19,3 +21,10 @@ CREATE TABLE IF NOT EXISTS online_games (
 );
 CREATE INDEX IF NOT EXISTS online_games_queue ON online_games(kind,status,created_at);
 CREATE INDEX IF NOT EXISTS online_games_updated ON online_games(updated_at);
+
+CREATE INDEX IF NOT EXISTS online_games_white_user ON online_games(white_user_id,updated_at);
+CREATE INDEX IF NOT EXISTS online_games_black_user ON online_games(black_user_id,updated_at);
+CREATE TRIGGER IF NOT EXISTS online_anonymize_user BEFORE DELETE ON "user" BEGIN
+ UPDATE online_games SET white_name='Account Closed' WHERE white_user_id=OLD.id;
+ UPDATE online_games SET black_name='Account Closed' WHERE black_user_id=OLD.id;
+END;
