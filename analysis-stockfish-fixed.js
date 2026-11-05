@@ -32,7 +32,7 @@ const syncAnalysisMeter=()=>{
  if(rect.height>0&&evalWrap){
   evalWrap.style.setProperty('--chess-board-height',rect.height+'px');
   const row=evalWrap.parentElement.getBoundingClientRect();
-  evalWrap.style.top=(rect.top-row.top)+'px';
+  evalWrap.style.setProperty('--elo-meter-offset',(rect.top-row.top)+'px');
  }
 };
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncAnalysisMeter).observe(board);
