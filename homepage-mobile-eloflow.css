@@ -30,3 +30,42 @@
  header.navbar>.mobile-chess-menu{margin-left:auto!important}
  main>.hero>.hero-content{padding-inline:16px!important}
 }
+
+/* EloFlow mobile header: logo and account actions share the top row;
+   navigation remains visible as a separate right-aligned menu. */
+@media(max-width:700px){
+ body>header.navbar,header.navbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-areas:"brand account" "menu menu"!important;
+  align-items:center!important;column-gap:8px!important;row-gap:8px!important;
+  padding:10px 12px!important;flex-wrap:nowrap!important;
+ }
+ header.navbar>.brand{
+  grid-area:brand!important;display:block!important;
+  min-width:0!important;width:100%!important;max-width:100%!important;
+  flex:none!important;margin:0!important;
+ }
+ header.navbar>.brand .brand-logo{
+  display:block!important;width:100%!important;max-width:210px!important;
+  max-height:55px!important;height:auto!important;object-fit:contain!important;
+  object-position:left center!important;
+ }
+ header.navbar>.account-nav{
+  grid-area:account!important;display:flex!important;justify-content:flex-end!important;
+  align-items:center!important;flex-wrap:nowrap!important;gap:5px!important;
+  min-width:0!important;max-width:100%!important;margin:0!important;
+  width:auto!important;justify-self:end!important;
+ }
+ header.navbar>.account-nav a{
+  font-size:clamp(10px,2.9vw,13px)!important;
+  padding:8px clamp(6px,2vw,11px)!important;white-space:nowrap!important;
+ }
+ header.navbar>.mobile-chess-menu{
+  grid-area:menu!important;display:block!important;visibility:visible!important;
+  justify-self:end!important;align-self:center!important;
+  margin:0!important;position:relative!important;
+ }
+ header.navbar>.mobile-chess-menu summary{display:flex!important;visibility:visible!important}
+ header.navbar>.mobile-chess-menu nav{right:0!important;left:auto!important;z-index:30!important}
+}
