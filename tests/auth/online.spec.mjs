@@ -82,14 +82,15 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   });
   const moveResponse=await moveResponsePromise;
   const serverTiming=await moveResponse.headerValue('Server-Timing');
-  expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
+  expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?, limit;dur=\d+(?:\.\d+)?, read;dur=\d+(?:\.\d+)?, replay;dur=\d+(?:\.\d+)?, commit;dur=\d+(?:\.\d+)?$/);
   await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
   expect(await pa.evaluate(()=>window.__unaffectedPiece===document.querySelector('#online-board button[data-sq="a1"] img'))).toBe(true);
   const ownMs=Date.now()-origin;
   await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const opponentMs=Date.now()-origin;
   console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): server processing',serverTiming,'; own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
-  const samples=[Number(serverTiming.split('=')[1])];
+  const samples=[Number(/^chess;dur=([\d.]+)/.exec(serverTiming)[1])];
+  const phaseSamples=[serverTiming];
   const deliverySamples=[opponentMs];
   for(const [player,peer,from,to,san] of [
    [pb,pa,'e7','e5','e5'],
@@ -107,11 +108,13 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
    const response=await responsePromise;
    expect(response.status()).toBe(200);
    const timing=await response.headerValue('Server-Timing');
-   expect(timing).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
-   samples.push(Number(timing.split('=')[1]));
+   expect(timing).toMatch(/^chess;dur=\d+(?:\.\d+)?, limit;dur=\d+(?:\.\d+)?, read;dur=\d+(?:\.\d+)?, replay;dur=\d+(?:\.\d+)?, commit;dur=\d+(?:\.\d+)?$/);
+   samples.push(Number(/^chess;dur=([\d.]+)/.exec(timing)[1]));
+   phaseSamples.push(timing);
    await expect(peer.locator('#online-moves')).toContainText(san,{timeout:15000});
    deliverySamples.push(Date.now()-started);
   }
+  console.log('CHESS SERVER PHASE BREAKDOWN',JSON.stringify(phaseSamples));
   const ordered=[...samples].sort((a,b)=>a-b);
   const deliveryOrdered=[...deliverySamples].sort((a,b)=>a-b);
   console.log('LOCAL CHESS BENCHMARK 6 MOVES (not internet): handler samples ms',JSON.stringify(samples),
