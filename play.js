@@ -414,7 +414,8 @@ document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEvent
   $('play-selected-elo').textContent=ratings[id]+' Elo';
   let description=$('play-selected-description');
   if(!description){description=document.createElement('p');description.id='play-selected-description';botOptions.querySelector('.play-options-heading').after(description)}
-  description.textContent=botDescriptions[id]||'Play against a computer opponent rated '+ratings[id]+' Elo.';
+  description.textContent=botDescriptions[id]||'';
+  description.hidden=!description.textContent;
   button.after(botOptions);
  }
  document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
