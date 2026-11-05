@@ -26,7 +26,7 @@ function render(){
   for(let i=0;i<64;i++){
    const cell=document.createElement('button');
    cell.type='button';cell.dataset.index=String(i);
-   cell.addEventListener('click',e=>{if(e.detail===0&&i!==run?.position)move(i)});
+   cell.addEventListener('click',e=>{if(i!==run?.position)move(i)});
    cells.push(cell);board.append(cell);
   }
  }
@@ -244,7 +244,7 @@ board.addEventListener('pointerdown',e=>{
  if(e.button===2){
   e.preventDefault();
   if(drag){cancelDrag();return}
-  if(square>=0)right={id:e.pointerId,from:square};
+  if(square>=0){right={id:e.pointerId,from:square};try{board.setPointerCapture(e.pointerId)}catch{}}
   return;
  }
  if(e.button!==0||square<0||!run||finished||busy||remaining()===0)return;
@@ -279,7 +279,7 @@ board.addEventListener('pointerup',e=>{
  if(e.button===2){
   if(drag){cancelDrag();return}
   if(!right)return;
-  const from=right.from,to=squareAt(e.clientX,e.clientY);right=null;
+  const from=right.from,to=squareAt(e.clientX,e.clientY);right=null;try{if(board.hasPointerCapture(e.pointerId))board.releasePointerCapture(e.pointerId)}catch{}
   if(to<0)return;
   if(from===to){if(highlights.has(to))highlights.delete(to);else highlights.add(to)}
   else{
