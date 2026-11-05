@@ -67,6 +67,9 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await pb.getByRole('button',{name:'Join game'}).click();
   await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  // Existing unaffected DOM nodes should survive a move: changing two squares
+  // must not cause 64 piece-image rebuilds or a full-board visual reset.
+  await pa.evaluate(()=>{window.__unaffectedPiece= document.querySelector('#online-board button[data-sq="a1"] img')});
   const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
   // Start before submitting clicks; otherwise we underreport end-to-end latency.
   const origin=Date.now();
@@ -81,6 +84,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   const serverTiming=await moveResponse.headerValue('Server-Timing');
   expect(serverTiming).toMatch(/^chess;dur=\d+(?:\.\d+)?$/);
   await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
+  expect(await pa.evaluate(()=>window.__unaffectedPiece===document.querySelector('#online-board button[data-sq="a1"] img'))).toBe(true);
   const ownMs=Date.now()-origin;
   await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const opponentMs=Date.now()-origin;
