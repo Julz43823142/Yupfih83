@@ -1,11 +1,12 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,game=new Chess(),busy=false,serverOffset=0;
+let liveSocket=null,liveConnected=false,liveRetryAt=0;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 function persist(){sessionStorage.setItem('elo-online-game',JSON.stringify({id,secret}))}
-function enter(){ $('online-setup').hidden=true;$('online-game').hidden=false;persist();history.replaceState(null,'','/online.html');poll()}
+function enter(){ $('online-setup').hidden=true;$('online-game').hidden=false;persist();history.replaceState(null,'','/online.html');connectLive();poll()}
 function setupError(e){$('online-setup-status').textContent=e.message||String(e)}
 $('online-random').onclick=async()=>{try{const r=await post('create',{kind:'random',name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}};
 $('online-invite').onclick=async()=>{try{const r=await post('create',{kind:'invite',name:name()});id=r.id;secret=r.secret;enter();$('online-share').hidden=false;$('online-link').value=location.origin+'/online.html?invite='+id}catch(e){setupError(e)}};
@@ -28,11 +29,38 @@ const urlParams=new URL(location.href).searchParams;
 const invitation=urlParams.get('invite');const reviewId=urlParams.get('review');if(reviewId&&/^[a-f0-9]{32}$/.test(reviewId)){initializeReplay(reviewId)}
 else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
+// A websocket is read-only. Every move still goes through the authorized HTTPS
+// endpoint; the room only publishes server-confirmed board states.
+function connectLive(){
+ if(!id||!secret||liveSocket||Date.now()<liveRetryAt)return;
+ const origin=new URL(location.href);
+ origin.protocol=origin.protocol==='https:'?'wss:':'ws:';
+ origin.pathname='/api/online/live';
+ origin.search='?id='+encodeURIComponent(id);
+ try{
+  const socket=new WebSocket(origin.href,['elo-chess-v1','elo-seat-'+secret]);
+  liveSocket=socket;
+  socket.onopen=()=>{liveConnected=true;poll()};
+  socket.onmessage=event=>{
+   if(typeof event.data!=='string'||event.data.length>8192)return;
+   try{
+    const packet=JSON.parse(event.data),next=packet.game;
+    if(packet.type!=='state'||!next||next.id!==id||!Array.isArray(next.moves)||typeof next.fen!=='string')return;
+    if(state?.id===id&&Array.isArray(state.moves)&&next.moves.length<state.moves.length)return;
+    state={...next,side};serverOffset=next.serverTime-Date.now();render();
+   }catch{}
+  };
+  socket.onerror=()=>{};
+  socket.onclose=()=>{
+   if(liveSocket===socket){liveSocket=null;liveConnected=false;liveRetryAt=Date.now()+15000;poll()}
+  };
+ }catch{liveRetryAt=Date.now()+15000}
+}
 // Poll more frequently only during an active game. Keep the D1 request budget
 // below the per-IP rate limit even when two players share the same connection.
 async function pollLoop(){
- if(id&&document.visibilityState==='visible')await poll();
- const delay=document.visibilityState==='hidden'?5000:!id?1500:state?.status==='active'?900:state?.status==='waiting'?1500:5000;
+ if(id&&document.visibilityState==='visible'){connectLive();await poll()}
+ const delay=document.visibilityState==='hidden'?5000:!id?1500:liveConnected?10000:state?.status==='active'?900:state?.status==='waiting'?1500:5000;
  setTimeout(pollLoop,delay);
 }
 setTimeout(pollLoop,900);
