@@ -1,9 +1,9 @@
 name: Security and performance regression checks
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feature/online-chess-3plus0, security/online-beta-prelaunch-20261105]
   push:
-    branches: [main]
+    branches: [main, security/online-beta-prelaunch-20261105, feature/online-websocket-delivery-20261105]
 
 permissions:
   contents: read
@@ -23,6 +23,8 @@ jobs:
         run: npm run test:auth
       - name: Adversarial online chess and security tests
         run: node --test tests/online/security.test.mjs
+      - name: Audit production dependencies for high-severity advisories
+        run: npm audit --omit=dev --audit-level=high
       - name: Build public assets
         run: npm run build
       - name: Test endpoint JSON validation and cache policy
@@ -76,3 +78,32 @@ jobs:
           done
           curl --fail --silent http://localhost:8788/api/auth/config > /dev/null
           npx playwright test
+
+  realtime-websocket:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      # Runner already includes Chromium system libraries; avoid slow apt for this test.
+      - run: npx playwright install chromium
+      - run: npm run build
+      - run: npm run auth:migrate:local
+      - name: Exercise actual WebSocket transport using local workerd and Durable Objects
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler dev --config workers/online-room.wrangler.jsonc --port 8790 --local > /tmp/eloscanner-room.log 2>&1 &
+          ROOM_PID=$!
+          LOCAL_ONLINE_ROOM=true npm run dev:auth > /tmp/eloscanner-pages.log 2>&1 &
+          PAGES_PID=$!
+          trap 'kill "$PAGES_PID" "$ROOM_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8788/api/auth/config > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:8788/api/auth/config > /dev/null || { cat /tmp/eloscanner-room.log; cat /tmp/eloscanner-pages.log; exit 1; }
+          npx playwright test --config playwright.websocket.config.mjs || { cat /tmp/eloscanner-room.log; cat /tmp/eloscanner-pages.log; exit 1; }

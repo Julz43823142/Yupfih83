@@ -138,7 +138,7 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
  const a=await browser.newContext(),b=await browser.newContext(),pageA=await a.newPage(),pageB=await b.newPage();const errors=[];
  pageA.on('pageerror',error=>errors.push(error.message));pageB.on('pageerror',error=>errors.push(error.message));
  try{
-  await pageA.goto(base+'/play.html');await expect(pageA.getByText('Play Online',{exact:true})).toBeVisible();
+  await pageA.goto(base+'/play.html');await expect(pageA.getByText('Online Chess (BETA)',{exact:true})).toBeVisible();
   await pageA.goto(base+'/online.html?friend=1');
   await pageA.locator('#online-name').fill('Alice');
   await pageA.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
@@ -148,11 +148,15 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
   await pageB.getByRole('button',{name:'Join game'}).click();
   await expect(pageA.locator('#online-status')).toContainText(/Your move|Opponent to move/,{timeout:15000});
   await expect(pageB.locator('#online-top-name')).toContainText('Guest · Alice');
+  await expect(pageA.locator('#online-status')).toContainText('Your move',{timeout:15000});
+  // Queue a black premove before White plays. This must not submit early.
+  await pageB.locator('#online-board button[data-sq="e7"]').click();
+  await pageB.locator('#online-board button[data-sq="e5"]').click();
+  await expect(pageB.locator('#online-status')).toContainText('Premove queued');
+  await expect(pageA.locator('#online-moves')).not.toContainText('e5');
   await pageA.locator('#online-board button[data-sq="e2"]').click();
   await pageA.locator('#online-board button[data-sq="e4"]').click();
   await expect(pageB.locator('#online-moves')).toContainText('e4',{timeout:15000});
-  await pageB.locator('#online-board button[data-sq="e7"]').click();
-  await pageB.locator('#online-board button[data-sq="e5"]').click();
   await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   await pageA.reload();await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   expect(errors).toEqual([]);
