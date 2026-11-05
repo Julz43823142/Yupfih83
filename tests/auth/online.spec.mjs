@@ -67,6 +67,10 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await pb.getByRole('button',{name:'Join game'}).click();
   await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  await pa.evaluate(()=>{window.__statusChanges=0;window.__statusObserver=new MutationObserver(()=>window.__statusChanges++);window.__statusObserver.observe(document.querySelector('#online-status'),{childList:true,subtree:true,characterData:true})});
+  await pa.waitForTimeout(2000);
+  const repeated=await pa.evaluate(()=>{window.__statusObserver.disconnect();return window.__statusChanges});
+  expect(repeated).toBe(0);
   // Existing unaffected DOM nodes should survive a move: changing two squares
   // must not cause 64 piece-image rebuilds or a full-board visual reset.
   await pa.evaluate(()=>{window.__unaffectedPiece= document.querySelector('#online-board button[data-sq="a1"] img')});
