@@ -27,6 +27,17 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
         window.__eloWsPongCount = 0;
         window.__eloWsSockets = [];
         window.__eloWsEvents = [];
+        window.__eloSentMoves = [];
+        const nativeFetch=window.fetch.bind(window);
+        window.fetch=(url,options)=>{
+          if(typeof url==='string'&&url.includes('/api/online/move')&&typeof options?.body==='string'){
+            try{
+              const body=JSON.parse(options.body);
+              window.__eloSentMoves.push({from:body.from,to:body.to,at:Date.now()});
+            }catch{}
+          }
+          return nativeFetch(url,options);
+        };
         window.WebSocket = class extends Native {
           constructor(...args) {
             super(...args);
@@ -60,6 +71,7 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
     // The room must reply to an actual socket ping before we claim measured RTT.
     for(const p of pages) await expect.poll(()=>p.evaluate(()=>window.__eloWsPongCount),{timeout:12000}).toBeGreaterThan(0);
     const delivery=[];
+    const transport=[];
     const server=[];
     for(let index=0;index<moves.length;index++){
       const [from,to,san]=moves[index];
@@ -77,6 +89,13 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
       expect(received).toBeGreaterThanOrEqual(started);
       const ms=received-started;
       delivery.push(ms);
+      // Eliminate Playwright's two click commands from the transport figure.
+      // Both Chromium contexts share one test-host wall clock.
+      const sent=await me.evaluate(({from,to})=>window.__eloSentMoves.findLast(m=>m.from===from&&m.to===to)?.at,{from,to});
+      expect(sent).toBeGreaterThan(0);
+      const wire=received-sent;
+      expect(wire).toBeGreaterThanOrEqual(0);
+      transport.push(wire);
       await expect(other.locator('#online-moves')).toContainText(san,{timeout:15000});
       if(index===5){
         // Force a dropped browser socket midgame. The exponential retry
@@ -87,10 +106,11 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
       }
     }
     console.log('REAL LOCAL WEBSOCKET 12 MOVES:',JSON.stringify({
-      serverMs:server,deliveryMs:delivery,
+      serverMs:server,deliveryMs:delivery,transportMs:transport,
       serverP50:percentile(server,.50),serverP95:percentile(server,.95),
       deliveryP50:percentile(delivery,.50),deliveryP95:percentile(delivery,.95),
-      note:'Local loopback two Chromium contexts / Cloudflare workerd. Not real internet latency.'
+      transportP50:percentile(transport,.50),transportP95:percentile(transport,.95),
+      note:'Local loopback browser fetch-start to opponent WebSocket event on the SAME host; not real internet latency.'
     }));
     expect(networkErrors).toEqual([]);
   } finally {await a.close();await b.close()}
