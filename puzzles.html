@@ -31,9 +31,9 @@
   </div>
   <div class="puzzles-layout" id="puzzles-layout">
     <aside class="puzzle-save-run" id="puzzle-save-run" hidden aria-label="Save your puzzle score">
-      <h3>Save your score</h3><p id="puzzle-final-score"></p>
-      <div class="puzzle-save-controls"><label for="puzzle-nickname">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Submit score</button></div>
-      <p class="puzzle-footnote" id="puzzle-nickname-publication">Top 100 nicknames and scores are public; places 101–110 may be held in reserve. Use a suitable nickname, not your real name.</p>
+      <h3>Publish your score on the leaderboards?</h3><p id="puzzle-final-score"></p>
+      <div class="puzzle-publish-choice" id="puzzle-publish-choice" hidden><label><input type="radio" name="puzzle-publish-as" value="account" checked> Use my account: <strong id="puzzle-account-name"></strong></label><label><input type="radio" name="puzzle-publish-as" value="nickname"> Use a nickname</label></div><div class="puzzle-save-controls"><label for="puzzle-nickname" id="puzzle-nickname-label">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Yes, publish score</button><button id="puzzle-skip-score" type="button">No thanks</button></div>
+      <p class="puzzle-footnote" id="puzzle-nickname-publication">Published names and scores are public. Account entries are green; nickname entries are orange. Places 101–110 may be held in reserve.</p>
       <p id="puzzle-save-status" role="status"></p>
     </aside>
     <aside class="puzzle-toolbar-card" aria-label="Puzzle board controls">
@@ -89,13 +89,13 @@
     </section>
   </div>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname</span><span>Score</span><span>Report</span></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname</span><span>Score</span><span>Report</span></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname / Account</span><span>Score</span><span>Report</span></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname / Account</span><span>Score</span><span>Report</span></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <p class="puzzle-ranking-note"></p>
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=20261104-navpair-1"></script>
+<script type="module" src="/puzzles.js?v=20261105-account-leaderboard"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>
