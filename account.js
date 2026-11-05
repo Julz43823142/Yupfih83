@@ -10,6 +10,7 @@
     byId('profile-panel').hidden = !user;
     if (user) {
       byId('profile-username').textContent = user.username;
+      byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
       byId('account-avatar').textContent = user.username.slice(0, 2).toUpperCase();
       byId('profile-created').textContent = `Member since ${new Date(user.createdAt).toLocaleDateString()}`;
     }
