@@ -115,6 +115,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await pb.getByRole('button',{name:'Find opponent'}).click();
   await expect(pa.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await expect(pb.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  const moveResponsePromise=pa.waitForResponse(response=>response.url().includes('/api/online/move'),{timeout:15000});
   const starts=await pa.evaluate(()=>{
    const start=performance.now();
    window.__benchMoveStart=start;
@@ -123,11 +124,14 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
    return start;
   });
   const origin=Date.now();
+  const moveResponse=await moveResponsePromise;
+  const serverTiming=await moveResponse.headerValue('Server-Timing');
+  expect(serverTiming).toMatch(/^chess;dur=\\d+(?:\\.\\d+)?$/);
   await expect(pa.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const ownMs=Date.now()-origin;
   await expect(pb.locator('#online-moves')).toContainText('e4',{timeout:15000});
   const opponentMs=Date.now()-origin;
-  console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
+  console.log('LOCAL-ONLY MOVE BENCHMARK (not internet): server processing',serverTiming,'; own board <=',ownMs,'ms; opponent board <=',opponentMs,'ms; local origin perf',starts);
   const expected=await pb.evaluate(()=>document.querySelector('#online-moves').textContent);
   expect(expected).toContain('e4');
  }finally{await a.close();await b.close()}
