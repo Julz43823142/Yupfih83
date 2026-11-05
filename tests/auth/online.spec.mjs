@@ -21,6 +21,7 @@ test('queued premove is sent only after the opponent has committed their move',a
   await black.locator('#online-name').fill('PremoveBlack');
   await black.getByRole('button',{name:'Join game'}).click();
   await expect(black.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
+  await expect(white.locator('#online-status')).toContainText('Your move',{timeout:15000});
   await black.locator('#online-board button[data-sq="e7"]').click();
   await black.locator('#online-board button[data-sq="e5"]').click();
   await expect(black.locator('#online-status')).toContainText('Premove queued');
