@@ -15,7 +15,7 @@ test('real Workers/D1 login, closed signup, responsive account UI and logout', a
   await page.locator('#password').fill('Local-test-only-orchard-57931!');
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
-  await expect(page.locator('.account-nav')).toHaveText('local_tester');
+  await expect(page.locator('.account-nav')).toHaveText('Local_tester');
   const cookies = await page.context().cookies();
   expect(cookies.some(c => c.httpOnly && c.name.includes('session_token'))).toBeTruthy();
   expect(await page.evaluate(() => Object.keys(localStorage).some(k => /token|session/i.test(k)))).toBe(false);
