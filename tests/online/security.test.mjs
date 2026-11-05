@@ -14,7 +14,7 @@ function databaseWithOnline(){
 function api(db,path,data={},options={}){
  const origin=options.origin||ORIGIN;
  const req=new Request(origin+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':origin,'Content-Type':'application/json','CF-Connecting-IP':options.ip||'203.0.113.40',...(options.cookie?{'Cookie':options.cookie}:{})},body:options.method==='GET'?undefined:JSON.stringify(data)});
- return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_TEST_DEBUG:'true'}});
+ return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_TEST_DEBUG:'true',...(options.room?{ONLINE_ROOM:options.room}:{})}});
 }
 async function call(db,path,data,options){const r=await api(db,path,data,options);return {status:r.status,data:await r.json()}}
 async function create(db,kind='random',name='Visitor'){const a=await call(db,'create',{kind,name});assert.equal(a.status,200,JSON.stringify(a));return a.data}
@@ -187,6 +187,58 @@ test('move acknowledgement provides confirmed board without peer credentials',as
   assert.equal(reply.data.fen,(await state(db,black)).data.fen);
   for(const key of Object.keys(reply.data))assert.doesNotMatch(key,/ip|address|browser|cookie|token|secret|session/i);
   assert.ok(!JSON.stringify(reply.data).includes(black.secret));
+ }finally{db.close()}
+});
+
+
+test('live room only receives public chess state and never network identity',async()=>{
+ const db=databaseWithOnline();try{
+  const notifications=[];
+  const room={idFromName:gameId=>gameId,get:()=>({fetch:async(url,options)=>{
+   assert.equal(new URL(url).hostname,'room.internal');
+   assert.equal(new URL(url).pathname,'/notify');
+   const game=JSON.parse(options.body);notifications.push(game);
+   return new Response(null,{status:204});
+  }})};
+  const host=await call(db,'create',{kind:'invite',name:'Host'},{room});
+  assert.equal(host.status,200);
+  const join=await call(db,'join',{id:host.data.id,name:'Friend'},{room,ip:'198.51.100.75'});
+  assert.equal(join.status,200);
+  const result=await call(db,'move',{id:host.data.id,secret:host.data.secret,from:'e2',to:'e4'},{room,ip:'203.0.113.21'});
+  assert.equal(result.status,200);
+  assert.ok(notifications.length>=2);
+  assert.deepEqual(notifications.at(-1).moves,['e4']);
+  for(const notice of notifications){
+   for(const key of Object.keys(notice))assert.doesNotMatch(key,/ip|address|cookie|token|secret|browser|session|side|header/i);
+   const serialized=JSON.stringify(notice);
+   assert.ok(!serialized.includes(host.data.secret));
+   assert.ok(!serialized.includes(join.data.secret));
+   assert.ok(!serialized.includes('198.51.100.75'));
+   assert.ok(!serialized.includes('203.0.113.21'));
+  }
+ }finally{db.close()}
+});
+
+test('live upgrade rejects unauthorized requests and unavailable binding without exposing seats',async()=>{
+ const db=databaseWithOnline();try{
+  const game=await create(db,'invite');
+  const opts={headers:{Origin:ORIGIN,Upgrade:'websocket','Sec-WebSocket-Protocol':'elo-chess-v1, elo-seat-'+game.secret},method:'GET'};
+  const response=await gameApi({request:new Request(ORIGIN+'/api/online/live?id='+game.id,opts),env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN}});
+  assert.equal(response.status,503);
+  const cross=await gameApi({request:new Request(ORIGIN+'/api/online/live?id='+game.id,{...opts,headers:{...opts.headers,Origin:'https://attacker.invalid'}}),env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN}});
+  assert.equal(cross.status,403);
+  const calls=[];
+  const room={idFromName:gameId=>gameId,get:()=>({fetch:async req=>{calls.push(req);return new Response('mock room',{status:200})}})};
+  const wrong=new Request(ORIGIN+'/api/online/live?id='+game.id,{...opts,headers:{...opts.headers,'Sec-WebSocket-Protocol':'elo-chess-v1, elo-seat-'+'0'.repeat(32)}});
+  const bad=await gameApi({request:wrong,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_ROOM:room}});
+  assert.equal(bad.status,404);assert.equal(calls.length,0);
+  const valid=await gameApi({request:new Request(ORIGIN+'/api/online/live?id='+game.id,opts),env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_ROOM:room}});
+  assert.equal(valid.status,200);assert.equal(calls.length,1);
+  assert.equal(calls[0].headers.get('Cookie'),null);
+  assert.equal(calls[0].headers.get('CF-Connecting-IP'),null);
+  assert.equal(calls[0].headers.get('Sec-WebSocket-Protocol'),'elo-chess-v1');
+  assert.equal(calls[0].headers.get('X-Authorized-Side'),'w');
+  assert.ok(!calls[0].url.includes(game.secret));
  }finally{db.close()}
 });
 
