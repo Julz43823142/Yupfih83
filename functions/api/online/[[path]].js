@@ -14,6 +14,7 @@ async function pushState(env,g){
   const state=publicGame(g,g.white_token);
   if(!state)return;
   const {side,...publicState}=state;
+  publicState.drawOffer=await drawOffer(env.AUTH_DB,g);
   await room.fetch('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(publicState)});
  }catch(error){
   if(env.ONLINE_TEST_DEBUG==='true')console.error('Optional live push failed:',error);
