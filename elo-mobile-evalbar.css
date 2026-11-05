@@ -1,0 +1,42 @@
+/* EloFlow mobile evaluation meters: slimmer bar, full board height.
+   Desktop dimensions remain unchanged. */
+@media(max-width:760px){
+ body.elo-unified-chess .tool-page .analysis-board-column>.board-with-eval,
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row{
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr)!important;
+  column-gap:6px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+ }
+ body.elo-unified-chess .tool-page .analysis-board-column>.board-with-eval>.board-eval-wrap,
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:18px!important;
+  min-width:18px!important;
+  max-width:18px!important;
+  flex:0 0 18px!important;
+  height:100%!important;
+  max-height:none!important;
+  align-self:stretch!important;
+  box-sizing:border-box!important;
+ }
+ body.elo-unified-chess .tool-page .analysis-board-column>.board-with-eval>#board,
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>#board{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  max-width:100%!important;
+ }
+ body.elo-unified-chess .tool-page .board-eval-track .board-eval-text,
+ body.elo-unified-chess .tool-page .prep-eval-bar #prep-eval-label{
+  font-size:9px!important;
+  letter-spacing:-.4px!important;
+  left:0!important;
+  right:0!important;
+  width:100%!important;
+  max-width:100%!important;
+ }
+}
