@@ -109,3 +109,34 @@
   width:100%!important;white-space:nowrap!important;font-size:8px!important;
  }
 }
+
+/* v4: align the meter to the board's actual top edge, not the grid row.
+   The board can sit lower in its row due to legacy chessboard margins. */
+@media(max-width:760px){
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval>.board-eval-wrap,
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar{
+  transform:translateY(var(--elo-meter-offset,0px))!important;
+  transform-origin:top left!important;
+  top:0!important;
+  height:var(--chess-board-height,320px)!important;
+  min-height:0!important;
+  max-height:var(--chess-board-height,320px)!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval>.board-eval-wrap{
+  width:18px!important;min-width:18px!important;max-width:18px!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval{
+  grid-template-columns:18px minmax(0,1fr)!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar{
+  width:20px!important;min-width:20px!important;max-width:20px!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row{
+  grid-template-columns:20px minmax(0,1fr)!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar #prep-eval-label{
+  display:block!important;white-space:nowrap!important;word-break:normal!important;
+  writing-mode:horizontal-tb!important;transform:none!important;
+  font-size:7px!important;letter-spacing:-.5px!important;
+ }
+}
