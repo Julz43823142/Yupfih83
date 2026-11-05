@@ -1,0 +1,32 @@
+/* EloFlow homepage mobile repair: normal scrolling header and no clipped right gutter. */
+@media(max-width:1099px){
+ html,body{width:100%;max-width:100%;overflow-x:clip}
+ header.navbar,body>header.navbar{
+  position:relative!important;top:auto!important;inset:auto!important;
+  z-index:20!important;width:100%!important;max-width:100%!important;
+  min-height:72px!important;height:auto!important;
+  padding:12px 16px!important;display:flex!important;flex-wrap:wrap!important;
+  gap:10px!important;align-items:center!important;
+  background:#031120!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ }
+ header.navbar>.brand{flex:1 1 160px!important;min-width:0!important;margin:0!important}
+ header.navbar .brand-logo{display:block!important;width:min(220px,100%)!important;max-width:100%!important;height:auto!important}
+ header.navbar>.account-nav{display:flex!important;flex:0 1 auto!important;min-width:0!important;margin-left:auto!important;gap:7px!important}
+ header.navbar>.account-nav a{font-size:12px!important;padding:9px 11px!important;white-space:nowrap!important}
+ header.navbar>.mobile-chess-menu{margin-left:0!important}
+ main,main>.hero,main>.hero>.hero-content,main>.hero>.hero-content>*{
+  min-width:0!important;max-width:100%!important;box-sizing:border-box!important;
+ }
+ main>.hero{width:100%!important;overflow:visible!important}
+ main>.hero>.hero-content{width:100%!important;margin-inline:auto!important;padding-inline:16px!important}
+ main>.hero>.hero-content form,
+ main>.hero>.hero-content input,
+ main>.hero>.hero-content button{max-width:100%!important;box-sizing:border-box!important}
+ main>.below-hero-layout{width:calc(100% - 32px)!important;max-width:100%!important;min-width:0!important}
+}
+@media(max-width:560px){
+ header.navbar>.brand{flex-basis:100%!important}
+ header.navbar>.account-nav{margin-left:0!important}
+ header.navbar>.mobile-chess-menu{margin-left:auto!important}
+ main>.hero>.hero-content{padding-inline:16px!important}
+}
