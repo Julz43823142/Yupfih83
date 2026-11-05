@@ -19,6 +19,9 @@ async function dbReady(db){
  if(!existing.has('source_type')){try{await db.prepare("ALTER TABLE puzzle_hourly_scores ADD COLUMN source_type TEXT NOT NULL DEFAULT 'nickname'").run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
  if(!existing.has('account_id')){try{await db.prepare("ALTER TABLE puzzle_hourly_scores ADD COLUMN account_id TEXT").run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
+ await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_entries_rank ON puzzle_score_entries(mode,score DESC,created_at ASC)").run();
+ await db.prepare("INSERT OR IGNORE INTO puzzle_score_entries(hour,mode,nickname,score,created_at,source_type,account_id,legacy_key) SELECT hour,mode,nickname,score,created_at,source_type,account_id,'legacy:'||hour||':'||mode||':'||lower(nickname) FROM puzzle_hourly_scores").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_runs (id TEXT PRIMARY KEY,mode TEXT NOT NULL,started_at INTEGER NOT NULL,score INTEGER NOT NULL DEFAULT 0,submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_solves (run_id TEXT NOT NULL,puzzle_id TEXT NOT NULL,PRIMARY KEY(run_id,puzzle_id))").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_verified_runs_expiry ON puzzle_verified_runs(started_at)").run();
@@ -46,25 +49,7 @@ async function cleanExpiredRuns(db,now){
    AND NOT EXISTS (SELECT 1 FROM puzzle_verified_solves s WHERE s.run_id=r.id) LIMIT 100
  )`).bind(cutoff).run();
 }
-// Keep only the highest score per nickname and the best 110 nicknames (100 public, 10 reserves) in each
-// public ranking. Sprint 3 and Sprint 5 share one combined ranking.
-async function pruneScores(db){
- for(const modes of ["('sprint3','sprint5')","('survival')"]){
-  await db.prepare(`DELETE FROM puzzle_hourly_scores
-   WHERE mode IN ${modes} AND rowid NOT IN (
-    SELECT rowid FROM (
-     SELECT rowid,nickname,ROW_NUMBER() OVER (
-      PARTITION BY nickname ORDER BY score DESC,created_at ASC
-     ) AS row_number
-     FROM puzzle_hourly_scores WHERE mode IN ${modes}
-    ) WHERE row_number=1 AND nickname IN (
-     SELECT nickname FROM puzzle_hourly_scores
-     WHERE mode IN ${modes} AND lower(nickname) NOT IN ('tttt','tttttttt')
-     GROUP BY nickname ORDER BY MAX(score) DESC,nickname ASC LIMIT 110
-    )
-   )`).run();
- }
-}
+// Verified score entries are retained individually for both ranking views.
 let bankCache=null;
 async function puzzleBank(env,request){
  if(!bankCache){
@@ -115,12 +100,11 @@ export async function onRequestGet({request,env}){
   const current=hour();
   const sprint=mode==="sprint";
   const where=sprint?"mode IN ('sprint3','sprint5')":"mode=?";
-  const sql=`SELECT nickname,score,source_type AS sourceType FROM (
-   SELECT nickname,score,source_type,ROW_NUMBER() OVER (
-    PARTITION BY lower(nickname) ORDER BY score DESC,created_at ASC
-   ) AS rank_for_name FROM puzzle_hourly_scores
-   WHERE ${where} AND lower(nickname) NOT IN ('tttt','tttttttt')
-  ) WHERE rank_for_name=1 ORDER BY score DESC,nickname ASC LIMIT ?`;
+  const unique=url.searchParams.get('filter')==='unique';
+  const base=`SELECT nickname,score,source_type,account_id,created_at,id FROM puzzle_score_entries WHERE ${where} AND lower(nickname) NOT IN ('tttt','tttttttt')`;
+  const sql=unique
+   ? `SELECT nickname,score,source_type AS sourceType FROM (SELECT *,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM (${base})) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?`
+   : `SELECT nickname,score,source_type AS sourceType FROM (${base}) ORDER BY score DESC,created_at ASC,id ASC LIMIT ?`;
   const rows=await db.prepare(sql).bind(...(sprint?[limit]:[mode,limit])).all();
   return json({mode,hour:current,endsAt:(current+1)*3600000,entries:rows.results||[],unverified:true,allTime:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
@@ -215,8 +199,7 @@ export async function onRequestPost({request,env}){
   const claim=await db.prepare('UPDATE puzzle_verified_runs SET submitted=1 WHERE id=? AND submitted=0 AND score=?').bind(session,score).run();
   if(!claim.meta?.changes)return json({error:'This run was already submitted.'},409);
   const now=hour();
-  await db.prepare("INSERT INTO puzzle_hourly_scores(hour,mode,nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?,?,?) ON CONFLICT(hour,mode,nickname) DO UPDATE SET score=excluded.score,created_at=excluded.created_at,source_type=excluded.source_type,account_id=excluded.account_id WHERE excluded.score > puzzle_hourly_scores.score OR (excluded.score = puzzle_hourly_scores.score AND excluded.source_type='account' AND puzzle_hourly_scores.source_type='nickname')").bind(now,mode,nickname,score,Date.now(),sourceType,accountId).run();
-  await pruneScores(db);
+  await db.prepare("INSERT INTO puzzle_score_entries(hour,mode,nickname,score,created_at,source_type,account_id) VALUES(?,?,?,?,?,?,?)").bind(now,mode,nickname,score,Date.now(),sourceType,accountId).run();
   return json({ok:true,hour:now});
  }catch{return json({error:"Could not save score."},503)}
 }
