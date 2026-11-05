@@ -43,6 +43,13 @@ export async function onRequest({request,env}){
    if(!['random','invite'].includes(b.kind))return reply({error:'Invalid game type.'},400);
    const limited=await guarded(db,env,request,'create',6,600000);if(limited)return limited;
    const player=await nameAndAccount(request,env,b.name);if(!player)return reply({error:'Invalid nickname.'},400);
+   let intended=null;
+   if(b.targetUsername!==undefined){
+    if(b.kind!=='invite'||!player.userId||typeof b.targetUsername!=='string'||!/^[a-zA-Z0-9_]{3,24}$/.test(b.targetUsername))return reply({error:'Invalid challenge target.'},400);
+    const target=await db.prepare('SELECT id FROM "user" WHERE lower(username)=lower(?)').bind(b.targetUsername).first();
+    if(!target||target.id===player.userId)return reply({error:'Invalid challenge target.'},404);
+    intended=target.id;
+   }
    const secret=random(),digest=await secretHash(secret),id=random(),t=time();
    if(b.kind==='random'){
     const pending=await db.prepare("SELECT id FROM online_games WHERE kind='random' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) ORDER BY created_at LIMIT 1").bind(t-120000,player.userId||'').first();
@@ -51,7 +58,7 @@ export async function onRequest({request,env}){
      if(updated.meta.changes===1)return reply({id:pending.id,secret,matched:true});
     }
    }
-   await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,white_name,fen,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,player.name,new Chess().fen(),t,t).run();
+   await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,invited_user_id,white_name,fen,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,intended,player.name,new Chess().fen(),t,t).run();
    // Retention: abandoned lobby games 24h, completed games 30d. No raw IP stored.
    if(Math.random()<0.1){try{
     await db.prepare("UPDATE online_games SET status='finished',result=CASE WHEN turn='w' THEN '0-1' ELSE '1-0' END,white_ms=CASE WHEN turn='w' THEN 0 ELSE white_ms END,black_ms=CASE WHEN turn='b' THEN 0 ELSE black_ms END,updated_at=? WHERE status='active' AND last_move_at<?").bind(t,t-180001).run();
@@ -70,7 +77,7 @@ export async function onRequest({request,env}){
    const restrictions=await db.prepare("SELECT to_user FROM online_challenges WHERE game_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1").bind(b.id).first();
    if(restrictions&&restrictions.to_user!==player.userId)return reply({error:'This challenge is for another account.'},403);
    const secret=random(),digest=await secretHash(secret),t=time();
-   const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='invite' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?)").bind(digest,player.name,player.userId,t,t,b.id,t-86400000,player.userId||'').run();
+   const updated=await db.prepare("UPDATE online_games SET black_token=?,black_name=?,black_user_id=?,status='active',last_move_at=?,updated_at=? WHERE id=? AND kind='invite' AND status='waiting' AND created_at>? AND (white_user_id IS NULL OR white_user_id<>?) AND (invited_user_id IS NULL OR invited_user_id=?)").bind(digest,player.name,player.userId,t,t,b.id,t-86400000,player.userId||'',player.userId||'').run();
    if(updated.meta.changes!==1)return reply({error:'Invitation expired, unavailable, or self-challenge.'},409);
    await db.prepare("UPDATE online_challenges SET status='accepted' WHERE game_id=? AND status='pending'").bind(b.id).run();
    return reply({id:b.id,secret});
