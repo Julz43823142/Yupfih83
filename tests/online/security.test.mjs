@@ -6,11 +6,12 @@ import {onRequest as gameApi} from '../../functions/api/online/[[path]].js';
 import {onRequest as socialApi} from '../../functions/api/social/[[path]].js';
 import {OnlineChessRoom} from '../../workers/online-room.mjs';
 import {validGuest,rateLimitPair} from '../../lib/online/security.mjs';
+import {lagCredit,lagGrace,MAX_LAG_PER_GAME_MS} from '../../lib/online/lag.mjs';
 
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
 function databaseWithOnline(){
  const db=database();
- for(const n of ['0003_online_chess.sql','0004_social.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
+ for(const n of ['0003_online_chess.sql','0004_social.sql','0005_online_lag.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
  db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
@@ -281,6 +282,112 @@ test('Durable Object room strips injected private fields and closes unauthorized
  assert.equal(closes[0][0],1008);
  const invalid=await room.fetch(new Request('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}));
  assert.equal(invalid.status,400);
+});
+
+test('WebSocket notifications reject delayed stale states and finished-game rollback',async()=>{
+ const packets=[];
+ const socket={send:s=>packets.push(JSON.parse(s).game),close:()=>{},deserializeAttachment:()=>({side:'b'})};
+ const room=new OnlineChessRoom({getWebSockets:()=>[socket]});
+ const notify=async changes=>room.fetch(new Request('https://room.internal/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'a'.repeat(32),fen:'board',moves:[],status:'waiting',updatedAt:100,...changes})}));
+ assert.equal((await notify({status:'active',updatedAt:110})).status,204);
+ assert.equal((await notify({status:'active',moves:['e4'],updatedAt:120})).status,204);
+ assert.equal((await notify({status:'active',moves:[],updatedAt:100})).status,204);
+ assert.equal((await notify({status:'finished',moves:['e4'],updatedAt:125,result:'1-0'})).status,204);
+ assert.equal((await notify({status:'active',moves:['e4'],updatedAt:124})).status,204);
+ assert.deepEqual(packets.map(g=>g.status),['active','active','finished']);
+ assert.deepEqual(packets.map(g=>g.moves.length),[0,1,1]);
+});
+
+test('a committed move pushes to opponent socket through the private room without waiting for polling',async()=>{
+ const db=databaseWithOnline();try{
+  const packets=[];
+  const socket={send:s=>packets.push({at:performance.now(),packet:JSON.parse(s)}),close:()=>{},deserializeAttachment:()=>({side:'b'})};
+  const durable=new OnlineChessRoom({getWebSockets:()=>[socket]});
+  const binding={idFromName:id=>id,get:()=>({fetch:(url,options)=>durable.fetch(new Request(url,options))})};
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_ROOM:binding};
+  const send=async(path,data)=>{
+   const req=new Request(ORIGIN+'/api/online/'+path,{method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.49'},body:JSON.stringify(data)});
+   return gameApi({request:req,env});
+  };
+  const first=await send('create',{kind:'invite',name:'First'});assert.equal(first.status,200);const white=await first.json();
+  const second=await send('join',{id:white.id,name:'Second'});assert.equal(second.status,200);
+  packets.length=0;
+  const started=performance.now();
+  const moved=await send('move',{id:white.id,secret:white.secret,from:'e2',to:'e4'});
+  assert.equal(moved.status,200);
+  assert.equal(packets.length,1);
+  assert.equal(packets[0].packet.type,'state');
+  assert.deepEqual(packets[0].packet.game.moves,['e4']);
+  assert.equal(packets[0].packet.game.side,undefined);
+  assert.ok(packets[0].at>=started);
+  assert.ok(packets[0].at<=performance.now());
+  console.log('MOCK PRIVATE ROOM PUSH: confirmed state published in same request flow, without client polling; not real Cloudflare network latency');
+ }finally{db.close()}
+});
+
+test('lag credit cannot be inflated by network claims and has a hard game limit',()=>{
+ assert.equal(lagCredit(300,1200,160),80);
+ assert.equal(lagCredit(300,1200,1000),80);
+ assert.equal(lagCredit(300,1200,0),0);
+ assert.equal(lagCredit(40,1200,160),40);
+ assert.equal(lagCredit(500,11,1000),11);
+ assert.equal(lagCredit(500,0,1000),0);
+ assert.equal(lagCredit(500,1200,1e12),0);
+ assert.equal(lagCredit(500,1200,-20),0);
+ assert.equal(lagCredit(500,1200,NaN),0);
+ assert.equal(lagGrace(MAX_LAG_PER_GAME_MS),0);
+ assert.equal(lagGrace(MAX_LAG_PER_GAME_MS-1),80);
+});
+
+test('lag allowance applies on server and is accounted for independently per player',async()=>{
+ const db=databaseWithOnline();try{
+  const [w,b]=await pair(db);
+  const g=db.sqlite.prepare('SELECT * FROM online_games WHERE id=?').get(w.id);
+  // White has consumed 200ms since the server activated the game.
+  db.sqlite.prepare('UPDATE online_games SET last_move_at=? WHERE id=?').run(Date.now()-200,w.id);
+  const w1=await call(db,'move',{id:w.id,secret:w.secret,from:'e2',to:'e4',networkRttMs:160});
+  assert.equal(w1.status,200,JSON.stringify(w1));
+  const after=db.sqlite.prepare('SELECT * FROM online_games WHERE id=?').get(w.id);
+  assert.equal(after.white_lag_used_ms,80);
+  assert.equal(after.black_lag_used_ms,0);
+  // No RTT means no extra credit even after a successful socket connection.
+  const b1=await call(db,'move',{id:b.id,secret:b.secret,from:'e7',to:'e5',networkRttMs:999999999});
+  assert.equal(b1.status,200);
+  assert.equal(db.sqlite.prepare('SELECT black_lag_used_ms FROM online_games WHERE id=?').get(w.id).black_lag_used_ms,0);
+  // A malicious client already at the maximum budget cannot gain more time.
+  db.sqlite.prepare('UPDATE online_games SET white_lag_used_ms=? WHERE id=?').run(MAX_LAG_PER_GAME_MS,w.id);
+  const w2=await call(db,'move',{id:w.id,secret:w.secret,from:'g1',to:'f3',networkRttMs:2000});
+  assert.equal(w2.status,200);
+  assert.equal(db.sqlite.prepare('SELECT white_lag_used_ms FROM online_games WHERE id=?').get(w.id).white_lag_used_ms,MAX_LAG_PER_GAME_MS);
+  assert.equal(g.status,'active');
+ }finally{db.close()}
+});
+
+test('lag grace does not allow unlimited clock extension after reaching full game budget',async()=>{
+ const db=databaseWithOnline();try{
+  const [w]=await pair(db);
+  db.sqlite.prepare('UPDATE online_games SET white_ms=20,white_lag_used_ms=?,last_move_at=? WHERE id=?')
+   .run(MAX_LAG_PER_GAME_MS,Date.now()-100,w.id);
+  const expired=await call(db,'move',{id:w.id,secret:w.secret,from:'e2',to:'e4',networkRttMs:2000});
+  assert.equal(expired.status,409);
+  assert.equal((await state(db,w)).data.status,'finished');
+ }finally{db.close()}
+});
+
+test('Durable Object WebSocket ping is rate-limited and never forwards untrusted moves',async()=>{
+ const packets=[],closed=[],attachments=[];
+ let attachment={side:'w'};
+ const socket={
+  send:s=>packets.push(JSON.parse(s)),close:(...v)=>closed.push(v),
+  deserializeAttachment:()=>attachment,serializeAttachment:x=>{attachment=x;attachments.push(x)}
+ };
+ const room=new OnlineChessRoom({getWebSockets:()=>[socket]});
+ await room.webSocketMessage(socket,JSON.stringify({type:'ping',nonce:7}));
+ await room.webSocketMessage(socket,JSON.stringify({type:'ping',nonce:8}));
+ assert.deepEqual(packets,[{type:'pong',nonce:7}]);
+ assert.equal(attachments[0].side,'w');
+ await room.webSocketMessage(socket,JSON.stringify({type:'move',from:'e2',to:'e4'}));
+ assert.equal(closed[0][0],1008);
 });
 
 console.log('Online security and chess logic regression tests completed.');

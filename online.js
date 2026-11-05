@@ -2,6 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
+let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0,liveRetryTimer=null,queuedPremove=null;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -66,11 +67,35 @@ function render(){if(!state)return;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
- $('online-status').textContent=previewBoard?'Sending move…':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
+ $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
 function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const top=fmt(side==='w'?b:w),bottom=fmt(side==='w'?w:b);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom}
-async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!==side)return;const pc=game.get(sq);if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}// Optimistic *display only*: the server remains authoritative.
+// A queued premove is never sent before the opponent's committed move;
+// verify it against the new board before submitting an authorized HTTP move.
+function premoveCandidates(square){
+ try{
+  const fen=state.fen.split(' ');
+  fen[1]=side;fen[3]='-';
+  return new Chess(fen.join(' ')).moves({square,verbose:true});
+ }catch{return []}
+}
+async function choose(sq){
+ if(busy||!state||state.status!=='active')return;
+ const pc=game.get(sq);
+ if(state.turn!==side){
+  if(selected){
+   const from=selected,choices=selectedMoves.filter(m=>m.to===sq);
+   selected=null;selectedMoves=[];
+   if(choices.length){
+    const preferred=choices.find(m=>!m.promotion||m.promotion==='q')||choices[0];
+    queuedPremove={from,to:sq,promotion:preferred.promotion||'q'};
+    paintSelection();$('online-status').textContent='Premove queued';return;
+   }
+  }
+  if(pc?.color===side){selected=sq;selectedMoves=premoveCandidates(sq)}
+  paintSelection();return;
+ }if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}// Optimistic *display only*: the server remains authoritative.
   // Do not advance clocks, game state, results, or permit another move
   // until the server confirms this position.
   busy=true;
@@ -81,7 +106,8 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
    boardFen=null;
    previewBoard=game;
    previewMove(from,sq,move);
-   const committed=await post('move',{id,secret,from,to:sq,promotion});
+   const rttFresh=liveConnected&&performance.now()-networkRttAt<30000;
+   const committed=await post('move',{id,secret,from,to:sq,promotion,...(rttFresh?{networkRttMs:Math.round(networkRttMs)}:{})});
    previewBoard=null;
    // Server acknowledgement reuses the speculative position if it matches.
    // A mismatched authoritative FEN is still rebuilt and wins.
@@ -104,10 +130,20 @@ function acceptState(next){
   if(next.fen===state?.fen)return;
  }
  const previous=state;
+ if(previous?.id!==next.id||next.status==='finished')queuedPremove=null;
  const changed=!previous||previous.id!==next.id||previous.fen!==next.fen||previous.status!==next.status||previous.result!==next.result||previous.white!==next.white||previous.black!==next.black||previous.whiteMs!==next.whiteMs||previous.blackMs!==next.blackMs||previous.lastMoveAt!==next.lastMoveAt||previous.moves.length!==next.moves.length;
  if(previous?.fen!==next.fen){selected=null;selectedMoves=[]}
  state=next;serverOffset=next.serverTime-Date.now();
  if(changed)render();else clocks();
+ if(!busy&&queuedPremove&&next.status==='active'&&next.turn===side){
+  const planned=queuedPremove;queuedPremove=null;
+  queueMicrotask(()=>{
+   if(busy||state?.status!=='active'||state?.turn!==side)return;
+   const possible=game.moves({square:planned.from,verbose:true});
+   if(!possible.some(m=>m.to===planned.to&&(!m.promotion||m.promotion===planned.promotion)))return;
+   choose(planned.from);choose(planned.to);
+  });
+ }
 }
 let polling=false;async function poll(){if(!id||!secret||polling)return;polling=true;try{const j=await post('state',{id,secret});side=j.side;acceptState(j)}catch(e){$('online-status').textContent=e.message}finally{polling=false}}
 const urlParams=new URL(location.href).searchParams;
@@ -116,6 +152,24 @@ else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').queryS
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
 // A websocket is read-only. Every move still goes through the authorized HTTPS
 // endpoint; the room only publishes server-confirmed board states.
+function markLiveDisconnected(socket){
+ if(liveSocket!==socket)return;
+ liveSocket=null;liveConnected=false;networkRttMs=null;networkRttAt=0;pingStartedAt=0;
+ scheduleLiveRetry();
+ poll();
+}
+function scheduleLiveRetry(){
+ liveFailures=Math.min(liveFailures+1,5);
+ const delay=Math.min(15000,1000*2**(liveFailures-1));
+ liveRetryAt=Date.now()+delay;
+ if(liveRetryTimer!==null)clearTimeout(liveRetryTimer);
+ liveRetryTimer=setTimeout(()=>{
+  liveRetryTimer=null;
+  // Reconnect even when Chromium has backgrounded this tab; otherwise a
+  // hidden opponent can remain disconnected until foregrounded.
+  connectLive();
+ },delay+25);
+}
 function connectLive(){
  if(!id||!secret||liveSocket||Date.now()<liveRetryAt)return;
  const origin=new URL(location.href);
@@ -125,21 +179,61 @@ function connectLive(){
  try{
   const socket=new WebSocket(origin.href,['elo-chess-v1','elo-seat-'+secret]);
   liveSocket=socket;
-  socket.onopen=()=>{liveConnected=true;poll()};
+  socket.onopen=()=>{
+   liveConnected=true;liveFailures=0;liveRetryAt=0;
+   if(liveRetryTimer!==null){clearTimeout(liveRetryTimer);liveRetryTimer=null}
+   lastSocketMessageAt=performance.now();networkRttMs=null;networkRttAt=0;pingStartedAt=0;
+   sendSocketPing();poll();
+  };
   socket.onmessage=event=>{
    if(typeof event.data!=='string'||event.data.length>8192)return;
    try{
-    const packet=JSON.parse(event.data),next=packet.game;
+    const packet=JSON.parse(event.data);
+    if(packet.type==='pong'&&packet.nonce===pingNonce&&pingStartedAt){
+     const now=performance.now(),sample=now-pingStartedAt;
+     if(sample>=0&&sample<=2000){
+      networkRttMs=networkRttMs===null?sample:networkRttMs*0.65+sample*0.35;
+      networkRttAt=now;
+     }
+     lastSocketMessageAt=now;pingStartedAt=0;return;
+    }
+    const next=packet.game;
     if(packet.type!=='state'||!next||next.id!==id||!Array.isArray(next.moves)||typeof next.fen!=='string')return;
+    lastSocketMessageAt=performance.now();
     acceptState({...next,side});
    }catch{}
   };
   socket.onerror=()=>{};
-  socket.onclose=()=>{
-   if(liveSocket===socket){liveSocket=null;liveConnected=false;liveRetryAt=Date.now()+15000;poll()}
-  };
- }catch{liveRetryAt=Date.now()+15000}
+  socket.onclose=()=>markLiveDisconnected(socket);
+ }catch{scheduleLiveRetry()}
 }
+function sendSocketPing(){
+ if(!liveSocket||liveSocket.readyState!==WebSocket.OPEN||pingStartedAt)return;
+ pingNonce=(pingNonce+1)%2147483647;
+ pingStartedAt=performance.now();
+ try{liveSocket.send(JSON.stringify({type:'ping',nonce:pingNonce}))}catch{pingStartedAt=0}
+}
+// Detect silent half-open sockets; a reconnect starts with a fresh
+// authoritative state read. Hidden tabs resume checking on visibility.
+setInterval(()=>{
+ if(!id||!liveSocket)return;
+ // Browsers can remain stuck in CLOSING if the peer never completes the
+ // close handshake. Don't wait indefinitely for an onclose callback.
+ if(liveSocket.readyState===WebSocket.CLOSED||
+    (liveSocket.readyState===WebSocket.CLOSING&&performance.now()-lastSocketMessageAt>2000)){
+  markLiveDisconnected(liveSocket);return;
+ }
+ if(liveSocket.readyState!==WebSocket.OPEN)return;
+ const now=performance.now();
+ if(document.visibilityState==='hidden')return;
+ if(now-lastSocketMessageAt>30000){
+  liveSocket.close(4000,'Heartbeat timeout');return;
+ }
+ if(pingStartedAt&&now-pingStartedAt>12000){
+  liveSocket.close(4000,'Ping timeout');return;
+ }
+ sendSocketPing();
+},8000);
 // Poll more frequently only during an active game. Keep the D1 request budget
 // below the per-IP rate limit even when two players share the same connection.
 async function pollLoop(){
@@ -148,7 +242,14 @@ async function pollLoop(){
  setTimeout(pollLoop,delay);
 }
 setTimeout(pollLoop,900);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&id)poll()});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&id){
+  // Background tabs may lose their socket without receiving a close event.
+  if(liveSocket&&liveSocket.readyState===WebSocket.OPEN&&performance.now()-lastSocketMessageAt>30000)
+   liveSocket.close(4000,'Resume reconnect');
+  connectLive();poll();
+ }
+});
 setInterval(clocks,250);
 
 async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
