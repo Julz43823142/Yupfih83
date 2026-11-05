@@ -73,7 +73,7 @@ test('expired puzzle history is cleaned in bounded batches without deleting acti
  db.sqlite.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').run(old,'survival',Date.now()-90000000);
  const insert=db.sqlite.prepare('INSERT INTO puzzle_verified_solves VALUES(?,?)');
  for(let i=0;i<510;i++)insert.run(old,'expired'+i);
- db.sqlite.prepare('INSERT INTO puzzle_hourly_scores VALUES(1,?,?,?,?)').run('survival','ChessFox',10,Date.now());
+ db.sqlite.prepare('INSERT INTO puzzle_hourly_scores (hour,mode,nickname,score,created_at) VALUES(1,?,?,?,?)').run('survival','ChessFox',10,Date.now());
  await start(env);
  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves WHERE run_id=?').get(old).c,10);
  assert.ok(db.sqlite.prepare('SELECT id FROM puzzle_verified_runs WHERE id=?').get(old));
