@@ -13,9 +13,9 @@ $('online-random').onclick=async()=>{try{const r=await post('create',{kind:'rand
 $('online-invite').onclick=async()=>{try{const r=await post('create',{kind:'invite',name:name()});id=r.id;secret=r.secret;enter();$('online-share').hidden=false;$('online-link').value=location.origin+'/online.html?invite='+id}catch(e){setupError(e)}};
 $('online-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('online-link').value);$('online-copy').textContent='Copied!'}catch{$('online-link').select()}};
 $('online-resign').onclick=async()=>{if(!confirm('Resign this game?'))return;try{await post('resign',{id,secret});poll()}catch(e){$('online-status').textContent=e.message}};
-for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),b=document.createElement('button');b.type='button';b.className=(r+c)%2?'dark':'light';b.dataset.sq=sq;b.setAttribute('aria-label',sq);b.onclick=()=>choose(sq);squares.set(sq,b);$('online-board').append(b)}
+for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),b=document.createElement('button');b.type='button';b.className=(r+c)%2?'dark':'light';b.dataset.sq=sq;b.setAttribute('aria-label',sq);b.onclick=()=>{if(!ignoreDragClick)choose(sq)};squares.set(sq,b);$('online-board').append(b)}
 // Drag pieces using the same move validation as click-to-move.
-let dragStart=null;
+let dragStart=null,ignoreDragClick=false;
 const onlineBoard=$('online-board');
 onlineBoard.addEventListener('dragstart',e=>e.preventDefault());
 onlineBoard.addEventListener('pointerdown',e=>{
@@ -32,6 +32,7 @@ onlineBoard.addEventListener('pointerup',e=>{
  if(!dragStart||dragStart.id!==e.pointerId)return;
  const drag=dragStart;dragStart=null;
  if(!drag.moved)return;
+ ignoreDragClick=true;setTimeout(()=>{ignoreDragClick=false},0);
  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#online-board button[data-sq]');
  if(!target||target.dataset.sq===drag.from)return;
  selected=drag.from;
