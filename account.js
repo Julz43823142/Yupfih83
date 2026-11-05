@@ -40,6 +40,17 @@
     if (widgetId !== undefined) { window.turnstile.reset(widgetId); return; }
     widgetId = window.turnstile.render('#turnstile-container', { sitekey: config.turnstileSiteKey, action: 'login', callback: value => { token = value; }, 'expired-callback': () => { token = ''; }, 'error-callback': () => { token = ''; message('Security check failed. Please try again.', true); } });
   }
+  byId('registration-preview-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const username = byId('signup-username').value;
+    const password = byId('signup-password').value;
+    const confirmation = byId('signup-confirm').value;
+    const status = byId('registration-preview-status');
+    if (password !== confirmation) { status.textContent = 'Passwords do not match.'; return; }
+    status.textContent = 'Preview only: registration is currently closed. No account was created for ' + username + '.';
+    byId('signup-password').value = '';
+    byId('signup-confirm').value = '';
+  });
   byId('login-form').addEventListener('submit', event => {
     event.preventDefault(); const form = event.currentTarget;
     busy(form, async () => {
