@@ -38,6 +38,13 @@
   window.eloAccountSession = fetch('/api/auth/get-session', { credentials: 'same-origin', cache: 'no-store' })
     .then(async response => ({ available: response.ok, ...(response.ok ? await response.json() : { user: null }) }))
     .catch(() => ({ available: false, user: null }));
-  window.eloAccountSession.then(result => renderAccount(result.user));
-  window.addEventListener('elo-account-changed', event => renderAccount(event.detail?.user));
+  let presentUser=null;
+  async function announcePresence(){
+    if(!presentUser||document.visibilityState==='hidden')return;
+    try{await fetch('/api/social/presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'})}catch{}
+  }
+  window.eloAccountSession.then(result => {presentUser=result.user||null;renderAccount(result.user);announcePresence()});
+  setInterval(announcePresence,45000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')announcePresence()});
+  window.addEventListener('elo-account-changed', event => {presentUser=event.detail?.user||null;renderAccount(presentUser);announcePresence()});
 })();
