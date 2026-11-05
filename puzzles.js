@@ -10,6 +10,19 @@ let ready=false,busy=false,arrows=[],highlights=new Set(),wrongSquare=null,reque
 let completedRun=null,verifiedSessionPromise=null,proofChain=Promise.resolve(),proofError=null;
 let reviewItems=[],reviewing=false,reviewIndex=-1,hintStage=0,hintRevealed=false,postRunSnapshot=null;
 const isTraining=()=>mode==='random'||mode==='custom';
+let leaderboardUser=null;
+const publishChoice=()=>document.querySelector('input[name="puzzle-publish-as"]:checked')?.value==='account'&&leaderboardUser?'account':'nickname';
+function updatePublishChoice(){
+ const group=$('puzzle-publish-choice'),nameLabel=$('puzzle-nickname-label');
+ if(!group||!nameLabel)return;
+ group.hidden=!leaderboardUser;
+ if(leaderboardUser)$('puzzle-account-name').textContent=leaderboardUser.username[0].toUpperCase()+leaderboardUser.username.slice(1);
+ nameLabel.hidden=publishChoice()==='account';
+}
+window.eloAccountSession?.then(result=>{leaderboardUser=result.user||null;updatePublishChoice()});
+window.addEventListener('elo-account-changed',event=>{leaderboardUser=event.detail?.user||null;updatePublishChoice()});
+document.querySelectorAll('input[name="puzzle-publish-as"]').forEach(input=>input.addEventListener('change',updatePublishChoice));
+$('puzzle-skip-score').addEventListener('click',()=>{completedRun=null;showSaveScore(false)});
 function showSaveScore(visible){
  $('puzzle-save-run').hidden=!visible;
  $('puzzles-layout').classList.toggle('has-save-score',Boolean(visible));
@@ -387,6 +400,7 @@ function finishRun(text){
  completedRun={mode:mode==='sprint'?'sprint'+sprintMinutes:'survival',score};
  $('puzzle-final-score').textContent='You solved '+score+' puzzle'+(score===1?'':'s')+'.';
  showSaveScore(score>=1);
+ updatePublishChoice();
  $('puzzle-save-status').textContent='';
  updateErrorReview();
  say(text+' Final score: '+score+' solved.','success');
@@ -628,7 +642,7 @@ async function updateRanking(id,mode){
   data.entries.forEach((entry,index)=>{
    const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span');
    rank.className='rank-position';rank.textContent=String(index+1);
-   name.className='rank-name';name.textContent=entry.nickname;score.className='rank-score';score.textContent=entry.score;
+   name.className='rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;name.title=entry.sourceType==='account'?'Account':'Nickname';score.className='rank-score';score.textContent=entry.score;
    const report=document.createElement('button');
    report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';
    report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;
@@ -639,15 +653,15 @@ async function updateRanking(id,mode){
 function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint');updateRanking('puzzle-survival-ranking','survival')}
 $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!completedRun||completedRun.score<1)return;
- const nickname=$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
- if(!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname)){label.textContent='Use 2–20 letters, numbers, spaces, _ or -.';return}
+ const sourceType=publishChoice(),nickname=sourceType==='account'?leaderboardUser.username:$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
+ if(sourceType==='nickname'&&!/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname)){label.textContent='Use 2–20 letters, numbers, spaces, _ or -.';return}
  button.disabled=true;label.textContent='Verifying solved puzzles and submitting…';
  try{
   await proofChain;
   if(proofError)throw proofError;
   if(!verifiedSessionPromise)throw Error('Start a new run to enable verified scores.');
   const session=(await verifiedSessionPromise).session;
-  await verifiedRequest({...completedRun,action:'submit',nickname,session});
+  await verifiedRequest({...completedRun,action:'submit',nickname,sourceType,session});
   label.textContent='Score submitted. Top 100 scores appear publicly; places 101-110 may be kept as reserves.';completedRun=null;refreshRankings();
  }catch(e){label.textContent=e.message}finally{button.disabled=false}
 });
