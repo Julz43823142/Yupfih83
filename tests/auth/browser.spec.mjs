@@ -3,7 +3,9 @@ const base = 'http://localhost:8788';
 test('real Workers/D1 login, closed signup, responsive account UI and logout', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(base + '/account.html?view=signup');
-  await expect(page.getByRole('heading', { name: 'Registration is not open yet.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
+  await expect(page.locator('#signup-submit')).toBeDisabled();
+  await expect(page.locator('#account-status')).toContainText('Registration is currently unavailable.');
   await expect(page.locator('#login-form')).toBeHidden();
   const closed = await page.request.post(base + '/api/auth/sign-up/email', { headers: { Origin: base }, data: { email: 'must-not-register@example.com', name: 'someone', password: 'LongButNeverUsed-password!' } });
   expect(closed.status()).toBe(403);
