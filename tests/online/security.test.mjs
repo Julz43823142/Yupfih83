@@ -95,4 +95,24 @@ test('stress: duplicate simultaneous moves never advance twice',async()=>{
  }finally{db.close()}
 });
 
+
+test('stale resignation is rejected after the board changes',async()=>{
+ const db=databaseWithOnline();try{
+  const [white,black]=await pair(db);
+  const original=db.prepare.bind(db);
+  let injected=false;
+  db.prepare=function(sql){
+   if(!injected&&sql.includes("UPDATE online_games SET status='finished',result=?")&&sql.includes("AND fen=?")){
+    injected=true;
+    db.sqlite.prepare("UPDATE online_games SET last_move_at=last_move_at+1 WHERE id=?").run(white.id);
+   }
+   return original(sql);
+  };
+  const result=await call(db,'resign',{id:white.id,secret:white.secret});
+  assert.equal(result.status,409);
+  assert.equal((await state(db,black)).data.status,'active');
+  assert.equal(injected,true);
+ }finally{db.close()}
+});
+
 console.log('Online security and chess logic regression tests completed.');
