@@ -258,7 +258,9 @@ function strongBotTurn(token,fen,level){
    catch{working=false;status('Bot move failed.');}
    paint();
   };
-  w.postMessage({token,fen,elo:ratings[level]||2000,secondBest:level==='pls90a'});
+  const first=chess.history({verbose:true})[0];
+  const lockedRook=level==='pls90a'&&chess.history().length>=4?( ['e','f','g','h'].includes(first?.to?.[0])?'a6':'h6'):null;
+  w.postMessage({token,fen,elo:ratings[level]||2000,secondBest:level==='pls90a',lockedRook});
  }catch{try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
 }
 // Bot search runs in a module worker so deeper positions never freeze the board.
