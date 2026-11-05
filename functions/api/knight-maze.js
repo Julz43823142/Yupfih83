@@ -1,4 +1,5 @@
 import {readJsonPayload} from '../../lib/server-request-guard.js';
+import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
@@ -70,6 +71,7 @@ export async function onRequestPost({request,env}){
  try{
   // All move/finish requests refer to a run created by start(), which already
   // initialized the tables. Avoid redundant DDL checks on every fast move.
+  if(action==='start'&&!await consumeGameStart(db,'knight-maze'))return json({error:'New games are temporarily at capacity. Please try again later.'},429);
   if(action==='start'||action==='submit')await ready(db);
   const now=Date.now();
   if(action==='start'){

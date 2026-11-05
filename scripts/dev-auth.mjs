@@ -7,6 +7,6 @@ const config = JSON.parse(readFileSync('tests/auth/wrangler.jsonc', 'utf8'));
 config.pages_build_output_dir = '../dist';
 config.d1_databases[0].migrations_dir = '../migrations/auth';
 writeFileSync(resolve(dir, 'wrangler.jsonc'), JSON.stringify(config));
-const child = spawn(process.execPath, [resolve('node_modules/wrangler/bin/wrangler.js'), 'pages', 'dev', resolve('dist'), '--port', '8788', '--binding', 'BETTER_AUTH_URL=http://localhost:8788', '--binding', 'BETTER_AUTH_SECRET=LOCAL-TEST-ONLY-never-use-in-production-1234567890', '--d1', 'AUTH_DB=00000000-0000-0000-0000-000000000001', '--compatibility-flags', 'nodejs_compat', '--persist-to', resolve('tests/auth/.wrangler/state')], { cwd: dir, stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
+const child = spawn(process.execPath, [resolve('node_modules/wrangler/bin/wrangler.js'), 'pages', 'dev', resolve('dist'), '--port', '8788', '--binding', 'BETTER_AUTH_URL=http://localhost:8788', '--binding', 'BETTER_AUTH_SECRET=LOCAL-TEST-ONLY-never-use-in-production-1234567890', '--d1', 'AUTH_DB=00000000-0000-0000-0000-000000000001', '--d1', 'SUS_DB=00000000-0000-0000-0000-000000000002', '--compatibility-flags', 'nodejs_compat', '--persist-to', resolve('tests/auth/.wrangler/state')], { cwd: dir, stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
 child.on('exit', code => process.exit(code ?? 1));

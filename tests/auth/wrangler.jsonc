@@ -8,6 +8,10 @@
     "database_name": "eloscanner-auth-local-test",
     "database_id": "00000000-0000-0000-0000-000000000001",
     "migrations_dir": "../../migrations/auth"
+  }, {
+    "binding": "SUS_DB",
+    "database_name": "eloscanner-games-local-test",
+    "database_id": "00000000-0000-0000-0000-000000000002"
   }],
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:8788",
