@@ -102,6 +102,10 @@ function render(){if(!state)return;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
+ const pending=state.drawOffer;
+ $('online-draw-offer').hidden=state.status!=='active'||!!pending;
+ $('online-draw-accept').hidden=state.status!=='active'||!pending||pending===side;
+ $('online-draw-decline').hidden=state.status!=='active'||!pending||pending===side;
  $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
