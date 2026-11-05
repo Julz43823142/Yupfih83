@@ -16,7 +16,7 @@ class DB{
   const statement=this.sqlite.prepare(sql);
   return {bind(...params){return {
    async first(){return statement.get(...params)??null},
-   async all(){return {results:statement.all(...params)}},
+   async all(){const results=statement.all(...params);return {success:true,results,meta:{changes:0}}},
    async run(){return {meta:{changes:Number(statement.run(...params).changes)}}}
   }}};
  }
