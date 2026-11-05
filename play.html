@@ -15,7 +15,7 @@
  <button type="button" id="play-sound" aria-pressed="true">Sound: On</button>
 </div></aside><section class="play-board-card" aria-label="Chessboard"><div class="play-board-top"><strong id="play-opponent">Computer bot</strong><strong class="play-practice-clock" id="play-bot-clock" hidden>03:00</strong><span id="play-side">White to move</span></div><div id="play-board" aria-label="Interactive chessboard"></div><dialog id="play-promotion" class="play-promotion" aria-label="Choose promotion piece" hidden><span>Promote to:</span><button type="button" data-promote="q">Queen</button><button type="button" data-promote="r">Rook</button><button type="button" data-promote="b">Bishop</button><button type="button" data-promote="n">Knight</button><button type="button" id="play-cancel-promotion">Cancel</button></dialog><div class="play-board-footer"><span id="play-you">You · White</span><strong class="play-practice-clock" id="play-human-clock" hidden>03:00</strong></div>
 </section>
-<aside class="play-panel"><section class="play-bot-chat-panel" aria-label="Bot chat"><h3>Bot Chat</h3><div id="play-bot-chat" class="play-bot-chat-log" role="log" aria-live="polite"></div><form id="play-chat-form" class="play-chat-form"><input id="play-chat-input" type="text" maxlength="140" autocomplete="off" placeholder="Say something to the bot…" aria-label="Message the bot"><button type="submit">Send</button></form><small>Simulated bot messages, not live AI chat.</small></section><div id="play-status" class="play-status" role="status" aria-live="polite"></div><div class="play-moves"><h3>Moves</h3><div id="play-history" aria-label="Move history">No moves yet.</div></div><p class="play-disclaimer">Bot strength uses Stockfish skill/Elo settings from 800 upward. Ratings are targets, not verified Chess.com or Lichess player ratings.</p></aside></div>
+<aside class="play-panel"><section class="play-bot-chat-panel" aria-label="Bot chat"><h3>Bot Chat</h3><div id="play-bot-chat" class="play-bot-chat-log" role="log" aria-live="polite"></div><form id="play-chat-form" class="play-chat-form"><input id="play-chat-input" type="text" maxlength="140" autocomplete="off" placeholder="Say something to the bot…" aria-label="Message the bot"><button type="submit">Send</button></form><small>Simulated bot messages, not live AI chat.</small></section><div id="play-status" class="play-status" role="status" aria-live="polite"></div><div class="play-moves"><h3>Moves</h3><div id="play-history" aria-label="Move history">No moves yet.</div></div></aside></div>
 </section>
 <dialog id="play-result" class="play-result-dialog" aria-labelledby="play-result-title" aria-describedby="play-result-detail">
  <div class="play-result-content">
@@ -69,4 +69,4 @@
 </div>
 </section>
 </div>
-</main><script type="module" src="/play.js?v=20261105-time-management"></script></body></html>
+</main><script type="module" src="/play.js?v=20261105-clean-bot-text"></script></body></html>
