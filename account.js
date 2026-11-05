@@ -19,6 +19,8 @@
   }
   async function post(route, body) {
     const response = await fetch(`/api/auth/${route}`, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const type = response.headers.get('content-type') || '';
+    if (!type.toLowerCase().includes('application/json')) throw new Error('Account server returned a webpage instead of API data. Check the Cloudflare Pages Functions deployment and /api/auth routing.');
     const data = await response.json();
     if (!response.ok) throw Object.assign(new Error(data.message || 'Unable to complete this request.'), { code: data.code });
     return data;
@@ -97,6 +99,7 @@
   try {
     const response = await fetch('/api/auth/config', { cache: 'no-store' });
     if (!response.ok) throw new Error('Account services are not available yet.');
+    if (!(response.headers.get('content-type') || '').toLowerCase().includes('application/json')) throw new Error('Account API is not responding correctly. Check the Cloudflare Pages Functions deployment.');
     config = await response.json();
     if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; byId('signup-submit').disabled = !config.registrationOpen; message(config.registrationOpen ? '' : 'Registration is currently unavailable.'); if(config.registrationOpen) await signupChallenge(); return; }
     const session = await (window.eloAccountSession || fetch('/api/auth/get-session', { cache: 'no-store' }).then(async r => ({ available: r.ok, ...(r.ok ? await r.json() : {}) })));
