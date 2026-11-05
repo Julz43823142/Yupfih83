@@ -53,3 +53,7 @@
 }
 /* No duplicate piece while a drag ghost follows the pointer. */
 .maze-board .maze-piece{pointer-events:none}
+
+/* Inactive board is a neutral waiting area, not an unexplained brown chessboard. */
+.maze-board.maze-not-started .maze-cell.light,.maze-board.maze-not-started .maze-cell.dark{background:#102d44!important}
+.maze-board.maze-not-started .maze-cell{box-shadow:inset 0 0 0 1px #21455b!important}
