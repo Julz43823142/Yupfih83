@@ -351,12 +351,23 @@ $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textC
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
 $('play-promotion').addEventListener('cancel',e=>{e.preventDefault();pending=null;closePromotion();selected=null;paint()});
+const botDescriptions={cashojf3r:"Attacking viewer bot. Queen's Gambit, London System and Four Knights.",rocket:"1500 Elo viewer bot. Prefers the Queen's Gambit.",chessmass:"Aggressive player. Scotch Gambit as White and King's Indian setups as Black.",ominous:"Ominousgenius · 2090 Elo viewer bot.",peanut:"Demented Peanut · strong middlegame, good opening play, weaker endgames. Italian Game.",pls90a:"Unusual rook openings. Prefers Stockfish's second-best move.",mikhail:"Mikhail Hal · 2350 Elo viewer bot."};
+const botOptions=$('play-bot-options');
 document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.bot;
- if(selectedBot===id){selectedBot=null;$('play-bot-options').hidden=true;}
- else{selectedBot=id;$('play-bot-options').hidden=false;$('play-selected-name').textContent=id==='mikhail'?'Mikhail Hal':id==='ominous'?'ominousgenius':id==='rocket'?'ROCKETLEAGUE':id==='cashojf3r'?'cashojf3r':'Bot';$('play-selected-elo').textContent=ratings[id]+' Elo';}
+ if(selectedBot===id){selectedBot=null;botOptions.hidden=true;}
+ else{
+  selectedBot=id;botOptions.hidden=false;
+  $('play-selected-name').textContent=(names[id]||'Bot').replace(/ \\(\\d+\\)$/,'');
+  $('play-selected-elo').textContent=ratings[id]+' Elo';
+  let description=$('play-selected-description');
+  if(!description){description=document.createElement('p');description.id='play-selected-description';botOptions.querySelector('.play-options-heading').after(description)}
+  description.textContent=botDescriptions[id]||'Play against a computer opponent rated '+ratings[id]+' Elo.';
+  button.after(botOptions);
+ }
  document.querySelectorAll('.play-bot[data-bot]').forEach(card=>{const active=card.dataset.bot===selectedBot;card.classList.toggle('is-selected',active);card.setAttribute('aria-expanded',String(active))});
 }));
+
 $('play-chat-form').addEventListener('submit',event=>{
  event.preventDefault();
  const input=$('play-chat-input'),message=input.value.trim();
