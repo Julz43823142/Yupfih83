@@ -1,0 +1,65 @@
+import {test,expect} from '@playwright/test';
+const base='http://localhost:8788',password='Local-test-only-orchard-57931!';
+const post=(request,route,data)=>request.post(base+route,{headers:{Origin:base},data});
+async function login(page,username){
+ await page.goto(base+'/account.html');
+ await page.locator('#username').fill(username);
+ await page.locator('#password').fill(password);
+ await page.getByRole('button',{name:'Log in',exact:true}).click();
+ await expect(page.locator('#profile-username')).toHaveText(username,{timeout:30000});
+}
+test('two isolated guest browsers join once, exchange moves and safely resume',async({browser})=>{
+ const a=await browser.newContext(),b=await browser.newContext(),pageA=await a.newPage(),pageB=await b.newPage();const errors=[];
+ pageA.on('pageerror',error=>errors.push(error.message));pageB.on('pageerror',error=>errors.push(error.message));
+ try{
+  await pageA.goto(base+'/play.html');await expect(pageA.getByText('Play Online',{exact:true})).toBeVisible();
+  await pageA.goto(base+'/online.html?friend=1');
+  await pageA.locator('#online-name').fill('Alice');
+  await pageA.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+  await expect(pageA.locator('#online-link')).toHaveValue(/invite=[a-f0-9]{32}/);
+  const invitation=await pageA.locator('#online-link').inputValue();
+  await pageB.goto(invitation);await pageB.locator('#online-name').fill('Bob');
+  await pageB.getByRole('button',{name:'Join game'}).click();
+  await expect(pageA.locator('#online-status')).toContainText(/Your move|Opponent to move/,{timeout:15000});
+  await expect(pageB.locator('#online-top-name')).toContainText('Guest · Alice');
+  await pageA.locator('#online-board button[data-sq="e2"]').click();
+  await pageA.locator('#online-board button[data-sq="e4"]').click();
+  await expect(pageB.locator('#online-moves')).toContainText('e4',{timeout:15000});
+  await pageB.locator('#online-board button[data-sq="e7"]').click();
+  await pageB.locator('#online-board button[data-sq="e5"]').click();
+  await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
+  await pageA.reload();await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
+  expect(errors).toEqual([]);
+ }finally{await a.close();await b.close()}
+});
+test('signed-in member requests, consent, targeted challenges, game history and replay',async({browser})=>{
+ const a=await browser.newContext(),b=await browser.newContext(),anonymous=await browser.newContext();
+ const pa=await a.newPage(),pb=await b.newPage();
+ try{
+  await login(pa,'local_tester');await login(pb,'local_friend');
+  const request=await post(pa.request,'/api/social/add',{username:'local_friend'});expect(request.status()).toBe(200);
+  const requests=await(await pb.request.get(base+'/api/social/friends')).json();
+  expect(requests.requests.some(x=>x.fromUser==='local_tester')).toBe(true);
+  const invite=requests.requests.find(x=>x.fromUser==='local_tester');
+  const accept=await post(pb.request,'/api/social/friend-respond',{id:invite.id,action:'accept'});expect(accept.status()).toBe(200);
+  const friendsA=await(await pa.request.get(base+'/api/social/friends')).json();expect(friendsA.friends.some(x=>x.username==='local_friend')).toBe(true);
+  const create=await post(pa.request,'/api/online/create',{kind:'invite',name:'Anything'});expect(create.status()).toBe(200);const game=await create.json();
+  const sent=await post(pa.request,'/api/social/challenge',{username:'local_friend',gameId:game.id,gameSecret:game.secret});expect(sent.status()).toBe(200);
+  const guestJoin=await post(anonymous.request,'/api/online/join',{id:game.id,name:'Intruder'});expect(guestJoin.status()).toBe(403);
+  const inbox=await(await pb.request.get(base+'/api/social/inbox')).json();expect(inbox.challenges.some(x=>x.gameId===game.id)).toBe(true);
+  const join=await post(pb.request,'/api/online/join',{id:game.id,name:'Anything'});expect(join.status()).toBe(200);const challenger=await join.json();
+  const stolen=await post(anonymous.request,'/api/online/state',{id:game.id,secret:'0'.repeat(32)});expect(stolen.status()).toBe(404);
+  const bad=await post(pb.request,'/api/online/move',{id:game.id,secret:challenger.secret,from:'e7',to:'e5'});expect(bad.status()).toBe(409);
+  expect((await post(pa.request,'/api/online/move',{id:game.id,secret:game.secret,from:'e2',to:'e4'})).status()).toBe(200);
+  expect((await post(pb.request,'/api/online/move',{id:game.id,secret:challenger.secret,from:'e7',to:'e5'})).status()).toBe(200);
+  expect((await post(pa.request,'/api/online/resign',{id:game.id,secret:game.secret})).status()).toBe(200);
+  const history=await(await pa.request.get(base+'/api/social/history?username=local_tester&page=0')).json();
+  expect(history.games.some(x=>x.id===game.id&&x.result==='0-1')).toBe(true);
+  await pb.goto(base+'/online.html?review='+game.id);
+  await expect(pb.locator('#online-status')).toContainText('Replay',{timeout:15000});
+  await pb.goto(base+'/profile/local_tester/game-history');
+  await expect(pb.getByText('3+0 Unrated').first()).toBeVisible();
+  await pb.goto(base+'/members.html');
+  await expect(pb.locator('.member-challenge').first()).toBeVisible();
+ }finally{await a.close();await b.close();await anonymous.close()}
+});
