@@ -4,6 +4,11 @@ const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
 const neighbors=i=>{const x=i%8,y=Math.floor(i/8);return jumps.map(([dx,dy])=>[x+dx,y+dy]).filter(([a,b])=>a>=0&&a<8&&b>=0&&b<8).map(([a,b])=>b*8+a)};
 let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
+let mazeAccount=null;
+const accountName=()=>mazeAccount?.username||null;
+function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name:'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name;}
+window.eloAccountSession?.then(session=>{mazeAccount=session?.user||null;syncScoreIdentity()}).catch(()=>{});
+window.addEventListener('elo-account-changed',e=>{mazeAccount=e.detail?.user||null;syncScoreIdentity()});
 const arrows=[],highlights=new Set();
 let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0,levelPending=false,moveRetry=0;
 let upcoming=null,confirmedUpcoming=null,previewBuffer=[],confirmedBuffer=[];
@@ -172,9 +177,9 @@ async function endRun(expired){
 }
 async function submit(){
  if(!run||!finished||submitted)return;
- const nickname=$('maze-nickname').value.trim();$('maze-submit').disabled=true;$('maze-submit-status').textContent='Submitting…';
+ const nickname=accountName()||$('maze-nickname').value.trim();$('maze-submit').disabled=true;$('maze-submit-status').textContent='Submitting…';
  try{
-  const data=await api({action:'submit',id:run.id,nickname});submitted=true;
+  const data=await api({action:'submit',id:run.id,nickname,sourceType:accountName()?'account':'nickname'});submitted=true;
   $('maze-submit-status').textContent='Score submitted successfully!';
   if(!showAll)renderRanking(data.entries);
   else await loadRanking();
@@ -183,7 +188,7 @@ async function submit(){
 function renderRanking(entries){
  const list=$('maze-ranking');list.replaceChildren();
  if(!entries.length){const li=document.createElement('li');li.className='maze-empty';li.textContent='No scores yet. Be the first!';list.append(li);return}
- for(const entry of entries){const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('strong');name.className='maze-rank-name';name.textContent=entry.nickname;score.className='maze-rank-score';score.textContent=entry.score;li.append(name,score);list.append(li)}
+ for(const entry of entries){const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('strong');name.className='maze-rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;score.className='maze-rank-score';score.textContent=entry.score;li.append(name,score);list.append(li)}
 }
 async function loadRanking(){
  try{const res=await fetch('/api/knight-maze?limit='+(showAll?'100':'10'),{cache:'no-store'}),data=await res.json();if(!res.ok)throw Error(data.error||'Leaderboard unavailable');renderRanking(data.entries||[])}
@@ -267,7 +272,7 @@ board.addEventListener('pointermove',e=>{
   if(drag.source){
    const ghost=drag.source.cloneNode(true),size=board.getBoundingClientRect().width/8;
    ghost.className='maze-drag-ghost';ghost.style.width=size+'px';ghost.style.height=size+'px';
-   ghost.style.transform='translate(-50%,-50%)';
+   ghost.style.transform='translate3d(-50%,-50%,0)';ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
    document.body.append(ghost);drag.ghost=ghost;drag.source.style.visibility='hidden';
   }
  }
@@ -297,5 +302,5 @@ board.addEventListener('pointerup',e=>{
  else render();
 });
 board.addEventListener('pointercancel',e=>{if(drag?.id===e.pointerId)cancelDrag();if(right?.id===e.pointerId)right=null});
-render();loadRanking();
+syncScoreIdentity();render();loadRanking();
 })();
