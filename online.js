@@ -106,7 +106,7 @@ function render(){if(!state)return;
  $('online-draw-offer').hidden=state.status!=='active'||!!pending;
  $('online-draw-accept').hidden=state.status!=='active'||!pending||pending===side;
  $('online-draw-decline').hidden=state.status!=='active'||!pending||pending===side;
- $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
+ $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):pending===side?'Draw offered · waiting for opponent':pending?'Opponent offers a draw':game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
 function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const top=fmt(side==='w'?b:w),bottom=fmt(side==='w'?w:b);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom}
@@ -187,7 +187,7 @@ function acceptState(next){
  }
  const previous=state;
  if(previous?.id!==next.id||next.status==='finished')queuedPremove=null;
- const changed=!previous||previous.id!==next.id||previous.fen!==next.fen||previous.status!==next.status||previous.result!==next.result||previous.white!==next.white||previous.black!==next.black||previous.whiteMs!==next.whiteMs||previous.blackMs!==next.blackMs||previous.lastMoveAt!==next.lastMoveAt||previous.moves.length!==next.moves.length;
+ const changed=!previous||previous.id!==next.id||previous.fen!==next.fen||previous.status!==next.status||previous.result!==next.result||previous.white!==next.white||previous.black!==next.black||previous.whiteMs!==next.whiteMs||previous.blackMs!==next.blackMs||previous.lastMoveAt!==next.lastMoveAt||previous.moves.length!==next.moves.length||previous.drawOffer!==next.drawOffer;
  if(previous?.fen!==next.fen){selected=null;selectedMoves=[]}
  state=next;serverOffset=next.serverTime-Date.now();
  if(changed)render();else clocks();
