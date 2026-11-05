@@ -30,7 +30,7 @@ test('real Workers/D1 login, closed signup, responsive account UI and logout', a
   errors.length = 0;
   await page.goto(base + '/');
   await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
-  await expect(page.locator('header .mobile-chess-menu')).toHaveCount(0);
+  await expect(page.locator('header .mobile-chess-menu')).toHaveCount(1);
   await page.goto(base + '/minigames.html');
   await expect(page.locator('header .elo-global-menu')).toBeVisible();
   await expect(page.locator('.account-nav a')).toHaveText(['Log in', 'Sign up']);
