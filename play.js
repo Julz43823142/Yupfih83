@@ -42,7 +42,7 @@ ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
-const timedPractice=new URL(location.href).searchParams.has('practice');
+let timedPractice=new URL(location.href).searchParams.has('practice');
 let practiceWhiteMs=180000,practiceBlackMs=180000,practiceAt=0,practiceStarted=false;
 const practiceFmt=ms=>{const sec=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
 function practiceTick(){
@@ -59,6 +59,7 @@ function practiceTick(){
  }
 }
 if(timedPractice){
+ $('play-time').value='180';
  document.body.classList.add('play-timed-practice');
  $('play-human-clock').hidden=false;$('play-bot-clock').hidden=false;
  const title=document.querySelector('.play-page > .play-title');if(title)title.textContent='3+0 Practice Against Bot';
@@ -346,21 +347,26 @@ function communityOpeningMove(level){
 }
 function scheduleBot(){
  if(terminal())return;
+ const startedAt=Date.now();
+ const botDelay=timedPractice?calculateBotThinkMs():120;
+ const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
  working=true;status(names[botLevel]+' is thinking…');paint();
  const token=gameToken,fen=chess.fen(),level=botLevel;
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
   try{
    const elo=ratings[level]||1000;
    const special=communityOpeningMove(level);
-   if(special){try{apply(special);working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}return;}
+   if(special){deliverBotMove(special);return;}
    if(elo>=800&&(level==='cashojf3r'||level==='rocket'))ensureBotWorker().postMessage({token,fen,level,bookOnly:true});
    else if(elo>=800)strongBotTurn(token,fen,level);
    else ensureBotWorker().postMessage({token,fen,level});
   }
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
- },120);
+ },timedPractice?80:120);
 }
 function newGame(){
+ timedPractice=$('play-time').value==='180';
+ $('play-human-clock').hidden=!timedPractice;$('play-bot-clock').hidden=!timedPractice;
  if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00'}
  stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
