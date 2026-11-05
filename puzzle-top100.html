@@ -16,7 +16,7 @@
  for(const a of document.querySelectorAll('[data-mode]'))if(a.dataset.mode===mode)a.setAttribute('aria-current','page');
  const status=document.getElementById('ranking-status'),body=document.getElementById('ranking-rows');
  const isMaze=mode==='knight-maze';
- document.querySelector('.puzzle-ranking-legend').hidden=isMaze;
+ // Knight Maze currently stores nicknames only; keep the shared legend visible.
  document.querySelector('.puzzle-top100-table thead').innerHTML=isMaze?'<tr><th>Rank</th><th>Nickname</th><th>Score</th></tr>':'<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
  let limit=100;
  async function load(){
