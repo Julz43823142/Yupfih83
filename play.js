@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id),board=$('play-board');
 const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
 const names=Object.fromEntries([["cashojf3r","cashojf3r (800)"],["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
+names.chessmass="Chessmass (1600)";names.pls90a="PLS_90A (2300)";names.peanut="Demented Peanut (2200)";
 names["bot300"]="Bot (300)";
 names["bot1550"]="Bot (1550)";
 names["bot1600"]="Bot (1600)";
@@ -22,6 +23,7 @@ names["bot2850"]="Bot (2850)";
 names["bot2900"]="Bot (2900)";
 names["bot3000"]="Bot (3000)";
 const ratings={"cashojf3r":800,"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
+ratings.chessmass=1600;ratings.pls90a=2300;ratings.peanut=2200;
 ratings["bot300"]=300;
 ratings["bot1550"]=1550;
 ratings["bot1600"]=1600;
@@ -40,7 +42,7 @@ ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
-const botChatLines={cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
+const botChatLines={chessmass:['I love attacking chess!','The Scotch Gambit is my kind of opening.'],pls90a:['Second-best is best!','My rook has a plan.'],peanut:['The middlegame is where I shine!','Italian Game, anyone?'],cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
 function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
 function botChatMove(){const lines=chess.isCheck()?['Check! Keep an eye on your king.','A forcing move changes the position.']:chess.isCheckmate()?['That is checkmate. Good game!']:chess.history().length<9?['The opening is taking shape.','Center control matters early.']:['Interesting middlegame.','Every tempo counts.'];if(Math.random()<.55)botChat(lines[Math.floor(Math.random()*lines.length)])}const squares=new Map(),arrows=[],highlights=new Set();
 for(let row=0;row<8;row++)for(let col=0;col<8;col++){
