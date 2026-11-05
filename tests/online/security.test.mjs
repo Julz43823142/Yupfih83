@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {onRequest as gameApi} from '../../functions/api/online/[[path]].js';
 import {onRequest as socialApi} from '../../functions/api/social/[[path]].js';
 import {OnlineChessRoom} from '../../workers/online-room.mjs';
+import {validGuest,rateLimitPair} from '../../lib/online/security.mjs';
 
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
 function databaseWithOnline(){
@@ -22,6 +23,24 @@ async function create(db,kind='random',name='Visitor'){const a=await call(db,'cr
 async function state(db,player){return call(db,'state',{id:player.id,secret:player.secret})}
 async function move(db,player,from,to,promotion){return call(db,'move',{id:player.id,secret:player.secret,from,to,promotion})}
 async function pair(db){const w=await create(db);const b=await create(db);assert.equal(w.id,b.id);return [w,b]}
+test('reserved guest identity variants cannot impersonate site staff',()=>{
+ for(const name of ['Admin','a_d_m_i_n','Elo Scanner','support','mod_erator','S Y S T E M'])assert.equal(validGuest(name),false,name);
+ for(const name of ['Alice','Chess Visitor','rook_123'])assert.equal(validGuest(name),true,name);
+});
+
+test('IP rate limits and seat limits remain independent across network changes',async()=>{
+ const db=databaseWithOnline();try{
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret};
+  const makeReq=ip=>new Request(ORIGIN+'/api/online/state',{headers:{'CF-Connecting-IP':ip,Origin:ORIGIN}});
+  // Make IP enforcement observable by using distinct source keys while holding the seat fixed.
+  assert.equal(await rateLimitPair(env,makeReq('203.0.113.1'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),true);
+  assert.equal(await rateLimitPair(env,makeReq('203.0.113.2'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),true);
+  assert.equal(await rateLimitPair(env,makeReq('203.0.113.3'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),false);
+  // Another seat on the same IP retains its own budget.
+  assert.equal(await rateLimitPair(env,makeReq('203.0.113.3'),'ip-probe',20,'seat-probe',2,60000,'different-seat'),true);
+ }finally{db.close()}
+});
+
 test('CSRF/method/body guards, guest identity isolation and secret authorization',async()=>{
  const db=databaseWithOnline();try{
   assert.equal((await call(db,'create',{kind:'random',name:'Visitor'},{crossOrigin:true})).status,403);
