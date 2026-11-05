@@ -1,28 +1,15 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
+import {database} from '../auth/fixture.mjs';
 import {readFileSync} from 'node:fs';
 import {onRequest as gameApi} from '../../functions/api/online/[[path]].js';
 import {onRequest as socialApi} from '../../functions/api/social/[[path]].js';
 
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
-class DB{
- constructor(){
-  this.sqlite=new DatabaseSync(':memory:');this.sqlite.exec('PRAGMA foreign_keys=ON');
-  for(const n of ['0001_auth.sql','0002_security.sql','0003_online_chess.sql','0004_social.sql'])
-   this.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
- }
- prepare(sql){
-  const statement=this.sqlite.prepare(sql);
-  return {bind(...params){return {
-   async first(){return statement.get(...params)??null},
-   async all(){const results=statement.all(...params);return {success:true,results,meta:{changes:0}}},
-   async run(){return {meta:{changes:Number(statement.run(...params).changes)}}}
-  }}};
- }
- async batch(statements){this.sqlite.exec('BEGIN');try{const values=[];for(const stmt of statements)values.push(await stmt.run());this.sqlite.exec('COMMIT');return values}catch(e){this.sqlite.exec('ROLLBACK');throw e}}
- async exec(sql){this.sqlite.exec(sql);return {}}
- close(){this.sqlite.close()}
+function databaseWithOnline(){
+ const db=database();
+ for(const n of ['0003_online_chess.sql','0004_social.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
+ db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
  const req=new Request(ORIGIN+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.40'},body:options.method==='GET'?undefined:JSON.stringify(data)});
@@ -34,7 +21,7 @@ async function state(db,player){return call(db,'state',{id:player.id,secret:play
 async function move(db,player,from,to,promotion){return call(db,'move',{id:player.id,secret:player.secret,from,to,promotion})}
 async function pair(db){const w=await create(db);const b=await create(db);assert.equal(w.id,b.id);return [w,b]}
 test('CSRF/method/body guards, guest identity isolation and secret authorization',async()=>{
- const db=new DB();try{
+ const db=databaseWithOnline();try{
   assert.equal((await call(db,'create',{kind:'random',name:'Visitor'},{crossOrigin:true})).status,403);
   assert.equal((await call(db,'create',{kind:'random',name:'Visitor'},{method:'GET'})).status,405);
   assert.equal((await call(db,'create',{kind:'random',name:'Admin'})).status,400);
@@ -47,7 +34,7 @@ test('CSRF/method/body guards, guest identity isolation and secret authorization
  }finally{db.close()}
 });
 test('2 players, authoritative legal moves, wrong turn, optimistic concurrency and resign',async()=>{
- const db=new DB();try{
+ const db=databaseWithOnline();try{
   const [w,b]=await pair(db);
   assert.equal((await move(db,b,'e7','e5')).status,409);
   assert.equal((await move(db,w,'e2','e5')).status,400);
@@ -64,7 +51,7 @@ test('2 players, authoritative legal moves, wrong turn, optimistic concurrency a
  }finally{db.close()}
 });
 test('invite is single-use, checkmate, threefold repetition, and timeouts',async()=>{
- const db=new DB();try{
+ const db=databaseWithOnline();try{
   const a=await create(db,'invite');const invited=await call(db,'join',{id:a.id,name:'Friend'});assert.equal(invited.status,200);
   assert.equal((await call(db,'join',{id:a.id,name:'Late'})).status,409);
   const b=invited.data;
@@ -79,7 +66,7 @@ test('invite is single-use, checkmate, threefold repetition, and timeouts',async
  }finally{db.close()}
 });
 test('atomic request budgets stop mass lobby creation and repeated secret polling',async()=>{
- const db=new DB();try{
+ const db=databaseWithOnline();try{
   for(let i=0;i<6;i++)assert.equal((await call(db,'create',{kind:'invite',name:'Test'})).status,200);
   assert.equal((await call(db,'create',{kind:'invite',name:'Test'})).status,429);
   const id=db.sqlite.prepare("SELECT id FROM online_games LIMIT 1").get().id;
