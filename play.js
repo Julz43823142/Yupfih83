@@ -61,7 +61,13 @@ function tone(move){
 function paint(){
  board.dataset.orientation=orientation;
  const moves=selected&&!ended?candidateMoves(selected):[];
- board.classList.toggle('premove-waiting',!ended&&chess.turn()!==human);
+ // Derive per-render lookups once: a 1,000-move queue should not be scanned
+ // separately for each of the 64 squares on every pointer interaction.
+ const legalTargets=new Set(moves.map(move=>move.to));
+ const premoveFrom=new Set(premoves.map(move=>move.from));
+ const premoveTo=new Set(premoves.map(move=>move.to));
+ const turn=chess.turn(),inCheck=chess.isCheck();
+ board.classList.toggle('premove-waiting',!ended&&turn!==human);
  for(const [sq,cell] of squares){
   const pc=chess.get(sq),key=pc?pc.color+pc.type:'',idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
   cell.style.order=orientation==='black'?63-idx:idx;
@@ -72,10 +78,10 @@ function paint(){
   cell.classList.toggle('selected',selected===sq);
   cell.classList.toggle('last',!!last&&(last.from===sq||last.to===sq));
   cell.classList.toggle('marked',highlights.has(sq));
-  cell.classList.toggle('premove-from',premoves.some(m=>m.from===sq));
-  cell.classList.toggle('premove-to',premoves.some(m=>m.to===sq));
-  cell.classList.toggle('check',chess.isCheck()&&pc?.type==='k'&&pc.color===chess.turn());
-  if(moves.some(m=>m.to===sq)){const dot=document.createElement('span');dot.className=pc?'capture-ring':'legal-dot';cell.append(dot)}
+  cell.classList.toggle('premove-from',premoveFrom.has(sq));
+  cell.classList.toggle('premove-to',premoveTo.has(sq));
+  cell.classList.toggle('check',inCheck&&pc?.type==='k'&&pc.color===turn);
+  if(legalTargets.has(sq)){const dot=document.createElement('span');dot.className=pc?'capture-ring':'legal-dot';cell.append(dot)}
  }
  // Keep annotations above the pieces, matching the shared Analysis/Puzzles controls.
  board.querySelector('.play-arrow-layer')?.remove();
@@ -86,7 +92,7 @@ function paint(){
   if(orientation==='black')svg.style.transform='rotate(180deg)';
   board.append(svg);
  }
- $('play-side').textContent=(chess.turn()==='w'?'White':'Black')+' to move';
+ $('play-side').textContent=(turn==='w'?'White':'Black')+' to move';
  const history=chess.history(),lines=[];for(let i=0;i<history.length;i+=2)lines.push((i/2+1)+'. '+history[i]+(history[i+1]?' '+history[i+1]:''));
  $('play-history').textContent=lines.join('   ')||'No moves yet.';
  $('play-undo').disabled=!history.length;
