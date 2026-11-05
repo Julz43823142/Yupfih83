@@ -13,6 +13,7 @@ function setupError(e){$('online-setup-status').textContent=e.message||String(e)
 $('online-random').onclick=async()=>{try{const r=await post('create',{kind:'random',name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}};
 $('online-invite').onclick=async()=>{try{const r=await post('create',{kind:'invite',name:name()});id=r.id;secret=r.secret;enter();$('online-share').hidden=false;$('online-link').value=location.origin+'/online.html?invite='+id}catch(e){setupError(e)}};
 $('online-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('online-link').value);$('online-copy').textContent='Copied!'}catch{$('online-link').select()}};
+$('online-new-game').onclick=()=>{sessionStorage.removeItem('elo-online-game');location.assign('/online.html')};
 $('online-resign').onclick=async()=>{if(!confirm('Resign this game?'))return;try{await post('resign',{id,secret});poll()}catch(e){$('online-status').textContent=e.message}};
 for(const [button,route] of [['online-draw-offer','draw-offer'],['online-draw-accept','draw-accept'],['online-draw-decline','draw-decline']])$(button).onclick=async()=>{try{await post(route,{id,secret});await poll()}catch(e){$('online-status').textContent=e.message}};
 for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),b=document.createElement('button');b.type='button';b.className=(r+c)%2?'dark':'light';b.dataset.sq=sq;b.setAttribute('aria-label',sq);b.onclick=()=>{if(!ignoreDragClick)choose(sq)};squares.set(sq,b);$('online-board').append(b)}
@@ -103,6 +104,7 @@ function render(){if(!state)return;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
+ $('online-new-game').hidden=state.status!=='finished';
  const pending=state.drawOffer;
  $('online-draw-offer').hidden=state.status!=='active'||!!pending;
  $('online-draw-accept').hidden=state.status!=='active'||!pending||pending===side;
