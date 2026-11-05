@@ -33,6 +33,10 @@ async function ready(db){
  if(!names.has('source_type'))await db.prepare("ALTER TABLE knight_maze_scores ADD COLUMN source_type TEXT NOT NULL DEFAULT 'nickname'").run();
  if(!names.has('account_id'))await db.prepare("ALTER TABLE knight_maze_scores ADD COLUMN account_id TEXT").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_rank ON knight_maze_scores(score DESC,created_at ASC)").run();
+ // Append-only scores: retain legacy rows without deleting the original table.
+ await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
+ await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_entries_rank ON knight_maze_score_entries(score DESC,created_at ASC)").run();
+ await db.prepare("INSERT OR IGNORE INTO knight_maze_score_entries(nickname,score,created_at,source_type,account_id,legacy_key) SELECT nickname,score,created_at,source_type,account_id,'legacy:'||lower(nickname) FROM knight_maze_scores").run();
  })().catch(error=>{schemaPromise=null;throw error});
  return schemaPromise;
 }
@@ -50,20 +54,21 @@ function maze(level,runId){
 }
 const futureLevels=(id,nextLevel)=>[1,2,3].map(offset=>maze(nextLevel+offset-1,id));
 const publicRun=(r)=>({id:r.id,level:r.level,score:r.score,position:r.position,goal:r.goal,blocked:JSON.parse(r.blocked),endsAt:r.started_at+duration,finished:!!r.finished});
-async function ranking(db,limit){
- const result=await db.prepare("SELECT nickname,score,source_type AS sourceType FROM knight_maze_scores ORDER BY score DESC,created_at ASC,nickname ASC LIMIT ?").bind(limit).all();
+async function ranking(db,limit,unique=false){
+ const sql=unique
+  ? "SELECT nickname,score,source_type AS sourceType FROM (SELECT nickname,score,source_type,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
+  : "SELECT nickname,score,source_type AS sourceType FROM knight_maze_score_entries ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
+ const result=await db.prepare(sql).bind(limit).all();
  return result.results||[];
 }
-async function prune(db){
- await db.prepare("DELETE FROM knight_maze_scores WHERE nickname NOT IN (SELECT nickname FROM knight_maze_scores ORDER BY score DESC,created_at ASC,nickname ASC LIMIT 110)").run();
-}
+// Keep every verified score; no name-based pruning that merges players.
 export async function onRequestGet({request,env}){
  const db=env.SUS_DB;if(!db)return json({error:'Leaderboard database unavailable.'},503);
  try{
   await ready(db);
   const url=new URL(request.url);
   const limit=[10,50,100].includes(Number(url.searchParams.get('limit')))?Number(url.searchParams.get('limit')):10;
-  return json({entries:await ranking(db,limit)});
+  return json({entries:await ranking(db,limit,url.searchParams.get('filter')==='unique')});
  }catch{return json({error:'Leaderboard temporarily unavailable.'},503)}
 }
 export async function onRequestPost({request,env}){
