@@ -8,7 +8,7 @@ export default {
 const publicFields=['id','kind','status','white','black','fen','moves','turn','whiteMs','blackMs','lastMoveAt','updatedAt','result','serverTime'];
 
 export class OnlineChessRoom {
- constructor(state){this.state=state}
+ constructor(state){this.state=state;this.latest=null}
  async fetch(request){
   const url=new URL(request.url);
   if(url.pathname==='/connect'&&request.headers.get('Upgrade')?.toLowerCase()==='websocket'){
@@ -28,8 +28,21 @@ export class OnlineChessRoom {
    const body=await request.json().catch(()=>null);
    if(!body||typeof body!=='object'||!Array.isArray(body.moves)||typeof body.fen!=='string'||typeof body.id!=='string')
     return new Response('Invalid game state',{status:400});
+   // Independent background notifications can arrive out of order. Never
+   // broadcast a state that would roll back a finished game or an accepted move.
+   // Room state is an in-memory optimization; on hibernation clients still
+   // reconcile against the authoritative database via periodic state polls.
+   const previous=this.latest;
+   if(previous&&previous.id===body.id){
+    const oldMoves=previous.moves.length,newMoves=body.moves.length;
+    if(newMoves<oldMoves||(previous.status==='finished'&&body.status!=='finished')||
+       (previous.status==='active'&&body.status==='waiting')||
+       (newMoves===oldMoves&&Number.isFinite(previous.updatedAt)&&Number.isFinite(body.updatedAt)&&
+        body.updatedAt<previous.updatedAt))return new Response(null,{status:204});
+   }
    // Explicit allowlist: the room cannot relay IPs, seat tokens, cookies or account ids.
    const game=Object.fromEntries(publicFields.filter(k=>Object.hasOwn(body,k)).map(k=>[k,body[k]]));
+   this.latest=game;
    const message=JSON.stringify({type:'state',game});
    for(const socket of this.state.getWebSockets()){
     try{socket.send(message)}catch{try{socket.close(1011,'Delivery error')}catch{}}
