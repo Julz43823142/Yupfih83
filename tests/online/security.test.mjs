@@ -75,4 +75,24 @@ test('atomic request budgets stop mass lobby creation and repeated secret pollin
   const limited=await call(db,'state',{id,secret:unknown});assert.equal(limited.status,429);
  }finally{db.close()}
 });
+
+test('stress: concurrent join attempts permit exactly one opponent',async()=>{
+ const db=databaseWithOnline();try{
+  const host=await create(db,'invite','Host');
+  const attempts=await Promise.all(Array.from({length:12},(_,i)=>call(db,'join',{id:host.id,name:'Player'+i})));
+  assert.equal(attempts.filter(x=>x.status===200).length,1);
+  assert.equal(attempts.filter(x=>x.status===409).length,11);
+  assert.equal((await state(db,host)).data.status,'active');
+ }finally{db.close()}
+});
+test('stress: duplicate simultaneous moves never advance twice',async()=>{
+ const db=databaseWithOnline();try{
+  const [white,black]=await pair(db);
+  const attempts=await Promise.all(Array.from({length:16},()=>move(db,white,'e2','e4')));
+  assert.equal(attempts.filter(x=>x.status===200).length,1);
+  assert.equal(attempts.filter(x=>x.status===409).length,15);
+  assert.deepEqual((await state(db,black)).data.moves,['e4']);
+ }finally{db.close()}
+});
+
 console.log('Online security and chess logic regression tests completed.');
