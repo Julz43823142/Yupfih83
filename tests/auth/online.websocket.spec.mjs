@@ -23,14 +23,19 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
       await p.addInitScript(() => {
         const Native = window.WebSocket;
         window.__eloWsOpened = false;
+        window.__eloWsOpenCount = 0;
+        window.__eloWsPongCount = 0;
+        window.__eloWsSockets = [];
         window.__eloWsEvents = [];
         window.WebSocket = class extends Native {
           constructor(...args) {
             super(...args);
-            this.addEventListener('open',()=>{ window.__eloWsOpened = true });
+            window.__eloWsSockets.push(this);
+            this.addEventListener('open',()=>{ window.__eloWsOpened = true;window.__eloWsOpenCount++ });
             this.addEventListener('message',event=>{
               try {
                 const data=JSON.parse(event.data);
+                if(data.type === 'pong') window.__eloWsPongCount++;
                 if(data.type === 'state' && data.game?.moves)
                   window.__eloWsEvents.push({at:Date.now(),moves:data.game.moves,status:data.game.status});
               } catch {}
@@ -52,6 +57,8 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
     await expect(white.locator('#online-status')).toContainText('Your move',{timeout:25000});
     await expect(black.locator('#online-status')).toContainText('Opponent to move',{timeout:25000});
     for(const p of pages) await expect.poll(()=>p.evaluate(()=>window.__eloWsOpened),{timeout:20000}).toBe(true);
+    // The room must reply to an actual socket ping before we claim measured RTT.
+    for(const p of pages) await expect.poll(()=>p.evaluate(()=>window.__eloWsPongCount),{timeout:12000}).toBeGreaterThan(0);
     const delivery=[];
     const server=[];
     for(let index=0;index<moves.length;index++){
@@ -71,6 +78,13 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
       const ms=received-started;
       delivery.push(ms);
       await expect(other.locator('#online-moves')).toContainText(san,{timeout:15000});
+      if(index===5){
+        // Force a dropped browser socket midgame. The exponential retry
+        // must reconnect and sync before subsequent moves.
+        await other.evaluate(()=>window.__eloWsSockets.at(-1).close());
+        await expect.poll(()=>other.evaluate(()=>window.__eloWsOpenCount),{timeout:15000}).toBeGreaterThanOrEqual(2);
+        await expect.poll(()=>other.evaluate(()=>window.__eloWsSockets.at(-1).readyState),{timeout:15000}).toBe(1);
+      }
     }
     console.log('REAL LOCAL WEBSOCKET 12 MOVES:',JSON.stringify({
       serverMs:server,deliveryMs:delivery,
