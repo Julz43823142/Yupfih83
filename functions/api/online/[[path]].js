@@ -87,6 +87,13 @@ export async function onRequest({request,env}){
   const limited=await guarded(db,env,request,route,route==='state'?80:route==='move'?90:12,60000,digest);if(limited)return limited;
   let g=await getGame(db,b.id);
   if(!g||!publicGame(g,digest))return reply({error:'Game not found.'},404);
+  // A bearer secret is insufficient for a registered player's seat: also require
+  // that account's current session. Guest seats remain capability-token based.
+  const accountId=g.white_token===digest?g.white_user_id:g.black_user_id;
+  if(accountId){
+   const current=await sessionUser(request,env);
+   if(current?.id!==accountId)return reply({error:'Game not found.'},404);
+  }
   g=await expire(db,g);
   if(route==='state')return reply(publicGame(g,digest));
   if(route==='resign'){
