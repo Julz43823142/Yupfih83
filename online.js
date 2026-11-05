@@ -2,7 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
-let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0;
+let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0,liveRetryTimer=null;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -118,6 +118,16 @@ else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').queryS
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
 // A websocket is read-only. Every move still goes through the authorized HTTPS
 // endpoint; the room only publishes server-confirmed board states.
+function scheduleLiveRetry(){
+ liveFailures=Math.min(liveFailures+1,5);
+ const delay=Math.min(15000,1000*2**(liveFailures-1));
+ liveRetryAt=Date.now()+delay;
+ if(liveRetryTimer!==null)clearTimeout(liveRetryTimer);
+ liveRetryTimer=setTimeout(()=>{
+  liveRetryTimer=null;
+  if(document.visibilityState==='visible')connectLive();
+ },delay+25);
+}
 function connectLive(){
  if(!id||!secret||liveSocket||Date.now()<liveRetryAt)return;
  const origin=new URL(location.href);
@@ -129,6 +139,7 @@ function connectLive(){
   liveSocket=socket;
   socket.onopen=()=>{
    liveConnected=true;liveFailures=0;liveRetryAt=0;
+   if(liveRetryTimer!==null){clearTimeout(liveRetryTimer);liveRetryTimer=null}
    lastSocketMessageAt=performance.now();networkRttMs=null;networkRttAt=0;pingStartedAt=0;
    sendSocketPing();poll();
   };
@@ -154,15 +165,11 @@ function connectLive(){
   socket.onclose=()=>{
    if(liveSocket===socket){
     liveSocket=null;liveConnected=false;networkRttMs=null;networkRttAt=0;
-    liveFailures=Math.min(liveFailures+1,5);
-    liveRetryAt=Date.now()+Math.min(15000,1000*2**(liveFailures-1));
+    scheduleLiveRetry();
     poll();
    }
   };
- }catch{
-  liveFailures=Math.min(liveFailures+1,5);
-  liveRetryAt=Date.now()+Math.min(15000,1000*2**(liveFailures-1));
- }
+ }catch{scheduleLiveRetry()}
 }
 function sendSocketPing(){
  if(!liveSocket||liveSocket.readyState!==WebSocket.OPEN||pingStartedAt)return;
