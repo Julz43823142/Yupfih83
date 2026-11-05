@@ -2,6 +2,19 @@
   "private": true,
   "description": "Cloudflare Pages Functions dependencies for EloScanner",
   "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "better-auth": "1.7.17",
     "glin-profanity": "4.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "wrangler": "4.157.0"
+  },
+  "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "test:auth": "node --test tests/auth/auth.test.mjs",
+    "auth:provision": "node scripts/provision-auth-user.mjs",
+    "dev:auth": "node scripts/dev-auth.mjs",
+    "auth:migrate:local": "wrangler d1 migrations apply AUTH_DB --local --config tests/auth/wrangler.jsonc"
   }
 }

@@ -17,6 +17,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Test account security boundaries
+        run: npm run test:auth
+      - name: Build public assets
+        run: npm run build
       - name: Test endpoint JSON validation and cache policy
         run: node scripts/test-api-security.mjs
       - name: Test Play Bots premove input
@@ -33,3 +39,32 @@ jobs:
           node --check functions/api/puzzle-report.js
           node --check script.js
           node --check analysis-stockfish-fixed.js
+
+  account-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run auth:migrate:local
+      - run: npm run auth:provision -- --local --fixture
+      - name: Exercise real local Workers and D1 in Chromium
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm run dev:auth > /tmp/eloscanner-auth-dev.log 2>&1 &
+          AUTH_DEV_PID=$!
+          trap 'kill "$AUTH_DEV_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://localhost:8788/api/auth/config > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:8788/api/auth/config > /dev/null
+          npx playwright test

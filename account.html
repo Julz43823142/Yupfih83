@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Your account · EloScanner</title>
+<link rel="icon" href="/favicon-horse.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css?v=20261104-dark">
+<link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
+<link rel="stylesheet" href="/account.css?v=1">
+<script src="/elo-global-menu.js?v=4-current" defer></script>
+<script src="/account-nav.js?v=1" defer></script>
+<script src="/account.js?v=1" defer></script>
+</head>
+<body>
+<header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
+<main class="account-shell">
+  <a class="account-back" href="/">← Back to EloScanner</a>
+  <div class="account-heading"><span class="account-eyebrow">YOUR CHESS, YOUR SPACE</span><h1>Your account</h1><p>One place to manage your access to EloScanner.</p></div>
+  <p id="account-status" class="account-status" role="status" aria-live="polite">Checking account availability…</p>
+  <section id="registration-panel" class="account-card" hidden>
+    <span class="account-badge">COMING SOON</span><h2>Registration is not open yet.</h2>
+    <p>We're testing accounts before opening them to everyone. You can still explore EloScanner without an account.</p>
+    <a class="account-primary" href="/">Explore EloScanner</a><a class="account-link" href="/account.html">Already have a test account? Log in</a>
+  </section>
+  <section id="login-panel" class="account-card" hidden>
+    <h2>Welcome back</h2><p>Log in with your username and password.</p>
+    <form id="login-form">
+      <label for="username">Username</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required>
+      <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+      <label class="account-check"><input id="remember" type="checkbox"> Keep me signed in on this device (up to 7 days)</label>
+      <div id="turnstile-container"></div>
+      <button type="submit" class="account-primary">Log in</button>
+    </form>
+    <p class="account-note">There is no email or password-recovery service. Keep your unique password in a password manager.</p>
+    <a class="account-link" href="/account.html?view=signup">New here? Registration is coming soon</a>
+  </section>
+  <section id="profile-panel" hidden>
+    <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
+    <div class="account-card"><h2>Password & security</h2><p>Use a unique password that you don't use on any other website.</p>
+      <form id="password-form">
+        <label for="current-password">Current password</label><input id="current-password" name="currentPassword" type="password" autocomplete="current-password" maxlength="128" required>
+        <label for="new-password">New password</label><input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="15" maxlength="128" required aria-describedby="password-help">
+        <p id="password-help" class="account-note">15–128 characters. Long passphrases and password managers are welcome. Known breached passwords are rejected.</p>
+        <label for="confirm-password">Confirm new password</label><input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+        <button class="account-primary" type="submit">Change password</button>
+      </form>
+      <p class="account-note">Changing your password signs out your other sessions.</p>
+    </div>
+    <div class="account-card"><h2>Signed-in devices</h2><p>Using a shared device or worried about an old session? Sign out everywhere, including this device.</p><button id="sign-out-all" class="account-secondary" type="button">Log out on all devices</button></div>
+    <div class="account-card"><h2>Delete account</h2><p>This permanently deletes your account and its login sessions. It cannot be undone. Separately submitted public leaderboard entries are not linked to this account.</p>
+      <form id="delete-form"><label for="delete-password">Confirm your current password</label><input id="delete-password" name="password" type="password" autocomplete="current-password" maxlength="128" required><button class="account-danger" type="submit">Delete my account</button></form>
+    </div>
+  </section>
+  <p class="account-footer">No email address is requested. <a href="/privacy">Privacy policy</a></p>
+</main>
+</body></html>
