@@ -12,7 +12,8 @@ function databaseWithOnline(){
  db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
- const req=new Request(ORIGIN+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':ORIGIN,'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.40',...(options.cookie?{'Cookie':options.cookie}:{})},body:options.method==='GET'?undefined:JSON.stringify(data)});
+ const origin=options.origin||ORIGIN;
+ const req=new Request(origin+'/api/'+(options.social?'social':'online')+'/'+path,{method:options.method||'POST',headers:{'Origin':options.crossOrigin?'https://attacker.invalid':origin,'Content-Type':'application/json','CF-Connecting-IP':options.ip||'203.0.113.40',...(options.cookie?{'Cookie':options.cookie}:{})},body:options.method==='GET'?undefined:JSON.stringify(data)});
  return (options.social?socialApi:gameApi)({request:req,env:{AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:ORIGIN,ONLINE_TEST_DEBUG:'true'}});
 }
 async function call(db,path,data,options){const r=await api(db,path,data,options);return {status:r.status,data:await r.json()}}
@@ -135,6 +136,41 @@ test('same browser cannot match its own random game or join its own invite',asyn
   const invite=await invitation.json();
   assert.equal((await call(db,'join',{id:invite.id,name:'Self'},{cookie})).status,409);
   assert.equal((await call(db,'join',{id:invite.id,name:'Other'})).status,200);
+ }finally{db.close()}
+});
+
+
+test('opponent and unauthenticated probes cannot obtain player IP or private browser identifiers',async()=>{
+ const db=databaseWithOnline();try{
+  const origin='https://chess.example.test',ipA='198.51.100.17',ipB='203.0.113.91';
+  const first=await api(db,'create',{kind:'random',name:'Alice'},{origin,ip:ipA});
+  assert.equal(first.status,200);
+  const white=await first.json();
+  const cookie=first.headers.get('Set-Cookie');
+  assert.match(cookie,/HttpOnly; SameSite=Strict; Max-Age=2592000; Secure/);
+  assert.equal(first.headers.get('Cache-Control'),'no-store, private');
+  assert.equal(first.headers.get('Referrer-Policy'),'no-referrer');
+  const second=await api(db,'create',{kind:'random',name:'Bob'},{origin,ip:ipB});
+  assert.equal(second.status,200);
+  const black=await second.json();
+  assert.equal(black.id,white.id);
+  const board=await api(db,'state',{id:black.id,secret:black.secret},{origin,ip:ipB});
+  assert.equal(board.status,200);
+  const stateBody=await board.text();
+  const other=await api(db,'state',{id:white.id,secret:'a'.repeat(32)},{origin,ip:ipB});
+  assert.equal(other.status,404);
+  const moveAttempt=await api(db,'move',{id:white.id,secret:black.secret,from:'e2',to:'e4'},{origin,ip:ipB});
+  assert.equal(moveAttempt.status,409);
+  const publicProbe=await api(db,'game',{}, {origin,ip:ipB,social:true,method:'GET'});
+  const exposed=[stateBody,await other.text(),await moveAttempt.text(),await publicProbe.text(),JSON.stringify(db.sqlite.prepare("SELECT * FROM online_games").all()),JSON.stringify(db.sqlite.prepare("SELECT * FROM auth_attempts").all())];
+  // Raw IP addresses should not be disclosed in API bodies or stored in the multiplayer tables.
+  for(const value of exposed){assert.equal(value.includes(ipA),false);assert.equal(value.includes(ipB),false)}
+  const body=JSON.parse(stateBody);
+  for(const key of Object.keys(body))assert.doesNotMatch(key,/ip|address|browser|cookie|token|secret|header|session/i);
+  assert.equal(body.white,'Guest · Alice');assert.equal(body.black,'Guest · Bob');
+  assert.ok(!stateBody.includes(white.secret));
+  assert.ok(!stateBody.includes(black.secret));
+  assert.ok(!stateBody.includes(cookie.split(';')[0]));
  }finally{db.close()}
 });
 
