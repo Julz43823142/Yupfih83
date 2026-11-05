@@ -54,6 +54,10 @@ export async function onRequest({request,env}){
    await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,white_name,fen,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,player.name,new Chess().fen(),t,t).run();
    // Retention: abandoned lobby games 24h, completed games 30d. No raw IP stored.
    if(Math.random()<0.1){try{
+    await db.prepare("UPDATE online_games SET status='finished',result=CASE WHEN turn='w' THEN '0-1' ELSE '1-0' END,white_ms=CASE WHEN turn='w' THEN 0 ELSE white_ms END,black_ms=CASE WHEN turn='b' THEN 0 ELSE black_ms END,updated_at=? WHERE status='active' AND last_move_at<?").bind(t,t-180001).run();
+    await db.prepare("DELETE FROM online_challenges WHERE created_at<?").bind(t-86400000).run();
+    await db.prepare("DELETE FROM online_friend_requests WHERE created_at<?").bind(t-2592000000).run();
+    await db.prepare("DELETE FROM online_presence WHERE seen_at<?").bind(t-86400000).run();
     await db.prepare("DELETE FROM online_games WHERE (status='waiting' AND created_at<?) OR (status='finished' AND updated_at<?)").bind(t-86400000,t-2592000000).run();
     await db.prepare("DELETE FROM auth_attempts WHERE key LIKE 'online:%' AND expiresAt<?").bind(t).run();
    }catch{}}
