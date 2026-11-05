@@ -77,7 +77,7 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
   }finally{busy=false}
   return}}
  if(pc?.color===side){selected=sq;selectedMoves=game.moves({square:sq,verbose:true})}render()}
-let polling=false;async function poll(){if(!id||!secret||polling)return;polling=true;try{const j=await post('state',{id,secret});if(state?.id===j.id&&((Array.isArray(state.moves)&&j.moves.length<state.moves.length)||(state.status==='finished'&&j.status!=='finished')||(state.status==='active'&&j.status==='waiting')))return;state=j;side=j.side;serverOffset=j.serverTime-Date.now();render()}catch(e){$('online-status').textContent=e.message}finally{polling=false}}
+let polling=false;async function poll(){if(!id||!secret||polling)return;polling=true;try{const j=await post('state',{id,secret});if(state?.id===j.id&&((Array.isArray(state.moves)&&j.moves.length<state.moves.length)||(state.status==='finished'&&j.status!=='finished')||(state.status==='active'&&j.status==='waiting')))return;if(state?.fen!==j.fen){selected=null;selectedMoves=[]}state=j;side=j.side;serverOffset=j.serverTime-Date.now();render()}catch(e){$('online-status').textContent=e.message}finally{polling=false}}
 const urlParams=new URL(location.href).searchParams;
 const invitation=urlParams.get('invite');const reviewId=urlParams.get('review');if(reviewId&&/^[a-f0-9]{32}$/.test(reviewId)){initializeReplay(reviewId)}
 else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
@@ -100,6 +100,7 @@ function connectLive(){
     const packet=JSON.parse(event.data),next=packet.game;
     if(packet.type!=='state'||!next||next.id!==id||!Array.isArray(next.moves)||typeof next.fen!=='string')return;
     if(state?.id===id&&((Array.isArray(state.moves)&&next.moves.length<state.moves.length)||(state.status==='finished'&&next.status!=='finished')||(state.status==='active'&&next.status==='waiting')))return;
+    if(state?.fen!==next.fen){selected=null;selectedMoves=[]}
     state={...next,side};serverOffset=next.serverTime-Date.now();render();
    }catch{}
   };
