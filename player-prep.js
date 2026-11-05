@@ -62,7 +62,7 @@ const syncPrepMeter=()=>{
  if(rect.height>0&&prepMeter){
   prepMeter.style.setProperty('--chess-board-height',rect.height+'px');
   const row=prepMeter.parentElement.getBoundingClientRect();
-  prepMeter.style.top=(rect.top-row.top)+'px';
+  prepMeter.style.setProperty('--elo-meter-offset',(rect.top-row.top)+'px');
  }
 };
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(syncPrepMeter).observe(board)}
