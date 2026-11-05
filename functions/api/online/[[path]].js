@@ -1,4 +1,5 @@
 import {Chess} from '../../../vendor/chess/chess-1.4.0.mjs';
+import {lagCredit,lagGrace,MAX_LAG_PER_GAME_MS} from '../../../lib/online/lag.mjs';
 import {reply,readJSON,rateLimitPair,sameOrigin,secretHash,random,isToken,validGuest,sessionUser,safeError} from '../../../lib/online/security.mjs';
 
 const gameId=s=>isToken(s);
@@ -44,7 +45,8 @@ async function getGame(db,id){return db.prepare('SELECT * FROM online_games WHER
 async function expire(db,g){
  if(g.status!=='active'||!g.last_move_at)return g;
  const elapsed=Math.max(0,time()-g.last_move_at),clock=g.turn==='w'?'white_ms':'black_ms';
- if(elapsed<g[clock])return g;
+ const used=g.turn==='w'?g.white_lag_used_ms:g.black_lag_used_ms;
+ if(elapsed<g[clock]+lagGrace(used))return g;
  const result=g.turn==='w'?'0-1':'1-0';
  await db.prepare("UPDATE online_games SET status='finished',result=?,white_ms=CASE WHEN turn='w' THEN 0 ELSE white_ms END,black_ms=CASE WHEN turn='b' THEN 0 ELSE black_ms END,updated_at=? WHERE id=? AND status='active' AND last_move_at=?").bind(result,time(),g.id,g.last_move_at).run();
  return getGame(db,g.id);
@@ -183,12 +185,21 @@ export async function onRequest({request,env,waitUntil}){
    const afterReplay=performance.now();
    let resultMove;try{resultMove=board.move({from:b.from,to:b.to,promotion:['q','r','b','n'].includes(b.promotion)?b.promotion:'q'})}catch{return reply({error:'Illegal move.'},400)}
    if(!resultMove)return reply({error:'Illegal move.'},400);
-   const elapsed=Math.max(0,time()-g.last_move_at),remaining=Math.max(0,(side==='w'?g.white_ms:g.black_ms)-elapsed);
+   const elapsed=Math.max(0,time()-g.last_move_at);
+   const used=side==='w'?g.white_lag_used_ms:g.black_lag_used_ms;
+   // A measured WebSocket RTT is a *hint*, not proof: a hostile client can
+   // claim a false value. Limit potential clock benefit to 80 ms/move and
+   // 1200 ms total per seat in a 3+0 game, stored atomically in D1.
+   const credit=lagCredit(elapsed,MAX_LAG_PER_GAME_MS-used,b.networkRttMs);
+   const remaining=Math.max(0,(side==='w'?g.white_ms:g.black_ms)-elapsed+credit);
    if(!remaining)return reply({error:'Time expired.'},409);
    moves.push(resultMove.san);
    const result=board.isCheckmate()?(side==='w'?'1-0':'0-1'):board.isDraw()?'1/2-1/2':null;
    const t=time(),nextFen=board.fen(),nextMoves=turns(moves),nextTurn=board.turn();
-   const updated=await db.prepare("UPDATE online_games SET fen=?,moves=?,turn=?,white_ms=?,black_ms=?,last_move_at=?,status=?,result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?").bind(nextFen,nextMoves,nextTurn,side==='w'?remaining:g.white_ms,side==='b'?remaining:g.black_ms,t,result?'finished':'active',result,t,b.id,g.fen,g.last_move_at).run();
+   const updated=await db.prepare("UPDATE online_games SET fen=?,moves=?,turn=?,white_ms=?,black_ms=?,white_lag_used_ms=?,black_lag_used_ms=?,last_move_at=?,status=?,result=?,updated_at=? WHERE id=? AND status='active' AND fen=? AND last_move_at=?")
+    .bind(nextFen,nextMoves,nextTurn,side==='w'?remaining:g.white_ms,side==='b'?remaining:g.black_ms,
+      g.white_lag_used_ms+(side==='w'?credit:0),g.black_lag_used_ms+(side==='b'?credit:0),
+      t,result?'finished':'active',result,t,b.id,g.fen,g.last_move_at).run();
    if(updated.meta.changes!==1)return reply({error:'Position already changed. Retry.'},409);
    const afterCommit=performance.now();
    // Return the authoritative committed board immediately, avoiding a second
