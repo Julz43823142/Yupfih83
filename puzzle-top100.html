@@ -7,7 +7,7 @@
 <main class="puzzles-page puzzle-leaderboard-page"><a class="puzzles-back" href="/puzzles.html">← Back to puzzles</a><h1>Leaderboards</h1>
 
 <div class="puzzles-tabs"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a><a data-mode="knight-maze" href="?mode=knight-maze">Knight Maze</a></div>
-<p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><div class="puzzle-ranking-limits" aria-label="Leaderboard size"><button type="button" data-limit="10">Top 10</button><button type="button" data-limit="50">Top 50</button><button type="button" data-limit="100">Top 100</button></div><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
+<p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><div class="puzzle-ranking-limits" aria-label="Leaderboard size"><button type="button" data-limit="10">Top 10</button><button type="button" data-limit="50">Top 50</button><button type="button" data-limit="100">Top 100</button></div><div class="puzzle-ranking-limits" aria-label="Ranking filter"><button type="button" data-filter="absolute">All scores</button><button type="button" data-filter="unique">Best per player</button></div><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
 <table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr></thead><tbody id="ranking-rows"></tbody></table>
 </main>
 <script>
@@ -16,14 +16,15 @@
  for(const a of document.querySelectorAll('[data-mode]'))if(a.dataset.mode===mode)a.setAttribute('aria-current','page');
  const status=document.getElementById('ranking-status'),body=document.getElementById('ranking-rows');
  const isMaze=mode==='knight-maze';
- // Knight Maze currently stores nicknames only; keep the shared legend visible.
  document.querySelector('.puzzle-top100-table thead').innerHTML=isMaze?'<tr><th>Rank</th><th>Nickname</th><th>Score</th></tr>':'<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
- let limit=100;
+ let limit=100,filter='absolute';
  async function load(){
  body.replaceChildren();
  for(const button of document.querySelectorAll('[data-limit]'))button.setAttribute('aria-pressed',String(Number(button.dataset.limit)===limit));
  try{
-  const r=await fetch(isMaze?'/api/knight-maze?limit='+limit:'/api/puzzle-leaderboard?mode='+mode+'&limit='+limit,{cache:'no-store'}),data=await r.json();
+  for(const button of document.querySelectorAll('[data-filter]'))button.setAttribute('aria-pressed',String(button.dataset.filter===filter));
+  const url=isMaze?'/api/knight-maze?limit='+limit+'&filter='+filter:'/api/puzzle-leaderboard?mode='+mode+'&limit='+limit+'&filter='+filter;
+  const r=await fetch(url,{cache:'no-store'}),data=await r.json();
   if(!r.ok)throw Error(data.error||'Unavailable');
   
   status.textContent=data.entries.length?'Top '+data.entries.length+' scores':'No scores yet.';
@@ -31,6 +32,7 @@
  }catch(e){status.textContent='Rankings temporarily unavailable: '+e.message}
  }
  document.querySelectorAll('[data-limit]').forEach(button=>button.addEventListener('click',()=>{limit=Number(button.dataset.limit);load()}));
+ document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;load()}));
  await load();
 })();
 </script><script src="/puzzle-report.js?v=3" defer></script></body></html>
