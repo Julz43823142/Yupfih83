@@ -14,7 +14,7 @@ if (args.includes('--help')) {
 }
 const remote = args.includes('--remote');
 if (remote === args.includes('--local')) throw new Error('Choose exactly one of --local or --remote');
-const fixture = args.includes('--fixture');
+const fixture = args.includes('--fixture') || args.includes('--fixture2');
 if (fixture && remote) throw new Error('Fixture users are forbidden on remote databases');
 const dbIndex = args.indexOf('--database'); const target = remote ? args[dbIndex + 1] : 'AUTH_DB';
 if (remote && (dbIndex < 0 || !target || target.startsWith('-'))) throw new Error('Explicit --database is required for remote provisioning');
@@ -34,7 +34,7 @@ function prompt(question, hidden = false) {
     process.stdin.on('keypress', listener);
   });
 }
-const username = fixture ? 'local_tester' : (await prompt('Test username (3–24 letters, digits or underscores): ')).trim().toLowerCase();
+const username = fixture ? (args.includes('--fixture2') ? 'local_friend' : 'local_tester') : (await prompt('Test username (3–24 letters, digits or underscores): ')).trim().toLowerCase();
 if (!/^[a-z0-9_]{3,24}$/.test(username)) throw new Error('Invalid username');
 const password = fixture ? 'Local-test-only-orchard-57931!' : await prompt('Unique test password (hidden): ', true);
 const secret = fixture ? 'LOCAL-TEST-ONLY-never-use-in-production-1234567890' : await prompt('Target BETTER_AUTH_SECRET (hidden): ', true);
