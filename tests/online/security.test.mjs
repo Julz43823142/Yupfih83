@@ -180,7 +180,9 @@ test('opponent and unauthenticated probes cannot obtain player IP or private bro
 test('move acknowledgement provides confirmed board without peer credentials',async()=>{
  const db=databaseWithOnline();try{
   const [white,black]=await pair(db);
-  const reply=await move(db,white,'e2','e4');
+  const raw=await api(db,'move',{id:white.id,secret:white.secret,from:'e2',to:'e4'});
+  assert.match(raw.headers.get('Server-Timing')||'',/^chess;dur=\\d+(?:\\.\\d+)?$/);
+  const reply={status:raw.status,data:await raw.json()};
   assert.equal(reply.status,200);
   assert.equal(reply.data.ok,true);
   assert.deepEqual(reply.data.moves,['e4']);
