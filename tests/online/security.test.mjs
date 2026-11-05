@@ -175,4 +175,19 @@ test('opponent and unauthenticated probes cannot obtain player IP or private bro
  }finally{db.close()}
 });
 
+
+test('move acknowledgement provides confirmed board without peer credentials',async()=>{
+ const db=databaseWithOnline();try{
+  const [white,black]=await pair(db);
+  const reply=await move(db,white,'e2','e4');
+  assert.equal(reply.status,200);
+  assert.equal(reply.data.ok,true);
+  assert.deepEqual(reply.data.moves,['e4']);
+  assert.equal(reply.data.turn,'b');
+  assert.equal(reply.data.fen,(await state(db,black)).data.fen);
+  for(const key of Object.keys(reply.data))assert.doesNotMatch(key,/ip|address|browser|cookie|token|secret|session/i);
+  assert.ok(!JSON.stringify(reply.data).includes(black.secret));
+ }finally{db.close()}
+});
+
 console.log('Online security and chess logic regression tests completed.');
