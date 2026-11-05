@@ -41,6 +41,16 @@ test('Registration and unneeded library routes fail closed even without configur
   assert.ok(direct.status >= 400);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
+test('public signup refuses usernames impersonating EloScanner staff', async () => {
+  const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
+  for (const username of ['admin','a_d_m_i_n','eloscanner','elo_scanner_support','support','mod_erator']) {
+    const result = await handleAuth({request:req('sign-up/email',{username,password}),env});
+    assert.equal(result.status,400,username);
+    assert.match((await result.json()).message,/reserved/i);
+  }
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c,0);
+});
+
 test('origin/method/body guards reject cross-site and oversized requests', async () => {
   const env = envFor();
   for (const headers of [{ Origin: 'https://evil.example' }, { Origin: '' }, { 'Sec-Fetch-Site': 'cross-site' }]) {
