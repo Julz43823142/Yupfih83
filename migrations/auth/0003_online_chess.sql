@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS online_games (
  kind TEXT NOT NULL CHECK(kind IN ('random','invite')),
  white_token TEXT NOT NULL,
  black_token TEXT,
+ white_browser_id TEXT,
  white_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
  black_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
  invited_user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
