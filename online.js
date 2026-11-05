@@ -129,7 +129,7 @@ function connectLive(){
   liveSocket=socket;
   socket.onopen=()=>{
    liveConnected=true;liveFailures=0;liveRetryAt=0;
-   lastSocketMessageAt=performance.now();networkRttMs=null;networkRttAt=0;
+   lastSocketMessageAt=performance.now();networkRttMs=null;networkRttAt=0;pingStartedAt=0;
    sendSocketPing();poll();
   };
   socket.onmessage=event=>{
