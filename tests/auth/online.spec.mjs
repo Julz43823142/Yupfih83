@@ -15,6 +15,7 @@ test('benchmark: measure local move acknowledgement and opponent visibility, wit
   await pa.goto(base+'/online.html?friend=1');
   await pa.locator('#online-name').fill('BenchAlice');
   await pa.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+  await expect(pa.locator('#online-link')).toHaveValue(/invite=[a-f0-9]{32}/,{timeout:15000});
   const invitation=await pa.locator('#online-link').inputValue();
   expect(invitation).toMatch(/invite=[a-f0-9]{32}/);
   await pb.goto(invitation);
