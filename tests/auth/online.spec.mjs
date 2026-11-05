@@ -44,6 +44,8 @@ test('signed-in member requests, consent, targeted challenges, game history and 
   const accept=await post(pb.request,'/api/social/friend-respond',{id:invite.id,action:'accept'});expect(accept.status()).toBe(200);
   const friendsA=await(await pa.request.get(base+'/api/social/friends')).json();expect(friendsA.friends.some(x=>x.username==='local_friend')).toBe(true);
   const create=await post(pa.request,'/api/online/create',{kind:'invite',name:'Anything',targetUsername:'local_friend'});expect(create.status()).toBe(200);const game=await create.json();
+  // A leaked account seat token alone must not grant access without its session.
+  expect((await post(anonymous.request,'/api/online/state',{id:game.id,secret:game.secret})).status()).toBe(404);
   const sent=await post(pa.request,'/api/social/challenge',{username:'local_friend',gameId:game.id,gameSecret:game.secret});expect(sent.status()).toBe(200);
   const guestJoin=await post(anonymous.request,'/api/online/join',{id:game.id,name:'Intruder'});expect(guestJoin.status()).toBe(403);
   const inbox=await(await pb.request.get(base+'/api/social/inbox')).json();expect(inbox.challenges.some(x=>x.gameId===game.id)).toBe(true);
