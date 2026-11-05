@@ -31,7 +31,7 @@ test('reserved guest identity variants cannot impersonate site staff',()=>{
 test('IP rate limits and seat limits remain independent across network changes',async()=>{
  const db=databaseWithOnline();try{
   const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret};
-  const makeReq=ip=>new Request(ORIGIN+'/api/online/state',{headers:{'CF-Connecting-IP':ip,Origin:ORIGIN}});
+  const makeReq=ip=>new Request('https://eloscanner.com/api/online/state',{headers:{'CF-Connecting-IP':ip,Origin:'https://eloscanner.com'}});
   // Make IP enforcement observable by using distinct source keys while holding the seat fixed.
   assert.equal(await rateLimitPair(env,makeReq('203.0.113.1'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),true);
   assert.equal(await rateLimitPair(env,makeReq('203.0.113.2'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),true);
