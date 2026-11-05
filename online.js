@@ -2,6 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
+let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -81,7 +82,8 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
    boardFen=null;
    previewBoard=game;
    previewMove(from,sq,move);
-   const committed=await post('move',{id,secret,from,to:sq,promotion});
+   const rttFresh=liveConnected&&performance.now()-networkRttAt<30000;
+   const committed=await post('move',{id,secret,from,to:sq,promotion,...(rttFresh?{networkRttMs:Math.round(networkRttMs)}:{})});
    previewBoard=null;
    // Server acknowledgement reuses the speculative position if it matches.
    // A mismatched authoritative FEN is still rebuilt and wins.
@@ -125,21 +127,63 @@ function connectLive(){
  try{
   const socket=new WebSocket(origin.href,['elo-chess-v1','elo-seat-'+secret]);
   liveSocket=socket;
-  socket.onopen=()=>{liveConnected=true;poll()};
+  socket.onopen=()=>{
+   liveConnected=true;liveFailures=0;liveRetryAt=0;
+   lastSocketMessageAt=performance.now();networkRttMs=null;networkRttAt=0;
+   sendSocketPing();poll();
+  };
   socket.onmessage=event=>{
    if(typeof event.data!=='string'||event.data.length>8192)return;
    try{
-    const packet=JSON.parse(event.data),next=packet.game;
+    const packet=JSON.parse(event.data);
+    if(packet.type==='pong'&&packet.nonce===pingNonce&&pingStartedAt){
+     const now=performance.now(),sample=now-pingStartedAt;
+     if(sample>=0&&sample<=2000){
+      networkRttMs=networkRttMs===null?sample:networkRttMs*0.65+sample*0.35;
+      networkRttAt=now;
+     }
+     lastSocketMessageAt=now;pingStartedAt=0;return;
+    }
+    const next=packet.game;
     if(packet.type!=='state'||!next||next.id!==id||!Array.isArray(next.moves)||typeof next.fen!=='string')return;
+    lastSocketMessageAt=performance.now();
     acceptState({...next,side});
    }catch{}
   };
   socket.onerror=()=>{};
   socket.onclose=()=>{
-   if(liveSocket===socket){liveSocket=null;liveConnected=false;liveRetryAt=Date.now()+15000;poll()}
+   if(liveSocket===socket){
+    liveSocket=null;liveConnected=false;networkRttMs=null;networkRttAt=0;
+    liveFailures=Math.min(liveFailures+1,5);
+    liveRetryAt=Date.now()+Math.min(15000,1000*2**(liveFailures-1));
+    poll();
+   }
   };
- }catch{liveRetryAt=Date.now()+15000}
+ }catch{
+  liveFailures=Math.min(liveFailures+1,5);
+  liveRetryAt=Date.now()+Math.min(15000,1000*2**(liveFailures-1));
+ }
 }
+function sendSocketPing(){
+ if(!liveSocket||liveSocket.readyState!==WebSocket.OPEN||pingStartedAt)return;
+ pingNonce=(pingNonce+1)%2147483647;
+ pingStartedAt=performance.now();
+ try{liveSocket.send(JSON.stringify({type:'ping',nonce:pingNonce}))}catch{pingStartedAt=0}
+}
+// Detect silent half-open sockets; a reconnect starts with a fresh
+// authoritative state read. Hidden tabs resume checking on visibility.
+setInterval(()=>{
+ if(!id||!liveSocket||liveSocket.readyState!==WebSocket.OPEN)return;
+ const now=performance.now();
+ if(document.visibilityState==='hidden')return;
+ if(now-lastSocketMessageAt>30000){
+  liveSocket.close(4000,'Heartbeat timeout');return;
+ }
+ if(pingStartedAt&&now-pingStartedAt>12000){
+  liveSocket.close(4000,'Ping timeout');return;
+ }
+ sendSocketPing();
+},8000);
 // Poll more frequently only during an active game. Keep the D1 request budget
 // below the per-IP rate limit even when two players share the same connection.
 async function pollLoop(){
@@ -148,7 +192,14 @@ async function pollLoop(){
  setTimeout(pollLoop,delay);
 }
 setTimeout(pollLoop,900);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&id)poll()});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&id){
+  // Background tabs may lose their socket without receiving a close event.
+  if(liveSocket&&liveSocket.readyState===WebSocket.OPEN&&performance.now()-lastSocketMessageAt>30000)
+   liveSocket.close(4000,'Resume reconnect');
+  connectLive();poll();
+ }
+});
 setInterval(clocks,250);
 
 async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
