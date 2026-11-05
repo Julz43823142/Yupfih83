@@ -2,7 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
-let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0,liveRetryTimer=null;
+let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0,liveRetryTimer=null,queuedPremove=null;
 const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -67,11 +67,35 @@ function render(){if(!state)return;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
- $('online-status').textContent=previewBoard?'Sending move…':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
+ $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
 function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const top=fmt(side==='w'?b:w),bottom=fmt(side==='w'?w:b);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom}
-async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!==side)return;const pc=game.get(sq);if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}// Optimistic *display only*: the server remains authoritative.
+// A queued premove is never sent before the opponent's committed move;
+// verify it against the new board before submitting an authorized HTTP move.
+function premoveCandidates(square){
+ try{
+  const fen=state.fen.split(' ');
+  fen[1]=side;fen[3]='-';
+  return new Chess(fen.join(' ')).moves({square,verbose:true});
+ }catch{return []}
+}
+async function choose(sq){
+ if(busy||!state||state.status!=='active')return;
+ const pc=game.get(sq);
+ if(state.turn!==side){
+  if(selected){
+   const from=selected,choices=selectedMoves.filter(m=>m.to===sq);
+   selected=null;selectedMoves=[];
+   if(choices.length){
+    const preferred=choices.find(m=>!m.promotion||m.promotion==='q')||choices[0];
+    queuedPremove={from,to:sq,promotion:preferred.promotion||'q'};
+    paintSelection();$('online-status').textContent='Premove queued';return;
+   }
+  }
+  if(pc?.color===side){selected=sq;selectedMoves=premoveCandidates(sq)}
+  paintSelection();return;
+ }if(selected){const from=selected;selected=null;const legal=selectedMoves.filter(m=>m.to===sq);selectedMoves=[];if(legal.length){let promotion='q';if(legal.some(m=>m.promotion)){const p=prompt('Promote to q, r, b or n','q');if(p===null){render();return}promotion=['q','r','b','n'].includes(p.toLowerCase())?p.toLowerCase():'q'}// Optimistic *display only*: the server remains authoritative.
   // Do not advance clocks, game state, results, or permit another move
   // until the server confirms this position.
   busy=true;
@@ -106,10 +130,20 @@ function acceptState(next){
   if(next.fen===state?.fen)return;
  }
  const previous=state;
+ if(previous?.id!==next.id||next.status==='finished')queuedPremove=null;
  const changed=!previous||previous.id!==next.id||previous.fen!==next.fen||previous.status!==next.status||previous.result!==next.result||previous.white!==next.white||previous.black!==next.black||previous.whiteMs!==next.whiteMs||previous.blackMs!==next.blackMs||previous.lastMoveAt!==next.lastMoveAt||previous.moves.length!==next.moves.length;
  if(previous?.fen!==next.fen){selected=null;selectedMoves=[]}
  state=next;serverOffset=next.serverTime-Date.now();
  if(changed)render();else clocks();
+ if(!busy&&queuedPremove&&next.status==='active'&&next.turn===side){
+  const planned=queuedPremove;queuedPremove=null;
+  queueMicrotask(()=>{
+   if(busy||state?.status!=='active'||state?.turn!==side)return;
+   const possible=game.moves({square:planned.from,verbose:true});
+   if(!possible.some(m=>m.to===planned.to&&(!m.promotion||m.promotion===planned.promotion)))return;
+   choose(planned.from);choose(planned.to);
+  });
+ }
 }
 let polling=false;async function poll(){if(!id||!secret||polling)return;polling=true;try{const j=await post('state',{id,secret});side=j.side;acceptState(j)}catch(e){$('online-status').textContent=e.message}finally{polling=false}}
 const urlParams=new URL(location.href).searchParams;
