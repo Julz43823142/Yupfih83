@@ -152,4 +152,21 @@ $('back').onclick=()=>{if(cursor){cursor--;selected=null;render();requestAnalysi
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));$('import-value').placeholder=mode==='pgn'?'Paste PGN here':mode==='fen'?'Paste FEN here':'Paste Chess.com game URL'});
 $('load').onclick=async()=>{const value=$('import-value').value.trim();const status=$('import-status');try{let text=value;if(mode==='url'){const url=new URL(value);if(url.hostname!=='www.chess.com'&&url.hostname!=='chess.com')throw Error('Only Chess.com game URLs are supported.');throw Error('Direct game-link import is not supported yet. Paste PGN instead.')}const next=new Chess();if(mode==='fen')next.load(text);else next.loadPgn(text);const replay=new Chess(mode==='fen'?next.fen():undefined);const states=[replay.fen()];if(mode==='pgn')for(const m of next.history()){replay.move(m);states.push(replay.fen())}history=states;sanMoves=mode==='pgn'?next.history():[];cursor=0;selected=null;arrows=[];status.textContent='Loaded '+(states.length-1)+' moves.';render();requestAnalysis()}catch(e){status.textContent='Could not load: '+e.message}};
 
+async function loadOnlineGame(gameId){
+ const status=$('import-status');
+ try{
+  const response=await fetch('/api/social/game?id='+encodeURIComponent(gameId),{cache:'no-store'});
+  const data=await response.json();
+  if(!response.ok||!Array.isArray(data.moves))throw Error(data.error||'Game unavailable');
+  const replay=new Chess(),states=[replay.fen()];
+  for(const san of data.moves){replay.move(san);states.push(replay.fen())}
+  history=states;sanMoves=data.moves.slice();cursor=states.length-1;selected=null;arrows=[];
+  document.title=(data.white||'White')+' vs '+(data.black||'Black')+' | Analysis | EloScanner';
+  render();requestAnalysis();
+  if(status)status.textContent='Online game · '+(data.white||'White')+' vs '+(data.black||'Black')+' · '+data.result;
+ }catch(error){if(status)status.textContent=error.message||'Could not load online game'}
+}
+const onlineGameId=new URL(location.href).searchParams.get('online');
+if(onlineGameId&&/^[a-f0-9]{32}$/.test(onlineGameId))loadOnlineGame(onlineGameId);
+
 render();
