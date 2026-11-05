@@ -16,22 +16,42 @@ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r
 // Cache piece identity by square. During a normal move only the source and
 // destination need DOM updates, not all 64 images and their layout state.
 const painted=new Map();
-let paintedSide=null;
+let paintedSide=null,lastHighlights=new Set();
+function paintSquare(sq){
+ const button=squares.get(sq),pc=game.get(sq),piece=pc?pc.color+pc.type:'';
+ if(painted.get(sq)===piece)return;
+ painted.set(sq,piece);
+ button.replaceChildren();
+ if(pc){
+  const image=document.createElement('img');
+  image.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';
+  image.alt=pc.color+' '+pc.type;
+  button.append(image);
+ }
+}
+function previewMove(from,to,move){
+ // Paint only altered squares; castling and en passant affect additional squares.
+ const changed=new Set([from,to]);
+ if(move.flags.includes('e'))changed.add(to[0]+from[1]);
+ if(move.flags.includes('k')){changed.add('h'+from[1]);changed.add('f'+from[1])}
+ if(move.flags.includes('q')){changed.add('a'+from[1]);changed.add('d'+from[1])}
+ for(const sq of changed)paintSquare(sq);
+ for(const sq of lastHighlights)squares.get(sq).classList.remove('legal');
+ lastHighlights.clear();
+ squares.get(from).classList.remove('selected');
+ $('online-status').textContent='Sending move…';
+}
 function render(){if(!state)return;game=previewBoard||new Chess(state.fen);
  const rotated=paintedSide!==side;
  if(rotated){$('online-board').dataset.side=side;paintedSide=side}
  const legal=new Set(selected&&game.turn()===side?game.moves({square:selected,verbose:true}).map(m=>m.to):[]);
  for(const [sq,b] of squares){
-  const pc=game.get(sq),piece=pc?pc.color+pc.type:'';
   if(rotated){const idx=(8-Number(sq[1]))*8+sq.charCodeAt(0)-97;b.style.order=side==='w'?idx:63-idx}
-  if(painted.get(sq)!==piece){
-   painted.set(sq,piece);
-   b.replaceChildren();
-   if(pc){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.alt=pc.color+' '+pc.type;b.append(img)}
-  }
+  paintSquare(sq);
   b.classList.toggle('selected',selected===sq);
   b.classList.toggle('legal',legal.has(sq));
  }
+ lastHighlights=legal;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
@@ -44,9 +64,9 @@ async function choose(sq){if(busy||!state||state.status!=='active'||state.turn!=
   // until the server confirms this position.
   busy=true;
   try{
-   game.move({from,to:sq,promotion});
+   const move=game.move({from,to:sq,promotion});
    previewBoard=game;
-   render();
+   previewMove(from,sq,move);
    const committed=await post('move',{id,secret,from,to:sq,promotion});
    previewBoard=null;
    if(committed.id===id&&committed.fen){
