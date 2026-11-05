@@ -67,3 +67,45 @@
  }
  body.elo-unified-chess .tool-page .board-controls.elo-board-toolbar:has(#prep-flip)>#game-count{grid-column:1!important;text-align:center}
 }
+
+/* v3: Analysis uses .tool-card .board-with-eval (not .analysis-board-column).
+   Use the measured board height instead of 100% of a grid row. */
+@media(max-width:760px){
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval{
+  display:grid!important;grid-template-columns:24px minmax(0,1fr)!important;
+  gap:6px!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;align-items:start!important;overflow:visible!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval>.board-eval-wrap{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  grid-column:1!important;grid-row:1!important;position:relative!important;
+  width:24px!important;min-width:24px!important;max-width:24px!important;
+  height:var(--chess-board-height,320px)!important;
+  min-height:0!important;max-height:var(--chess-board-height,320px)!important;
+  margin:0!important;top:0!important;align-self:start!important;overflow:hidden!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval>#board{
+  grid-column:2!important;grid-row:1!important;min-width:0!important;
+  width:100%!important;max-width:100%!important;margin:0!important;
+ }
+ body.elo-unified-chess .tool-page .tool-card:first-of-type .board-with-eval>.board-eval-wrap .board-eval-track{
+  display:block!important;position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;
+ }
+ /* Repertoire meter must not inherit an inline vertical offset or stretch
+    beyond the board. Its height is measured by the existing ResizeObserver. */
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar{
+  top:0!important;bottom:auto!important;
+  height:var(--chess-board-height,320px)!important;
+  max-height:var(--chess-board-height,320px)!important;
+  min-height:0!important;align-self:start!important;overflow:hidden!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar .board-eval-track{
+  position:absolute!important;inset:0!important;height:100%!important;
+ }
+ body.elo-unified-chess .tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar #prep-eval-label{
+  top:auto!important;bottom:5px!important;left:0!important;right:0!important;
+  transform:none!important;writing-mode:horizontal-tb!important;
+  width:100%!important;white-space:nowrap!important;font-size:8px!important;
+ }
+}
