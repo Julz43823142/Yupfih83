@@ -28,7 +28,16 @@ const urlParams=new URL(location.href).searchParams;
 const invitation=urlParams.get('invite');const reviewId=urlParams.get('review');if(reviewId&&/^[a-f0-9]{32}$/.test(reviewId)){initializeReplay(reviewId)}
 else if(invitation&&/^[a-f0-9]{32}$/.test(invitation)){ $('online-setup').querySelector('h2').textContent='Join a Friend · 3+0 Unrated';$('online-random').hidden=true;$('online-invite').textContent='Join game';$('online-invite').onclick=async()=>{try{const r=await post('join',{id:invitation,name:name()});id=r.id;secret=r.secret;enter()}catch(e){setupError(e)}}}
 else{if(new URL(location.href).searchParams.has('friend')){$('online-setup').querySelector('h2').textContent='Play a Friend · 3+0 Unrated';$('online-random').hidden=true;}try{const previous=JSON.parse(sessionStorage.getItem('elo-online-game')||'null');if(!urlParams.has('friend')&&!urlParams.has('challenge')&&!urlParams.has('review')&&previous&&/^[a-f0-9]{32}$/.test(previous.id)&&/^[a-f0-9]{32}$/.test(previous.secret)){id=previous.id;secret=previous.secret;enter()}}catch{}}
-setInterval(()=>{if(id)poll()},1500);setInterval(clocks,250);
+// Poll more frequently only during an active game. Keep the D1 request budget
+// below the per-IP rate limit even when two players share the same connection.
+async function pollLoop(){
+ if(id&&document.visibilityState==='visible')await poll();
+ const delay=document.visibilityState==='hidden'?5000:!id?1500:state?.status==='active'?900:state?.status==='waiting'?1500:5000;
+ setTimeout(pollLoop,delay);
+}
+setTimeout(pollLoop,900);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&id)poll()});
+setInterval(clocks,250);
 
 async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
 async function socialRefresh(){try{
