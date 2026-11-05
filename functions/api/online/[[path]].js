@@ -8,7 +8,7 @@ function publicGame(g,digest){
  const side=g.white_token===digest?'w':g.black_token===digest?'b':null;
  if(!side)return null;
  return {id:g.id,kind:g.kind,status:g.status,side,white:g.white_name,black:g.black_name,fen:g.fen,
-   moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,result:g.result};
+   moves:JSON.parse(g.moves),turn:g.turn,whiteMs:g.white_ms,blackMs:g.black_ms,lastMoveAt:g.last_move_at,result:g.result,serverTime:time()};
 }
 async function getGame(db,id){return db.prepare('SELECT * FROM online_games WHERE id=?').bind(id).first()}
 async function expire(db,g){
@@ -26,6 +26,7 @@ async function nameAndAccount(request,env,provided){
  return {name:'Guest · '+provided.trim(),userId:null};
 }
 async function guarded(db,env,request,scope,limit=20,window=60000,identity=''){
+ if(!await rateLimit(env,request,scope+':ip',scope==='state'?150:scope==='move'?200:limit,window))return reply({error:'Too many requests. Try again shortly.'},429);
  if(!await rateLimit(env,request,scope,limit,window,identity))return reply({error:'Too many requests. Try again shortly.'},429);
  return null;
 }
@@ -52,10 +53,10 @@ export async function onRequest({request,env}){
    }
    await db.prepare("INSERT INTO online_games(id,kind,white_token,white_user_id,white_name,fen,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,b.kind,digest,player.userId,player.name,new Chess().fen(),t,t).run();
    // Retention: abandoned lobby games 24h, completed games 30d. No raw IP stored.
-   if(Math.random()<0.1){
+   if(Math.random()<0.1){try{
     await db.prepare("DELETE FROM online_games WHERE (status='waiting' AND created_at<?) OR (status='finished' AND updated_at<?)").bind(t-86400000,t-2592000000).run();
     await db.prepare("DELETE FROM auth_attempts WHERE key LIKE 'online:%' AND expiresAt<?").bind(t).run();
-   }
+   }catch{}}
    return reply({id,secret,matched:false});
   }
   if(route==='join'){
