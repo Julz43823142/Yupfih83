@@ -65,3 +65,39 @@ test('signed-in member requests, consent, targeted challenges, game history and 
   await expect(pb.locator('.member-challenge').first()).toBeVisible();
  }finally{await a.close();await b.close();await anonymous.close()}
 });
+
+
+test('live multiplayer keeps peer IPs private and makes no peer-to-peer or third-party requests',async({browser})=>{
+ const a=await browser.newContext(),b=await browser.newContext();
+ const pa=await a.newPage(),pb=await b.newPage();
+ const urls=[],issues=[];
+ for(const page of [pa,pb]){
+  page.on('request',request=>urls.push(request.url()));
+  page.on('pageerror',error=>issues.push(error.message));
+ }
+ try{
+  const response=await pa.goto(base+'/online.html');
+  expect(response.status()).toBe(200);
+  const csp=response.headers()['content-security-policy']||'';
+  expect(csp).toContain("connect-src 'self'");
+  expect(csp).toContain("frame-src 'none'");
+  expect(response.headers()['referrer-policy']).toBe('no-referrer');
+  await pb.goto(base+'/online.html');
+  await pa.locator('#online-name').fill('PrivacyA');
+  await pb.locator('#online-name').fill('PrivacyB');
+  await pa.getByRole('button',{name:'Find opponent'}).click();
+  await pb.getByRole('button',{name:'Find opponent'}).click();
+  await expect(pa.locator('#online-status')).toContainText(/Your move|Opponent to move/,{timeout:15000});
+  await expect(pb.locator('#online-status')).toContainText(/Your move|Opponent to move/,{timeout:15000});
+  const stateA=await pa.evaluate(async()=>{
+   const game=JSON.parse(sessionStorage.getItem('elo-online-game'));
+   const result=await fetch('/api/online/state',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(game)});
+   return {status:result.status,body:await result.json()};
+  });
+  expect(stateA.status).toBe(200);
+  expect(Object.keys(stateA.body).some(key=>/ip|address|browser|cookie|session|secret|token/i.test(key))).toBe(false);
+  expect(urls.length).toBeGreaterThan(0);
+  expect(urls.every(url=>new URL(url).origin===base)).toBe(true);
+  expect(issues).toEqual([]);
+ }finally{await a.close();await b.close()}
+});
