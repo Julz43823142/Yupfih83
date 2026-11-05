@@ -43,6 +43,7 @@ test('real local Durable Object WebSockets deliver 12 chess moves without waitin
     await white.goto(base+'/online.html?friend=1');
     await white.locator('#online-name').fill('SocketAlice');
     await white.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
+    await expect(white.locator('#online-link')).toHaveValue(/invite=[a-f0-9]{32}/,{timeout:15000});
     const invite=await white.locator('#online-link').inputValue();
     expect(invite).toContain('?invite=');
     await black.goto(invite);
