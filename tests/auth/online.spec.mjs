@@ -8,31 +8,6 @@ async function login(page,username){
  await page.getByRole('button',{name:'Log in',exact:true}).click();
  await expect(page.locator('#profile-username')).toHaveText(username,{timeout:30000});
 }
-test('queued premove is sent only after the opponent has committed their move',async({browser})=>{
- const a=await browser.newContext(),b=await browser.newContext();
- const white=await a.newPage(),black=await b.newPage();
- try{
-  await white.goto(base+'/online.html?friend=1');
-  await white.locator('#online-name').fill('PremoveWhite');
-  await white.getByRole('button',{name:'Play a Friend · Send a Link'}).click();
-  await expect(white.locator('#online-link')).toHaveValue(/invite=[a-f0-9]{32}/,{timeout:15000});
-  const invite=await white.locator('#online-link').inputValue();
-  await black.goto(invite);
-  await black.locator('#online-name').fill('PremoveBlack');
-  await black.getByRole('button',{name:'Join game'}).click();
-  await expect(black.locator('#online-status')).toContainText('Opponent to move',{timeout:15000});
-  await expect(white.locator('#online-status')).toContainText('Your move',{timeout:15000});
-  await black.locator('#online-board button[data-sq="e7"]').click();
-  await black.locator('#online-board button[data-sq="e5"]').click();
-  await expect(black.locator('#online-status')).toContainText('Premove queued');
-  await expect(white.locator('#online-moves')).not.toContainText('e5');
-  await white.locator('#online-board button[data-sq="e2"]').click();
-  await white.locator('#online-board button[data-sq="e4"]').click();
-  await expect(white.locator('#online-moves')).toContainText('e5',{timeout:15000});
-  await expect(black.locator('#online-moves')).toContainText('e5',{timeout:15000});
- }finally{await a.close();await b.close()}
-});
-
 test('optimistic move appears without a server reply and rolls back on rejection',async({browser})=>{
  const a=await browser.newContext(),b=await browser.newContext();
  const pa=await a.newPage(),pb=await b.newPage();
@@ -173,11 +148,15 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
   await pageB.getByRole('button',{name:'Join game'}).click();
   await expect(pageA.locator('#online-status')).toContainText(/Your move|Opponent to move/,{timeout:15000});
   await expect(pageB.locator('#online-top-name')).toContainText('Guest · Alice');
+  await expect(pageA.locator('#online-status')).toContainText('Your move',{timeout:15000});
+  // Queue a black premove before White plays. This must not submit early.
+  await pageB.locator('#online-board button[data-sq="e7"]').click();
+  await pageB.locator('#online-board button[data-sq="e5"]').click();
+  await expect(pageB.locator('#online-status')).toContainText('Premove queued');
+  await expect(pageA.locator('#online-moves')).not.toContainText('e5');
   await pageA.locator('#online-board button[data-sq="e2"]').click();
   await pageA.locator('#online-board button[data-sq="e4"]').click();
   await expect(pageB.locator('#online-moves')).toContainText('e4',{timeout:15000});
-  await pageB.locator('#online-board button[data-sq="e7"]').click();
-  await pageB.locator('#online-board button[data-sq="e5"]').click();
   await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   await pageA.reload();await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   expect(errors).toEqual([]);
