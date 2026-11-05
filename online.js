@@ -13,8 +13,25 @@ $('online-invite').onclick=async()=>{try{const r=await post('create',{kind:'invi
 $('online-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('online-link').value);$('online-copy').textContent='Copied!'}catch{$('online-link').select()}};
 $('online-resign').onclick=async()=>{if(!confirm('Resign this game?'))return;try{await post('resign',{id,secret});poll()}catch(e){$('online-status').textContent=e.message}};
 for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=String.fromCharCode(97+c)+(8-r),b=document.createElement('button');b.type='button';b.className=(r+c)%2?'dark':'light';b.dataset.sq=sq;b.setAttribute('aria-label',sq);b.onclick=()=>choose(sq);squares.set(sq,b);$('online-board').append(b)}
-function render(){if(!state)return;game=new Chess(previewFen||state.fen);$('online-board').dataset.side=side;
- for(const [sq,b] of squares){const pc=game.get(sq),idx=(8-Number(sq[1]))*8+sq.charCodeAt(0)-97;b.style.order=side==='w'?idx:63-idx;b.replaceChildren();b.classList.toggle('selected',selected===sq);b.classList.toggle('legal',!!selected&&game.turn()===side&&game.moves({square:selected,verbose:true}).some(m=>m.to===sq));if(pc){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.alt=pc.color+' '+pc.type;b.append(img)}}
+// Cache piece identity by square. During a normal move only the source and
+// destination need DOM updates, not all 64 images and their layout state.
+const painted=new Map();
+let paintedSide=null;
+function render(){if(!state)return;game=new Chess(previewFen||state.fen);
+ const rotated=paintedSide!==side;
+ if(rotated){$('online-board').dataset.side=side;paintedSide=side}
+ const legal=new Set(selected&&game.turn()===side?game.moves({square:selected,verbose:true}).map(m=>m.to):[]);
+ for(const [sq,b] of squares){
+  const pc=game.get(sq),piece=pc?pc.color+pc.type:'';
+  if(rotated){const idx=(8-Number(sq[1]))*8+sq.charCodeAt(0)-97;b.style.order=side==='w'?idx:63-idx}
+  if(painted.get(sq)!==piece){
+   painted.set(sq,piece);
+   b.replaceChildren();
+   if(pc){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+pc.color+pc.type.toUpperCase()+'.svg';img.alt=pc.color+' '+pc.type;b.append(img)}
+  }
+  b.classList.toggle('selected',selected===sq);
+  b.classList.toggle('legal',legal.has(sq));
+ }
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
