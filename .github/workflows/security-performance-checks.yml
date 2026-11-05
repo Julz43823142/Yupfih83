@@ -21,6 +21,8 @@ jobs:
         run: npm ci
       - name: Test account security boundaries
         run: npm run test:auth
+      - name: Adversarial online chess and security tests
+        run: node --test tests/online/security.test.mjs
       - name: Build public assets
         run: npm run build
       - name: Test endpoint JSON validation and cache policy
@@ -29,6 +31,11 @@ jobs:
         run: node scripts/test-play-premoves.mjs
       - name: Check JavaScript syntax
         run: |
+          node --check online.js
+          node --check account-nav.js
+          node --check functions/api/online/'[[path]].js'
+          node --check functions/api/social/'[[path]].js'
+          node --check lib/online/security.mjs
           node --check play.js
           node --check play-bot-controls.mjs
           node --check puzzles.js
