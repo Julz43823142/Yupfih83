@@ -2,6 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {fetchOpeningStats} from './opening-stats-client.js?v=5';
 const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('opening-board');
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
+let selectedSquare=null,dragFrom=null,redoMoves=[];
 const glyph={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟',K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
 const format=n=>Intl.NumberFormat('en-US',{notation:n>=100000?'compact':'standard',maximumFractionDigits:1}).format(n);
 function describeOpening(name){
@@ -25,6 +26,15 @@ function draw(){
  board.replaceChildren();
  const matrix=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){
   const sq=document.createElement('div');sq.className='opening-square'+((r+f)%2?' dark':'');
+  const square=String.fromCharCode(97+f)+(8-r);sq.dataset.square=square;
+  sq.setAttribute('role','button');sq.tabIndex=0;sq.setAttribute('aria-label','Square '+square+(piece?' '+piece.color+' '+piece.type:''));
+  if(square===selectedSquare)sq.classList.add('selected');
+  sq.addEventListener('click',()=>selectOrMove(square));
+  sq.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectOrMove(square)}});
+  if(piece&&piece.color===game.turn()){sq.draggable=true;sq.addEventListener('dragstart',e=>{dragFrom=square;e.dataTransfer.setData('text/plain',square);e.dataTransfer.effectAllowed='move'})}
+  sq.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move'});
+  sq.addEventListener('drop',e=>{e.preventDefault();const from=dragFrom||e.dataTransfer.getData('text/plain');dragFrom=null;if(from)playBoardMove(from,square)});
+  sq.addEventListener('dragend',()=>{dragFrom=null});
   const piece=matrix[r][f];
   if(piece){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+piece.color+piece.type.toUpperCase()+'.svg';img.alt=piece.color+' '+piece.type;img.onerror=()=>{img.remove();sq.textContent=glyph[piece.color==='w'?piece.type.toUpperCase():piece.type]};sq.append(img)}
   board.append(sq);
@@ -39,11 +49,28 @@ function draw(){
  setTheory(chosen?.name||match?.name||'');
  fetchStats();
 }
-function reset(){game.reset();line.length=0;chosen=null;draw()}
-function forward(san){try{const result=game.move(san);if(!result)throw Error('Illegal move');line.push(result.san);chosen=null;draw()}catch(e){$('opening-stat').textContent='Could not play move: '+e.message}}
-function back(){if(game.undo()){line.pop();chosen=null;draw()}}
+function reset(){game.reset();line.length=0;chosen=null;selectedSquare=null;redoMoves=[];draw()}
+function forward(san){try{const result=game.move(san);if(!result)throw Error('Illegal move');line.push(result.san);chosen=null;selectedSquare=null;redoMoves=[];draw()}catch(e){$('opening-stat').textContent='Could not play move: '+e.message}}
+function back(){const undone=game.undo();if(undone){redoMoves.push(undone.san);line.pop();chosen=null;selectedSquare=null;draw()}}
+function redo(){const san=redoMoves.pop();if(!san)return;try{const result=game.move(san);if(result){line.push(result.san);chosen=null;selectedSquare=null;draw()}}catch{redoMoves=[]}}
+function playBoardMove(from,to){
+ try{const result=game.move({from,to,promotion:'q'});if(!result)return false;line.push(result.san);chosen=null;selectedSquare=null;redoMoves=[];draw();return true}
+ catch{return false}
+}
+function selectOrMove(square){
+ const piece=game.get(square);
+ if(selectedSquare&&selectedSquare!==square&&playBoardMove(selectedSquare,square))return;
+ selectedSquare=piece&&piece.color===game.turn()?(selectedSquare===square?null:square):null;
+ board.querySelectorAll('.opening-square').forEach(el=>el.classList.toggle('selected',el.dataset.square===selectedSquare));
+}
+document.addEventListener('keydown',e=>{
+ if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+ const el=e.target;if(el?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+ if(e.key==='ArrowLeft'){e.preventDefault();back()}
+ else if(e.key==='ArrowRight'){e.preventDefault();if(redoMoves.length)redo();else{const next=currentResults[0];if(next)forward(next.san)}}
+});
 $('opening-reset').onclick=reset;$('opening-back').onclick=back;
-$('opening-next').onclick=()=>{const next=currentResults[0];if(next)forward(next.san)};
+$('opening-next').onclick=()=>{if(redoMoves.length)redo();else{const next=currentResults[0];if(next)forward(next.san)}};
 function renderMoves(data){
  const root=$('opening-moves');root.replaceChildren();currentResults=data.moves||[];
  const total=(data.white||0)+(data.draws||0)+(data.black||0);
@@ -73,7 +100,7 @@ function parseLine(pgn){
  return stripped?stripped.split(' ').filter(x=>!/^\d+\.*$/.test(x)):[]}
 function choose(entry){
  reset();for(const san of entry.moves){try{game.move(san);line.push(san)}catch{break}}
- chosen=entry;draw();$('opening-name').textContent=entry.name+' ('+entry.eco+')';setTheory(entry.name);$('opening-results').replaceChildren();
+ redoMoves=[];selectedSquare=null;chosen=entry;draw();$('opening-name').textContent=entry.name+' ('+entry.eco+')';setTheory(entry.name);$('opening-results').replaceChildren();
  $('opening-query').value=entry.name;
 }
 function search(){
