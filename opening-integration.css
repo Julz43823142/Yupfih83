@@ -7,3 +7,9 @@
 .tool-page .tool-card:first-of-type .live-notation .analysis-engine-header .elo-db-toggle input[type="checkbox"]:checked::after{transform:translateX(19px)!important}
 .tool-page .tool-card:first-of-type .live-notation .analysis-engine-header .elo-db-toggle input[type="checkbox"]:focus-visible{outline:2px solid white!important;outline-offset:3px!important}
 .elo-db-panel{max-height:650px;overflow:auto}.elo-db-row{transition:background .12s ease}
+
+/* Taller, directly labelled Lichess W/D/B distribution bars. */
+.elo-db-row .elo-db-bar{height:28px;border-radius:7px;align-items:stretch}
+.elo-db-row .elo-db-bar i{display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;font-style:normal;font-size:11px;font-weight:800;line-height:1;color:#102336}
+.elo-db-row .elo-db-bar i.black{color:#f1f7fc;background:#34485d}
+.elo-db-row .elo-db-bar i.draws{color:#102336}
