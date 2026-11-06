@@ -44,13 +44,16 @@ let chess=new Chess(),human='w',orientation='white',selected=null,last=null,work
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
 let timedPractice=new URL(location.href).searchParams.has('practice');
 let practiceWhiteMs=180000,practiceBlackMs=180000,practiceAt=0,practiceStarted=false;
-const practiceFmt=ms=>{const sec=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
+const practiceFmt=ms=>{ms=Math.max(0,ms);if(ms<30000)return '00:'+String(Math.floor(ms/1000)).padStart(2,'0')+'.'+String(Math.floor(ms%1000/10)).padStart(2,'0');const sec=Math.ceil(ms/1000);return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
 function practiceTick(){
  if(!timedPractice||!practiceStarted||ended)return;
  const now=Date.now(),elapsed=Math.max(0,now-practiceAt);practiceAt=now;
  if(chess.turn()==='w')practiceWhiteMs=Math.max(0,practiceWhiteMs-elapsed);else practiceBlackMs=Math.max(0,practiceBlackMs-elapsed);
- $('play-human-clock').textContent=practiceFmt(human==='w'?practiceWhiteMs:practiceBlackMs);
- $('play-bot-clock').textContent=practiceFmt(human==='w'?practiceBlackMs:practiceWhiteMs);
+ const humanMs=human==='w'?practiceWhiteMs:practiceBlackMs,botMs=human==='w'?practiceBlackMs:practiceWhiteMs;
+ $('play-human-clock').textContent=practiceFmt(humanMs);
+ $('play-bot-clock').textContent=practiceFmt(botMs);
+ $('play-human-clock').classList.toggle('clock-low',humanMs<30000);
+ $('play-bot-clock').classList.toggle('clock-low',botMs<30000);
  if(!practiceWhiteMs||!practiceBlackMs){
   ended=true;working=false;premoves.length=0;gameToken++;stopStrongBot();
   const won=(practiceWhiteMs===0?'b':'w')===human;
@@ -65,7 +68,7 @@ if(timedPractice){
  const title=document.querySelector('.play-page > .play-title');if(title)title.textContent='3+0 Practice Against Bot';
  const entry=document.querySelector('.online-entry');if(entry){entry.innerHTML='<a class="play-practice-back" href="/online.html">← Back to Online Chess</a><h1 class="play-title">Choose Your Bot · 3+0 Practice</h1><p>Choose any bot below, select White or Black, then start your timed practice game.</p>'}
  $('play-undo').hidden=true;
- setInterval(practiceTick,120);
+ setInterval(practiceTick,50);
 }
 
 const botChatLines={chessmass:['I love attacking chess!','The Scotch Gambit is my kind of opening.'],pls90a:['Second-best is best!','My rook has a plan.'],peanut:['The middlegame is where I shine!','Italian Game, anyone?'],cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
@@ -388,7 +391,7 @@ function scheduleBot(){
 function newGame(){
  timedPractice=$('play-time').value==='180';
  $('play-human-clock').hidden=!timedPractice;$('play-bot-clock').hidden=!timedPractice;
- if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00'}
+ if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00';$('play-human-clock').classList.remove('clock-low');$('play-bot-clock').classList.remove('clock-low')}
  stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premoves.length=0;ended=false;working=false;
