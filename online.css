@@ -8,3 +8,7 @@
 .online-practice-link{display:inline-flex;align-items:center;justify-content:center;background:#143e5c;color:#fff!important;border:1px solid #3a7696;border-radius:8px;padding:10px 15px;text-decoration:none;font-weight:700}.online-practice-link:hover{background:#205675}#online-board button.selected{outline:3px solid #eac34b;outline-offset:-3px}
 
 .online-back-button{display:inline-flex;align-items:center;justify-content:center;background:#174d6e!important;color:#fff!important;text-decoration:none!important;border:1px solid #67b9de;border-radius:9px;padding:10px 16px;font-weight:750}.online-back-button:hover{background:#236f93!important}
+
+/* Stable-width live clocks and urgent time indication. */
+#online-top-clock,#online-bottom-clock{font-variant-numeric:tabular-nums;min-width:8ch;text-align:right}
+#online-top-clock.clock-low,#online-bottom-clock.clock-low{color:#ff6b75}
