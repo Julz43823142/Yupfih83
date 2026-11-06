@@ -27,6 +27,7 @@ function draw(){
  const matrix=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){
   const sq=document.createElement('div');sq.className='opening-square'+((r+f)%2?' dark':'');
   const square=String.fromCharCode(97+f)+(8-r);sq.dataset.square=square;
+  const piece=matrix[r][f];
   sq.setAttribute('role','button');sq.tabIndex=0;sq.setAttribute('aria-label','Square '+square+(piece?' '+piece.color+' '+piece.type:''));
   if(square===selectedSquare)sq.classList.add('selected');
   sq.addEventListener('click',()=>selectOrMove(square));
@@ -35,7 +36,6 @@ function draw(){
   sq.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move'});
   sq.addEventListener('drop',e=>{e.preventDefault();const from=dragFrom||e.dataTransfer.getData('text/plain');dragFrom=null;if(from)playBoardMove(from,square)});
   sq.addEventListener('dragend',()=>{dragFrom=null});
-  const piece=matrix[r][f];
   if(piece){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+piece.color+piece.type.toUpperCase()+'.svg';img.alt=piece.color+' '+piece.type;img.onerror=()=>{img.remove();sq.textContent=glyph[piece.color==='w'?piece.type.toUpperCase():piece.type]};sq.append(img)}
   board.append(sq);
  }
