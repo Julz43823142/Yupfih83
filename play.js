@@ -241,6 +241,7 @@ function runPremove(){
 }
 // Charge elapsed time to the player who is moving BEFORE chess.js switches turns.
 function apply(move){
+ if(chess.turn()===human)stopLarsPonder();
  if(timedPractice){practiceTick();if(ended)throw new Error('Time expired');}
  const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
 function openPromotion(){
@@ -275,6 +276,23 @@ board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',un
 // Master and grandmaster tiers use Stockfish rather than the shallow JS search.
 let strongWorker=null;
 function stopStrongBot(){if(strongWorker){strongWorker.terminate();strongWorker=null}}
+let larsPonder=null,larsPredictions=new Map();
+function stopLarsPonder(){if(larsPonder){larsPonder.terminate();larsPonder=null}}
+function startLarsPonder(){
+ stopLarsPonder();larsPredictions.clear();
+ if(botLevel!=='lars'||ended||chess.turn()!==human||premoves.length)return;
+ const token=gameToken,fen=chess.fen();
+ try{
+  const worker=new Worker('/play-lars-ponder-worker.js?v=1',{type:'module'});larsPonder=worker;
+  worker.onmessage=e=>{
+   if(larsPonder!==worker||token!==gameToken||ended||chess.fen()!==fen)return;
+   const {after,move}=e.data;
+   if(after&&move)larsPredictions.set(after,move);
+  };
+  worker.onerror=()=>{if(larsPonder===worker)stopLarsPonder()};
+  worker.postMessage({fen,token});
+ }catch{stopLarsPonder()}
+}
 let pendingBotTiming=null;
 function calculateBotThinkMs(){
  if(botLevel==='lars')return 0;
@@ -290,7 +308,7 @@ function finishBotCalculation(token,move){
  const wait=timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
  setTimeout(()=>{
   if(token!==gameToken||ended||chess.turn()===human)return;
-  try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
+  try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove();if(chess.turn()===human)startLarsPonder()}}
   catch{working=false;status('Bot move failed.')}
   paint();
  },wait);
@@ -382,9 +400,12 @@ function scheduleBot(){
  // It is not added to engine search time; when the engine takes longer, its move plays immediately.
  const botDelay=botLevel==='lars'?(timedPractice?250:450):timedPractice?calculateBotThinkMs():120;
  pendingBotTiming={token:gameToken,started:startedAt,delay:botDelay};
- const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
+ const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove();if(chess.turn()===human)startLarsPonder()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
  working=true;status(names[botLevel]+' is thinking…');paint();
  const token=gameToken,fen=chess.fen(),level=botLevel;
+ const pondered=level==='lars'?larsPredictions.get(fen):null;
+ larsPredictions.clear();
+ if(pondered){finishBotCalculation(token,pondered);return}
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
   try{
    const elo=ratings[level]||1000;
@@ -402,7 +423,7 @@ function newGame(){
  practiceStarted=timedPractice;
  $('play-human-clock').hidden=!timedPractice;$('play-bot-clock').hidden=!timedPractice;
  if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00';$('play-human-clock').classList.remove('clock-low');$('play-bot-clock').classList.remove('clock-low')}
- stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
+ stopLarsPonder();larsPredictions.clear();stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
  botLevel=selectedBot||'rocket';
  orientation=human==='b'?'black':'white';selected=null;last=null;pending=null;premoves.length=0;ended=false;working=false;
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
@@ -413,8 +434,8 @@ function newGame(){
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
 $('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopStrongBot();gameToken++;working=false;ended=false;pending=null;premoves.length=0;
- if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else status('Move taken back.')});
-$('play-resign').addEventListener('click',()=>{if(ended)return;stopStrongBot();gameToken++;working=false;ended=true;premoves.length=0;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
+ if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else{status('Move taken back.');startLarsPonder()}});
+$('play-resign').addEventListener('click',()=>{if(ended)return;stopLarsPonder();stopStrongBot();gameToken++;working=false;ended=true;premoves.length=0;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
