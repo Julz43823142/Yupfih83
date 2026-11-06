@@ -298,7 +298,7 @@ function finishBotCalculation(token,move){
 function strongBotTurn(token,fen,level){
  stopStrongBot();
  try{
-  const w=new Worker('/play-strong-bot-worker.js?v=2-uci-strength',{type:'module'});strongWorker=w;
+  const w=new Worker('/play-strong-bot-worker.js?v=3-lars-max-strength',{type:'module'});strongWorker=w;
   const fallback=()=>{
    if(strongWorker!==w)return;
    stopStrongBot();
