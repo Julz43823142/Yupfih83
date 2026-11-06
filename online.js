@@ -115,12 +115,54 @@ function render(){if(!state)return;
 function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const topMs=side==='w'?b:w,bottomMs=side==='w'?w:b,top=fmt(topMs),bottom=fmt(bottomMs);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom;$('online-top-clock').classList.toggle('clock-low',topMs<30000);$('online-bottom-clock').classList.toggle('clock-low',bottomMs<30000)}
 // A queued premove is never sent before the opponent's committed move;
 // verify it against the new board before submitting an authorized HTTP move.
-function premoveCandidates(square){
- try{
-  const fen=state.fen.split(' ');
-  fen[1]=side;fen[3]='-';
-  return new Chess(fen.join(' ')).moves({square,verbose:true});
- }catch{return []}
+function premoveCandidates(from,position=game){
+ const piece=position.get(from);
+ if(!piece||piece.color!==side||!state||state.status!=='active')return [];
+ const x=from.charCodeAt(0)-97,y=Number(from[1])-1;
+ const inside=(a,b)=>a>=0&&a<8&&b>=0&&b<8;
+ const square=(a,b)=>String.fromCharCode(97+a)+(b+1);
+ const result=[];
+ const add=(a,b)=>{
+  if(!inside(a,b))return;
+  const to=square(a,b),target=position.get(to);
+  // Allow conditional recaptures onto our own occupied square: the opponent may capture it first.
+  result.push({from,to,promotion:piece.type==='p'&&(b===0||b===7)?'q':undefined});
+ };
+ const ray=(dx,dy)=>{
+  for(let a=x+dx,b=y+dy;inside(a,b);a+=dx,b+=dy){
+   const occupant=position.get(square(a,b));
+   add(a,b);
+   if(occupant)break;
+  }
+ };
+ if(piece.type==='p'){
+  const dir=side==='w'?1:-1,start=side==='w'?1:6;
+  if(inside(x,y+dir)&&!position.get(square(x,y+dir))){
+   add(x,y+dir);
+   if(y===start&&!position.get(square(x,y+2*dir)))add(x,y+2*dir);
+  }
+  // A diagonal premove can anticipate the opponent occupying the target.
+  for(const dx of [-1,1])if(inside(x+dx,y+dir)&&position.get(square(x+dx,y+dir))?.color!==side)add(x+dx,y+dir);
+ }else if(piece.type==='n'){
+  for(const [dx,dy] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])add(x+dx,y+dy);
+ }else if(piece.type==='k'){
+  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)if(dx||dy)add(x+dx,y+dy);
+  // Castle as a premove if the king and rook have not moved and path is empty.
+  const rights=position.fen().split(' ')[2],home=side==='w'?0:7;
+  if(x===4&&y===home){
+   for(const [right,rookX,destX,step] of [[side==='w'?'K':'k',7,6,1],[side==='w'?'Q':'q',0,2,-1]]){
+    if(!rights.includes(right)||position.get(square(rookX,home))?.type!=='r'||position.get(square(rookX,home))?.color!==side)continue;
+    let clear=true;
+    for(let f=x+step;f!==rookX;f+=step)if(position.get(square(f,home))){clear=false;break}
+    if(clear)add(destX,home);
+   }
+  }
+ }else{
+  const diagonal=[[1,1],[1,-1],[-1,1],[-1,-1]];
+  const straight=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dx,dy] of (piece.type==='b'?diagonal:piece.type==='r'?straight:[...diagonal,...straight]))ray(dx,dy);
+ }
+ return result;
 }
 function choosePromotion(){
  return new Promise(resolve=>{
