@@ -54,9 +54,9 @@ function renderMoves(data){
   const san=document.createElement('strong');san.textContent=move.san;
   const n=document.createElement('span');n.className='count';n.textContent=format(count)+' games';
   const bar=document.createElement('span');bar.className='opening-bar';
-  for(const [cls,num] of [['w',move.white],['d',move.draws],['b',move.black]]){const part=document.createElement('span');part.className=cls;part.style.width=(count?100*num/count:0)+'%';bar.append(part)}
-  const p=document.createElement('small');p.textContent=count?'White '+(100*move.white/count).toFixed(0)+'% · Draw '+(100*move.draws/count).toFixed(0)+'% · Black '+(100*move.black/count).toFixed(0)+'%':'—';
-  b.append(san,n,bar,p);b.onclick=()=>forward(move.san);root.append(b);
+  for(const [cls,num,short] of [['w',move.white,'W'],['d',move.draws,'D'],['b',move.black,'B']]){const part=document.createElement('span');part.className=cls;const pct=count?100*num/count:0;part.style.width=pct+'%';part.title=short+' '+pct.toFixed(1)+'%';if(pct>=11)part.textContent=Math.round(pct)+'%';bar.append(part)}
+  bar.setAttribute('aria-label',count?'White '+Math.round(100*move.white/count)+'%, draws '+Math.round(100*move.draws/count)+'%, black '+Math.round(100*move.black/count)+'%':'No results');
+  b.append(san,n,bar);b.onclick=()=>forward(move.san);root.append(b);
  }
  $('opening-next').disabled=!currentResults.length;
 }
