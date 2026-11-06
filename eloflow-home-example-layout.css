@@ -1,0 +1,39 @@
+/* EloFlow: home hero stays in normal flow before and after loading example reports. */
+main>section.hero{position:relative!important;box-sizing:border-box!important;overflow:visible!important;height:auto!important;min-height:0!important}
+main>section.hero>div.hero-content,main>section.hero>aside.hero-tool-links,main>section.hero>aside.hero-puzzle-ranking,main>section.hero>section.sample-section{position:relative!important;inset:auto!important;transform:none!important;box-sizing:border-box!important;min-width:0!important;max-width:100%!important;margin:0!important}
+main>section.hero>div.hero-content{z-index:1!important;text-align:center!important;min-width:0!important}
+main>section.hero>div.hero-content h1{font-size:clamp(27px,2.6vw,43px)!important;line-height:1.14!important;letter-spacing:-.035em!important;max-width:100%!important;overflow-wrap:normal!important;word-break:normal!important}
+main>section.hero>div.hero-content h1 span{font-size:inherit!important;line-height:inherit!important;overflow-wrap:normal!important}
+main>section.hero>div.hero-content .subtitle{max-width:55ch!important;margin-inline:auto!important}
+main>section.hero>div.hero-content .search-box{width:100%!important;max-width:100%!important;min-width:0!important;display:flex!important}
+main>section.hero>div.hero-content .search-box input{flex:1 1 0!important;min-width:0!important;width:0!important}
+main>section.hero>div.hero-content .search-box button{flex:0 0 auto!important;max-width:45%!important;white-space:nowrap!important}
+main>section.hero>section.sample-section{width:100%!important;padding:0!important;z-index:1!important}
+main>section.hero>section.sample-section .sample-options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important}
+main>section.hero>section.sample-section .sample-button{width:100%!important;min-width:0!important;max-width:none!important}
+main>section.hero>aside.hero-tool-links,main>section.hero>aside.hero-puzzle-ranking{z-index:1!important;width:100%!important}
+@media(min-width:1100px){
+ main>section.hero{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(360px,1.2fr) minmax(0,1fr)!important;column-gap:clamp(16px,2vw,30px)!important;row-gap:24px!important;align-items:start!important;padding:clamp(20px,2.5vw,40px)!important}
+ main>section.hero>aside.hero-puzzle-ranking{grid-column:1!important;grid-row:1!important}
+ main>section.hero>div.hero-content{grid-column:2!important;grid-row:1!important;padding:clamp(18px,3vw,44px) 0!important}
+ main>section.hero>aside.hero-tool-links{grid-column:3!important;grid-row:1!important}
+ main>section.hero>section.sample-section{grid-column:1/-1!important;grid-row:2!important}
+}
+@media(min-width:700px) and (max-width:1099px){
+ main>section.hero{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:20px!important;padding:24px!important}
+ main>section.hero>div.hero-content{grid-column:1/-1!important;grid-row:1!important;padding:16px 0!important}
+ main>section.hero>section.sample-section{grid-column:1/-1!important;grid-row:2!important}
+ main>section.hero>aside.hero-puzzle-ranking{grid-column:1!important;grid-row:3!important}
+ main>section.hero>aside.hero-tool-links{grid-column:2!important;grid-row:3!important}
+}
+@media(max-width:699px){
+ main>section.hero{display:flex!important;flex-direction:column!important;gap:20px!important;padding:20px 16px!important}
+ main>section.hero>div.hero-content{order:0!important;width:100%!important;padding:20px 0!important}
+ main>section.hero>section.sample-section{order:1!important}
+ main>section.hero>aside.hero-puzzle-ranking{order:2!important}
+ main>section.hero>aside.hero-tool-links{order:3!important}
+ main>section.hero>section.sample-section .sample-options{grid-template-columns:1fr!important}
+ main>section.hero>div.hero-content .search-box{flex-wrap:wrap!important}
+ main>section.hero>div.hero-content .search-box input,main>section.hero>div.hero-content .search-box button{width:100%!important;max-width:100%!important;flex:1 1 100%!important}
+}
+main>section.results{position:relative!important;clear:both!important;box-sizing:border-box!important;min-width:0!important;max-width:100%!important;overflow-x:clip!important}
