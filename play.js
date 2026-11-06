@@ -405,7 +405,7 @@ function scheduleBot(){
  const token=gameToken,fen=chess.fen(),level=botLevel;
  const pondered=level==='lars'?larsPredictions.get(fen):null;
  larsPredictions.clear();
- if(pondered){finishBotCalculation(token,pondered);return}
+ if(pondered){pendingBotTiming={token,started:startedAt,delay:0};finishBotCalculation(token,pondered);return}
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
   try{
    const elo=ratings[level]||1000;
@@ -429,11 +429,11 @@ function newGame(){
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
  closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I play the Queen’s Gambit, London System and Four Knights!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
- if(human==='b')scheduleBot();
+ if(human==='b')scheduleBot();else startLarsPonder();
 }
 $('play-new').addEventListener('click',newGame);
 $('play-flip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';$('play-flip').setAttribute('aria-pressed',String(orientation==='black'));selected=null;paint()});
-$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopStrongBot();gameToken++;working=false;ended=false;pending=null;premoves.length=0;
+$('play-undo').addEventListener('click',()=>{if(!chess.history().length)return;stopLarsPonder();larsPredictions.clear();stopStrongBot();gameToken++;working=false;ended=false;pending=null;premoves.length=0;
  if($('play-result').open)$('play-result').close();closePromotion();chess.undo();if(chess.turn()!==human&&chess.history().length)chess.undo();last=null;selected=null;paint();if(chess.turn()!==human)scheduleBot();else{status('Move taken back.');startLarsPonder()}});
 $('play-resign').addEventListener('click',()=>{if(ended)return;stopLarsPonder();stopStrongBot();gameToken++;working=false;ended=true;premoves.length=0;status('You resigned. '+names[botLevel]+' wins.');showResult('You lost!','You resigned against '+names[botLevel]+'.','loss');paint()});
 $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textContent=sound?'Sound: On':'Sound: Off';$('play-sound').setAttribute('aria-pressed',String(sound));if(sound)unlock()});
