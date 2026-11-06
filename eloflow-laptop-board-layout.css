@@ -1,0 +1,43 @@
+/* EloFlow laptop layout: stable, fluid board and side panels on Analysis / Player Prep. */
+@media (min-width: 900px) {
+ body.elo-unified-chess main.tool-page{width:min(100% - 36px,1760px)!important;max-width:1760px!important;margin-inline:auto!important}
+ body.elo-unified-chess main.tool-page .tool-card{min-width:0;box-sizing:border-box}
+ /* The analysis DOM has three actual siblings, not absolute overlays. */
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column{
+  display:grid!important;grid-template-columns:minmax(200px,260px) minmax(0,1fr) minmax(270px,350px)!important;
+  gap:clamp(12px,1.3vw,22px)!important;align-items:start!important;justify-items:stretch!important;width:100%!important;
+ }
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;justify-self:stretch!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-board-column{grid-column:2!important;grid-row:1!important;width:100%!important;max-width:740px!important;min-width:0!important;justify-self:center!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column{grid-column:3!important;grid-row:1!important;width:100%!important;max-width:none!important;min-width:0!important;justify-self:stretch!important;margin:0!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column .analysis-board-column>.board-with-eval{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;width:100%!important;max-width:100%!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column .analysis-board-column>.board-with-eval>#board{width:100%!important;max-width:100%!important;aspect-ratio:1!important;height:auto!important}
+ /* Repertoire explorer uses the same balanced three-rail system. */
+ body.elo-unified-chess main.tool-page .prep-analysis-layout{display:grid!important;grid-template-columns:minmax(180px,250px) minmax(0,1fr) minmax(260px,330px)!important;gap:clamp(12px,1.3vw,22px)!important;align-items:start!important;justify-items:stretch!important;width:100%!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-stats-side{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;min-width:0!important;justify-self:stretch!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-board-area{grid-column:2!important;grid-row:1!important;width:100%!important;max-width:740px!important;min-width:0!important;justify-self:center!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-engine-side{grid-column:3!important;grid-row:1!important;width:100%!important;max-width:none!important;min-width:0!important;justify-self:stretch!important;margin:0!important;transform:none!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout .prep-board-row{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;gap:8px!important;width:100%!important;max-width:100%!important;align-items:stretch!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout .prep-board-row>#board{grid-column:2!important;grid-row:1!important;width:100%!important;max-width:100%!important;min-width:0!important;aspect-ratio:1!important;height:auto!important}
+ body.elo-unified-chess main.tool-page .prep-analysis-layout .prep-board-row>.prep-eval-bar{grid-column:1!important;grid-row:1!important;width:30px!important;min-width:30px!important;max-width:30px!important;height:100%!important}
+}
+@media (min-width:900px) and (max-width:1240px){
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout{grid-template-columns:minmax(165px,215px) minmax(0,1fr)!important;gap:14px!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-stats-side{grid-column:1!important;grid-row:1/span 2!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-board-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-board-area{grid-column:2!important;grid-row:1!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-engine-side{grid-column:2!important;grid-row:2!important}
+}
+@media (max-width:899px){
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-board-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-board-area{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:680px!important;justify-self:center!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-stats-side{grid-column:1!important;grid-row:2!important;width:100%!important;max-width:680px!important;justify-self:center!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column,
+ body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-engine-side{grid-column:1!important;grid-row:3!important;width:100%!important;max-width:680px!important;justify-self:center!important}
+}
