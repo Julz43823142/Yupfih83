@@ -1040,6 +1040,13 @@ function syncMobileQuickActions(){
   if(depthControl.parentElement===notation)notation.insertBefore(engineSettings,depthControl);
   if(engineInfo.parentElement===mobileEngineDetails)notation.insertBefore(engineInfo,engineSettings);
  }
+ // Reposition the database after the Stockfish controls and best-move analysis.
+ // The responsive layout moves the engine elements after initial rendering.
+ const dbPanel=document.getElementById('elo-db-panel');
+ if(dbPanel){
+  if(mobile){mobileEngineDetails.append(dbPanel)}
+  else if(enginePanel.parentElement===notation){enginePanel.insertAdjacentElement('afterend',dbPanel)}
+ }
  // Keep Game statistics after the Stockfish analysis and move list on mobile.
  if(mobile&&sidePanel.parentElement!==analysisMain)analysisMain.append(sidePanel);
  else if(!mobile&&sidePanel.parentElement!==boardControlSidebar)boardControlSidebar.append(sidePanel);
