@@ -48,9 +48,9 @@ export function createOpeningIntegration({Chess,getState,onMove}){
      const notation=document.createElement('strong');notation.textContent=move.san;
      const count=document.createElement('span');count.textContent=format(total)+' games';
      const bar=document.createElement('span');bar.className='elo-db-bar';
-     for(const [cls,n] of [['white',move.white],['draws',move.draws],['black',move.black]]){const seg=document.createElement('i');seg.className=cls;seg.style.width=(total?100*n/total:0)+'%';bar.append(seg)}
-     const pct=document.createElement('small');pct.textContent=total?'W '+(100*move.white/total).toFixed(0)+'% · D '+(100*move.draws/total).toFixed(0)+'% · B '+(100*move.black/total).toFixed(0)+'%':'—';
-     b.append(notation,count,bar,pct);b.onclick=()=>onMove(move.san);
+     for(const [cls,n,short] of [['white',move.white,'W'],['draws',move.draws,'D'],['black',move.black,'B']]){const seg=document.createElement('i');seg.className=cls;const pct=total?100*n/total:0;seg.style.width=pct+'%';seg.title=short+' '+pct.toFixed(1)+'%';if(pct>=11)seg.textContent=Math.round(pct)+'%';bar.append(seg)}
+     bar.setAttribute('aria-label',total?'White '+Math.round(100*move.white/total)+'%, draws '+Math.round(100*move.draws/total)+'%, black '+Math.round(100*move.black/total)+'%':'No results');
+     b.append(notation,count,bar);b.onclick=()=>onMove(move.san);
      moves.append(b);
     }
    }).catch(e=>{if(token===requestIndex&&e.name!=='AbortError')info.textContent=e.message});
