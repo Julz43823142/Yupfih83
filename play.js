@@ -166,13 +166,12 @@ function premoveCandidates(from,position=chess){
  const add=(a,b)=>{
   if(!inside(a,b))return;
   const to=square(a,b),target=position.get(to);
-  if(target?.color===human)return;
+  // Allow conditional recaptures onto our own occupied square: the opponent may capture it first.
   result.push({from,to,promotion:piece.type==='p'&&(b===0||b===7)?'q':undefined});
  };
  const ray=(dx,dy)=>{
   for(let a=x+dx,b=y+dy;inside(a,b);a+=dx,b+=dy){
    const occupant=position.get(square(a,b));
-   if(occupant?.color===human)break;
    add(a,b);
    if(occupant)break;
   }
