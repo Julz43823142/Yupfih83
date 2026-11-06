@@ -7,7 +7,10 @@ let drag=null, right=null, selected=false;
 let mazeAccount=null;
 const accountName=()=>mazeAccount?.username||null;
 function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name:'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name;}
-window.eloAccountSession?.then(session=>{mazeAccount=session?.user||null;syncScoreIdentity()}).catch(()=>{});
+// This script loads before account-nav.js; fetch the session directly.
+const mazeIdentityReady=fetch('/api/auth/get-session',{credentials:'same-origin',cache:'no-store'})
+ .then(async response=>{if(!response.ok)throw Error('Account status unavailable');const data=await response.json();mazeAccount=data.user||null;syncScoreIdentity();return true})
+ .catch(()=>{mazeAccount=null;syncScoreIdentity();return false});
 window.addEventListener('elo-account-changed',e=>{mazeAccount=e.detail?.user||null;syncScoreIdentity()});
 const arrows=[],highlights=new Set();
 let moveQueue=[],sendingMoves=false,serverRun=null,runEpoch=0,levelPending=false,moveRetry=0;
@@ -177,7 +180,9 @@ async function endRun(expired){
 }
 async function submit(){
  if(!run||!finished||submitted)return;
- const nickname=accountName()||$('maze-nickname').value.trim();$('maze-submit').disabled=true;$('maze-submit-status').textContent='Submitting…';
+ $('maze-submit').disabled=true;$('maze-submit-status').textContent='Checking account…';
+ await mazeIdentityReady;
+ const nickname=accountName()||$('maze-nickname').value.trim();$('maze-submit-status').textContent='Submitting…';
  try{
   const data=await api({action:'submit',id:run.id,nickname,sourceType:accountName()?'account':'nickname'});submitted=true;
   $('maze-submit-status').textContent='Score submitted successfully!';
