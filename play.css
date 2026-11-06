@@ -147,3 +147,8 @@
 
 /* Live 3+0 clock: highlight either side below 30 seconds. */
 .play-practice-clock.clock-low{color:#fff;background:#9e1c28;border-color:#ff6672;font-variant-numeric:tabular-nums}
+
+/* LARS: German flag stripes across the entire bot card. */
+.play-bot-viewer[data-bot="lars"],.play-bot-viewer[data-bot="lars"].is-selected{background:linear-gradient(to bottom,#111 0%,#111 33.333%,#dd0000 33.333%,#dd0000 66.666%,#ffce00 66.666%,#ffce00 100%)!important;border-color:#ffce00!important;box-shadow:0 0 0 1px #1118!important}
+.play-bot-viewer[data-bot="lars"] .play-bot-info strong,.play-bot-viewer[data-bot="lars"] .play-bot-info small{color:#fff!important;text-shadow:0 2px 3px #000,0 0 8px #000!important}
+.play-bot-viewer[data-bot="lars"] .play-avatar{background:#102b40!important;text-shadow:none!important}
