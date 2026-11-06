@@ -231,7 +231,10 @@ function runPremove(){
  try{apply(move);if(!terminal())scheduleBot()}
  catch{premoves.length=0;status('Premoves cancelled: next move is no longer legal.');paint()}
 }
-function apply(move){const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
+// Charge elapsed time to the player who is moving BEFORE chess.js switches turns.
+function apply(move){
+ if(timedPractice){practiceTick();if(ended)throw new Error('Time expired');}
+ const played=chess.move(move);last={from:played.from,to:played.to};selected=null;arrows.length=0;highlights.clear();tone(played);paint();return played}
 function openPromotion(){
  const panel=$('play-promotion');
  panel.hidden=false;
