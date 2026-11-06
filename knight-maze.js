@@ -193,7 +193,7 @@ async function submit(){
 function renderRanking(entries){
  const list=$('maze-ranking');list.replaceChildren();
  if(!entries.length){const li=document.createElement('li');li.className='maze-empty';li.textContent='No scores yet. Be the first!';list.append(li);return}
- for(const entry of entries){const li=document.createElement('li'),name=document.createElement('span'),score=document.createElement('strong');name.className='maze-rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;score.className='maze-rank-score';score.textContent=entry.score;li.append(name,score);list.append(li)}
+ for(const entry of entries){const li=document.createElement('li'),verified=entry.sourceType==='account'&&!!entry.accountId&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname),name=document.createElement(verified?'a':'span'),score=document.createElement('strong');name.className='maze-rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;if(verified){name.href='/profile/'+encodeURIComponent(entry.nickname);name.title='View '+entry.nickname+' account profile'}score.className='maze-rank-score';score.textContent=entry.score;li.append(name,score);list.append(li)}
 }
 async function loadRanking(){
  try{const res=await fetch('/api/knight-maze?limit='+(showAll?'100':'10'),{cache:'no-store'}),data=await res.json();if(!res.ok)throw Error(data.error||'Leaderboard unavailable');renderRanking(data.entries||[])}
