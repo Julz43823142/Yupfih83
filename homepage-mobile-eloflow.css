@@ -81,3 +81,50 @@
  body>header.navbar>.brand{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:calc(100% - 105px)!important;margin:0!important}
  body>header.navbar>.mobile-chess-menu{flex:0 0 auto!important;margin-left:auto!important}
 }
+
+
+/* EloFlow desktop: give both side panels and the search their own columns.
+   Prevent the hero title and search form from sitting underneath the tools. */
+@media (min-width:1100px){
+ main>.hero{
+  display:grid!important;
+  grid-template-columns:minmax(245px,29fr) minmax(0,43fr) minmax(270px,28fr)!important;
+  align-items:center!important;
+  column-gap:clamp(16px,2vw,32px)!important;
+  padding:28px clamp(22px,3vw,52px)!important;
+  min-height:650px!important;
+  overflow:hidden!important;
+ }
+ main>.hero>.hero-puzzle-ranking,
+ main>.hero>.hero-tool-links{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;right:auto!important;left:auto!important;
+  width:100%!important;max-width:100%!important;
+  margin:0!important;
+  align-self:start!important;
+  z-index:2!important;
+ }
+ main>.hero>.hero-puzzle-ranking{grid-column:1!important;grid-row:1!important}
+ main>.hero>.hero-tool-links{grid-column:3!important;grid-row:1!important}
+ main>.hero>.hero-content{
+  grid-column:2!important;grid-row:1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  padding:40px 0!important;margin:0!important;
+  z-index:1!important;
+ }
+ main>.hero>.hero-content h1{
+  font-size:clamp(27px,2.6vw,46px)!important;
+  line-height:1.12!important;letter-spacing:-1.5px!important;
+  overflow-wrap:normal!important;
+ }
+ main>.hero>.hero-content .subtitle{font-size:clamp(13px,1.1vw,16px)!important;line-height:1.65!important}
+ main>.hero>.hero-content .search-box{width:100%!important;max-width:100%!important}
+ main>.hero>.hero-content .search-box button{padding:12px 15px!important;white-space:nowrap!important}
+}
+@media (min-width:1100px) and (max-width:1300px){
+ main>.hero{grid-template-columns:minmax(220px,27fr) minmax(0,46fr) minmax(235px,27fr)!important}
+ main>.hero>.hero-tool-links{padding:16px!important;gap:10px!important}
+ main>.hero>.hero-tool-links a{min-height:65px!important;padding:12px!important;font-size:15px!important}
+ main>.hero>.hero-content h1{font-size:clamp(25px,2.55vw,34px)!important}
+}
