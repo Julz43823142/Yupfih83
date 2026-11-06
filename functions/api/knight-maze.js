@@ -59,7 +59,7 @@ async function ranking(db,limit,unique=false){
   ? "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT nickname,score,source_type,account_id,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
   : "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM knight_maze_score_entries ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
  const result=await db.prepare(sql).bind(limit).all();
- return result.results||[];
+ return (result.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry);
 }
 // Keep every verified score; no name-based pruning that merges players.
 export async function onRequestGet({request,env}){
