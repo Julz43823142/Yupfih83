@@ -303,6 +303,7 @@ function strongBotTurn(token,fen,level){
    if(strongWorker!==w)return;
    stopStrongBot();
    if(token!==gameToken||ended||chess.turn()===human)return;
+   if(level==='lars'){working=false;status('LARS engine unavailable. Please start a new game to retry.');paint();return}
    status('Strong engine unavailable; using fallback bot.');
    try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}
   };
@@ -320,7 +321,7 @@ function strongBotTurn(token,fen,level){
   const remaining=chess.turn()==='w'?practiceWhiteMs:practiceBlackMs;
   const pressure=level==='lars'?1:timedPractice&&remaining<12000?0.6:timedPractice&&remaining<30000?0.78:1;
   w.postMessage({token,fen,elo:Math.max(800,Math.round((ratings[level]||2000)*pressure)),secondBest:level==='pls90a',lockedRook,lars:level==='lars',botTimeMs:timedPractice?remaining:null,opponentTimeMs:timedPractice?(chess.turn()==='w'?practiceBlackMs:practiceWhiteMs):null});
- }catch{try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
+ }catch{if(level==='lars'){working=false;status('LARS engine unavailable. Please retry.');paint()}else try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
 }
 // Bot search runs in a module worker so deeper positions never freeze the board.
 let botWorker=null;
