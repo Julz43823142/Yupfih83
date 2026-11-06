@@ -49,6 +49,7 @@
 .opening-bar{height:28px;border-radius:7px;align-items:stretch}
 .opening-bar>span{display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;font-size:11px;font-weight:800;color:#102336}
 .opening-bar .b{background:#34485d;color:#f1f7fc}
+.opening-square{cursor:pointer;touch-action:manipulation}.opening-square.selected{box-shadow:inset 0 0 0 5px #36e0c5!important}.opening-square:focus-visible{outline:3px solid #36e0c5;outline-offset:-3px}
 </style><script src="/chess-menu-dismiss.js?v=1" defer></script><link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script>
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/account-nav.js?v=2-mobile-menu" defer></script>
@@ -60,4 +61,4 @@
 <section class="opening-card"><div class="opening-search-head"><div><span class="opening-kicker">FIND YOUR OPENING</span><h2>Search openings and variations</h2></div><span class="opening-search-icon" aria-hidden="true">♞</span></div><label for="opening-query" class="sr-only">Search openings</label><form id="opening-search" class="opening-search"><input id="opening-query" type="search" placeholder="e.g. Sicilian, Caro-Kann, Smith-Morra" autocomplete="off"><button type="submit">Search</button></form><div class="opening-popular"><span>Popular:</span><button type="button" data-opening="Sicilian">Sicilian</button><button type="button" data-opening="Caro-Kann">Caro-Kann</button><button type="button" data-opening="Queen's Gambit">Queen's Gambit</button><button type="button" data-opening="Italian">Italian</button></div><p id="catalog-status" class="opening-status">Loading opening catalogue…</p><div id="opening-results" class="opening-results"></div>
 <div class="opening-section-head"><span class="opening-kicker">CURRENT POSITION</span><h2 id="opening-name">Starting position</h2></div><p id="opening-stat" class="opening-stat">Loading opening statistics…</p><div id="opening-moves" class="opening-moves"></div><div class="opening-theory"><span class="opening-kicker">OPENING IDEAS</span><p id="opening-theory-text">Select an opening to see the main strategic ideas and follow its moves on the board.</p></div>
 </section></div></main>
-<script type="module" src="/opening-explorer.js?v=6"></script></body></html>
+<script type="module" src="/opening-explorer.js?v=7"></script></body></html>
