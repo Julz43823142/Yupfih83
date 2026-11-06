@@ -7,8 +7,9 @@ self.onmessage=e=>{
  const msg=e.data;
  if(msg.action==='stop'){stop();return}
  stop();
- const {fen,token,elo,secondBest=false,lockedRook=null}=msg;active={token,fen};
- const budget=elo>=2900?6500:elo>=2700?4200:elo>=2500?3000:elo>=2300?2200:elo>=2100?1500:elo>=1600?950:elo>=1300?700:450;
+ const {fen,token,elo,secondBest=false,lockedRook=null,lars=false,botTimeMs=null,opponentTimeMs=null}=msg;active={token,fen};
+ const behind=lars&&Number.isFinite(botTimeMs)&&Number.isFinite(opponentTimeMs)&&botTimeMs<opponentTimeMs;
+ const budget=lars?(behind?Math.max(35,Math.min(120,Math.floor(botTimeMs*0.015))):Math.max(120,Math.min(1800,Math.floor((botTimeMs??180000)*0.025)))):elo>=2900?6500:elo>=2700?4200:elo>=2500?3000:elo>=2300?2200:elo>=2100?1500:elo>=1600?950:elo>=1300?700:450;
  // UCI_Elo is supported only from roughly 1320. Below that, use Skill Level.
  // These are initial strength targets, not verified human-platform Elo ratings.
  const skill=elo<900?0:elo<1050?1:elo<1200?2:elo<1320?3:null;
@@ -24,11 +25,12 @@ self.onmessage=e=>{
      engine?.postMessage('setoption name Hash value 16');
      if(secondBest)engine?.postMessage('setoption name MultiPV value 2');
      if(skill!==null){engine?.postMessage('setoption name UCI_LimitStrength value false');engine?.postMessage('setoption name Skill Level value '+skill)}
+     else if(lars){engine?.postMessage('setoption name UCI_LimitStrength value false');engine?.postMessage('setoption name Skill Level value 20')}
      else{engine?.postMessage('setoption name UCI_LimitStrength value true');engine?.postMessage('setoption name UCI_Elo value '+Math.min(3190,elo))}
      engine?.postMessage('position fen '+fen);
      let allowed='';
      if(lockedRook){try{const board=new Chess(fen);const legal=board.moves({verbose:true}).filter(m=>m.from!==lockedRook);if(legal.length)allowed=' searchmoves '+legal.map(m=>m.from+m.to+(m.promotion||'')).join(' ')}catch{}}
-     engine?.postMessage('go movetime '+budget+' depth '+(elo>=2900?22:elo>=2600?19:elo>=2300?16:elo>=1600?13:11)+allowed);
+     engine?.postMessage('go movetime '+budget+' depth '+(lars?32:elo>=2900?22:elo>=2600?19:elo>=2300?16:elo>=1600?13:11)+allowed);
     }
     if(secondBest&&line.startsWith('info ')&&line.includes(' multipv 2 ')&&line.includes(' pv ')){
      const uci=line.split(' pv ')[1]?.split(' ')[0];
