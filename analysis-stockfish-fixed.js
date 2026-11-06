@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id),board=$('board'),glyph={k:'♚',q:'♛',
 let game=new Chess(),history=[game.fen()],cursor=0,mode='pgn',selected=null,arrowFrom=null,arrows=[],blueSquares=new Set();
 let engine=null,engineReady=false,engineTimer=null,engineFen='',drag=null,rightStart=null;
 let engineFallback=false,engineWorkerUrl=null;
-let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false;
+let multiPV=3,engineLines=new Map(),bestEngineMove=null,analysisEpoch=0,unlimitedDepth=false,currentEngineDepth=0;
 let sanMoves=[],reviewResults=[],reviewEvaluations=[],reviewBusy=false;const boardCells=new Map();
 let analysisFlipped=false;
 const visualSquare=s=>analysisFlipped?String.fromCharCode(201-s.charCodeAt(0))+(9-Number(s[1])):s;
@@ -173,7 +173,7 @@ engineInfo.insertAdjacentElement('beforebegin',engineSettings);
 const depthControl=document.createElement('div');
 depthControl.className='engine-depth-control';
 const depthLabel=document.createElement('span');
-depthLabel.textContent='Stockfish 19 Lite · Depth 14–18';
+depthLabel.textContent='Stockfish 19 Lite · Depth 0 / 24';
 const depthPlus=document.createElement('button');
 depthPlus.type='button';depthPlus.className='engine-depth-plus';
 depthPlus.textContent='+';depthPlus.title='Continue analysing without a depth limit';
@@ -188,9 +188,9 @@ boardLayout.insertAdjacentElement('beforebegin',engineInfo);
 boardLayout.insertAdjacentElement('beforebegin',enginePanel);
 depthPlus.addEventListener('click',()=>{
  unlimitedDepth=!unlimitedDepth;
- depthLabel.textContent=unlimitedDepth?'Stockfish 19 Lite · Depth unlimited':'Stockfish 19 Lite · Depth 14–18';
+ depthLabel.textContent='Stockfish 19 Lite · Depth '+currentEngineDepth+(unlimitedDepth?' (unlimited)':' / 24');
  depthPlus.textContent=unlimitedDepth?'−':'+';
- depthPlus.title=unlimitedDepth?'Return to depth 18 limit':'Continue analysing without a depth limit';
+ depthPlus.title=unlimitedDepth?'Return to depth 24 limit':'Continue analysing without a depth limit';
  depthPlus.setAttribute('aria-label',unlimitedDepth?'Disable unlimited depth':'Enable unlimited depth');
  if(engineReady&&engineSwitch.checked)requestAnalysis();
 });
@@ -268,18 +268,21 @@ countSelect.addEventListener('change',()=>{
 function requestAnalysis(){
  if(!engine||!engineReady||!engineSwitch.checked)return;
  engineFen=history[cursor];
+ currentEngineDepth=0;
+ depthLabel.textContent='Stockfish 19 Lite · Depth 0'+(unlimitedDepth?' (unlimited)':' / 24');
  analysisEpoch++;
  engineLines.clear();bestEngineMove=null;previewEngineMove=null;
  renderEngineLines();drawArrows();
  engine.postMessage('stop');
  engine.postMessage('setoption name MultiPV value '+multiPV);
  engine.postMessage('position fen '+engineFen);
- engine.postMessage(unlimitedDepth?'go infinite':'go depth 18');
+ engine.postMessage(unlimitedDepth?'go infinite':'go depth 24');
  engineInfo.textContent=(engineFallback?'Stockfish 19 Lite (CDN)':'Stockfish 19 Lite')+' · calculating…';
 }
 function cleanupEngine(){
  clearTimeout(engineTimer);engineTimer=null;
  if(engine){try{engine.postMessage('quit')}catch{}engine.terminate()}
+ currentEngineDepth=0;depthLabel.textContent='Stockfish 19 Lite · Depth 0'+(unlimitedDepth?' (unlimited)':' / 24');
  engine=null;engineReady=false;engineLines.clear();bestEngineMove=null;previewEngineMove=null;renderEngineLines();updateEvalBar();drawArrows();
  if(engineWorkerUrl){URL.revokeObjectURL(engineWorkerUrl);engineWorkerUrl=null}
 }
@@ -313,6 +316,16 @@ function launchEngine(useCdn){
      engineReady=true;
      clearTimeout(engineTimer);engineTimer=null;
      requestAnalysis();
+    }
+    if(engineSwitch.checked&&engineReady&&line.startsWith('info ')){
+     const depthMatch=line.match(/\bdepth (\d+)/);
+     if(depthMatch){
+      const reportedDepth=Number(depthMatch[1]);
+      if(reportedDepth>currentEngineDepth){
+       currentEngineDepth=reportedDepth;
+       depthLabel.textContent='Stockfish 19 Lite · Depth '+currentEngineDepth+(unlimitedDepth?' (unlimited)':' / 24');
+      }
+     }
     }
     if(engineSwitch.checked&&engineReady&&line.startsWith('info ')&&line.includes(' score ')&&line.includes(' pv ')){
      const depth=line.match(/\bdepth (\d+)/),score=line.match(/\bscore (cp|mate) (-?\d+)/);
