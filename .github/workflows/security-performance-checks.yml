@@ -19,6 +19,8 @@ jobs:
           node-version: '22'
       - name: Install pinned dependencies
         run: npm ci
+      - name: Benchmark existing password hashing CPU cost (diagnostic only)
+        run: npm run auth:benchmark
       - name: Test account security boundaries
         run: npm run test:auth
       - name: Adversarial online chess and security tests
