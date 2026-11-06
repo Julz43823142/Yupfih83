@@ -144,3 +144,6 @@
 .play-practice-clock{font-variant-numeric:tabular-nums;font-size:21px;color:#f6fbff;background:#14344d;border:1px solid #4b8eac;padding:5px 12px;border-radius:8px;margin-left:auto}.play-practice-back{display:inline-block;background:#185476;color:#fff!important;text-decoration:none;padding:11px 17px;border-radius:9px;border:1px solid #6fc7e9;font-weight:750}.play-practice-back:hover{background:#26789c}.play-timed-practice .play-page>.play-title{display:none}
 
 .play-time-picker{display:inline-flex;align-items:center;gap:9px;color:#e3f3fc;font-weight:700}.play-time-picker select{background:#0c2e47;border:1px solid #5a9fc0;border-radius:8px;color:white;padding:9px 12px;font:inherit;cursor:pointer}.play-side-picker{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}.play-bot-options{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.play-options-heading,#play-selected-description{flex:0 0 100%}
+
+/* Live 3+0 clock: highlight either side below 30 seconds. */
+.play-practice-clock.clock-low{color:#fff;background:#9e1c28;border-color:#ff6672;font-variant-numeric:tabular-nums}
