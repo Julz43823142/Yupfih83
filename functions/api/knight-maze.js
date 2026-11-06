@@ -56,8 +56,8 @@ const futureLevels=(id,nextLevel)=>[1,2,3].map(offset=>maze(nextLevel+offset-1,i
 const publicRun=(r)=>({id:r.id,level:r.level,score:r.score,position:r.position,goal:r.goal,blocked:JSON.parse(r.blocked),endsAt:r.started_at+duration,finished:!!r.finished});
 async function ranking(db,limit,unique=false){
  const sql=unique
-  ? "SELECT nickname,score,source_type AS sourceType,account_id AS accountId FROM (SELECT nickname,score,source_type,account_id,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
-  : "SELECT nickname,score,source_type AS sourceType,account_id AS accountId FROM knight_maze_score_entries ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
+  ? "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT nickname,score,source_type,account_id,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
+  : "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM knight_maze_score_entries ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
  const result=await db.prepare(sql).bind(limit).all();
  return result.results||[];
 }
