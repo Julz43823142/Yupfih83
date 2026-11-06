@@ -71,6 +71,59 @@ footer.home-footer-edge>span:last-child{margin-left:auto;text-align:right}
  main > section.hero > div.hero-content .search-box button{flex:0 0 auto!important;white-space:nowrap!important;font-size:12px!important;padding:12px 13px!important}
 }
 </style>
+
+<style id="eloflow-responsive-layout-v6">
+/* One fluid homepage layout: no absolute-positioned content or fixed sidebar offsets. */
+html,body{max-width:100%;overflow-x:clip}
+main>section.hero{box-sizing:border-box!important;height:auto!important;min-height:0!important;overflow:visible!important}
+main>section.hero>.hero-glow{position:absolute!important;inset:0!important;pointer-events:none!important;z-index:0!important}
+main>section.hero>div.hero-content,
+main>section.hero>aside.hero-puzzle-ranking,
+main>section.hero>aside.hero-tool-links,
+main>section.hero>section.sample-section{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;transform:none!important}
+main>section.hero>div.hero-content{position:relative!important;z-index:1!important}
+main>section.hero>div.hero-content h1{max-width:100%!important;font-size:clamp(1.75rem,3vw,2.75rem)!important;line-height:1.17!important;letter-spacing:-.035em!important;overflow-wrap:break-word!important}
+main>section.hero>div.hero-content .subtitle{max-width:65ch!important;margin-left:auto!important;margin-right:auto!important}
+main>section.hero>div.hero-content .search-box{width:100%!important;max-width:100%!important;min-width:0!important}
+main>section.hero>div.hero-content .search-box input{min-width:0!important;flex:1 1 0!important}
+main>section.hero>aside.hero-tool-links a{min-width:0!important}
+main>section.hero>aside.hero-tool-links .tool-label{min-width:0!important;overflow-wrap:anywhere!important}
+main>section.hero>section.sample-section{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;margin:0!important;padding:0!important;z-index:1!important}
+main>section.hero>section.sample-section .sample-options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:clamp(12px,1.5vw,20px)!important;width:100%!important}
+main>section.hero>section.sample-section .sample-button{width:100%!important;min-width:0!important;max-width:100%!important}
+main>div.below-hero-layout.with-player-previews{position:relative!important;display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:clamp(24px,4vw,56px) clamp(16px,3vw,48px)!important}
+main>div.below-hero-layout.with-player-previews>.features{position:static!important;left:auto!important;right:auto!important;top:auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:clamp(12px,2vw,24px)!important;align-items:stretch!important;width:100%!important;max-width:1200px!important;margin:0 auto!important;padding:0!important;transform:none!important}
+main>div.below-hero-layout.with-player-previews>.features>.feature-card{box-sizing:border-box!important;min-width:0!important;width:100%!important;max-width:none!important;overflow-wrap:break-word!important}
+main>section.results{box-sizing:border-box!important;width:100%!important;max-width:100%!important;padding-left:clamp(16px,4vw,64px)!important;padding-right:clamp(16px,4vw,64px)!important}
+@media(min-width:1100px){
+ main>section.hero{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr)!important;column-gap:clamp(16px,2vw,32px)!important;row-gap:clamp(24px,3vw,42px)!important;align-items:start!important;padding:clamp(24px,3vw,48px)!important}
+ main>section.hero>aside.hero-puzzle-ranking{position:relative!important;inset:auto!important;grid-column:1!important;grid-row:1!important;width:100%!important;margin:0!important}
+ main>section.hero>aside.hero-tool-links{position:relative!important;inset:auto!important;grid-column:3!important;grid-row:1!important;width:100%!important;margin:0!important}
+ main>section.hero>div.hero-content{grid-column:2!important;grid-row:1!important;width:100%!important;margin:0!important;padding:clamp(20px,3vw,50px) 0!important}
+ main>section.hero>section.sample-section{grid-column:1/-1!important;grid-row:2!important}
+ main>section.hero>section.sample-section .sample-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:1099px){
+ main>section.hero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:clamp(16px,3vw,26px)!important;padding:clamp(18px,4vw,34px)!important}
+ main>section.hero>div.hero-content{order:0!important;width:100%!important;padding:clamp(18px,4vw,44px) 0!important;margin:0!important}
+ main>section.hero>section.sample-section{order:1!important}
+ main>section.hero>aside.hero-puzzle-ranking{order:2!important;position:relative!important;inset:auto!important;width:100%!important;margin:0!important}
+ main>section.hero>aside.hero-tool-links{order:3!important;position:relative!important;inset:auto!important;width:100%!important;margin:0!important}
+ main>section.hero>aside.hero-tool-links{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ main>section.hero>aside.hero-tool-links .hero-tool-heading{grid-column:1/-1!important}
+ main>div.below-hero-layout.with-player-previews>.features{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:600px){
+ main>section.hero{padding:18px 16px!important}
+ main>section.hero>div.hero-content h1{font-size:clamp(1.65rem,7vw,2.2rem)!important}
+ main>section.hero>div.hero-content .search-box{display:flex!important;flex-wrap:wrap!important;gap:10px!important}
+ main>section.hero>div.hero-content .search-box input{flex:1 1 100%!important;width:100%!important}
+ main>section.hero>div.hero-content .search-box button{flex:1 1 100%!important;width:100%!important}
+ main>section.hero>section.sample-section .sample-options{grid-template-columns:1fr!important}
+ main>section.hero>aside.hero-tool-links{grid-template-columns:1fr!important}
+ main>div.below-hero-layout.with-player-previews>.features{grid-template-columns:1fr!important}
+}
+</style>
 </head>
 <body>
   <header class="navbar">
