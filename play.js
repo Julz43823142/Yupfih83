@@ -22,6 +22,7 @@ names["bot2800"]="Bot (2800)";
 names["bot2850"]="Bot (2850)";
 names["bot2900"]="Bot (2900)";
 names["bot3000"]="Bot (3000)";
+names.lars="LARS";
 const ratings={"cashojf3r":800,"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
 ratings.chessmass=1600;ratings.pls90a=2300;ratings.peanut=2200;
 ratings["bot300"]=300;
@@ -40,6 +41,7 @@ ratings["bot2800"]=2800;
 ratings["bot2850"]=2850;
 ratings["bot2900"]=2900;
 ratings["bot3000"]=3000;
+ratings.lars=3500;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
 let timedPractice=new URL(location.href).searchParams.has('practice');
@@ -275,6 +277,7 @@ let strongWorker=null;
 function stopStrongBot(){if(strongWorker){strongWorker.terminate();strongWorker=null}}
 let pendingBotTiming=null;
 function calculateBotThinkMs(){
+ if(botLevel==='lars')return 0;
  const elo=ratings[botLevel]||1000;
  const remaining=chess.turn()==='w'?practiceWhiteMs:practiceBlackMs;
  const base=elo<900?7500:elo<1500?4800:elo<2000?3200:elo<2400?2100:1000;
@@ -284,7 +287,7 @@ function calculateBotThinkMs(){
 }
 function finishBotCalculation(token,move){
  const timing=pendingBotTiming;
- const wait=timedPractice&&timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
+ const wait=botLevel==='lars'?0:timedPractice&&timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
  setTimeout(()=>{
   if(token!==gameToken||ended||chess.turn()===human)return;
   try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
@@ -315,8 +318,8 @@ function strongBotTurn(token,fen,level){
   const first=chess.history({verbose:true})[0];
   const lockedRook=level==='pls90a'&&chess.history().length>=4?( ['e','f','g','h'].includes(first?.to?.[0])?'a6':'h6'):null;
   const remaining=chess.turn()==='w'?practiceWhiteMs:practiceBlackMs;
-  const pressure=timedPractice&&remaining<12000?0.6:timedPractice&&remaining<30000?0.78:1;
-  w.postMessage({token,fen,elo:Math.max(800,Math.round((ratings[level]||2000)*pressure)),secondBest:level==='pls90a',lockedRook});
+  const pressure=level==='lars'?1:timedPractice&&remaining<12000?0.6:timedPractice&&remaining<30000?0.78:1;
+  w.postMessage({token,fen,elo:Math.max(800,Math.round((ratings[level]||2000)*pressure)),secondBest:level==='pls90a',lockedRook,lars:level==='lars',botTimeMs:timedPractice?remaining:null,opponentTimeMs:timedPractice?(chess.turn()==='w'?practiceBlackMs:practiceWhiteMs):null});
  }catch{try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
 }
 // Bot search runs in a module worker so deeper positions never freeze the board.
@@ -374,7 +377,7 @@ function communityOpeningMove(level){
 function scheduleBot(){
  if(terminal())return;
  const startedAt=Date.now();
- const botDelay=timedPractice?calculateBotThinkMs():120;
+ const botDelay=botLevel==='lars'?0:timedPractice?calculateBotThinkMs():120;
  pendingBotTiming={token:gameToken,started:startedAt,delay:botDelay};
  const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
  working=true;status(names[botLevel]+' is thinking…');paint();
@@ -389,7 +392,7 @@ function scheduleBot(){
    else ensureBotWorker().postMessage({token,fen,level});
   }
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
- },timedPractice?80:120);
+ },level==='lars'?0:timedPractice?80:120);
 }
 function newGame(){
  timedPractice=$('play-time').value==='180';
@@ -413,7 +416,7 @@ $('play-sound').addEventListener('click',()=>{sound=!sound;$('play-sound').textC
 document.querySelectorAll('[data-promote]').forEach(b=>b.addEventListener('click',()=>{if(!pending)return;const p={...pending};if(play(p.from,p.to,b.dataset.promote)){closePromotion();pending=null}}));
 $('play-cancel-promotion').addEventListener('click',()=>{pending=null;closePromotion();selected=null;paint()});
 $('play-promotion').addEventListener('cancel',e=>{e.preventDefault();pending=null;closePromotion();selected=null;paint()});
-const botDescriptions={cashojf3r:"Attacking viewer bot. Queen's Gambit, London System and Four Knights.",rocket:"1500 Elo viewer bot. Prefers the Queen's Gambit.",chessmass:"Aggressive player. Scotch Gambit as White and King's Indian setups as Black.",ominous:"Ominousgenius · 2090 Elo viewer bot.",peanut:"Demented Peanut · strong middlegame, good opening play, weaker endgames. Italian Game.",pls90a:"Unusual rook openings. Prefers Stockfish's second-best move.",mikhail:"Mikhail Hal · 2350 Elo viewer bot."};
+const botDescriptions={lars:"Germany · Maximum-strength Stockfish 19, no intentional weak moves. Accelerates sharply when behind on the clock. No engine can guarantee a win.",cashojf3r:"Attacking viewer bot. Queen's Gambit, London System and Four Knights.",rocket:"1500 Elo viewer bot. Prefers the Queen's Gambit.",chessmass:"Aggressive player. Scotch Gambit as White and King's Indian setups as Black.",ominous:"Ominousgenius · 2090 Elo viewer bot.",peanut:"Demented Peanut · strong middlegame, good opening play, weaker endgames. Italian Game.",pls90a:"Unusual rook openings. Prefers Stockfish's second-best move.",mikhail:"Mikhail Hal · 2350 Elo viewer bot."};
 const botOptions=$('play-bot-options');
 document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.bot;
@@ -421,7 +424,7 @@ document.querySelectorAll('.play-bot[data-bot]').forEach(button=>button.addEvent
  else{
   selectedBot=id;botOptions.hidden=false;
   $('play-selected-name').textContent=(names[id]||'Bot').replace(/ \\(\\d+\\)$/,'');
-  $('play-selected-elo').textContent=ratings[id]+' Elo';
+  $('play-selected-elo').textContent=id==='lars'?'Maximum strength':ratings[id]+' Elo';
   let description=$('play-selected-description');
   if(!description){description=document.createElement('p');description.id='play-selected-description';botOptions.querySelector('.play-options-heading').after(description)}
   description.textContent=botDescriptions[id]||'';
