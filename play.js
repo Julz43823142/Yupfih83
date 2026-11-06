@@ -91,10 +91,11 @@ function tone(move){
 }
 function paint(){
  board.dataset.orientation=orientation;
+ const displayPosition=chess.turn()!==human&&!ended?projectedPremovePosition():chess;
  const moves=selected&&!ended?candidateMoves(selected):[];
  board.classList.toggle('premove-waiting',!ended&&chess.turn()!==human);
  for(const [sq,cell] of squares){
-  const pc=chess.get(sq),key=pc?pc.color+pc.type:'',idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
+  const pc=displayPosition.get(sq),key=pc?pc.color+pc.type:'',idx=(8-Number(sq[1]))*8+(sq.charCodeAt(0)-97);
   cell.style.order=orientation==='black'?63-idx:idx;
   if(cell.dataset.piece!==key){
    cell.dataset.piece=key;cell.replaceChildren();
@@ -265,7 +266,7 @@ function play(from,to,promotion=null){
  closePromotion();pending=null;
  if(!terminal())scheduleBot();return true;
 }
-attachPlayBotControls({board,getPosition:()=>chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premoves.length){premoves.length=0;selected=null;status(chess.turn()===human?'':'Premoves cancelled.');paint();return true}return false}});
+attachPlayBotControls({board,getPosition:()=>chess.turn()!==human&&!ended?projectedPremovePosition():chess,getSelected:()=>selected,setSelected:x=>{selected=x},playMove:play,repaint:paint,getArrows:()=>arrows,getHighlights:()=>highlights,canSelectPiece:(_square,piece)=>!ended&&piece.color===human,canAttemptMove:(from,to)=>candidateMoves(from).some(m=>m.to===to),onRightClick:()=>{if(premoves.length){premoves.length=0;selected=null;status(chess.turn()===human?'':'Premoves cancelled.');paint();return true}return false}});
 board.addEventListener('pointerdown',unlock);board.addEventListener('keydown',unlock);
 // Master and grandmaster tiers use Stockfish rather than the shallow JS search.
 let strongWorker=null;
