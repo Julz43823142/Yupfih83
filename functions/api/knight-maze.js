@@ -120,16 +120,16 @@ export async function onRequestPost({request,env}){
   if(run.submitted)return json({error:'This score has already been submitted.'},409);
   if(!run.finished&&now<run.started_at+duration)return json({error:'Finish the game before submitting.'},400);
   if(run.score<1)return json({error:'Reach at least one star to enter the leaderboard.'},400);
-  let nickname=String(data?.nickname||'').trim();
-  const sourceType=data?.sourceType==='account'?'account':'nickname';
-  let accountId=null;
-  if(sourceType==='account'){
-   if(!env.AUTH_DB||!env.BETTER_AUTH_SECRET)return json({error:'Account authentication unavailable.'},503);
-   try{const session=await createAuth(env).api.getSession({headers:request.headers});
-    if(!session?.user?.id||!session.user.username)return json({error:'Sign in to publish using your account.'},401);
-    accountId=session.user.id;nickname=session.user.username;
-   }catch{return json({error:'Unable to verify your account session.'},503)}
-  }
+  // Derive identity from the server-side session, never from a client-provided flag.
+  // Authenticated scores always use the account username, including repeat entries.
+  if(!env.AUTH_DB||!env.BETTER_AUTH_SECRET)return json({error:'Account identity verification unavailable.'},503);
+  let session;
+  try{session=await createAuth(env).api.getSession({headers:request.headers})}
+  catch{return json({error:'Unable to verify account identity.'},503)}
+  const accountId=session?.user?.id||null;
+  const sourceType=accountId?'account':'nickname';
+  let nickname=accountId?session.user.username:String(data?.nickname||'').trim();
+  if(!accountId&&data?.sourceType==='account')return json({error:'Sign in to publish using your account.'},401);
   if(!(sourceType==='account'?/^[a-zA-Z0-9_]{3,24}$/:/^[a-zA-Z0-9 _-]{2,20}$/).test(nickname))return json({error:'Use a nickname of 2–20 letters, numbers, spaces, _ or -.'},400);
   if(['tttt','tttttttt'].includes(nickname.toLowerCase()))return json({error:'Please choose another nickname.'},400);
   try{if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:'moderate',normalizeUnicode:true}).containsProfanity)return json({error:'Please choose a family-friendly nickname.'},400)}
