@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
 let liveFailures=0,lastSocketMessageAt=0,pingNonce=0,pingStartedAt=0,networkRttMs=null,networkRttAt=0,liveRetryTimer=null,queuedPremove=null;
-const fmt=n=>{n=Math.max(0,Math.ceil(n/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
+const fmt=ms=>{ms=Math.max(0,ms);if(ms<30000)return '00:'+String(Math.floor(ms/1000)).padStart(2,'0')+'.'+String(Math.floor(ms%1000/10)).padStart(2,'0');const sec=Math.ceil(ms/1000);return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
 const name=()=>{const value=$('online-name').value.trim()||'Anonymous';if(!/^[a-zA-Z0-9_ ]{1,24}$/.test(value)||/^(admin|moderator|eloscanner|staff)$/i.test(value))throw Error('Please choose an appropriate nickname.');return value};
 async function post(route,body){const r=await fetch(api+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 function persist(){sessionStorage.setItem('elo-online-game',JSON.stringify({id,secret}))}
@@ -112,7 +112,7 @@ function render(){if(!state)return;
  $('online-status').textContent=previewBoard?'Sending move…':queuedPremove&&state.turn!==side?'Premove queued':state.status==='waiting'?'Waiting for another player…':state.status==='finished'?'Game over · '+(state.result||'Finished'):pending===side?'Draw offered · waiting for opponent':pending?'Opponent offers a draw':game.turn()===side?'Your move':'Opponent to move';
  clocks();
 }
-function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const top=fmt(side==='w'?b:w),bottom=fmt(side==='w'?w:b);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom}
+function clocks(){if(!state)return;const elapsed=state.status==='active'?Math.max(0,Date.now()+serverOffset-state.lastMoveAt):0;const w=Math.max(0,state.whiteMs-(state.turn==='w'?elapsed:0)),b=Math.max(0,state.blackMs-(state.turn==='b'?elapsed:0));const topMs=side==='w'?b:w,bottomMs=side==='w'?w:b,top=fmt(topMs),bottom=fmt(bottomMs);if($('online-top-clock').textContent!==top)$('online-top-clock').textContent=top;if($('online-bottom-clock').textContent!==bottom)$('online-bottom-clock').textContent=bottom;$('online-top-clock').classList.toggle('clock-low',topMs<30000);$('online-bottom-clock').classList.toggle('clock-low',bottomMs<30000)}
 // A queued premove is never sent before the opponent's committed move;
 // verify it against the new board before submitting an authorized HTTP move.
 function premoveCandidates(square){
@@ -310,7 +310,7 @@ document.addEventListener('visibilitychange',()=>{
   connectLive();poll();
  }
 });
-setInterval(clocks,250);
+setInterval(clocks,50);
 
 async function socialPost(route,data){const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v}
 async function socialRefresh(){try{
