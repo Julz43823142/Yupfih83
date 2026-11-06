@@ -287,7 +287,7 @@ function calculateBotThinkMs(){
 }
 function finishBotCalculation(token,move){
  const timing=pendingBotTiming;
- const wait=botLevel==='lars'?0:timedPractice&&timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
+ const wait=timing?.token===token?Math.max(0,timing.delay-(Date.now()-timing.started)):0;
  setTimeout(()=>{
   if(token!==gameToken||ended||chess.turn()===human)return;
   try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}
@@ -377,7 +377,9 @@ function communityOpeningMove(level){
 function scheduleBot(){
  if(terminal())return;
  const startedAt=Date.now();
- const botDelay=botLevel==='lars'?0:timedPractice?calculateBotThinkMs():120;
+ // A short minimum response window lets players queue a premove even when LARS computes instantly.
+ // It is not added to engine search time; when the engine takes longer, its move plays immediately.
+ const botDelay=botLevel==='lars'?(timedPractice?250:450):timedPractice?calculateBotThinkMs():120;
  pendingBotTiming={token:gameToken,started:startedAt,delay:botDelay};
  const deliverBotMove=move=>{const remaining=Math.max(0,botDelay-(Date.now()-startedAt));setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;try{if(move){apply(move);botChatMove()}working=false;if(!terminal()){status('');runPremove()}}catch{working=false;status('Bot move failed.')}paint()},remaining)};
  working=true;status(names[botLevel]+' is thinking…');paint();
