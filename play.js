@@ -68,8 +68,10 @@ if(timedPractice){
  const title=document.querySelector('.play-page > .play-title');if(title)title.textContent='3+0 Practice Against Bot';
  const entry=document.querySelector('.online-entry');if(entry){entry.innerHTML='<a class="play-practice-back" href="/online.html">← Back to Online Chess</a><h1 class="play-title">Choose Your Bot · 3+0 Practice</h1><p>Choose any bot below, select White or Black, then start your timed practice game.</p>'}
  $('play-undo').hidden=true;
- setInterval(practiceTick,50);
 }
+// Install the live ticker for both practice links and 3+0 selected on /play.html.
+// The previous practice-only interval left normal 3+0 clocks frozen between moves.
+setInterval(practiceTick,50);
 
 const botChatLines={chessmass:['I love attacking chess!','The Scotch Gambit is my kind of opening.'],pls90a:['Second-best is best!','My rook has a plan.'],peanut:['The middlegame is where I shine!','Italian Game, anyone?'],cashojf3r:['I love attacking chess!','Your king looks interesting...','Let’s make this tactical!','I play the Queen’s Gambit, London System and Four Knights!'],rocket:['Ready for a Queen’s Gambit?','Control the center!','Nice move!']};
 function botChat(message){const log=$('play-bot-chat');if(!log)return;const item=document.createElement('p');item.className='play-chat-message';const who=document.createElement('strong');who.textContent=(names[botLevel]||'Bot').replace(/ \\(.*\\)$/,'')+': ';item.append(who,document.createTextNode(message));log.append(item);while(log.children.length>8)log.firstElementChild.remove();log.scrollTop=log.scrollHeight}
@@ -391,6 +393,7 @@ function scheduleBot(){
 }
 function newGame(){
  timedPractice=$('play-time').value==='180';
+ practiceStarted=timedPractice;
  $('play-human-clock').hidden=!timedPractice;$('play-bot-clock').hidden=!timedPractice;
  if(timedPractice){practiceWhiteMs=180000;practiceBlackMs=180000;practiceAt=Date.now();practiceStarted=true;$('play-human-clock').textContent='03:00';$('play-bot-clock').textContent='03:00';$('play-human-clock').classList.remove('clock-low');$('play-bot-clock').classList.remove('clock-low')}
  stopStrongBot();gameToken++;chess=new Chess();human=document.querySelector('input[name=side]:checked').value;
