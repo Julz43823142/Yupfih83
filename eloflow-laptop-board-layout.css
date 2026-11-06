@@ -41,3 +41,8 @@
  body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column,
  body.elo-unified-chess main.tool-page .prep-analysis-layout>.prep-engine-side{grid-column:1!important;grid-row:3!important;width:100%!important;max-width:680px!important;justify-self:center!important}
 }
+
+/* EloFlow: align the Analysis board with the top of its side panels on desktop. */
+@media (min-width:900px){
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-board-column{margin-top:-14px!important}
+}
