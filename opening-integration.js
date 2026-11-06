@@ -16,7 +16,10 @@ export function createOpeningIntegration({Chess,getState,onMove}){
  const stockfishLabel=header?.querySelector('.switch-label');
  if(stockfishLabel)stockfishLabel.insertAdjacentElement('afterend',label);
  else header?.append(label);
- notation?.insertAdjacentElement('afterend',panel);
+ // Keep Stockfish settings and best lines above the database results.
+ const engineLines=document.querySelector('#live-notation .engine-lines-panel')||document.querySelector('.live-notation .engine-lines-panel');
+ if(engineLines)engineLines.insertAdjacentElement('afterend',panel);
+ else notation?.insertAdjacentElement('afterend',panel);
  const format=n=>Intl.NumberFormat('en-US',{notation:n>=100000?'compact':'standard',maximumFractionDigits:1}).format(n);
  function toggle(){
   panel.hidden=!checkbox.checked;if(notation)notation.hidden=checkbox.checked;
