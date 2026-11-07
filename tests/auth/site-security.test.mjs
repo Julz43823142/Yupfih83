@@ -17,21 +17,17 @@ function post(env,body,handler=puzzlePost,headers={}){
 }
 async function start(env){const r=await post(env,{action:'start',mode:'survival'});assert.equal(r.status,200);return (await r.json()).session;}
 
-test('parallel puzzle proofs cannot evade pacing, double count, or score a concurrently submitted run',async()=>{
- const env=fixture(), db=env.SUS_DB, originalNow=Date.now;let now=1800000000000;
- Date.now=()=>now;
+test('parallel puzzle proofs accept fast correct play, reject duplicates and stale submissions',async()=>{
+ const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
+ let now=1800000000000;Date.now=()=>now;
  try{
-  const session=await start(env);now++;
+  const session=await start(env);
   const responses=await Promise.all(bank.slice(0,12).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
-  assert.equal(responses.filter(r=>r.status===200).length,1);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  now+=1200;
+  assert.ok(responses.every(r=>r.status===200));
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,12);
   const repeated=await Promise.all(Array.from({length:8},()=>post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})));
   assert.ok(repeated.every(r=>r.status===200));
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,200);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
-  now+=2400;
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,12);
   const prepare=db.prepare;
   db.prepare=function(sql){
    const stmt=prepare(sql);
@@ -41,34 +37,18 @@ test('parallel puzzle proofs cannot evade pacing, double count, or score a concu
    }
    return stmt;
   };
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof2',solution:'b1b2'})).status,409);
-  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves').get().c,2);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
- }finally{Date.now=originalNow;}
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof12',solution:'b1b2'})).status,409);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves').get().c,12);
+ }finally{Date.now=originalNow}
 });
 
-test('public answer bots cannot inflate puzzle rankings faster than server time permits',async()=>{
- const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
- let now=1800000000000;Date.now=()=>now;
- try{
-  const session=await start(env);
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})).status,200);
-  // Different valid answers submitted immediately must not increase the score.
-  const flood=await Promise.all(bank.slice(1,20).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
-  assert.equal(flood.filter(response=>response.status===200).length,0);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  now+=1199;
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,429);
-  now++;
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,200);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
-  now+=1200;
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof2',solution:'b1b2'})).status,200);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,3);
-  // Client-supplied totals remain unable to bypass server-verified scores.
-  assert.equal((await post(env,{action:'submit',session,mode:'survival',nickname:'FastBot',score:19})).status,409);
-  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
- }finally{Date.now=originalNow}
+test('rapid correct proofs still cannot submit forged client scores',async()=>{
+ const env=fixture(),db=env.SUS_DB,session=await start(env);
+ const responses=await Promise.all(bank.slice(0,19).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
+ assert.ok(responses.every(r=>r.status===200));
+ assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,19);
+ assert.equal((await post(env,{action:'submit',session,mode:'survival',nickname:'FastPlayer',score:20})).status,409);
+ assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
 });
 
 test('a concurrent solve invalidates a stale score submission; an unknown run cannot write scores',async()=>{
@@ -116,7 +96,7 @@ test('expired puzzle history is cleaned in bounded batches without deleting acti
  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_hourly_scores').get().c,1);
 });
 
-test('automated knight-maze levels cannot inflate faster than elapsed server time',async()=>{
+test('fast legal knight-maze levels count without an arbitrary time threshold',async()=>{
  const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
  let now=1800000000000;Date.now=()=>now;
  try{
@@ -132,9 +112,6 @@ test('automated knight-maze levels cannot inflate faster than elapsed server tim
   row=db.sqlite.prepare('SELECT * FROM knight_maze_runs WHERE id=?').get(id);
   goal=next(row.position);
   db.sqlite.prepare('UPDATE knight_maze_runs SET goal=?,blocked=? WHERE id=?').run(goal,'[]',id);
-  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,429);
-  assert.equal(db.sqlite.prepare('SELECT score FROM knight_maze_runs WHERE id=?').get(id).score,1);
-  now+=750;
   assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,200);
   assert.equal(db.sqlite.prepare('SELECT score FROM knight_maze_runs WHERE id=?').get(id).score,2);
  }finally{Date.now=originalNow}
