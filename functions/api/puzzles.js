@@ -1,9 +1,15 @@
 // Rate-limit-aware public puzzle pool for EloScanner (Cloudflare Pages).
 // Share cached puzzles across visitors instead of requesting Lichess on every move.
 const reply=(data,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
-async function init(db){
+const initialized=new WeakMap();
+function init(db){
+ if(initialized.has(db))return initialized.get(db);
+ const ready=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_pool (id TEXT PRIMARY KEY, rating INTEGER, json TEXT NOT NULL, created_at INTEGER NOT NULL)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_pool_rating ON puzzle_pool(rating)").run();
+ })().catch(error=>{initialized.delete(db);throw error});
+ initialized.set(db,ready);
+ return ready;
 }
 function shape(json){
  if(!json?.puzzle||typeof json?.game?.pgn!=="string"||!Array.isArray(json.puzzle.solution)||!json.puzzle.solution.length)return null;
@@ -46,9 +52,18 @@ export async function onRequestGet({request,env}){
  const cacheFamily="https://eloscanner.com/__puzzle_cache/"+type+(difficulty?"-"+difficulty:"");
  const cacheSlot=daily?0:Math.floor(Math.random()*12);
  const cacheRequest=new Request(cacheFamily+"-"+cacheSlot);
- if(daily&&cache){try{const hit=await cache.match(cacheRequest);if(hit)return hit}catch{}}
+ if(cache){
+  try{
+   const hit=await cache.match(cacheRequest);
+   if(hit){
+    if(daily)return hit;
+    const cached=await hit.clone().json();
+    if(cached?.puzzle?.id&&cached.puzzle.id!==url.searchParams.get('exclude'))return reply(cached);
+   }
+  }catch{}
+ }
  try{
-  const upstream=await fetch(endpoint.toString(),{headers:{"Accept":"application/json","User-Agent":"EloScanner/1.0"}});
+  const upstream=await fetch(endpoint.toString(),{headers:{"Accept":"application/json","User-Agent":"EloScanner/1.0"},signal:AbortSignal.timeout(8000)});
   if(!upstream.ok)throw Error("HTTP "+upstream.status);
   const data=shape(await upstream.json());
   if(!data)throw Error("Puzzle format unavailable");
