@@ -158,6 +158,8 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
   await pageA.locator('#online-board button[data-sq="e4"]').click();
   await expect(pageB.locator('#online-moves')).toContainText('e4',{timeout:15000});
   await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
+  // Reload prompts whether to reconnect; Playwright dismisses dialogs by default.
+  pageA.once('dialog',dialog=>dialog.accept());
   await pageA.reload();await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   expect(errors).toEqual([]);
  }finally{await a.close();await b.close()}
