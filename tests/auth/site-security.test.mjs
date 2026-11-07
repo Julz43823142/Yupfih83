@@ -177,8 +177,8 @@ test('asset automation has read-only GitHub token and never pushes generated fil
  const workflows=['build-puzzle-pool.yml','vendor-privacy-assets.yml','vendor-stockfish.yml'];
  for(const name of workflows){
   const yaml=readFileSync(new URL('../../.github/workflows/'+name,import.meta.url),'utf8');
-  assert.match(yaml,/contents:\\s*read/,name);
-  assert.doesNotMatch(yaml,/contents:\\s*write|git\\s+push|persist-credentials:\\s*true/,name);
+  assert.match(yaml,/contents:\s*read/,name);
+  assert.doesNotMatch(yaml,/contents:\s*write|git\s+push|persist-credentials:\s*true/,name);
   assert.ok(yaml.includes('actions/upload-artifact@v4'),name);
  }
 });
