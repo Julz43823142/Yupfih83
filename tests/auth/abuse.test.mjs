@@ -48,7 +48,7 @@ test('source-throttled auth never executes cleanup deletes or credential hashing
  e.AUTH_DB.sqlite.prepare('INSERT INTO auth_attempts(key,count,expiresAt) VALUES(?,60,?)').run(key,now+60000);
  const prepare=e.AUTH_DB.prepare.bind(e.AUTH_DB);
  e.AUTH_DB.prepare=sql=>{
-  if(/^\\s*DELETE\\b/i.test(sql))throw Error('Cleanup should not run after source throttling');
+  if(/^\s*DELETE\b/i.test(sql))throw Error('Cleanup should not run after source throttling');
   return prepare(sql);
  };
  const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>{throw Error('Credential hashing should not run')}});
