@@ -26,10 +26,10 @@ const duration=180000;
 // ranked level progression by elapsed server time, not client timestamps.
 const MIN_AVERAGE_LEVEL_MS=750;
 let lastRunCleanup=0;
-let schemaPromise=null;
+const schemas=new WeakMap();
 async function ready(db){
- if(schemaPromise)return schemaPromise;
- schemaPromise=(async()=>{
+ if(schemas.has(db))return schemas.get(db);
+ const schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_runs (id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, level INTEGER NOT NULL, position INTEGER NOT NULL, goal INTEGER NOT NULL, blocked TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0, finished INTEGER NOT NULL DEFAULT 0, submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_scores (nickname TEXT PRIMARY KEY COLLATE NOCASE, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
  const cols=await db.prepare("PRAGMA table_info(knight_maze_scores)").all();
@@ -41,7 +41,8 @@ async function ready(db){
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_entries_rank ON knight_maze_score_entries(score DESC,created_at ASC)").run();
  await db.prepare("INSERT OR IGNORE INTO knight_maze_score_entries(nickname,score,created_at,source_type,account_id,legacy_key) SELECT nickname,score,created_at,source_type,account_id,'legacy:'||lower(nickname) FROM knight_maze_scores").run();
- })().catch(error=>{schemaPromise=null;throw error});
+ })().catch(error=>{schemas.delete(db);throw error});
+ schemas.set(db,schemaPromise);
  return schemaPromise;
 }
 function maze(level,runId){
