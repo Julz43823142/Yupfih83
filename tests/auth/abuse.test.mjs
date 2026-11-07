@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {database} from './fixture.mjs';
-import {handleAuth} from '../../lib/auth/gateway.mjs';
+import {handleAuth,recordLoginFailure} from '../../lib/auth/gateway.mjs';
 import {keyedDigest} from '../../lib/auth/password.mjs';
 import {bytesToHex} from '@noble/hashes/utils.js';
 import {isReservedIdentity} from '../../lib/identity.mjs';
@@ -61,4 +61,29 @@ test('staff-like names are reserved consistently across account, guest and leade
   assert.equal(isReservedIdentity(name),true,name);
  for(const name of ['chessvisitor','chess_supporter','elochess','supportive'])
   assert.equal(isReservedIdentity(name),false,name);
+});
+
+test('ten failed passwords escalate IP lockouts by ten minutes up to three days',async()=>{
+ const db=database(),key='synthetic-hashed-source';let now=1800000000000;
+ for(let tier=1;tier<=435;tier++){
+  for(let attempt=1;attempt<10;attempt++)assert.equal(await recordLoginFailure(db,key,now),0);
+  const retry=await recordLoginFailure(db,key,now);
+  assert.equal(retry,Math.min(tier*600,259200),`tier ${tier}`);
+  const row=db.sqlite.prepare('SELECT failures,tier,lockedUntil FROM auth_login_lockouts WHERE key=?').get(key);
+  assert.equal(row.tier,tier);
+  assert.equal(row.failures,0);
+  assert.equal(await recordLoginFailure(db,key,now),retry);
+  now=row.lockedUntil+1;
+ }
+});
+
+test('locked IP is rejected before password verification and login challenges',async()=>{
+ const e=env(),ip='192.0.2.170',now=Date.now();
+ const key=bytesToHex(await keyedDigest(e.BETTER_AUTH_SECRET,'rate-login-failures',ip));
+ e.AUTH_DB.sqlite.prepare('INSERT INTO auth_login_lockouts(key,failures,tier,lockedUntil,updatedAt) VALUES(?,?,?,?,?)').run(key,0,2,now+1200000,now);
+ let calls=0;
+ const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>{calls++;throw Error('must not verify password')}});
+ assert.equal(response.status,429);
+ assert.ok(Number(response.headers.get('Retry-After'))>0);
+ assert.equal(calls,0);
 });
