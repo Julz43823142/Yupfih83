@@ -33,6 +33,10 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 
 7. **Score automation hardening:** publicly solvable puzzles and deterministic knight mazes now have additional server-time-based average pacing enforced at atomic score writes. Tests exercise fast answer floods and rapid maze progression. This raises the cost of automated ranking inflation but cannot prove human play or stop slower bots.
 
+## Independent AI-agent and automation permission review (#22)
+
+The repository does not expose a first-party AI-agent API or server-side autonomous agent in the reviewed source. GitHub Actions are the relevant automated actors. Three asset workflows previously requested `contents: write` and used `git push`, including direct writes to `main` from puzzle generation and Stockfish vendoring. This conflicted with the mandatory PR-only review policy. They now request `contents: read`, use checkout without persistent credentials where configured, and upload generated assets as short-lived review artifacts instead of committing or pushing. No automated merge or deployment was added. The separate manually dispatched private-room deployment still needs Cloudflare environment/secret permission review; actual installed GitHub App, Cloudflare token, and administrator permissions cannot be established from source alone. This is a source-level mitigation, not a certification of external AI-agent permissions.
+
 ## Before opening public registration
 
 Do not enable `PUBLIC_SIGNUP_ENABLED` until production Turnstile, Cloudflare edge/WAF, D1 permissions, secrets, backup restoration, API quotas/CPU budget, monitoring, administrative access and controlled multi-account production checks have been reviewed. Confirm an account recovery/support policy: the current username-based product has no email verification or self-service password reset.
