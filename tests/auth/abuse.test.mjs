@@ -4,6 +4,7 @@ import {database} from './fixture.mjs';
 import {handleAuth} from '../../lib/auth/gateway.mjs';
 import {keyedDigest} from '../../lib/auth/password.mjs';
 import {bytesToHex} from '@noble/hashes/utils.js';
+import {isReservedIdentity} from '../../lib/identity.mjs';
 const env = () => ({ AUTH_DB:database(), BETTER_AUTH_SECRET:'Synthetic-research-only-secret-123456789', BETTER_AUTH_URL:'https://eloscanner.com', TURNSTILE_SITE_KEY:'test', TURNSTILE_SECRET_KEY:'test' });
 function request(username, ip) { return new Request('https://eloscanner.com/api/auth/sign-in/username', { method:'POST', headers:{Origin:'https://eloscanner.com','Content-Type':'application/json','CF-Connecting-IP':ip}, body:JSON.stringify({username,password:'Synthetic-password-for-testing!'}) }); }
 test('rotating IPv6 addresses within one /64 must not reset source challenge threshold',async()=>{
@@ -53,4 +54,11 @@ test('source-throttled auth never executes cleanup deletes or credential hashing
  const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>{throw Error('Credential hashing should not run')}});
  assert.equal(response.status,429);
  assert.equal(e.AUTH_DB.sqlite.prepare('SELECT count FROM auth_attempts WHERE key=?').get(key).count,60);
+});
+
+test('staff-like names are reserved consistently across account, guest and leaderboard paths',()=>{
+ for(const name of ['admin','a_d_m_i_n','Elo Scanner','elo-scanner-support','EloScanner Team','support_team','mod-erator','system'])
+  assert.equal(isReservedIdentity(name),true,name);
+ for(const name of ['chessvisitor','chess_supporter','elochess','supportive'])
+  assert.equal(isReservedIdentity(name),false,name);
 });
