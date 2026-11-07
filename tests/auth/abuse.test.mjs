@@ -82,7 +82,7 @@ test('locked IP is rejected before password verification and login challenges',a
  const key=bytesToHex(await keyedDigest(e.BETTER_AUTH_SECRET,'rate-login-failures',ip));
  e.AUTH_DB.sqlite.prepare('INSERT INTO auth_login_lockouts(key,failures,tier,lockedUntil,updatedAt) VALUES(?,?,?,?,?)').run(key,0,2,now+1200000,now);
  let calls=0;
- const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>{calls++;throw Error('must not verify password')}});
+ const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>({handler:async()=>{calls++;throw Error('must not verify password')}})});
  assert.equal(response.status,429);
  assert.ok(Number(response.headers.get('Retry-After'))>0);
  assert.equal(calls,0);
