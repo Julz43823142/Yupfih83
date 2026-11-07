@@ -31,7 +31,9 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 5. **Click/premove reliability:** the board previously captured the pointer even on an ordinary click. Pointer capture now begins only for actual piece dragging; the move validation and game rules were not altered.
 6. **Stale test fixture:** the online unit tests missed migration `0006_online_draw_offers.sql`. The fixture now uses the latest schema and cross-account browser tests were added.
 
-7. **Score automation hardening:** publicly solvable puzzles and deterministic knight mazes now have additional server-time-based average pacing enforced at atomic score writes. Tests exercise fast answer floods and rapid maze progression. This raises the cost of automated ranking inflation but cannot prove human play or stop slower bots.\n\n## Before opening public registration
+7. **Score automation hardening:** publicly solvable puzzles and deterministic knight mazes now have additional server-time-based average pacing enforced at atomic score writes. Tests exercise fast answer floods and rapid maze progression. This raises the cost of automated ranking inflation but cannot prove human play or stop slower bots.
+
+## Before opening public registration
 
 Do not enable `PUBLIC_SIGNUP_ENABLED` until production Turnstile, Cloudflare edge/WAF, D1 permissions, secrets, backup restoration, API quotas/CPU budget, monitoring, administrative access and controlled multi-account production checks have been reviewed. Confirm an account recovery/support policy: the current username-based product has no email verification or self-service password reset.
 
