@@ -148,14 +148,14 @@ export async function onRequestPost({request,env}){
     :await verifiedShard(env,request,Number(data.shard));
    if(bank.get(puzzleId)!==line)return json({error:'Puzzle solution not verified.'},400);
    // Recheck against current state at the actual write, after async asset I/O.
-   // A prior SELECT alone lets parallel requests evade pacing and submission.
+   // A prior SELECT alone lets parallel requests evade submission state checks.
    const now=Date.now();
    const inserted=await db.prepare(`INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id)
     SELECT id,? FROM puzzle_verified_runs WHERE id=? AND submitted=0 AND score<100000
-    AND started_at<=? AND started_at>=? AND ?-started_at>=score*1200`).bind(puzzleId,id,now,now-duration-15000,now).run();
+    AND started_at<=? AND started_at>=?`).bind(puzzleId,id,now,now-duration-15000).run();
    if(!inserted.meta?.changes){
     const duplicate=await db.prepare('SELECT 1 AS solved FROM puzzle_verified_solves WHERE run_id=? AND puzzle_id=?').bind(id,puzzleId).first();
-    if(!duplicate)return json({error:'Run changed or puzzle proofs are arriving too quickly. Please retry.'},409);
+    if(!duplicate)return json({error:'Run changed. Please retry.'},409);
    }
    return json({ok:true});
   }catch{return json({error:'Could not verify puzzle. Please retry.'},503)}
