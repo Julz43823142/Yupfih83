@@ -1,4 +1,6 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {BOT_RATINGS,usesLocalBot,engineElo} from './play-bot-strength.mjs';
+import {preferredOpeningMove} from './play-bot-openings.mjs';
 import {attachPlayBotControls} from './play-bot-controls.mjs?v=2-multi-premoves';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
@@ -6,6 +8,7 @@ const pieces={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'
 const values={p:100,n:320,b:330,r:500,q:900,k:20000};
 const names=Object.fromEntries([["cashojf3r","cashojf3r (800)"],["bot400","Bot (400)"],["bot500","Bot (500)"],["bot600","Bot (600)"],["bot700","Bot (700)"],["bot800","Bot (800)"],["bot900","Bot (900)"],["bot1000","Bot (1000)"],["bot1100","Bot (1100)"],["bot1200","Bot (1200)"],["bot1300","Bot (1300)"],["bot1400","Bot (1400)"],["rocket","ROCKETLEAGUE (1500)"],["bot1650","Bot (1650)"],["bot1800","Bot (1800)"],["bot1950","Bot (1950)"],["ominous","ominousgenius (2090)"],["bot2200","Bot (2200)"],["mikhail","Mikhail Hal (2350)"],["bot2500","Bot (2500)"],["bot2700","Bot (2700)"]]);
 names.chessmass="Chessmass (1600)";names.pls90a="PLS_90A (2300)";names.peanut="Demented Peanut (2200)";
+names["bot200"]="Bot (200)";
 names["bot300"]="Bot (300)";
 names["bot1550"]="Bot (1550)";
 names["bot1600"]="Bot (1600)";
@@ -23,25 +26,7 @@ names["bot2850"]="Bot (2850)";
 names["bot2900"]="Bot (2900)";
 names["bot3000"]="Bot (3000)";
 names.lars="LARS";
-const ratings={"cashojf3r":800,"bot400":400,"bot500":500,"bot600":600,"bot700":700,"bot800":800,"bot900":900,"bot1000":1000,"bot1100":1100,"bot1200":1200,"bot1300":1300,"bot1400":1400,"rocket":1500,"bot1650":1650,"bot1800":1800,"bot1950":1950,"ominous":2090,"bot2200":2200,"mikhail":2350,"bot2500":2500,"bot2700":2700};
-ratings.chessmass=1600;ratings.pls90a=2300;ratings.peanut=2200;
-ratings["bot300"]=300;
-ratings["bot1550"]=1550;
-ratings["bot1600"]=1600;
-ratings["bot1700"]=1700;
-ratings["bot1900"]=1900;
-ratings["bot2000"]=2000;
-ratings["bot2100"]=2100;
-ratings["bot2250"]=2250;
-ratings["bot2300"]=2300;
-ratings["bot2400"]=2400;
-ratings["bot2450"]=2450;
-ratings["bot2600"]=2600;
-ratings["bot2800"]=2800;
-ratings["bot2850"]=2850;
-ratings["bot2900"]=2900;
-ratings["bot3000"]=3000;
-ratings.lars=3500;
+const ratings=BOT_RATINGS;
 let chess=new Chess(),human='w',orientation='white',selected=null,last=null,working=false,ended=false,gameToken=0,pending=null,premoves=[];
 let botLevel='rocket',selectedBot=null,audio=null,sound=true;
 let timedPractice=new URL(location.href).searchParams.has('practice');
@@ -315,7 +300,7 @@ function finishBotCalculation(token,move){
 function strongBotTurn(token,fen,level){
  stopStrongBot();
  try{
-  const w=new Worker('/play-strong-bot-worker.js?v=4-lars-search-upgrade',{type:'module'});strongWorker=w;
+  const w=new Worker('/play-strong-bot-worker.js?v=5-rating-and-opening',{type:'module'});strongWorker=w;
   const fallback=()=>{
    if(strongWorker!==w)return;
    stopStrongBot();
@@ -336,15 +321,14 @@ function strongBotTurn(token,fen,level){
   const first=chess.history({verbose:true})[0];
   const lockedRook=level==='pls90a'&&chess.history().length>=4?( ['e','f','g','h'].includes(first?.to?.[0])?'a6':'h6'):null;
   const remaining=chess.turn()==='w'?practiceWhiteMs:practiceBlackMs;
-  const pressure=level==='lars'?1:timedPractice&&remaining<12000?0.6:timedPractice&&remaining<30000?0.78:1;
-  w.postMessage({token,fen,elo:Math.max(800,Math.round((ratings[level]||2000)*pressure)),secondBest:level==='pls90a',lockedRook,lars:level==='lars',botTimeMs:timedPractice?remaining:null,opponentTimeMs:timedPractice?(chess.turn()==='w'?practiceBlackMs:practiceWhiteMs):null});
+  w.postMessage({token,fen,elo:engineElo(level),secondBest:level==='pls90a',lockedRook,lars:level==='lars',botTimeMs:timedPractice?remaining:null,opponentTimeMs:timedPractice?(chess.turn()==='w'?practiceBlackMs:practiceWhiteMs):null});
  }catch{if(level==='lars'){working=false;status('LARS engine unavailable. Please retry.');paint()}else try{ensureBotWorker().postMessage({token,fen,level})}catch{working=false;status('Bot calculation unavailable.');paint()}}
 }
 // Bot search runs in a module worker so deeper positions never freeze the board.
 let botWorker=null;
 function ensureBotWorker(){
  if(botWorker)return botWorker;
- botWorker=new Worker('/play-bot-worker.js?v=4-calibrated-openings',{type:'module'});
+ botWorker=new Worker('/play-bot-worker.js?v=5-rating-and-opening',{type:'module'});
  botWorker.onerror=()=>{status('Bot calculation failed. Start a new game to retry.');working=false;botWorker?.terminate();botWorker=null;paint()};
  botWorker.onmessage=e=>{
   const {token,move,error,bookMiss}=e.data;
@@ -355,42 +339,14 @@ function ensureBotWorker(){
  };
  return botWorker;
 }
+// PLS_90A deliberately uses the unusual rook setup when it is legal.
 function communityOpeningMove(level){
+ if(level!=='pls90a'||chess.turn()!=='b')return null;
  const moves=chess.moves({verbose:true}),ply=chess.history().length;
- const pick=san=>moves.find(m=>m.san===san)||null;
- if(level==='chessmass'){
-  if(chess.turn()==='w'){
-   if(ply===0)return pick('e4');
-   if(ply===2)return pick('Nf3');
-   if(ply===4)return pick('d4');
-   if(ply===6)return pick('Bc4');
-  }else{
-   if(ply===1)return pick('Nf6');
-   if(ply===3)return pick('g6');
-   if(ply===5)return pick('Bg7');
-   if(ply===7)return pick('d6');
-  }
- }
- if(level==='peanut'){
-  if(chess.turn()==='w'){
-   if(ply===0)return pick('e4');
-   if(ply===2)return pick('Nf3');
-   if(ply===4)return pick('Bc4');
-  }else{
-   if(ply===1)return pick('e5');
-   if(ply===3)return pick('Nc6');
-   if(ply===5)return pick('Bc5');
-  }
- }
- if(level==='pls90a'&&chess.turn()==='b'){
-  const first=chess.history({verbose:true})[0];
-  const flank=first?.to?.[0];
-  const queenside=['e','f','g','h'].includes(flank);
-  const kingside=['a','b','c','d'].includes(flank);
-  if(ply===1)return pick(queenside?'a5':kingside?'h5':'a5');
-  if(ply===3)return pick(queenside?'Ra6':kingside?'Rh6':'Ra6');
- }
- return null;
+ const first=chess.history({verbose:true})[0],flank=first?.to?.[0];
+ const queenside=['e','f','g','h'].includes(flank);
+ const san=ply===1?(queenside?'a5':'h5'):ply===3?(queenside?'Ra6':'Rh6'):null;
+ return moves.find(move=>move.san===san)||null;
 }
 function scheduleBot(){
  if(terminal())return;
@@ -408,11 +364,10 @@ function scheduleBot(){
  setTimeout(()=>{if(token!==gameToken||ended||chess.turn()===human)return;
   try{
    const elo=ratings[level]||1000;
-   const special=communityOpeningMove(level);
+   const special=preferredOpeningMove(chess,level)||communityOpeningMove(level);
    if(special){deliverBotMove(special);return;}
-   if(elo>=800&&(level==='cashojf3r'||level==='rocket'))ensureBotWorker().postMessage({token,fen,level,bookOnly:true});
-   else if(elo>=800)strongBotTurn(token,fen,level);
-   else ensureBotWorker().postMessage({token,fen,level});
+   if(usesLocalBot(level))ensureBotWorker().postMessage({token,fen,level});
+   else strongBotTurn(token,fen,level);
   }
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
  },level==='lars'?0:timedPractice?80:120);
