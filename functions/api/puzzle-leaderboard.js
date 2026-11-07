@@ -2,6 +2,7 @@ import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
+import {isReservedIdentity} from '../../lib/identity.mjs';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
@@ -174,7 +175,7 @@ export async function onRequestPost({request,env}){
   return json({error:"Use a valid name (2–20 characters) and score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
  // Disallowed leaderboard entries cannot be submitted again.
- if(["tttt","tttttttt"].includes(nickname.toLowerCase()))return json({error:"This nickname is not available. Please choose another."},400);
+ if(["tttt","tttttttt"].includes(nickname.toLowerCase())||(sourceType==='nickname'&&isReservedIdentity(nickname)))return json({error:"This nickname is not available. Please choose another."},400);
  // Anonymous entries must not impersonate registered account names.
  if(sourceType==='nickname'&&env.AUTH_DB){
   try{
