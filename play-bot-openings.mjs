@@ -44,6 +44,9 @@ const books=new Map();
 for(const [id,lines] of Object.entries(repertoire)){
  const positions=new Map();
  for(const line of lines){
+  // Chessmass plays the Scotch Gambit with White and King's Indian with Black;
+  // do not borrow the opponent's half of the other repertoire as a bot move.
+  const color=id==='chessmass'?(line[0]==='e4'?'w':'b'):null;
   const game=new Chess();
   for(let ply=0;ply<line.length;ply++){
    const san=line[ply],legal=game.moves({verbose:true}).find(move=>move.san===san);
@@ -51,9 +54,11 @@ for(const [id,lines] of Object.entries(repertoire)){
    // The repertoire governs the bot's color, not its opponent's replies.
    // Each viewer bot can be chosen as either White or Black.
    const key=openingKey(game);
-   let choices=positions.get(key);
-   if(!choices){choices=new Map();positions.set(key,choices)}
-   choices.set(san,(choices.get(san)||0)+1);
+   if(!color||game.turn()===color){
+    let choices=positions.get(key);
+    if(!choices){choices=new Map();positions.set(key,choices)}
+    choices.set(san,(choices.get(san)||0)+1);
+   }
    game.move(legal);
   }
  }
