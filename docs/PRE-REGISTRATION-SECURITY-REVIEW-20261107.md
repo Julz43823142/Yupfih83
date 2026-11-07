@@ -16,7 +16,7 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 | 13 | XSS | Client-rendering sinks reviewed; ranking uses textContent; built HTML injects per-document CSP hashes; browser XSS regression | Third-party runtime and full live browser attack surface are not independently audited |
 | 14 | Code injection | Retired external engine proxies; reviewed first-party execution points and isolated Pyodide worker | Bundled third-party JS/Python not exhaustively audited |
 | 15 | Input validation | Bounded JSON parsing, allowlisted routes, names, IDs, origins and chess moves | New endpoints must preserve these controls |
-| 16 | Tamperable scores/accounts | SQLite-atomic proof/race defenses; server-authoritative chess validation and account-owned scores; server-time pacing for puzzle solves (1.2 seconds average) and knight-maze levels (0.75 seconds average), with automation regression tests | Public puzzle solutions and deterministic mazes can still be automated at plausible speeds; scores are not prize-grade |
+| 16 | Tamperable scores/accounts | SQLite-atomic proof/race defenses; server-authoritative chess validation and account-owned scores; no minimum solve-time thresholds, preserving legitimate fast play; tests retain server-owned scores and atomic concurrency defenses | Public puzzle solutions and deterministic mazes can be automated; manual fair-play moderation is deferred; scores are not prize-grade |
 | 17 | Unsafe error handling | Generic API errors and no credential/secret reflection in reviewed auth paths | Cloudflare logs and production integrations not available |
 | 21 | Unsafe defaults | Public registration fail-closed; build excludes private files and vendor demos; read-only CI token for tests | Cloudflare dashboard and deployed configuration remain unverified |
 
@@ -31,7 +31,7 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 5. **Click/premove reliability:** the board previously captured the pointer even on an ordinary click. Pointer capture now begins only for actual piece dragging; the move validation and game rules were not altered.
 6. **Stale test fixture:** the online unit tests missed migration `0006_online_draw_offers.sql`. The fixture now uses the latest schema and cross-account browser tests were added.
 
-7. **Score automation hardening:** publicly solvable puzzles and deterministic knight mazes now have additional server-time-based average pacing enforced at atomic score writes. Tests exercise fast answer floods and rapid maze progression. This raises the cost of automated ranking inflation but cannot prove human play or stop slower bots.
+7. **No arbitrary speed gate:** at the site owner's request, removed average minimum-time restrictions on verified puzzle solves and knight-maze levels, including the pre-existing puzzle pacing requirement. Server-side solution and move validation, score ownership, duplicate-proof protection, atomic race guards and run expiry remain. Regression tests ensure fast legitimate play is accepted and forged client scores are rejected. Bot detection and manual fair-play moderation are deferred.
 
 ## Independent AI-agent and automation permission review (#22)
 
