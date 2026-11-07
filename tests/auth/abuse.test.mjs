@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {database} from './fixture.mjs';
 import {handleAuth} from '../../lib/auth/gateway.mjs';
+import {keyedDigest} from '../../lib/auth/password.mjs';
+import {bytesToHex} from '@noble/hashes/utils.js';
 const env = () => ({ AUTH_DB:database(), BETTER_AUTH_SECRET:'Synthetic-research-only-secret-123456789', BETTER_AUTH_URL:'https://eloscanner.com', TURNSTILE_SITE_KEY:'test', TURNSTILE_SECRET_KEY:'test' });
 function request(username, ip) { return new Request('https://eloscanner.com/api/auth/sign-in/username', { method:'POST', headers:{Origin:'https://eloscanner.com','Content-Type':'application/json','CF-Connecting-IP':ip}, body:JSON.stringify({username,password:'Synthetic-password-for-testing!'}) }); }
 test('rotating IPv6 addresses within one /64 must not reset source challenge threshold',async()=>{
@@ -37,4 +39,18 @@ test('encoded/unlisted endpoints, injected fields and malformed input never expo
  const bad=request('legitimate','192.0.2.9');
  const error=await handleAuth({request:bad,env:e},{createAuth:()=>{throw new Error(secret);}});
  assert.equal(error.status,503);assert.ok(!(await error.text()).includes(secret));
+});
+
+test('source-throttled auth never executes cleanup deletes or credential hashing',async()=>{
+ const e=env(),ip='192.0.2.80',now=Date.now();
+ const key=bytesToHex(await keyedDigest(e.BETTER_AUTH_SECRET,'rate-source',ip));
+ e.AUTH_DB.sqlite.prepare('INSERT INTO auth_attempts(key,count,expiresAt) VALUES(?,60,?)').run(key,now+60000);
+ const prepare=e.AUTH_DB.prepare.bind(e.AUTH_DB);
+ e.AUTH_DB.prepare=sql=>{
+  if(/^\\s*DELETE\\b/i.test(sql))throw Error('Cleanup should not run after source throttling');
+  return prepare(sql);
+ };
+ const response=await handleAuth({request:request('legitimate',ip),env:e},{createAuth:()=>{throw Error('Credential hashing should not run')}});
+ assert.equal(response.status,429);
+ assert.equal(e.AUTH_DB.sqlite.prepare('SELECT count FROM auth_attempts WHERE key=?').get(key).count,60);
 });
