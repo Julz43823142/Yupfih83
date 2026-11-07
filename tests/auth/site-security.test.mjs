@@ -155,7 +155,7 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
   for(const dir of ['assets','vendor','client-v87','lib'])mkdirSync(join(root,dir));
   const source={
    'index.html':'<!doctype html><html><head><script>window.expected=true;</script></head><body></body></html>',
-   'credentials.json':'PRIVATE', 'package.json':'PRIVATE', 'assets/.env':'PRIVATE', 'assets/auth.db':'PRIVATE',
+   'credentials.json':'PRIVATE', 'package.json':'PRIVATE', 'assets/.env':'PRIVATE', 'assets/auth.db':'PRIVATE', 'assets/internal.csv':'PRIVATE', 'assets/config.yml':'PRIVATE', 'vendor/typed.d.ts':'PRIVATE',
    'vendor/secrets.json':'PRIVATE', 'assets/backup.txt':'PRIVATE', 'vendor/console.html':'<script src="https://example.com"></script>',
    'lib/auth.js':'PRIVATE', 'client-v87/runner.py':'print(1)', 'vendor/runtime.zip':'RUNTIME', 'assets/board.svg':'<svg/>', 'app.js':'window.ok=true;'
   };
@@ -163,7 +163,7 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
   symlinkSync(join(root,'lib'),join(root,'assets','linked'));
   symlinkSync(join(root,'lib/auth.js'),join(root,'linked.js'));
   buildSite(root);
-  for(const name of ['credentials.json','package.json','assets/.env','assets/auth.db','vendor/secrets.json','assets/backup.txt','vendor/console.html','lib/auth.js','assets/linked/auth.js','linked.js'])assert.equal(existsSync(join(root,'dist',name)),false,name);
+  for(const name of ['credentials.json','package.json','assets/.env','assets/auth.db','vendor/secrets.json','assets/backup.txt','vendor/console.html','lib/auth.js','assets/linked/auth.js','linked.js','assets/internal.csv','assets/config.yml','vendor/typed.d.ts'])assert.equal(existsSync(join(root,'dist',name)),false,name);
   for(const name of ['client-v87/runner.py','vendor/runtime.zip','assets/board.svg','app.js'])assert.equal(existsSync(join(root,'dist',name)),true,name);
   const html=readFileSync(join(root,'dist/index.html'),'utf8');
   assert.match(html,/http-equiv="Content-Security-Policy"/);
