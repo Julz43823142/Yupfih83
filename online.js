@@ -27,12 +27,14 @@ onlineBoard.addEventListener('pointerdown',e=>{
  const from=button.dataset.sq,piece=game.get(from);
  if(piece?.color!==side)return;
  dragStart={from,x:e.clientX,y:e.clientY,id:e.pointerId,moved:false,source:button,ghost:null};
- try{onlineBoard.setPointerCapture(e.pointerId)}catch{}
+ // Capture only when a drag really starts. Capturing on pointerdown can
+ // retarget an ordinary click to the board and suppress square selection.
 });
 onlineBoard.addEventListener('pointermove',e=>{
  if(dragStart?.id!==e.pointerId)return;
  if(!dragStart.moved&&Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)>8){
   dragStart.moved=true;
+  try{onlineBoard.setPointerCapture(e.pointerId)}catch{}
   const img=dragStart.source.querySelector('img');
   if(img){dragStart.ghost=img.cloneNode(true);dragStart.ghost.className='online-drag-ghost';document.body.append(dragStart.ghost);dragStart.source.classList.add('online-drag-source')}
  }

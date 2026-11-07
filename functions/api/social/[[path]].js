@@ -1,10 +1,21 @@
 import {reply,rateLimit,readJSON,sessionUser,sameOrigin,isToken,validUsername,secretHash,random,safeError} from '../../../lib/online/security.mjs';
 const clock=()=>Date.now();
+// Prevent arbitrary POST paths from becoming independent rate-limit scopes.
+// Only recognized routes may reach the shared D1 counters or authentication.
+const ROUTE_METHODS=new Map([
+ ['directory','GET'],['status','GET'],['history','GET'],
+ ['public-friends','GET'],['game','GET'],['friends','GET'],['inbox','GET'],
+ ['presence','POST'],['add','POST'],['friend-respond','POST'],
+ ['remove','POST'],['challenge','POST']
+]);
 const member=async(db,name)=>db.prepare('SELECT id,username FROM "user" WHERE lower(username)=lower(?) LIMIT 1').bind(name).first();
 const fetchMe=async(request,env)=>sessionUser(request,env);
 async function limit(env,req,scope,n,ms){return await rateLimit(env,req,'social:'+scope,n,ms)?null:reply({error:'Too many requests. Please try again later.'},429)}
 export async function onRequest({request,env}){
  const url=new URL(request.url),route=url.pathname.replace(/^\/api\/social\/?/,'').replace(/\/$/,'');
+ const expectedMethod=ROUTE_METHODS.get(route);
+ if(!expectedMethod)return reply({error:'Route not found.'},404);
+ if(request.method!==expectedMethod)return reply({error:'Method not allowed.'},405);
  if(!env.AUTH_DB||typeof env.BETTER_AUTH_SECRET!=='string'||env.BETTER_AUTH_SECRET.length<32)return reply({error:'Community unavailable.'},503);
  if(!['GET','POST'].includes(request.method))return reply({error:'Method not allowed.'},405);
  if(request.method==='POST'&&!sameOrigin(request))return reply({error:'Request origin rejected.'},403);

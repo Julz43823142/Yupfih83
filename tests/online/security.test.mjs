@@ -11,7 +11,7 @@ import {lagCredit,lagGrace,MAX_LAG_PER_GAME_MS} from '../../lib/online/lag.mjs';
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
 function databaseWithOnline(){
  const db=database();
- for(const n of ['0003_online_chess.sql','0004_social.sql','0005_online_lag.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
+ for(const n of ['0003_online_chess.sql','0004_social.sql','0005_online_lag.sql','0006_online_draw_offers.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
  db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
@@ -39,6 +39,23 @@ test('IP rate limits and seat limits remain independent across network changes',
   assert.equal(await rateLimitPair(env,makeReq('203.0.113.3'),'ip-probe',20,'seat-probe',2,60000,'same-seat'),false);
   // Another seat on the same IP retains its own budget.
   assert.equal(await rateLimitPair(env,makeReq('203.0.113.3'),'ip-probe',20,'seat-probe',2,60000,'different-seat'),true);
+ }finally{db.close()}
+});
+
+test('unknown online/social paths cannot allocate unlimited D1 throttle keys',async()=>{
+ const db=databaseWithOnline();try{
+  const fakeSeat={id:'a'.repeat(32),secret:'b'.repeat(32)};
+  for(let i=0;i<30;i++){
+   assert.equal((await call(db,'not-a-route-'+i,fakeSeat)).status,404);
+   assert.equal((await call(db,'not-a-route-'+i,{}, {social:true})).status,404);
+  }
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,0);
+  assert.equal((await call(db,'create',{}, {method:'GET'})).status,405);
+  assert.equal((await call(db,'add',{}, {social:true,method:'GET'})).status,405);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,0);
+  // A recognized route still applies normal per-network and per-seat throttling.
+  assert.equal((await call(db,'state',fakeSeat)).status,404);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,2);
  }finally{db.close()}
 });
 

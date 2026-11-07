@@ -23,7 +23,7 @@
  for(const button of document.querySelectorAll('[data-limit]'))button.setAttribute('aria-pressed',String(Number(button.dataset.limit)===limit));
  try{
 
-  const url=isMaze?'/api/knight-maze?limit='+limit:'/api/puzzle-leaderboard?mode='+mode+'&limit='+limit+'&filter='+filter;
+  const url=isMaze?'/api/knight-maze?limit='+limit:'/api/puzzle-leaderboard?mode='+mode+'&limit='+limit;
   const r=await fetch(url,{cache:'no-store'}),data=await r.json();
   if(!r.ok)throw Error(data.error||'Unavailable');
   
