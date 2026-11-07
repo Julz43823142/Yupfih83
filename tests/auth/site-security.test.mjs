@@ -196,6 +196,16 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
+test('asset automation has read-only GitHub token and never pushes generated files',()=>{
+ const workflows=['build-puzzle-pool.yml','vendor-privacy-assets.yml','vendor-stockfish.yml'];
+ for(const name of workflows){
+  const yaml=readFileSync(new URL('../../.github/workflows/'+name,import.meta.url),'utf8');
+  assert.match(yaml,/contents:\\s*read/,name);
+  assert.doesNotMatch(yaml,/contents:\\s*write|git\\s+push|persist-credentials:\\s*true/,name);
+  assert.match(yaml,/actions\\/upload-artifact@v4/,name);
+ }
+});
+
 test('legacy engine routes use only deployed assets and do not accept an upstream URL',async()=>{
  const {serveEngineAsset}=await import('../../lib/engine-assets.js');
  const seen=[];
