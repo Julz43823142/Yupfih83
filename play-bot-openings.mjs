@@ -62,10 +62,13 @@ for(const [id,lines] of Object.entries(repertoire)){
 export function preferredOpeningMove(game,id,random=Math.random){
  const choices=books.get(id)?.get(openingKey(game));
  if(!choices)return null;
- const legal=game.moves({verbose:true}).filter(move=>choices.has(move.san));
- if(!legal.length)return null;
- const total=legal.reduce((sum,move)=>sum+choices.get(move.san),0);
+ const legal=game.moves({verbose:true});
+ // Keep declared repertoire priorities: chess.js legal-move ordering is not
+ // an opening preference and changes the result for deterministic choices.
+ const candidates=[...choices].map(([san,weight])=>({move:legal.find(m=>m.san===san),weight})).filter(x=>x.move);
+ if(!candidates.length)return null;
+ const total=candidates.reduce((sum,x)=>sum+x.weight,0);
  let draw=random()*total;
- for(const move of legal){draw-=choices.get(move.san);if(draw<0)return move}
- return legal.at(-1);
+ for(const candidate of candidates){draw-=candidate.weight;if(draw<0)return candidate.move}
+ return candidates.at(-1).move;
 }
