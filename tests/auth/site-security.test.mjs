@@ -179,7 +179,7 @@ test('asset automation has read-only GitHub token and never pushes generated fil
   const yaml=readFileSync(new URL('../../.github/workflows/'+name,import.meta.url),'utf8');
   assert.match(yaml,/contents:\\s*read/,name);
   assert.doesNotMatch(yaml,/contents:\\s*write|git\\s+push|persist-credentials:\\s*true/,name);
-  assert.match(yaml,/actions\\/upload-artifact@v4/,name);
+  assert.ok(yaml.includes('actions/upload-artifact@v4'),name);
  }
 });
 
