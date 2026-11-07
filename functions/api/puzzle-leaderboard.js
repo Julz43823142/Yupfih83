@@ -9,6 +9,9 @@ const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Re
 const json=(data,status=200)=>Response.json(data,{status,headers});
 const hour=()=>Math.floor(Date.now()/3600000);
 const validMode=m=>["sprint","sprint3","sprint5","survival"].includes(m);
+// A public solution bank cannot prove a human solved a puzzle. Require a
+// plausible average solve time, enforced atomically when a proof is written.
+const MIN_AVERAGE_SOLVE_MS=1200;
 const schemas=new WeakMap();
 async function dbReady(db){
  if(schemas.has(db))return schemas.get(db);
@@ -139,7 +142,7 @@ export async function onRequestPost({request,env}){
    // A submitted proof must represent human-paced solving, not a script
    // uploading hundreds of public puzzle answers immediately after starting.
    // This is a modest aggregate limit, not a claim of tamper-proof gameplay.
-   if(elapsed<run.score*350)return json({error:'Puzzle proofs are arriving too quickly.'},429);
+   if(elapsed<run.score*MIN_AVERAGE_SOLVE_MS)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
@@ -149,7 +152,7 @@ export async function onRequestPost({request,env}){
    const now=Date.now();
    const inserted=await db.prepare(`INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id)
     SELECT id,? FROM puzzle_verified_runs WHERE id=? AND submitted=0 AND score<100000
-    AND started_at<=? AND started_at>=? AND ?-started_at>=score*350`).bind(puzzleId,id,now,now-duration-15000,now).run();
+    AND started_at<=? AND started_at>=? AND ?-started_at>=score*1200`).bind(puzzleId,id,now,now-duration-15000,now).run();
    if(!inserted.meta?.changes){
     const duplicate=await db.prepare('SELECT 1 AS solved FROM puzzle_verified_solves WHERE run_id=? AND puzzle_id=?').bind(id,puzzleId).first();
     if(!duplicate)return json({error:'Run changed or puzzle proofs are arriving too quickly. Please retry.'},409);
