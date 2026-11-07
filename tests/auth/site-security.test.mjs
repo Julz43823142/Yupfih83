@@ -25,13 +25,13 @@ test('parallel puzzle proofs cannot evade pacing, double count, or score a concu
   const responses=await Promise.all(bank.slice(0,12).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
   assert.equal(responses.filter(r=>r.status===200).length,1);
   assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  now+=350;
+  now+=1200;
   const repeated=await Promise.all(Array.from({length:8},()=>post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})));
   assert.ok(repeated.every(r=>r.status===200));
   assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
   assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,200);
   assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
-  now+=700;
+  now+=2400;
   const prepare=db.prepare;
   db.prepare=function(sql){
    const stmt=prepare(sql);
@@ -45,6 +45,30 @@ test('parallel puzzle proofs cannot evade pacing, double count, or score a concu
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves').get().c,2);
   assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
  }finally{Date.now=originalNow;}
+});
+
+test('public answer bots cannot inflate puzzle rankings faster than server time permits',async()=>{
+ const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
+ let now=1800000000000;Date.now=()=>now;
+ try{
+  const session=await start(env);
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})).status,200);
+  // Different valid answers submitted immediately must not increase the score.
+  const flood=await Promise.all(bank.slice(1,20).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
+  assert.equal(flood.filter(response=>response.status===200).length,0);
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
+  now+=1199;
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,429);
+  now++;
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,200);
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
+  now+=1200;
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof2',solution:'b1b2'})).status,200);
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,3);
+  // Client-supplied totals remain unable to bypass server-verified scores.
+  assert.equal((await post(env,{action:'submit',session,mode:'survival',nickname:'FastBot',score:19})).status,409);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
+ }finally{Date.now=originalNow}
 });
 
 test('a concurrent solve invalidates a stale score submission; an unknown run cannot write scores',async()=>{
