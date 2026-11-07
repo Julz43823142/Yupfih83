@@ -42,3 +42,10 @@ The repository does not expose a first-party AI-agent API or server-side autonom
 Do not enable `PUBLIC_SIGNUP_ENABLED` until production Turnstile, Cloudflare edge/WAF, D1 permissions, secrets, backup restoration, API quotas/CPU budget, monitoring, administrative access and controlled multi-account production checks have been reviewed. Confirm an account recovery/support policy: the current username-based product has no email verification or self-service password reset.
 
 The live site was not load-tested or attacked in this review. No production migrations, registration configuration, merges or deployments were performed. The PR should be reviewed and merged only after all CI checks pass.
+
+## Registration and login policy agreed with site owner
+
+- Registration remains disabled until explicit authorization. The existing signup gateway already requires a Cloudflare Turnstile token and validates success, hostname and the `signup` action server-side; the backend rejects missing or failed tokens.
+- Login IP failure policy: after each ten actual incorrect-password responses from one Cloudflare-derived source, lock login for 10, 20, 30, ... minutes, capped at 72 hours. Escalation persists across lockouts, while a successful login resets the current failure count. This does not affect other website pages. Existing account/source limits and Turnstile-on-login escalation remain in place.
+- Shared NAT/IP addresses can affect innocent users, and rotating IPs can evade per-IP rules. Cloudflare deployment and live verification remain outstanding.
+- Administrator access in GitHub and Cloudflare cannot be certified from source code; the owner's expectation of sole human administration requires a dashboard permissions audit. No extra AI deployment rights are granted.
