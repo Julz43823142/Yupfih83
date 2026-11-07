@@ -116,6 +116,30 @@ test('expired puzzle history is cleaned in bounded batches without deleting acti
  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_hourly_scores').get().c,1);
 });
 
+test('automated knight-maze levels cannot inflate faster than elapsed server time',async()=>{
+ const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
+ let now=1800000000000;Date.now=()=>now;
+ try{
+  const started=await post(env,{action:'start'},mazePost);
+  assert.equal(started.status,200);
+  const id=(await started.json()).run.id;
+  const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+  const next=square=>{const x=square%8,y=Math.floor(square/8);for(const [dx,dy] of jumps){const a=x+dx,b=y+dy;if(a>=0&&a<8&&b>=0&&b<8)return b*8+a;}throw Error('No knight jump')};
+  let row=db.sqlite.prepare('SELECT * FROM knight_maze_runs WHERE id=?').get(id);
+  let goal=next(row.position);
+  db.sqlite.prepare('UPDATE knight_maze_runs SET goal=?,blocked=? WHERE id=?').run(goal,'[]',id);
+  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,200);
+  row=db.sqlite.prepare('SELECT * FROM knight_maze_runs WHERE id=?').get(id);
+  goal=next(row.position);
+  db.sqlite.prepare('UPDATE knight_maze_runs SET goal=?,blocked=? WHERE id=?').run(goal,'[]',id);
+  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,429);
+  assert.equal(db.sqlite.prepare('SELECT score FROM knight_maze_runs WHERE id=?').get(id).score,1);
+  now+=750;
+  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,200);
+  assert.equal(db.sqlite.prepare('SELECT score FROM knight_maze_runs WHERE id=?').get(id).score,2);
+ }finally{Date.now=originalNow}
+});
+
 test('global anonymous start budgets are atomic, saturate without extra writes, and reset by window',async()=>{
  const db=database(),now=1800000000000;
  const allowed=await Promise.all(Array.from({length:65},()=>consumeGameStart(db,'puzzle',now)));
