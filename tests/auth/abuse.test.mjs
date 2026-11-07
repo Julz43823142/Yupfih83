@@ -87,3 +87,15 @@ test('locked IP is rejected before password verification and login challenges',a
  assert.ok(Number(response.headers.get('Retry-After'))>0);
  assert.equal(calls,0);
 });
+
+test('attacker failures against victim username never block victim on another IP',async()=>{
+ const e=env(),now=Date.now(),attacker='192.0.2.191',victim='192.0.2.192';
+ const key=bytesToHex(await keyedDigest(e.BETTER_AUTH_SECRET,'rate-login-failures',attacker));
+ e.AUTH_DB.sqlite.prepare('INSERT INTO auth_login_lockouts(key,failures,tier,lockedUntil,updatedAt) VALUES(?,?,?,?,?)').run(key,0,1,now+600000,now);
+ let verified=0;
+ const services={createAuth:()=>({handler:async()=>{verified++;return Response.json({}, {status:401});}})};
+ assert.equal((await handleAuth({request:request('target_account',attacker),env:e},services)).status,429);
+ assert.equal(verified,0);
+ assert.equal((await handleAuth({request:request('target_account',victim),env:e},services)).status,401);
+ assert.equal(verified,1);
+});
