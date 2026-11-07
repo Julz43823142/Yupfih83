@@ -42,6 +42,23 @@ test('IP rate limits and seat limits remain independent across network changes',
  }finally{db.close()}
 });
 
+test('unknown online/social paths cannot allocate unlimited D1 throttle keys',async()=>{
+ const db=databaseWithOnline();try{
+  const fakeSeat={id:'a'.repeat(32),secret:'b'.repeat(32)};
+  for(let i=0;i<30;i++){
+   assert.equal((await call(db,'not-a-route-'+i,fakeSeat)).status,404);
+   assert.equal((await call(db,'not-a-route-'+i,{}, {social:true})).status,404);
+  }
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,0);
+  assert.equal((await call(db,'create',{}, {method:'GET'})).status,405);
+  assert.equal((await call(db,'add',{}, {social:true,method:'GET'})).status,405);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,0);
+  // A recognized route still applies normal per-network and per-seat throttling.
+  assert.equal((await call(db,'state',fakeSeat)).status,404);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_attempts').get().n,2);
+ }finally{db.close()}
+});
+
 test('CSRF/method/body guards, guest identity isolation and secret authorization',async()=>{
  const db=databaseWithOnline();try{
   assert.equal((await call(db,'create',{kind:'random',name:'Visitor'},{crossOrigin:true})).status,403);
