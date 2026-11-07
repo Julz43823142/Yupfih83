@@ -22,9 +22,6 @@ function seededRoll(runId,level){
  };
 }
 const duration=180000;
-// Deterministic public mazes can be solved by a script. Bound the maximum
-// ranked level progression by elapsed server time, not client timestamps.
-const MIN_AVERAGE_LEVEL_MS=750;
 let lastRunCleanup=0;
 const schemas=new WeakMap();
 async function ready(db){
@@ -109,7 +106,6 @@ export async function onRequestPost({request,env}){
    const to=data?.to;
    if(!Number.isInteger(to)||!neighbors(run.position).includes(to)||JSON.parse(run.blocked).includes(to))return json({error:'Illegal knight move.'},400);
    if(to===run.goal){
-    if(now-run.started_at<run.score*MIN_AVERAGE_LEVEL_MS)return json({error:'Maze levels are being completed too quickly.'},429);
     const next=maze(run.level+1,id);
     const updated=await db.prepare('UPDATE knight_maze_runs SET level=?,position=?,goal=?,blocked=?,score=score+1 WHERE id=? AND level=? AND position=? AND finished=0 AND started_at>?').bind(run.level+1,next.position,next.goal,JSON.stringify(next.blocked),id,run.level,run.position,now-duration).run();
     if(!updated.meta?.changes)return json({error:'Move already processed. Restart if necessary.'},409);
