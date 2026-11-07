@@ -9,9 +9,6 @@ const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Re
 const json=(data,status=200)=>Response.json(data,{status,headers});
 const hour=()=>Math.floor(Date.now()/3600000);
 const validMode=m=>["sprint","sprint3","sprint5","survival"].includes(m);
-// A public solution bank cannot prove a human solved a puzzle. Require a
-// plausible average solve time, enforced atomically when a proof is written.
-const MIN_AVERAGE_SOLVE_MS=1200;
 const schemas=new WeakMap();
 async function dbReady(db){
  if(schemas.has(db))return schemas.get(db);
@@ -139,10 +136,6 @@ export async function onRequestPost({request,env}){
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
-   // A submitted proof must represent human-paced solving, not a script
-   // uploading hundreds of public puzzle answers immediately after starting.
-   // This is a modest aggregate limit, not a claim of tamper-proof gameplay.
-   if(elapsed<run.score*MIN_AVERAGE_SOLVE_MS)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
