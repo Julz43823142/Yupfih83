@@ -68,6 +68,15 @@ test('a concurrent solve invalidates a stale score submission; an unknown run ca
  assert.equal((await post(env,{...data,score:99999})).status,409);
 });
 
+test('anonymous puzzle leaderboard rejects staff impersonation even after a valid proof',async()=>{
+ const env=fixture(),session=await start(env);
+ assert.equal((await post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})).status,200);
+ const attempt=await post(env,{action:'submit',mode:'survival',nickname:'Elo Scanner',score:1,session});
+ assert.equal(attempt.status,400);
+ assert.equal(env.SUS_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
+ assert.equal(env.SUS_DB.sqlite.prepare('SELECT submitted FROM puzzle_verified_runs WHERE id=?').get(session).submitted,0);
+});
+
 test('expired puzzle history is cleaned in bounded batches without deleting active runs or rankings',async()=>{
  const env=fixture(),db=env.SUS_DB,active=await start(env),old=crypto.randomUUID();
  db.sqlite.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').run(old,'survival',Date.now()-90000000);
