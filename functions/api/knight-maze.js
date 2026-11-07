@@ -2,6 +2,7 @@ import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
+import {isReservedIdentity} from '../../lib/identity.mjs';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
 const json=(value,status=200)=>Response.json(value,{status,headers});
@@ -131,7 +132,7 @@ export async function onRequestPost({request,env}){
   let nickname=accountId?session.user.username:String(data?.nickname||'').trim();
   if(!accountId&&data?.sourceType==='account')return json({error:'Sign in to publish using your account.'},401);
   if(!(sourceType==='account'?/^[a-zA-Z0-9_]{3,24}$/:/^[a-zA-Z0-9 _-]{2,20}$/).test(nickname))return json({error:'Use a nickname of 2–20 letters, numbers, spaces, _ or -.'},400);
-  if(['tttt','tttttttt'].includes(nickname.toLowerCase()))return json({error:'Please choose another nickname.'},400);
+  if(['tttt','tttttttt'].includes(nickname.toLowerCase())||(sourceType==='nickname'&&isReservedIdentity(nickname)))return json({error:'Please choose another nickname.'},400);
   try{if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:'moderate',normalizeUnicode:true}).containsProfanity)return json({error:'Please choose a family-friendly nickname.'},400)}
   catch{return json({error:'Nickname moderation temporarily unavailable.'},503)}
   if(sourceType==='nickname'&&env.AUTH_DB){
