@@ -16,7 +16,7 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 | 13 | XSS | Client-rendering sinks reviewed; ranking uses textContent; built HTML injects per-document CSP hashes; browser XSS regression | Third-party runtime and full live browser attack surface are not independently audited |
 | 14 | Code injection | Retired external engine proxies; reviewed first-party execution points and isolated Pyodide worker | Bundled third-party JS/Python not exhaustively audited |
 | 15 | Input validation | Bounded JSON parsing, allowlisted routes, names, IDs, origins and chess moves | New endpoints must preserve these controls |
-| 16 | Tamperable scores/accounts | SQLite-atomic proof/race defenses; server-authoritative chess validation and account-owned scores | Public puzzles do not establish anti-cheat proof; scores are not prize-grade |
+| 16 | Tamperable scores/accounts | SQLite-atomic proof/race defenses; server-authoritative chess validation and account-owned scores; server-time pacing for puzzle solves (1.2 seconds average) and knight-maze levels (0.75 seconds average), with automation regression tests | Public puzzle solutions and deterministic mazes can still be automated at plausible speeds; scores are not prize-grade |
 | 17 | Unsafe error handling | Generic API errors and no credential/secret reflection in reviewed auth paths | Cloudflare logs and production integrations not available |
 | 21 | Unsafe defaults | Public registration fail-closed; build excludes private files and vendor demos; read-only CI token for tests | Cloudflare dashboard and deployed configuration remain unverified |
 
@@ -31,7 +31,7 @@ The prior answer called 12 checks "self-checkable", but the table actually marke
 5. **Click/premove reliability:** the board previously captured the pointer even on an ordinary click. Pointer capture now begins only for actual piece dragging; the move validation and game rules were not altered.
 6. **Stale test fixture:** the online unit tests missed migration `0006_online_draw_offers.sql`. The fixture now uses the latest schema and cross-account browser tests were added.
 
-## Before opening public registration
+7. **Score automation hardening:** publicly solvable puzzles and deterministic knight mazes now have additional server-time-based average pacing enforced at atomic score writes. Tests exercise fast answer floods and rapid maze progression. This raises the cost of automated ranking inflation but cannot prove human play or stop slower bots.\n\n## Before opening public registration
 
 Do not enable `PUBLIC_SIGNUP_ENABLED` until production Turnstile, Cloudflare edge/WAF, D1 permissions, secrets, backup restoration, API quotas/CPU budget, monitoring, administrative access and controlled multi-account production checks have been reviewed. Confirm an account recovery/support policy: the current username-based product has no email verification or self-service password reset.
 
