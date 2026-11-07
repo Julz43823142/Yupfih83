@@ -111,7 +111,7 @@ export async function onRequestPost({request,env}){
    if(to===run.goal){
     if(now-run.started_at<run.score*MIN_AVERAGE_LEVEL_MS)return json({error:'Maze levels are being completed too quickly.'},429);
     const next=maze(run.level+1,id);
-    const updated=await db.prepare('UPDATE knight_maze_runs SET level=?,position=?,goal=?,blocked=?,score=score+1 WHERE id=? AND level=? AND position=? AND finished=0 AND started_at>? AND ?-started_at>=score*750').bind(run.level+1,next.position,next.goal,JSON.stringify(next.blocked),id,run.level,run.position,now-duration,now).run();
+    const updated=await db.prepare('UPDATE knight_maze_runs SET level=?,position=?,goal=?,blocked=?,score=score+1 WHERE id=? AND level=? AND position=? AND finished=0 AND started_at>?').bind(run.level+1,next.position,next.goal,JSON.stringify(next.blocked),id,run.level,run.position,now-duration).run();
     if(!updated.meta?.changes)return json({error:'Move already processed. Restart if necessary.'},409);
     return json({run:{id,level:run.level+1,score:run.score+1,position:next.position,goal:next.goal,blocked:next.blocked,endsAt:run.started_at+duration,finished:false,preview:maze(run.level+2,id),lookahead:futureLevels(id,run.level+3)},solved:true});
    }
