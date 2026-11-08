@@ -87,6 +87,10 @@ test('Guess the Elo reviews authentic-game-shaped moves, allows manual rating an
  await expect(page.getByRole('button',{name:'Next move ▶'})).toBeVisible();
  await page.getByRole('button',{name:'Next move ▶'}).click();
  await expect(page.locator('#arcade-elo-progress')).toHaveText('1 / 12 half-moves');
+ await page.keyboard.press('ArrowLeft');
+ await expect(page.locator('#arcade-elo-progress')).toHaveText('0 / 12 half-moves');
+ await page.keyboard.press('ArrowRight');
+ await expect(page.locator('#arcade-elo-progress')).toHaveText('1 / 12 half-moves');
  await page.getByRole('spinbutton',{name:'Your Elo estimate'}).fill('1650');
  await page.getByRole('button',{name:'Reveal Elo & score'}).click();
  await expect(page.locator('#arcade-score')).toHaveText('10');
