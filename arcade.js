@@ -1,5 +1,4 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {createPawnWorld} from '/pawn-world.js';
 import {attachChessBoardControls} from '/chess-board-controls.js';
 import {appendChessArrow} from '/chess-board-arrows.js';
 import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from '/arcade-rules.mjs';
@@ -15,14 +14,14 @@ $('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(mod
 document.title=info.name+' | EloScanner';
 const instructions={
  'endgame-survivor':'Play increasingly varied endgames: pawns, minor pieces and rooks against Stockfish. Convert an advantage into a win. You have three lives; a draw or loss costs one. Every win is one point.',
- 'guess-the-elo':'Watch a short, illustrative bot game, then choose the closest strength rating. The sample ratings are demonstration targets, not verified ratings from real players. Guess quickly to score more.',
+ 'guess-the-elo':'Review a real Lichess game, browse its moves, then enter your own Elo estimate. Exact = 10 points; 50 Elo away = 5, 100 = 4 and 200 = 3. The actual Elo and game link are revealed afterward.',
  'chess-memory':'Memorize the position while it is visible. After the pieces disappear, choose a piece from the tray and click or drag it onto the correct square. Reconstruct as many boards as possible in three minutes.',
- 'missing-piece':'One white piece is missing. Choose it from the tray and place it in the correct square. Black then makes a move. Find mate in one with the piece you placed. Three mistakes end the run.',
- 'safe-square-rush':'Move the highlighted king, knight, bishop, rook or queen to a safe square. Red squares are attacked. Every completed level scores. Three minutes; three lives.',
+ 'missing-piece':'Find the missing piece, place it on the board, then deliver checkmate. Three mistakes end the run.',
+ 'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Move your pawn forward or diagonally across a shifting chess road. Avoid moving rooks and bishops. Cross as many rows as you can in three minutes; three hits end your run.'
+ 'pawn-dash':'Hop across the original isometric Pawn Kingdom, dodge moving chess pieces, and survive as many lanes as possible. Use arrows, WASD or touch controls.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -208,7 +207,6 @@ function setupLevel(){
   state.revealUntil=Date.now()+Math.max(2700,6500-state.level*200);
   status('Memorize the pieces! They disappear shortly.');
  }else if(mode==='missing-piece'){
-  state.phase='waiting';status('Coming soon — Missing Piece is under construction.');return;
   state.puzzle=missing[(state.level-1)%missing.length];
   state.chess=new Chess(state.puzzle.fen);state.phase='placement';
   palette(['Q','R','B','N'].map(type=>({type,side:'player'})));
@@ -237,7 +235,10 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Hop across the Pawn Kingdom! Use arrows, WASD, swipe or directional buttons.');
   board.hidden=true;pawnWorld?.destroy();
-  pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message)});
+  import('/pawn-world.js').then(({createPawnWorld})=>{
+   if(!state||state.finished||mode!=='pawn-dash')return;
+   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message)});
+  }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
  }
 }
 function drawRoad(){
@@ -545,7 +546,7 @@ async function getSession(){
 }
 async function start(){
  stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
- if(mode==='missing-piece'){status('Coming soon — this game is being redesigned.');return;}
+ 
  const now=Date.now(),s=seed();
  state={mode,seed:s,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
@@ -612,5 +613,5 @@ $('arcade-submit').addEventListener('click',submit);
 $('arcade-next').addEventListener('click',nextLevel);
 window.addEventListener('elo-account-changed',e=>{account=e.detail?.user||null;if(account?.username){$('arcade-nickname').value=account.username;$('arcade-nickname').disabled=true}});
 window.addEventListener('pagehide',()=>{stopBot();pawnWorld?.destroy()});
-if(mode==='missing-piece'){$('arcade-start').disabled=true;$('arcade-start').textContent='Coming soon';status('Missing Piece is under construction.');}
+
 void getSession();void loadRanking();paint();
