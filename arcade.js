@@ -318,14 +318,30 @@ function placePalette(to){
  }
  if(mode==='missing-piece'&&state.phase==='placement'){
   const p=state.puzzle,trial=new Chess(p.fen);
-  // More than one placement can produce mate in one. Accept every valid one.
-  const ok=trial.put({type:palettePiece.type.toLowerCase(),color:'w'},square(to));
-  let response=null,hasMate=false;
-  if(ok){try{response=trial.move({from:p.response[0],to:p.response[1]});if(response){hasMate=trial.moves({verbose:true}).some(move=>{const candidate=new Chess(trial.fen());candidate.move(move);return candidate.isCheckmate()})}}catch{}}
-  if(!hasMate){lose('This placement does not produce a mate in one at '+square(to)+'.');paint();return}
-  state.chess=trial;state.phase='mate';
+  // Check EVERY legal Black reply. A solution is not tied to the one
+  // canned pawn move in the seed, and any legal mating move is accepted.
+  const dest=square(to),ok=trial.put({type:palettePiece.type.toLowerCase(),color:'w'},dest);
+  if(ok&&trial.isCheckmate()){state.chess=trial;score(1);status('Checkmate immediately! Valid alternate solution.');nextLevel();paint();return}
+  let chosen=null;
+  if(ok&&!trial.isStalemate()){
+   const replies=trial.moves({verbose:true});
+   const preferred=replies.find(m=>m.from===p.response[0]&&m.to===p.response[1]);
+   if(preferred){replies.splice(replies.indexOf(preferred),1);replies.unshift(preferred)}
+   for(const reply of replies){
+    const after=new Chess(trial.fen());after.move(reply);
+    const mating=after.moves({verbose:true}).some(m=>{
+     const candidate=new Chess(after.fen());candidate.move(m);return candidate.isCheckmate()
+    });
+    if(mating){chosen={after,reply};break}
+   }
+  }
+  if(!chosen){
+   lose('No mate in one follows '+palettePiece.type+' on '+dest+'. Example: '+p.piece+' on '+p.square+'.');
+   paint();return
+  }
+  state.chess=chosen.after;state.phase='mate';
   $('arcade-palette').hidden=true;palettePiece=null;
-  flashFeedback('Correct placement!');status('Black played '+response.san+'. Find any mate in one — all valid mating moves count.');
+  flashFeedback('Valid placement!');status('Black plays '+chosen.reply.san+'. Find any checkmate in one — alternative moves count.');
   paint();return;
  }
 }
