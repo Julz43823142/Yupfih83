@@ -318,6 +318,59 @@ function guessElo(guess){
  const link=document.createElement('a');link.href=state.eloLink;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View the real Lichess game ↗';choices.append(answer,link);
  $('arcade-next').hidden=false;status('Rating revealed. You were '+diff+' Elo away. Continue when ready.');
 }
+async function loadRealEloGame(run){
+ const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=true;
+ try{
+  const response=await fetch('/api/arcade-game',{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
+  if(state!==run||state.finished)return;
+  if(!Array.isArray(data.moves)||!Number.isInteger(data.elo)||!/^https:\/\/lichess\.org\/[A-Za-z0-9]+$/.test(data.link))throw Error('Invalid real game');
+  const validate=new Chess(),moves=[];
+  for(const uci of data.moves){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
+  if(moves.length<12)throw Error('Incomplete game record');
+  state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
+  const prompt=document.createElement('p');prompt.textContent='Real Lichess game · Estimate the '+data.side+' player Elo.';
+  const prev=document.createElement('button');prev.type='button';prev.textContent='◀ Previous move';
+  const progress=document.createElement('span');progress.className='arcade-elo-progress';
+  const next=document.createElement('button');next.type='button';next.textContent='Next move ▶';
+  const guess=document.createElement('input');guess.type='number';guess.min='100';guess.max='4000';guess.step='1';guess.placeholder='Your Elo estimate';guess.setAttribute('aria-label','Your Elo estimate');guess.className='arcade-elo-input';
+  const submit=document.createElement('button');submit.type='button';submit.textContent='Reveal Elo & score';
+  const navigate=delta=>{const index=Math.max(0,Math.min(moves.length,state.eloIndex+delta));state.eloIndex=index;state.eloView=new Chess();for(let i=0;i<index;i++)state.eloView.move(moves[i]);progress.textContent=index+' / '+moves.length+' half-moves';prev.disabled=index===0;next.disabled=index===moves.length;paint()};
+  prev.addEventListener('click',()=>navigate(-1));next.addEventListener('click',()=>navigate(1));
+  submit.addEventListener('click',()=>{const n=Number(guess.value);if(guess.value!==''&&Number.isInteger(n))guessElo(n);else status('Enter a whole-number Elo estimate first.')});
+  guess.addEventListener('keydown',e=>{if(e.key==='Enter')submit.click()});
+  choices.append(prompt,prev,progress,next,guess,submit);choices.hidden=false;navigate(0);
+  status('Review the real game. Then enter a rating from 100 to 4000.');
+ }catch(error){
+  if(state!==run||state.finished)return;state.phase='waiting';choices.hidden=false;
+  const retry=document.createElement('button');retry.textContent='Retry loading a real game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
+  choices.replaceChildren(retry);status(error.message||'Could not load a real game.');
+ }
+}
+function applyQueuedPremove(){
+ const move=queuedPremove;queuedPremove=null;
+ if(!move||!state||state.finished||state.phase!=='playing')return false;
+ if(canMove(move.from,move.to)){play(move.from,move.to);return true}
+ status('Premove is no longer legal. Choose another move.');return false;
+}
+// Premoves permit a friendly-occupied target during planning, like the live
+// online board. The actual move is only committed if legal on the next turn.
+board.addEventListener('pointerdown',e=>{
+ if(e.button!==0||state?.phase!=='thinking'||!['endgame-survivor','queen-chase'].includes(mode))return;
+ const sq=controls.squareAt(e.clientX,e.clientY),i=cell(sq);
+ if(i<0)return;e.preventDefault();e.stopImmediatePropagation();
+ premovePointer={from:i};
+},true);
+board.addEventListener('pointerup',e=>{
+ if(!premovePointer)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ const sq=controls.squareAt(e.clientX,e.clientY),i=cell(sq);
+ if(i<0){premovePointer=null;return}
+ const from=premovePointer.from;premovePointer=null;
+ if(selected!==null&&selected!==square(i)){const f=cell(selected);if(f>=0){queuedPremove={from:f,to:i};selected=null;status('Premove queued: '+square(f)+' → '+square(i));paint();return}}
+ if(from===i&&getPiece(i)?.side==='player'){selected=square(i);paint();return}
+ if(getPiece(from)?.side==='player'){queuedPremove={from,to:i};selected=null;status('Premove queued: '+square(from)+' → '+square(i));paint()}
+},true);
 function successfulCapture(){
  score(20+Math.max(0,12-state.turns));
  status('Queen cornered! New pursuit.');
@@ -453,7 +506,7 @@ function stockfishQueenEscape(){
   if(!Number.isInteger(target)||target<0){successfulCapture();paint();return}
   delete state.pieces[queen];state.pieces[target]={type:'Q',side:'enemy'};state.queen=target;
   state.phase='playing';status('Queen escaped to '+square(target)+'. Close the net!');
-  paint();
+  if(!applyQueuedPremove())paint();
  };
  try{
   const worker=new Worker('/arcade-queen-stockfish-worker.js',{type:'module'});botWorker=worker;
@@ -475,7 +528,7 @@ function stockfishMove(){
    try{state.chess.move(m)}catch{stopBot();status('Engine returned an illegal move. Please restart.');state.phase='waiting';paint();return}
    stopBot();
    if(checkEndgame()){paint();return}
-   state.phase='playing';status('Stockfish played. Your turn.');paint();
+   state.phase='playing';status('Stockfish played. Your turn.');if(!applyQueuedPremove())paint();
   };
   worker.onerror=()=>{if(token!==botToken)return;stopBot();state.phase='waiting';status('Stockfish could not start. Finish this run or play again.');paint()};
   worker.postMessage({token,fen:state.chess.fen(),elo:3190,fullStrength:true});
