@@ -1,11 +1,11 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from '/chess-board-controls.js';
 import {appendChessArrow} from '/chess-board-arrows.js';
-import {GAME_CATALOG,IDS,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
+import {GAME_CATALOG,IDs,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
 
 const $=id=>document.getElementById(id);
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
-const mode=IDS.has(modeParam)?modeParam:'endgame-survivor';
+const mode=IDs.has(modeParam)?modeParam:'endgame-survivor';
 const info=GAME_CATALOG.find(g=>g.id===mode);
 $('arcade-title').textContent=info.name;
 $('arcade-description').textContent=info.description;
