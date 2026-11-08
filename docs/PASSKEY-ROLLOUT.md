@@ -89,7 +89,10 @@ no production or remote staging credentials are touched.
    after prior migrations. Never bind preview to live production D1.
 2. Configure exact `BETTER_AUTH_URL` and matching `PASSKEY_RP_ID` to the stable
    HTTPS preview host, and set `PASSKEY_LOGIN_ENABLED=true` only in preview.
-   The default without these variables is OFF.
+   The default without these variables is OFF. The server and public config
+   now check for BOTH D1 tables before enabling passkeys; password login
+   continues to work if those tables are missing. A preview must use a
+   different D1 database and origin from production.
 3. On the account page, log in with an existing password, reenter the current
    password in Passkeys, create a passkey, log out, then log in via passkey.
 4. Test Chromium virtual authenticator CI, real phone/QR flows, lost device and
@@ -106,10 +109,12 @@ passwords are disabled. Do not launch passkey-only registration yet.
 
 Minimum launch design:
 
-- Allow registration of at least two independently usable passkeys before
-  disabling the legacy password. A synchronized passkey on multiple devices may
-  rely on one cloud account; a hardware security key or independently managed
-  second passkey is preferable. Show active credential count on the account page.
+- **One passkey is enough** to enroll and log in. A second independent passkey
+  is recommended, never required. Because there is no secure passwordless
+  recovery flow yet, **retain the existing password** for account recovery in
+  this existing-account pilot. Synced passkeys do not guarantee account access
+  when the underlying cloud account or devices are lost. Display credential
+  count, with an optional backup recommendation.
 - For passwordless users, replacing, adding, renaming or removing a passkey
   requires a fresh **passkey-authenticated** step-up. Session possession alone
   must not suffice. The current password-confirmed step-up is for migration only.
@@ -150,13 +155,57 @@ Minimum launch design:
 - Build and npm audit run in GitHub CI. These checks do not establish security
   against production compromise, distributed denial-of-service or malware.
 
+## Existing-account-only pilot: launch prerequisites
+
+**Release scope:** only people with an existing account may register a passkey.
+The Better Auth plugin requires an authenticated session and our gateway
+requires a successful re-entry of the CURRENT PASSWORD before creating a
+single-use enrollment challenge. Both public password signup and any
+passkey-first user-registration endpoints remain blocked. The same stable
+user ID (and therefore user history) is used. **One passkey suffices.**
+
+Do not confuse changing a password with activating passkeys: `change-password`
+still requires the current password and remains available. Do **not** remove
+old password hashes, turn off legacy login or make public signup available
+as part of the existing-account pilot.
+
+**To activate after review and real device testing:**
+
+1. Create a tested backup of the **production** D1 account database; verify a
+   restore procedure and inspect current migrations in Cloudflare.
+2. Review and merge this PR only after explicit deployment approval. Verify
+   Cloudflare builds and dependency installation, and confirm which Pages
+   environment binds `AUTH_DB`.
+3. Apply the additive `0007_passkeys.sql` migration to the intended D1
+   database only, with a tested rollback/restore plan. The application
+   rejects passkey enablement until the passkey and step-up tables both exist.
+4. Set `PASSKEY_LOGIN_ENABLED=true`, `PASSKEY_RP_ID=eloscanner.com`
+   for the production Pages deployment only. The origin must already be
+   `https://eloscanner.com`. Avoid using a preview domain or wildcard RP ID.
+5. Check `/api/auth/config`: `registrationOpen=false`,
+   `loginConfigured=true`, `passkeyReady=true`.
+   Test `/api/auth/sign-up/email` stays at 403, and that unlisted
+   plugin management routes return 404.
+6. Log in as the EXISTING account on the actual browser/device, re-enter the
+   old password, register ONE passkey, log out, and sign in with that passkey.
+   Confirm account `user.id`, rankings and history unchanged; check that
+   password-based login still works as recovery.
+7. For rollback: unset `PASSKEY_LOGIN_ENABLED` (or set `false`). Passkey
+   routes disappear; passwords continue to function. Do not drop the passkey
+   table or rotate authentication secrets during rollback.
+
+No GitHub checks or synthetic account tests prove access to production
+Cloudflare D1, production backups, deployment settings, real mobile biometrics
+or a phone-based QR ceremony. Those are explicit release gates, not inferred
+from having the only account.
+
 ## Safe sequencing
 
 A. Land schema and hard-closed legacy signup, with tests (this PR).
 B. Pin/integrate passkey plugin and client UI (this unmerged review branch),
    with passkey routes opt-in and public signup hard-closed.
 C. Operator migration: sign in with existing password, reenter password,
-   register passkey, sign out, test passkey sign-in, attach a second passkey.
+   register ONE passkey, sign out, test passkey sign-in; second passkey optional.
 D. Only after independently tested migration/recovery and approved release:
    remove the legacy password login for migrated accounts. Retain a safe
    method for unconverted accounts until migration policy is settled.
