@@ -81,3 +81,12 @@ test('moving the king must not expose a rook attack along the vacated line',()=>
  const pieces={[king]:{type:'K',side:'player'},[rook]:{type:'R',side:'enemy'}};
  assert.equal(safeMoves('K',king,pieces).includes(cell('e2')),false);
 });
+
+test('queen cannot escape along a rook ray hidden behind her original square',()=>{
+ const queen=cell('e5');
+ const pieces={[cell('e1')]:{type:'R',side:'player'},[queen]:{type:'Q',side:'enemy'}};
+ const target=queenEscape(pieces,queen);
+ assert.notEqual(target,cell('e6'));
+ assert.notEqual(target,cell('e7'));
+ assert.notEqual(target,cell('e8'));
+});
