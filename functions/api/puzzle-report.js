@@ -9,7 +9,7 @@ export async function onRequestPost({request,env}){
  if(parsed.error)return json({error:parsed.error},parsed.status);
  const data=parsed.data;
  const mode=data?.mode,nickname=data?.nickname,score=data?.score;
- const arcadeModes=new Set(["endgame-survivor","guess-the-elo","chess-memory","safe-square-rush","falling-board","queen-chase","chess-block-party","pawn-dash"]);
+ const arcadeModes=new Set(["endgame-survivor","guess-the-elo","chess-memory","missing-piece","safe-square-rush","falling-board","queen-chase","chess-block-party","pawn-dash"]);
  if(!["sprint","survival","knight-maze"].includes(mode)&&!arcadeModes.has(mode))return json({error:"Invalid leaderboard."},400);
  if(typeof nickname!=="string"||!(/^[a-zA-Z0-9 _-]{2,20}$/.test(nickname))||!Number.isInteger(score)||score<0||score>100000)return json({error:"Invalid leaderboard entry."},400);
  const db=env.SUS_DB;
