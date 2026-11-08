@@ -330,21 +330,23 @@ function guessElo(guess){
  score(points);state.phase='revealed';
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=false;
  const answer=document.createElement('strong');answer.className='arcade-elo-reveal';answer.textContent='Actual '+state.eloSide+' Elo: '+state.answer+' · Your guess: '+guess+' · +'+points+' points';
- const link=document.createElement('a');link.href=state.eloLink;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View the real Lichess game ↗';choices.append(answer,link);
+ const link=document.createElement('a');link.href=state.eloLink;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View the real '+state.eloPlatform+' game ↗';choices.append(answer,link);
  $('arcade-next').hidden=false;status('Rating revealed. You were '+diff+' Elo away. Continue when ready.');
 }
 async function loadRealEloGame(run){
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=true;
+ if(!run.eloAbort)run.eloAbort=new AbortController();
  try{
-  const response=await fetch('/api/arcade-game',{cache:'no-store'});
+  const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(state?.eloGameId||''),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
   if(state!==run||state.finished)return;
-  if(!Array.isArray(data.moves)||!Number.isInteger(data.elo)||!/^https:\/\/lichess\.org\/[A-Za-z0-9]+$/.test(data.link))throw Error('Invalid real game');
+  if(!Number.isInteger(data.elo)||!/^https:\/\/(?:lichess\.org\/[A-Za-z0-9]+|www\.chess\.com\/game\/(?:live|daily)\/[0-9]+)$/.test(data.link))throw Error('Invalid real game');
   const validate=new Chess(),moves=[];
-  for(const uci of data.moves){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
+  if(data.platform==='chesscom'&&typeof data.pgn==='string'){validate.loadPgn(data.pgn);moves.push(...validate.history({verbose:true}))}
+  else for(const uci of data.moves||[]){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
   if(moves.length<12)throw Error('Incomplete game record');
-  state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
-  const prompt=document.createElement('p');prompt.textContent='Real Lichess game · Estimate the '+data.side+' player Elo.';
+  state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloGameId=data.id;state.eloPlatform=data.platform==='chesscom'?'Chess.com':'Lichess';state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
+  const prompt=document.createElement('p');prompt.textContent='Real '+state.eloPlatform+' game · Estimate the '+data.side+' player Elo.';
   const prev=document.createElement('button');prev.type='button';prev.textContent='◀ Previous move';
   const progress=document.createElement('span');progress.className='arcade-elo-progress';
   const next=document.createElement('button');next.type='button';next.textContent='Next move ▶';
@@ -352,6 +354,8 @@ async function loadRealEloGame(run){
   const submit=document.createElement('button');submit.type='button';submit.textContent='Reveal Elo & score';
   const navigate=delta=>{const index=Math.max(0,Math.min(moves.length,state.eloIndex+delta));state.eloIndex=index;state.eloView=new Chess();for(let i=0;i<index;i++)state.eloView.move(moves[i]);progress.textContent=index+' / '+moves.length+' half-moves';prev.disabled=index===0;next.disabled=index===moves.length;paint()};
   prev.addEventListener('click',()=>navigate(-1));next.addEventListener('click',()=>navigate(1));
+  const keyboard=e=>{if(state!==run||state.phase!=='guess')return;if(e.target?.matches?.('input,textarea,select'))return;if(e.key==='ArrowLeft'){e.preventDefault();navigate(-1)}else if(e.key==='ArrowRight'){e.preventDefault();navigate(1)}};
+  window.addEventListener('keydown',keyboard,{signal:run.eloAbort.signal});
   submit.addEventListener('click',()=>{const n=Number(guess.value);if(guess.value!==''&&Number.isInteger(n))guessElo(n);else status('Enter a whole-number Elo estimate first.')});
   guess.addEventListener('keydown',e=>{if(e.key==='Enter')submit.click()});
   choices.append(prompt,prev,progress,next,guess,submit);choices.hidden=false;navigate(0);
@@ -560,7 +564,7 @@ async function getSession(){
  }catch{}
 }
 async function start(){
- stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
+ state?.eloAbort?.abort();stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
  const now=Date.now(),s=seed();runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
  state={mode,seed:s,positionOffset:runOffset%endgames.length,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
@@ -580,7 +584,7 @@ async function start(){
 }
 function finish(){
  if(!state||state.finished)return;
- queuedPremove=null;pawnWorld?.destroy();pawnWorld=null;
+ queuedPremove=null;pawnWorld?.destroy();pawnWorld=null;state.eloAbort?.abort();
  state.finished=true;state.phase='done';clearInterval(clockTimer);stopBot();controls.cancelDrag();
  $('arcade-finish').hidden=true;
  $('arcade-final-score').textContent='Final score: '+state.score+' points · level '+state.level+'.';
