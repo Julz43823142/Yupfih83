@@ -15,9 +15,9 @@ export async function onRequestPost({request,env}){
  const db=env.SUS_DB;
  try{
   let row;
-  if(arcadeModes.has(mode))row=await db.prepare("SELECT score FROM arcade_score_entries WHERE mode=? AND nickname=? AND score=? LIMIT 1").bind(mode,nickname,score).first();
-  else if(mode==="knight-maze")row=await db.prepare("SELECT score FROM knight_maze_score_entries WHERE nickname=? AND score=? LIMIT 1").bind(nickname,score).first();
-  else {const modes=mode==="sprint"?"('sprint3','sprint5')":"('survival')";row=await db.prepare(`SELECT MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ${modes} AND nickname=?`).bind(nickname).first();}
+  if(arcadeModes.has(mode))row=await db.prepare("SELECT score FROM arcade_score_entries WHERE mode=? AND lower(nickname)=lower(?) AND score=? LIMIT 1").bind(mode,nickname,score).first();
+  else if(mode==="knight-maze")row=await db.prepare("SELECT score FROM knight_maze_score_entries WHERE lower(nickname)=lower(?) AND score=? LIMIT 1").bind(nickname,score).first();
+  else {const modes=mode==="sprint"?"('sprint3','sprint5')":"('survival')";row=await db.prepare(`SELECT MAX(score) AS score FROM puzzle_hourly_scores WHERE mode IN ${modes} AND lower(nickname)=lower(?)`).bind(nickname).first();}
   if(!row||row.score!==score)return json({error:"This leaderboard entry is no longer available. Refresh the page."},404);
   await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_nickname_reports (nickname TEXT PRIMARY KEY COLLATE NOCASE, mode TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS leaderboard_reports (mode TEXT NOT NULL, nickname TEXT NOT NULL COLLATE NOCASE, score INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(mode,nickname,score))").run();
