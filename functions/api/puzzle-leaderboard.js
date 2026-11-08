@@ -136,6 +136,7 @@ export async function onRequestPost({request,env}){
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
+   if(elapsed<run.score*350)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
@@ -145,10 +146,10 @@ export async function onRequestPost({request,env}){
    const now=Date.now();
    const inserted=await db.prepare(`INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id)
     SELECT id,? FROM puzzle_verified_runs WHERE id=? AND submitted=0 AND score<100000
-    AND started_at<=? AND started_at>=?`).bind(puzzleId,id,now,now-duration-15000).run();
+    AND started_at<=? AND started_at>=? AND ?-started_at>=score*350`).bind(puzzleId,id,now,now-duration-15000,now).run();
    if(!inserted.meta?.changes){
     const duplicate=await db.prepare('SELECT 1 AS solved FROM puzzle_verified_solves WHERE run_id=? AND puzzle_id=?').bind(id,puzzleId).first();
-    if(!duplicate)return json({error:'Run changed. Please retry.'},409);
+    if(!duplicate)return json({error:'Run changed or puzzle proofs are arriving too quickly. Please retry.'},409);
    }
    return json({ok:true});
   }catch{return json({error:'Could not verify puzzle. Please retry.'},503)}
