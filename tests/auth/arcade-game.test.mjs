@@ -34,7 +34,13 @@ test('Guess the Elo falls back to a verified archived real game when upstream fa
 
 test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original player ratings',async()=>{
  const previous=globalThis.fetch, visited=[];
- const pgn='[Event "Live Chess"]\\n[Site "Chess.com"]\\n[White "PlayerA"]\\n[Black "PlayerB"]\\n[Result "1-0"]\\n\\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
+ const pgn=`[Event "Live Chess"]
+[Site "Chess.com"]
+[White "PlayerA"]
+[Black "PlayerB"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0`;
  globalThis.fetch=async input=>{visited.push(String(input));return Response.json({games:[{rated:true,rules:'chess',time_class:'rapid',url:'https://www.chess.com/game/live/123456789',pgn,white:{rating:1837},black:{rating:1722}}]})};
  try{
   const response=await onRequestGet({request:new Request(url)}),game=await response.json();
