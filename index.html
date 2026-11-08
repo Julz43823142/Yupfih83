@@ -138,7 +138,7 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
       <aside class="hero-tool-links" aria-label="Chess tools"><div class="hero-tool-heading">CHESS TOOLS</div><a href="/play.html"><img class="tool-icon" src="/assets/play-bots.svg?v=30" width="26" height="26" alt="" loading="eager"><span class="tool-label">Play</span></a><a href="/analysis.html"><svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="26" height="26" role="img" aria-label="Analyse icon" fill="none"><rect x="10" y="10" width="72" height="76" rx="10" stroke="#F5FBFF" stroke-width="5"/><path fill="#F5FBFF" d="M22 23h17v17H22zm34 0h17v17H56zM39 40h17v17H39zM22 57h17v17H22zM56 57h17v17H56z"/><circle cx="77" cy="76" r="19" fill="#071B30" stroke="#00DFF2" stroke-width="7"/><path d="m91 91 13 13" stroke="#00DFF2" stroke-width="7" stroke-linecap="round"/></svg><span class="tool-label">Analyse</span></a><a href="/player-prep.html"><img class="tool-icon" src="/assets/accuracy-target.svg?v=1" alt=""><span class="tool-label">Player Prep</span></a><a href="/puzzles.html"><img class="tool-icon" src="/assets/puzzles-approved.svg?v=1" width="26" height="26" alt="" loading="eager"><span class="tool-label">Puzzles</span></a><a href="/minigames.html"><img class="tool-icon" src="/assets/minigames-tool.svg?v=2" width="26" height="26" alt="" loading="eager"><span class="tool-label">Minigames</span></a></aside>
       
 
-      <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Hourly puzzle leaderboard">
+      <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Rotating hourly chess leaderboards">
         <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
         <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
         <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 100</a>
@@ -214,9 +214,10 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
    for(const [mode,id] of [['sprint5','home-sprint-rank'],['survival','home-survival-rank']]){
     const list=document.getElementById(id);if(!list)continue;
     try{
-     const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
+     const endpoint=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode+'&limit=10';
+   const r=await fetch(endpoint,{cache:'no-store'}),data=await r.json();
      if(!r.ok)throw Error('Unavailable');
-     if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
+     if(!data.entries.length){const li=document.createElement('li');li.textContent='0 scores yet';list.append(li)}
      for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
     }catch{const li=document.createElement('li');li.textContent='Rankings unavailable';list.append(li)}
    }
@@ -239,10 +240,16 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
  async function update(){
   // Switch the displayed leaderboard every UTC hour. Scores remain separate,
   // and the existing hourly scoring windows are unchanged.
-  const hour=Math.floor(Date.now()/3600000),mode=hour%2===0?'sprint':'survival';
+  const boards=[
+   ['sprint','Puzzle Sprint'],['survival','Puzzle Survival'],['knight-maze','Knight Maze'],
+   ['endgame-survivor','Endgame Survivor'],['guess-the-elo','Guess the Elo'],
+   ['chess-memory','Chess Memory'],['missing-piece','Missing Piece'],
+   ['safe-square-rush','Safe Square Rush'],['falling-board','Falling Board'],
+   ['queen-chase','Queen Chase'],['chess-block-party','Chess Block Party'],['pawn-dash','Pawn Dash']
+  ];
+  const hour=Math.floor(Date.now()/3600000),[mode,label]=boards[((hour%boards.length)+boards.length)%boards.length];
   if(mode===lastMode)return;lastMode=mode;
-  title.textContent=mode==='sprint'?'Puzzle Sprint · Top 10':'Puzzle Survival · Top 10';
-  
+  title.textContent=label+' · Top 10';
   more.href='/puzzle-top100.html?mode='+mode;
   list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
   try{
