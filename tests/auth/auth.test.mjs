@@ -358,3 +358,19 @@ test('new login sessions expire after 30 days, not seven', async () => {
   assert.ok(expiry >= before + thirtyDays - 60_000, 'session should last approximately 30 days');
   assert.ok(expiry <= Date.now() + thirtyDays + 60_000, 'session must not exceed 30 days');
 });
+
+
+test('phone-first signup attempts cannot be replayed or create accounts on their own', () => {
+  const db = database().sqlite;
+  const created = Date.now();
+  db.prepare('INSERT INTO auth_passkey_signup_attempt(id, username, challengeDigest, expiresAt, createdAt, sourceDigest) VALUES (?,?,?,?,?,?)')
+    .run('attempt-1', 'test_phone', 'challenge-digest-1', created + 120_000, created, 'source-digest');
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM user').get().c, 0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM auth_passkey_signup_attempt').get().c, 1);
+  db.prepare('UPDATE auth_passkey_signup_attempt SET consumedAt=? WHERE id=? AND consumedAt IS NULL AND expiresAt>?')
+    .run(created + 1, 'attempt-1', created);
+  assert.throws(() => db.prepare('UPDATE auth_passkey_signup_attempt SET consumedAt=NULL WHERE id=?').run('attempt-1'));
+  assert.throws(() => db.prepare('INSERT INTO auth_passkey_signup_attempt(id, username, challengeDigest, expiresAt, createdAt, sourceDigest) VALUES (?,?,?,?,?,?)')
+    .run('attempt-2', 'test_phone', 'challenge-digest-1', created + 120_000, created, 'source-digest'));
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM user').get().c, 0);
+});
