@@ -440,6 +440,7 @@ test('phone-first signup options require rollout flag and verified Turnstile; cr
   assert.equal(data.publicKey.rp.id, 'eloscanner.com');
   assert.equal(Buffer.from(data.publicKey.user.id, 'base64url').toString('utf8'), data.attemptId);
   assert.deepEqual(data.publicKey.hints, ['hybrid']);
+  assert.equal(data.publicKey.authenticatorSelection.authenticatorAttachment, 'cross-platform');
   assert.equal(data.publicKey.authenticatorSelection.userVerification, 'required');
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_passkey_signup_attempt').get().n, 1);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 0);
