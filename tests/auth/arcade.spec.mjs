@@ -94,6 +94,11 @@ test('Pawn Dash is a separate isometric world and hopping scores lane progress',
  await stubScores(page);await page.goto(base+'/arcade.html?game=pawn-dash');
  await page.locator('#arcade-start').click();
  await expect(page.locator('.pawn-world-canvas')).toBeVisible();
+ await expect(page.locator('.pawn-world-immersive')).toBeVisible();
+ await expect(page.locator('.pawn-world-canvas')).toHaveCSS('position','static');
+ await page.keyboard.press('Escape');
+ await expect(page.getByRole('button',{name:'Resume game'})).toBeVisible();
+ await page.getByRole('button',{name:'Resume game'}).click();
  await expect(page.locator('#arcade-board')).toBeHidden();
  await page.keyboard.press('ArrowUp');
  await expect(page.locator('#arcade-score')).toHaveText('1');
@@ -115,7 +120,7 @@ test('Chess Memory palette has draggable SVGs and mobile board stays inside view
  expect(errors).toEqual([]);
 });
 
-test('Safe Square Rush conceals safe destinations and Queen Chase still supports dragging',async({page})=>{
+test('Safe Square Rush shows legal move dots without revealing attacked squares; Queen Chase supports dragging',async({page})=>{
  await stubScores(page);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base+'/arcade.html?game=safe-square-rush');
@@ -124,10 +129,10 @@ test('Safe Square Rush conceals safe destinations and Queen Chase still supports
  await source.click();
  await expect(page.locator('#arcade-board .arcade-square.safe-zone')).toHaveCount(0);
  await expect(page.locator('#arcade-board .arcade-square.threatened')).toHaveCount(0);
- await expect(page.locator('#arcade-board .arcade-square.available')).toHaveCount(0);
+ await expect.poll(()=>page.locator('#arcade-board .arcade-square.available').count()).toBeGreaterThan(0);
  await page.goto(base+'/arcade.html?game=queen-chase');
  await page.locator('#arcade-start').click();
- const rook=page.locator('#arcade-board [data-square="a8"]');
+ const rook=page.locator('#arcade-board .arcade-square:has(.chess-piece[alt="White Rook"])').first();
  await rook.click();
  const dest=page.locator('#arcade-board .arcade-square.available').first();
  const target=await dest.getAttribute('data-square');
