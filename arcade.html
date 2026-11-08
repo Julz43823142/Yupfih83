@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Play nine score-based chess arcade minigames on EloScanner, with accessible chessboard controls and Top 100 rankings.">
+<title>Chess Arcade Minigames | EloScanner</title>
+<link rel="canonical" href="https://eloscanner.com/arcade.html">
+<link rel="icon" href="/favicon-horse.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css?v=20261104-dark">
+<link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
+<link rel="stylesheet" href="/elo-chess-unified-theme.css?v=3">
+<link rel="stylesheet" href="/arcade.css?v=1">
+<script src="/elo-global-menu.js?v=4-current" defer></script>
+<script src="/account-nav.js?v=4-capitalized" defer></script>
+<script type="module" src="/arcade.js?v=1"></script>
+</head>
+<body class="elo-unified-chess">
+<header class="navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
+<main class="arcade-page">
+<nav class="arcade-back"><a href="/minigames.html">← All minigames</a></nav>
+<div class="arcade-heading"><div><span class="arcade-eyebrow">ELOSCANNER ARCADE</span><h1 id="arcade-title">Chess Arcade</h1><p id="arcade-description">Choose a minigame to play.</p></div><a class="arcade-other" href="/minigames.html">Browse games</a></div>
+<div class="arcade-layout">
+<aside class="arcade-panel arcade-stats" aria-label="Game statistics"><h2>Game stats</h2>
+<div class="arcade-stat"><span>TIME LEFT</span><strong id="arcade-time">3:00</strong></div>
+<div class="arcade-stat"><span>SCORE</span><strong id="arcade-score">0</strong></div>
+<div class="arcade-stat"><span>LEVEL</span><strong id="arcade-level">1</strong></div>
+<div class="arcade-stat"><span>LIVES</span><strong id="arcade-lives">—</strong></div>
+<div class="arcade-stat" id="arcade-move-clock-row" hidden><span>MOVE WITHIN</span><strong id="arcade-move-clock">3.0s</strong></div>
+</aside>
+<section class="arcade-main" aria-label="Chess minigame">
+<div class="arcade-board-wrap">
+<div id="arcade-board" class="arcade-board" data-orientation="white" role="group" aria-label="Chessboard. Select a piece, then a destination, or drag it. Right click for arrows."></div>
+</div>
+<div id="arcade-palette" class="arcade-palette" aria-label="Piece selection" hidden></div>
+<div id="arcade-choices" class="arcade-choices" hidden></div>
+<p id="arcade-status" class="arcade-status" role="status" aria-live="polite">Press Start game to play.</p>
+<div class="arcade-actions"><button id="arcade-start" type="button" class="arcade-primary">Start game</button><button id="arcade-next" type="button" hidden>Next level</button><button id="arcade-finish" type="button" hidden>Finish run</button></div>
+<p class="arcade-help">Click or drag a piece to move. On a computer, right-drag to draw an arrow and right-click a square to highlight it. Touchscreens support drag-and-drop.</p>
+</section>
+<aside class="arcade-side">
+<section class="arcade-panel"><h2>How to play</h2><p id="arcade-instructions"></p><p>Every minigame has a score and its own all-time Top 100. Multiplayer is not enabled.</p></section>
+<section id="arcade-submit-panel" class="arcade-panel" hidden><h2>Save your score</h2><p id="arcade-final-score"></p><label for="arcade-nickname">Leaderboard nickname</label><div class="arcade-submit"><input id="arcade-nickname" type="text" maxlength="20" autocomplete="off" placeholder="2–20 characters"><button id="arcade-submit" class="arcade-primary" type="button">Submit</button></div><p id="arcade-submit-status" role="status"></p></section>
+<section class="arcade-panel"><div class="arcade-panel-title"><h2>Top 100</h2><span id="arcade-ranking-name"></span></div><p class="arcade-legend"><span class="arcade-nickname-color">Orange = nickname</span> · <span class="arcade-account-color">Green = account</span></p><ol id="arcade-ranking" class="arcade-ranking"><li class="arcade-empty">Loading scores…</li></ol><p class="arcade-ranking-note">All-time, per-game rankings. Scores in this new arcade are provisional until server-side gameplay verification is complete.</p></section>
+</aside>
+</div>
+</main></body></html>
