@@ -1,0 +1,58 @@
+name: Apply passkey signup migration to preview D1 only
+
+on:
+  push:
+    branches:
+      - feature/passkey-foundation-20261108
+    paths:
+      - .github/workflows/passkey-preview-d1-migration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: passkey-preview-d1-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check dedicated preview credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_PASSKEY_PREVIEW_TOKEN'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
+      - name: Install locked Wrangler
+        run: npm ci
+      - name: Verify migration target is preview only
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const cfg=JSON.parse(fs.readFileSync("tests/auth/passkey-preview.wrangler.jsonc","utf8"));
+            const db=cfg.d1_databases?.[0];
+            if(cfg.d1_databases?.length!==1 || db?.binding!=="AUTH_DB" || db?.database_name!=="eloscanner-auth-preview" || db?.database_id!=="e1d84922-0f74-414f-8fe5-2c3ac48f7884") throw Error("Refusing non-preview D1 target");
+            if(cfg.name!=="eloscanner-passkey-preview-migration") throw Error("Unexpected Wrangler config");
+          '
+      - name: Apply migration 0008 to preview database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler d1 execute AUTH_DB --remote --config tests/auth/passkey-preview.wrangler.jsonc --file migrations/auth/0008_passkey_signup_attempt.sql
+      - name: Verify preview table exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler d1 execute AUTH_DB --remote --config tests/auth/passkey-preview.wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name='auth_passkey_signup_attempt';"
