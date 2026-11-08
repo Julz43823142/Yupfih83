@@ -2,32 +2,32 @@
 <html lang="en"><head><link rel="canonical" href="https://eloscanner.com/puzzle-top100.html"><meta name="description" content="Explore EloScanner leaderboards for Puzzle Sprint, Puzzle Survival and Knight Maze. Compare scores and follow top players."><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chess Puzzle & Knight Maze Leaderboards | EloScanner</title><link rel="stylesheet" href="/style.css?v=20261104-dark"><link rel="stylesheet" href="/puzzles.css?v=20261105-account-leaderboard"><link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script>
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<style>.puzzle-top100-table .rank-profile-link{color:inherit;text-decoration:none;font-weight:inherit}.puzzle-top100-table .rank-profile-link:hover{text-decoration:underline}.puzzle-top100-table .rank-profile-link:focus-visible{outline:2px solid #79ec9a;outline-offset:3px}</style></head>
+<style>.puzzles-tabs{display:flex;flex-wrap:wrap;gap:8px}.puzzle-top100-table .rank-profile-link{color:inherit;text-decoration:none;font-weight:inherit}.puzzle-top100-table .rank-profile-link:hover{text-decoration:underline}.puzzle-top100-table .rank-profile-link:focus-visible{outline:2px solid #79ec9a;outline-offset:3px}</style></head>
 <body><header class="navbar puzzles-navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a><nav class="puzzles-site-nav"><a href="/puzzles.html">Puzzles</a><a href="/">Home</a></nav></header>
 <main class="puzzles-page puzzle-leaderboard-page"><a class="puzzles-back" href="/puzzles.html">← Back to puzzles</a><h1>Leaderboards</h1>
 
-<div class="puzzles-tabs"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a><a data-mode="knight-maze" href="?mode=knight-maze">Knight Maze</a></div>
+<div class="puzzles-tabs"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a><a data-mode="knight-maze" href="?mode=knight-maze">Knight Maze</a> <a data-mode="endgame-survivor" href="?mode=endgame-survivor">Endgame Survivor</a><a data-mode="guess-the-elo" href="?mode=guess-the-elo">Guess the Elo</a><a data-mode="chess-memory" href="?mode=chess-memory">Chess Memory</a><a data-mode="safe-square-rush" href="?mode=safe-square-rush">Safe Square Rush</a><a data-mode="falling-board" href="?mode=falling-board">Falling Board</a><a data-mode="queen-chase" href="?mode=queen-chase">Queen Chase</a><a data-mode="chess-block-party" href="?mode=chess-block-party">Chess Block Party</a><a data-mode="pawn-dash" href="?mode=pawn-dash">Pawn Dash</a></div>
 <p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
 <table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr></thead><tbody id="ranking-rows"></tbody></table>
 </main>
 <script>
 (async()=>{
- const allowed=['sprint','survival','knight-maze'],requested=new URLSearchParams(location.search).get('mode'),mode=allowed.includes(requested)?requested:'sprint';
+ const allowed=['sprint','survival','knight-maze','endgame-survivor','guess-the-elo','chess-memory','safe-square-rush','falling-board','queen-chase','chess-block-party','pawn-dash'],requested=new URLSearchParams(location.search).get('mode'),mode=allowed.includes(requested)?requested:'sprint';
  for(const a of document.querySelectorAll('[data-mode]'))if(a.dataset.mode===mode)a.setAttribute('aria-current','page');
  const status=document.getElementById('ranking-status'),body=document.getElementById('ranking-rows');
- const isMaze=mode==='knight-maze';
- document.querySelector('.puzzle-top100-table thead').innerHTML=isMaze?'<tr><th>Rank</th><th>Nickname</th><th>Score</th></tr>':'<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
+ const isMaze=mode==='knight-maze',isArcade=!['sprint','survival','knight-maze'].includes(mode);
+ document.querySelector('.puzzle-top100-table thead').innerHTML='<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
  async function load(){
  body.replaceChildren();
  try{
 
-  const url=isMaze?'/api/knight-maze?limit=100':'/api/puzzle-leaderboard?mode='+encodeURIComponent(mode)+'&limit=100';
+  const url=isMaze?'/api/knight-maze?limit=100':isArcade?'/api/arcade?mode='+encodeURIComponent(mode):'/api/puzzle-leaderboard?mode='+encodeURIComponent(mode)+'&limit=100';
   const r=await fetch(url,{cache:'no-store'}),data=await r.json();
   if(!r.ok)throw Error(data.error||'Unavailable');
   
   if(!Array.isArray(data.entries))throw Error('Invalid rankings response');
   status.textContent=data.entries.length?'Top '+data.entries.length+' scores':'No scores yet.';
-  (data.entries||[]).forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);if(v===entry.nickname){td.className=entry.sourceType==='account'?'rank-account':'rank-nickname';td.title=entry.sourceType==='account'?'Account':'Nickname';if(entry.sourceType==='account'&&entry.profileVerified&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname)){const a=document.createElement('a');a.href='/profile/'+encodeURIComponent(entry.nickname);a.textContent=entry.nickname;a.className='rank-profile-link';td.replaceChildren(a)}}tr.append(td)}if(isMaze){body.append(tr);return;}const td=document.createElement('td'),report=document.createElement('button');report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;td.append(report);tr.append(td);body.append(tr)});
+  (data.entries||[]).forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);if(v===entry.nickname){td.className=entry.sourceType==='account'?'rank-account':'rank-nickname';td.title=entry.sourceType==='account'?'Account':'Nickname';if(entry.sourceType==='account'&&entry.profileVerified&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname)){const a=document.createElement('a');a.href='/profile/'+encodeURIComponent(entry.nickname);a.textContent=entry.nickname;a.className='rank-profile-link';td.replaceChildren(a)}}tr.append(td)}const td=document.createElement('td'),report=document.createElement('button');report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;td.append(report);tr.append(td);body.append(tr)});
  }catch(e){status.textContent='Rankings temporarily unavailable: '+e.message}
  }
 
