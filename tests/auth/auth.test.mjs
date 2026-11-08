@@ -356,7 +356,7 @@ test('new login sessions expire after 30 days, not seven', async () => {
   assert.equal(session.user.username, 'johan');
   const expiry = new Date(session.expiresAt).getTime();
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-  assert.ok(expiry >= before + thirtyDays - 60_000, 'session should last approximately 30 days');
+  assert.ok(expiry >= before + thirtyDays - 60_000, `session should last approximately 30 days; actual=${session.expiresAt}, days=${(expiry - before) / 86400000}`);
   assert.ok(expiry <= Date.now() + thirtyDays + 60_000, 'session must not exceed 30 days');
 });
 
