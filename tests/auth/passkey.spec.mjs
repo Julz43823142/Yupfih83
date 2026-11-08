@@ -25,6 +25,9 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     await page.getByRole('button', { name: 'Log in', exact: true }).click();
     await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
     await expect(page.locator('#passkey-profile-panel')).toBeVisible();
+    const initialSession = await page.request.get(base + '/api/auth/get-session');
+    const originalUserId = (await initialSession.json()).user.id;
+    expect(originalUserId).toBeTruthy();
     let firstRegistration = null;
     await page.route('**/api/auth/passkey/verify-registration', async route => {
       firstRegistration ??= route.request().postDataJSON();
@@ -57,7 +60,9 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
     await expect(page.locator('#account-status')).toContainText('logged in with your passkey');
     const session = await page.request.get(base + '/api/auth/get-session');
-    expect((await session.json()).user.username).toBe('local_tester');
+    const signedInUser = (await session.json()).user;
+    expect(signedInUser.username).toBe('local_tester');
+    expect(signedInUser.id).toBe(originalUserId);
     expect(firstAssertion?.response?.id).toBeTruthy();
     // A previously accepted signature must never create a second session.
     const replay = await page.request.post(base + '/api/auth/passkey/verify-authentication', {
@@ -72,6 +77,14 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     expect(crossOrigin.status()).toBe(403);
     const stillSignedIn = await page.request.get(base + '/api/auth/get-session');
     expect((await stillSignedIn.json()).user.username).toBe('local_tester');
+    await page.locator('#sign-out').click();
+    await expect(page.locator('#login-form')).toBeVisible();
+    await page.locator('#username').fill('local_tester');
+    await page.locator('#password').fill('Local-test-only-orchard-57931!');
+    await page.getByRole('button', { name: 'Log in', exact: true }).click();
+    await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
+    const fallback = await page.request.get(base + '/api/auth/get-session');
+    expect((await fallback.json()).user.id).toBe(originalUserId);
   } finally {
     await client.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
     await client.send('WebAuthn.disable');
