@@ -2,8 +2,8 @@ import {test,expect} from '@playwright/test';
 const base='http://localhost:8788';
 const games=['endgame-survivor','guess-the-elo','chess-memory','safe-square-rush','falling-board','queen-chase','chess-block-party'];
 async function stubScores(page){
- await page.route('**/api/arcade-game',async route=>route.fulfill({json:{id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',side:'white',elo:1650,moves:['e2e4','e7e5','g1f3','b8c6','f1c4','f8c5','d2d3','g8f6','c2c3','d7d6','e1g1','e8g8']}}));
  await page.route('**/api/arcade**',async route=>{
+  if(route.request().url().includes('/api/arcade-game'))return route.fulfill({json:{id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',side:'white',elo:1650,moves:['e2e4','e7e5','g1f3','b8c6','f1c4','f8c5','d2d3','g8f6','c2c3','d7d6','e1g1','e8g8']}});
   if(route.request().method()==='GET')return route.fulfill({json:{entries:[],unverified:true}});
   return route.fulfill({json:{session:'11111111-1111-4111-8111-111111111111'}});
  });
