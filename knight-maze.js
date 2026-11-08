@@ -6,7 +6,7 @@ let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 let mazeAccount=null;
 const accountName=()=>mazeAccount?.username||null;
-function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name:'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name;}
+function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name:'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name.charAt(0).toUpperCase()+name.slice(1);}
 // This script loads before account-nav.js; fetch the session directly.
 const mazeIdentityReady=fetch('/api/auth/get-session',{credentials:'same-origin',cache:'no-store'})
  .then(async response=>{if(!response.ok)throw Error('Account status unavailable');const data=await response.json();mazeAccount=data.user||null;syncScoreIdentity();return true})
