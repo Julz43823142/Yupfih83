@@ -91,6 +91,8 @@ test('Chess Memory palette has draggable SVGs and mobile board stays inside view
  const to=page.locator('#arcade-board [data-square="d4"]');
  await drag(page,source,to);
  await expect(page.locator('#arcade-score')).toBeVisible();
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ const overflow=await page.evaluate(()=>({vw:innerWidth,width:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].map(el=>({tag:el.tagName,cls:el.className?.baseVal||el.className,id:el.id,right:Math.round(el.getBoundingClientRect().right),left:Math.round(el.getBoundingClientRect().left)})).filter(el=>el.right>innerWidth+1||el.left< -1).slice(0,15)}));
+ if(overflow.width>overflow.vw)console.log('ARCADE MOBILE OVERFLOW',JSON.stringify(overflow));
+ expect(overflow.width<=overflow.vw).toBe(true);
  expect(errors).toEqual([]);
 });
