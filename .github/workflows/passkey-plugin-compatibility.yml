@@ -25,11 +25,10 @@ jobs:
         run: |
           node --input-type=module <<'EOF'
           import { passkey } from '@better-auth/passkey';
-          import { createRequire } from 'node:module';
+          import { readFileSync } from 'node:fs';
           import assert from 'node:assert/strict';
-          const require = createRequire(import.meta.url);
-          const base = require('better-auth/package.json').version;
-          const plugin = require('@better-auth/passkey/package.json').version;
+          const base = JSON.parse(readFileSync('node_modules/better-auth/package.json', 'utf8')).version;
+          const plugin = JSON.parse(readFileSync('node_modules/@better-auth/passkey/package.json', 'utf8')).version;
           assert.equal(base, '1.7.17');
           assert.equal(plugin, base);
           const configured = passkey({
