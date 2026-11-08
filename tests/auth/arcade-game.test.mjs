@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onRequestGet} from '../../functions/api/arcade-game.js';
+import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
 const url='https://eloscanner.com/api/arcade-game';
 test('Guess the Elo serves real-game metadata, exact player rating and source link without fabrication',async()=>{
  const original=globalThis.fetch,visited=[];
@@ -25,8 +26,8 @@ test('Guess the Elo serves real-game metadata, exact player rating and source li
   assert.ok(visited.some(link=>link.includes('/api/games/user/PublicChessPlayer')));
  }finally{globalThis.fetch=original}
 });
-test('Guess the Elo fails closed when public source cannot be loaded',async()=>{
+test('Guess the Elo falls back to a verified archived real game when upstream fails',async()=>{
  const previous=globalThis.fetch;globalThis.fetch=async()=>new Response('Unavailable',{status:503});
- try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,503);assert.ok((await r.json()).error.includes('unavailable'))}
+ try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,200);const game=await r.json();assert.equal(game.id,'PpwPOZMq');assert.equal(game.archived,true);assert.ok([2100,2000].includes(game.elo));const chess=new Chess();for(const uci of game.moves)assert.ok(chess.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]}));assert.equal(chess.history().length,26)}
  finally{globalThis.fetch=previous}
 });
