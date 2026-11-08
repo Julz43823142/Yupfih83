@@ -17,7 +17,7 @@ const instructions={
  'endgame-survivor':'Play increasingly varied endgames: pawns, minor pieces and rooks against Stockfish. Convert an advantage into a win. You have three lives; a draw or loss costs one. Every win is one point.',
  'guess-the-elo':'Review a real Lichess game, browse its moves, then enter your own Elo estimate. Exact = 10 points; 50 Elo away = 5, 100 = 4 and 200 = 3. The actual Elo and game link are revealed afterward.',
  'chess-memory':'Memorize the position while it is visible. After the pieces disappear, choose a piece from the tray and click or drag it onto the correct square. Reconstruct as many boards as possible in three minutes.',
- 'missing-piece':'Find the missing piece, place it on the board, then deliver checkmate. Three mistakes end the run.',
+ 'missing-piece':'Select a white piece from the tray, then tap an empty square. Black responds; find checkmate in one. Any valid solution counts, including alternative pieces and placements. Three mistakes end the run.',
  'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
@@ -235,7 +235,7 @@ function setupLevel(){
   state.puzzle=missing[(state.level-1+state.positionOffset)%missing.length];
   state.chess=new Chess(state.puzzle.fen);state.phase='placement';
   palette(['Q','R','B','N'].map(type=>({type,side:'player'})));
-  status('Which missing piece goes where? Drag from the tray or tap a piece, then a square.');
+  status('Step 1: Choose a white piece below. Step 2: Place it on an empty square. Step 3: After Black replies, find mate in one. Other valid solutions count.');
  }else if(mode==='safe-square-rush'){
   state.safe=safeSquareLevel(state.seed,state.level);
   state.pieces=state.safe.pieces;
