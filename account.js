@@ -99,12 +99,12 @@
       const created = await post('passkey-signup/verify', {
         attemptId: options.attemptId, challenge: options.publicKey.challenge, credential
       });
-      if (!created.success) throw new Error('Registration could not be completed.');
+      if (!created.success || created.username !== username.toLowerCase()) throw new Error('Registration response did not match the requested username. Do not sign in; contact support.');
       form.reset();
-      // Never sign in automatically with a discoverable credential: the browser
-      // could select an unrelated existing account after registration.
-      byId('signup-submit').disabled = true;
-      message('Account ' + username + ' created successfully. You are not signed in yet. Use passkey sign-in on the account page and verify the displayed username.');
+      // Registration intentionally does not sign in: a generic passkey prompt
+      // could select a different existing account. Never present that as success.
+      form.hidden = true;
+      message('Account ' + created.username + ' created. You are not signed in. Open the login page, choose Log in with passkey, and confirm the displayed username is ' + created.username + '.');
     });
   });
   byId('login-form').addEventListener('submit', event => {
