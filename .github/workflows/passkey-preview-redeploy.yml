@@ -29,7 +29,7 @@ jobs:
           const project=await read(base);
           if(project.deployment_configs?.preview?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='true')throw Error('Preview signup flag is not enabled');
           const productionBefore=JSON.stringify(project.deployment_configs?.production);
-          const deployments=await read(base+'/deployments?env=preview&per_page=30');
+          const deployments=await read(base+'/deployments');
           const candidates=(Array.isArray(deployments)?deployments:deployments?.deployments||[]).filter(d=>
             d.environment==='preview' && d.deployment_trigger?.metadata?.branch==='feature/passkey-foundation-20261108');
           const latest=candidates.sort((a,b)=>Date.parse(b.created_on)-Date.parse(a.created_on))[0];
