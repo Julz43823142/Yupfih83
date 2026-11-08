@@ -368,10 +368,8 @@ function play(f,t){
  if(mode==='queen-chase'){
   const p=state.pieces[f];delete state.pieces[f];state.pieces[t]=p;state.turns++;
   if(t===state.queen){successfulCapture();paint();return true;}
-  const escape=queenEscape(state.pieces,state.queen);
-  if(escape<0){successfulCapture();paint();return true;}
-  delete state.pieces[state.queen];state.pieces[escape]={type:'Q',side:'enemy'};state.queen=escape;
-  status('Queen escaped to '+square(escape)+'. Close the net!');
+  state.phase='thinking';status('Stockfish is finding a queen-only escape…');
+  stockfishQueenEscape();
   paint();return true;
  }
  if(mode==='chess-block-party'){
@@ -454,6 +452,28 @@ function checkEndgame(){
  return true;
 }
 function stopBot(){botToken++;try{botWorker?.postMessage({action:'stop'});botWorker?.terminate()}catch{}botWorker=null}
+function stockfishQueenEscape(){
+ stopBot();
+ const token=++botToken;
+ const finalize=result=>{
+  if(token!==botToken||!state||state.finished||state.phase!=='thinking'||mode!=='queen-chase')return;
+  stopBot();
+  const queen=state.queen;
+  const candidates=moves('Q',queen,state.pieces,{side:'enemy'})
+   .filter(i=>!state.pieces[i]&&!threatened(i,state.pieces,'player'));
+  let target=Number.isInteger(result)&&candidates.includes(result)?result:queenEscape(state.pieces,queen);
+  if(!Number.isInteger(target)||target<0){successfulCapture();paint();return}
+  delete state.pieces[queen];state.pieces[target]={type:'Q',side:'enemy'};state.queen=target;
+  state.phase='playing';status('Queen escaped to '+square(target)+'. Close the net!');
+  paint();
+ };
+ try{
+  const worker=new Worker('/arcade-queen-stockfish-worker.js',{type:'module'});botWorker=worker;
+  worker.onmessage=e=>finalize(e.data?.to);
+  worker.onerror=()=>finalize(-1);
+  worker.postMessage({token,pieces:state.pieces,queen:state.queen});
+ }catch{finalize(-1)}
+}
 function stockfishMove(){
  stopBot();
  if(!state||state.finished)return;
