@@ -42,6 +42,7 @@ jobs:
           node --check lib/online/security.mjs
           node --check play.js
           node --check arcade.js
+          node --check arcade-queen-stockfish-worker.js
           node --check arcade-rules.mjs
           node --check functions/api/arcade.js
           node --check play-bot-controls.mjs
