@@ -25,10 +25,24 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     await page.getByRole('button', { name: 'Log in', exact: true }).click();
     await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
     await expect(page.locator('#passkey-profile-panel')).toBeVisible();
+    let firstRegistration = null;
+    await page.route('**/api/auth/passkey/verify-registration', async route => {
+      firstRegistration ??= route.request().postDataJSON();
+      await route.continue();
+    });
     await page.locator('#passkey-confirm-password').fill('Local-test-only-orchard-57931!');
     await page.getByRole('button', { name: 'Create passkey' }).click();
     await expect(page.locator('#account-status')).toContainText('Your passkey is registered.', { timeout: 30000 });
     await expect(page.locator('#passkey-count')).toContainText('1 passkey registered.', { timeout: 30000 });
+    expect(firstRegistration?.response?.id).toBeTruthy();
+    const registerReplay = await page.request.post(base + '/api/auth/passkey/verify-registration', {
+      headers: { Origin: base },
+      data: firstRegistration
+    });
+    expect(registerReplay.status()).toBeGreaterThanOrEqual(400);
+    const existingKeys = await page.request.get(base + '/api/auth/passkey/list-user-passkeys');
+    expect(existingKeys.status()).toBe(200);
+    expect((await existingKeys.json()).length).toBe(1);
     await page.locator('#sign-out').click();
     await expect(page.locator('#login-form')).toBeVisible();
     let firstAssertion = null;
