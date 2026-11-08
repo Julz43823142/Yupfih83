@@ -1,4 +1,5 @@
-import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { buildSync } from 'esbuild';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -44,6 +45,21 @@ export function buildSite(root = resolve('.'), output = resolve(root, 'dist')) {
     }
   }
   copy('');
+  // The production arcade is one classic script. This removes dependency on
+  // Cloudflare/edge MIME and cache behavior for chained ESM module imports.
+  // Keep fixture-only buildSite tests working when no arcade source exists.
+  if (existsSync(join(root, 'arcade.js')) && existsSync(join(root, 'arcade-rules.mjs'))) {
+    buildSync({
+      absWorkingDir: root,
+      entryPoints: ['arcade.js'],
+      bundle: true,
+      platform: 'browser',
+      format: 'iife',
+      target: ['es2020'],
+      outfile: join(output, 'arcade-bundle.js'),
+      logLevel: 'warning',
+    });
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
