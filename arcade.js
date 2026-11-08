@@ -311,17 +311,15 @@ function placePalette(to){
   paint();return;
  }
  if(mode==='missing-piece'&&state.phase==='placement'){
-  const p=state.puzzle;
-  if(square(to)!==p.square||palettePiece.type!==p.piece){lose('That piece or square is incorrect.');paint();return}
-  const ok=state.chess.put({type:p.piece.toLowerCase(),color:'w'},p.square);
-  if(!ok){lose('That placement is not legal.');return}
-  try{
-   const response=state.chess.move({from:p.response[0],to:p.response[1]});
-   if(!response)throw Error('Missing scripted move');
-   state.phase='mate';
-   $('arcade-palette').hidden=true;palettePiece=null;
-   status('Black played '+response.san+'. Now find mate in one!');
-  }catch{state.phase='placement';status('This puzzle could not start. Please restart.')}
+  const p=state.puzzle,trial=new Chess(p.fen);
+  // More than one placement can produce mate in one. Accept every valid one.
+  const ok=trial.put({type:palettePiece.type.toLowerCase(),color:'w'},square(to));
+  let response=null,hasMate=false;
+  if(ok){try{response=trial.move({from:p.response[0],to:p.response[1]});if(response){hasMate=trial.moves({verbose:true}).some(move=>{const candidate=new Chess(trial.fen());candidate.move(move);return candidate.isCheckmate()})}}catch{}}
+  if(!hasMate){lose('This placement does not produce a mate in one at '+square(to)+'.');paint();return}
+  state.chess=trial;state.phase='mate';
+  $('arcade-palette').hidden=true;palettePiece=null;
+  flashFeedback('Correct placement!');status('Black played '+response.san+'. Find any mate in one — all valid mating moves count.');
   paint();return;
  }
 }
@@ -336,7 +334,7 @@ function guessElo(guess){
 }
 async function loadRealEloGame(run){
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=true;
- if(!run.eloAbort)run.eloAbort=new AbortController();
+ run.eloAbort?.abort();run.eloAbort=new AbortController();
  try{
   const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(state?.eloGameId||''),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
