@@ -342,7 +342,7 @@ test('new login sessions expire after 30 days, not seven', async () => {
   await provision(env);
   const before = Date.now();
   const response = await handleAuth({
-    request: req('sign-in/username', { username: 'johan', password }),
+    request: req('sign-in/username', { username: 'johan', password, rememberMe: true }),
     env
   });
   assert.equal(response.status, 200);
