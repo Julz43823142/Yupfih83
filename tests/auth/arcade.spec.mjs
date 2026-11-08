@@ -147,3 +147,64 @@ test('Safe Square Rush shows legal move dots without revealing attacked squares;
  await expect(page.locator('#arcade-board [data-square="'+target+'"] .chess-piece')).toBeVisible();
  expect(errors).toEqual([]);
 });
+
+test('Endgame Survivor shows the latest bot-move arrow and executes a legal premove',async({page})=>{
+ await stubScores(page);
+ await page.addInitScript(()=>{
+  const RealWorker=window.Worker;
+  window.Worker=function(url,options){
+   if(!String(url).includes('/play-strong-bot-worker.js'))return new RealWorker(url,options);
+   return {
+    onmessage:null,onerror:null,
+    postMessage(message){if(message?.fen){window.__testBotFen=message.fen;window.__testBot=this}},
+    terminate(){}
+   };
+  };
+ });
+ await page.goto(base+'/arcade.html?game=endgame-survivor');
+ await page.locator('#arcade-start').click();
+ const whites=page.locator('#arcade-board .arcade-square:has(.chess-piece[alt^="White"])');
+ let moved=false;
+ for(let i=0;i<await whites.count();i++){
+  await whites.nth(i).click();
+  const targets=page.locator('#arcade-board .arcade-square.available');
+  if(await targets.count()){await targets.first().click();moved=true;break}
+ }
+ expect(moved).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>!!window.__testBotFen)).toBe(true);
+ const sequence=await page.evaluate(async()=>{
+  const {Chess}=await import('/vendor/chess/chess-1.4.0.mjs');
+  const board=new Chess(window.__testBotFen);
+  const reply=board.moves({verbose:true})[0];board.move(reply);
+  const premove=board.moves({verbose:true})[0];
+  return {reply:{from:reply.from,to:reply.to,promotion:reply.promotion},premove:{from:premove.from,to:premove.to}};
+ });
+ expect(sequence.premove).toBeTruthy();
+ await page.locator('#arcade-board [data-square="'+sequence.premove.from+'"]').click();
+ await page.locator('#arcade-board [data-square="'+sequence.premove.to+'"]').click();
+ await expect(page.locator('#arcade-status')).toContainText('Premove queued');
+ await expect(page.locator('#arcade-board .arcade-marks polygon')).toHaveCount(1);
+ await page.evaluate(move=>window.__testBot.onmessage({data:{move}}),sequence.reply);
+ await expect.poll(async()=>page.locator('#arcade-board [data-square="'+sequence.premove.to+'"] .chess-piece').count()).toBeGreaterThan(0);
+ await expect(page.locator('#arcade-status')).toContainText(/Stockfish is choosing|Checkmate|position ended/i);
+});
+
+test('Endgame Survivor highlights the newest opponent reply with an arrow',async({page})=>{
+ await stubScores(page);
+ await page.addInitScript(()=>{
+  const RealWorker=window.Worker;
+  window.Worker=function(url,options){
+   if(!String(url).includes('/play-strong-bot-worker.js'))return new RealWorker(url,options);
+   return {onmessage:null,onerror:null,postMessage(message){if(message?.fen){window.__testFen=message.fen;window.__testWorker=this}},terminate(){}};
+  };
+ });
+ await page.goto(base+'/arcade.html?game=endgame-survivor');
+ await page.locator('#arcade-start').click();
+ const whites=page.locator('#arcade-board .arcade-square:has(.chess-piece[alt^="White"])');
+ for(let i=0;i<await whites.count();i++){await whites.nth(i).click();if(await page.locator('#arcade-board .arcade-square.available').count()){await page.locator('#arcade-board .arcade-square.available').first().click();break}}
+ await expect.poll(()=>page.evaluate(()=>!!window.__testFen)).toBe(true);
+ const reply=await page.evaluate(async()=>{const {Chess}=await import('/vendor/chess/chess-1.4.0.mjs');const m=new Chess(window.__testFen).moves({verbose:true})[0];return {from:m.from,to:m.to,promotion:m.promotion}});
+ await page.evaluate(move=>window.__testWorker.onmessage({data:{move}}),reply);
+ await expect(page.locator('#arcade-board .arcade-marks polygon')).toHaveCount(1);
+ await expect(page.locator('#arcade-status')).toContainText(/Stockfish played|position ended|Checkmate/i);
+});
