@@ -42,7 +42,10 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     expect(registerReplay.status()).toBeGreaterThanOrEqual(400);
     const existingKeys = await page.request.get(base + '/api/auth/passkey/list-user-passkeys');
     expect(existingKeys.status()).toBe(200);
-    expect((await existingKeys.json()).length).toBe(1);
+    const safeKeys = await existingKeys.json();
+    expect(safeKeys.length).toBe(1);
+    expect(Object.keys(safeKeys[0]).sort()).toEqual(['backedUp', 'createdAt', 'id', 'name']);
+    expect(JSON.stringify(safeKeys)).not.toMatch(/publicKey|credentialID|session_token|@accounts\\.invalid/i);
     await page.locator('#sign-out').click();
     await expect(page.locator('#login-form')).toBeVisible();
     let firstAssertion = null;
