@@ -1,7 +1,7 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {attachChessBoardControls} from '/chess-board-controls.js';
 import {appendChessArrow} from '/chess-board-arrows.js';
-import {GAME_CATALOG,IDs,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
 
 const $=id=>document.getElementById(id);
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
@@ -185,12 +185,7 @@ const examples=[
  {elo:2500,moves:['d4','d5','c4','c6','Nf3','Nf6','Nc3','e6','Bg5','h6','Bh4','dxc4','e4']},
  {elo:2800,moves:['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6','O-O','Be7','Re1','b5','Bb3','O-O']}
 ];
-const missing=[
- {fen:'7k/p7/5K2/8/8/8/8/8 b - - 0 1',square:'g6',response:['a7','a6'],mate:['g6','g7']},
- {fen:'7k/p4K2/8/8/8/8/8/8 b - - 0 1',square:'g6',response:['a7','a5'],mate:['g6','g7']},
- {fen:'k7/7p/2K5/8/8/8/8/8 b - - 0 1',square:'b6',response:['h7','h6'],mate:['b6','b7']},
- {fen:'k7/2K4p/8/8/8/8/8/8 b - - 0 1',square:'b6',response:['h7','h5'],mate:['b6','b7']}
-];
+const missing=MISSING_PUZZLES;
 function setupLevel(){
  if(state.finished)return;
  state.phase='playing';state.pieces={};palettePiece=null;
@@ -306,8 +301,8 @@ function placePalette(to){
  }
  if(mode==='missing-piece'&&state.phase==='placement'){
   const p=state.puzzle;
-  if(square(to)!==p.square||palettePiece.type!=='Q'){lose('That piece or square is incorrect.');paint();return}
-  const ok=state.chess.put({type:'q',color:'w'},p.square);
+  if(square(to)!==p.square||palettePiece.type!==p.piece){lose('That piece or square is incorrect.');paint();return}
+  const ok=state.chess.put({type:p.piece.toLowerCase(),color:'w'},p.square);
   if(!ok){lose('That placement is not legal.');return}
   try{
    const response=state.chess.move({from:p.response[0],to:p.response[1]});
