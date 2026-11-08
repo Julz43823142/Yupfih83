@@ -4,6 +4,7 @@ import { createAuth } from '../../lib/auth/config.mjs';
 import { handleAuth, consumeCounter } from '../../lib/auth/gateway.mjs';
 import { passwordFunctions, checkNewPassword } from '../../lib/auth/password.mjs';
 import { database } from './fixture.mjs';
+import { createSignupAttempt, consumeSignupAttempt } from '../../lib/auth/passkey-signup-attempt.mjs';
 import { passkeyConfigured, createPasskeyPlugin } from '../../lib/auth/passkeys.mjs';
 const secret = 'synthetic-test-only-secret-with-over-32-characters';
 const password = 'Orchard!violet!planet!73519';
@@ -373,4 +374,20 @@ test('phone-first signup attempts cannot be replayed or create accounts on their
   assert.throws(() => db.prepare('INSERT INTO auth_passkey_signup_attempt(id, username, challengeDigest, expiresAt, createdAt, sourceDigest) VALUES (?,?,?,?,?,?)')
     .run('attempt-2', 'test_phone', 'challenge-digest-1', created + 120_000, created, 'source-digest'));
   assert.equal(db.prepare('SELECT COUNT(*) AS c FROM user').get().c, 0);
+});
+
+test('signup attempts are bound to a challenge and source, expire and are single-use', async () => {
+  const db = database();
+  const sourceDigest = 'a'.repeat(64);
+  const challenge = 'challenge-'.repeat(8);
+  const now = 1_700_000_000_000;
+  const first = await createSignupAttempt(db, secret, { username: 'phoneuser', challenge, sourceDigest }, now);
+  assert.equal(await consumeSignupAttempt(db, secret, { id: first.id, challenge: 'wrong-'.repeat(8), sourceDigest }, now + 1), null);
+  assert.equal(await consumeSignupAttempt(db, secret, { id: first.id, challenge, sourceDigest: 'b'.repeat(64) }, now + 1), null);
+  assert.equal(await consumeSignupAttempt(db, secret, { id: first.id, challenge, sourceDigest }, now + 1), 'phoneuser');
+  assert.equal(await consumeSignupAttempt(db, secret, { id: first.id, challenge, sourceDigest }, now + 2), null);
+  const second = await createSignupAttempt(db, secret, { username: 'phoneuser', challenge: 'second-'.repeat(8), sourceDigest }, now);
+  assert.equal(await consumeSignupAttempt(db, secret, { id: second.id, challenge: 'second-'.repeat(8), sourceDigest }, now + 120_000), null);
+  await assert.rejects(() => createSignupAttempt(db, secret, { username: 'bad name', challenge, sourceDigest }, now));
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
