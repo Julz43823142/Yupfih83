@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - feature/passkey-foundation-20261108
-    paths:
-      - .github/workflows/passkey-preview-audit.yml
   workflow_dispatch:
 
 permissions:
@@ -36,7 +34,7 @@ jobs:
           const prod=project?.deployment_configs?.production;
           if(!preview || !prod) throw new Error('Expected distinct preview and production configurations');
           const env=preview.env_vars || {};
-          const has=k=>Object.hasOwn(env,k) && env[k]!==null && typeof env[k]?.value==='string' && env[k].value.length>0;
+          const has=k=>Object.hasOwn(env,k) && env[k]!==null && (env[k].type==='secret' || (typeof env[k].value==='string' && env[k].value.length>0));
           const defined=k=>Object.hasOwn(env,k) && env[k]!==null;
           const vars=['BETTER_AUTH_URL','BETTER_AUTH_SECRET','PASSKEY_RP_ID','PASSKEY_LOGIN_ENABLED','PUBLIC_SIGNUP_ENABLED','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY'];
           for(const key of vars) console.log(key+': '+(defined(key)?'present':'missing'));
@@ -44,7 +42,7 @@ jobs:
           const id=db?.id || db?.database_id;
           console.log('Preview D1 AUTH_DB target: '+(id==='e1d84922-0f74-414f-8fe5-2c3ac48f7884'?'correct':id?'unexpected':'missing'));
           console.log('Preview signup switch: '+(env.PUBLIC_SIGNUP_ENABLED?.value==='true'?'enabled':'disabled'));
-          console.log('Production signup switch: '+(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true'?'enabled':'not enabled by this workflow'));
+          console.log('Production signup switch: '+(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true'?'enabled':'disabled or not explicitly enabled'));
           const ready=has('BETTER_AUTH_SECRET') && has('TURNSTILE_SECRET_KEY') && has('TURNSTILE_SITE_KEY') &&
             env.BETTER_AUTH_URL?.value==='https://feature-passkey-foundation-2.fairplaychess.pages.dev' &&
             env.PASSKEY_RP_ID?.value==='feature-passkey-foundation-2.fairplaychess.pages.dev' &&
