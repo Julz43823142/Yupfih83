@@ -14,7 +14,7 @@ $('arcade-ranking-name').textContent=info.name;
 $('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(mode);
 document.title=info.name+' | EloScanner';
 const instructions={
- 'endgame-survivor':'You start in a winning endgame as White. Actually finish the win against Stockfish at its maximum available strength. You have three lives. A draw or loss costs one life. Every win is a point.',
+ 'endgame-survivor':'Play increasingly varied endgames: pawns, minor pieces and rooks against Stockfish. Convert an advantage into a win. You have three lives; a draw or loss costs one. Every win is one point.',
  'guess-the-elo':'Watch a short, illustrative bot game, then choose the closest strength rating. The sample ratings are demonstration targets, not verified ratings from real players. Guess quickly to score more.',
  'chess-memory':'Memorize the position while it is visible. After the pieces disappear, choose a piece from the tray and click or drag it onto the correct square. Reconstruct as many boards as possible in three minutes.',
  'missing-piece':'One white piece is missing. Choose it from the tray and place it in the correct square. Black then makes a move. Find mate in one with the piece you placed. Three mistakes end the run.',
@@ -198,7 +198,7 @@ function setupLevel(){
  $('arcade-palette').replaceChildren();$('arcade-palette').hidden=true;
  if(mode==='endgame-survivor'){
   state.chess=new Chess(endgames[(state.level-1)%endgames.length]);
-  status('Winning position. White to move. Beat Stockfish to earn one point.');
+  status('Challenging endgame. White to move; win against Stockfish for one point.');
  }else if(mode==='guess-the-elo'){
   state.chess=new Chess();state.eloView=new Chess();state.phase='waiting';
   status('Loading a real, finished rated Lichess game…');
