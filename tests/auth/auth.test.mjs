@@ -72,6 +72,21 @@ test('passkey APIs remain closed by default and when the RP origin mismatches', 
     }
   }
 });
+test('preview passkey gateway denies unapproved management and malformed proofs', async () => {
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
+  for (const route of ['passkey/delete-passkey', 'passkey/update-passkey', 'sign-in/passkey']) {
+    const result = await handleAuth({ request: req(route, { id: 'other-user-key' }), env });
+    assert.equal(result.status, 404, route);
+  }
+  assert.equal((await handleAuth({ request: req('passkey/list-user-passkeys'), env })).status, 401);
+  assert.equal((await handleAuth({ request: req('passkey/verify-authentication', {}), env })).status, 400);
+  assert.equal((await handleAuth({
+    request: req('passkey/verify-authentication', { response: {} }, null, { Origin: 'https://attacker.example' }), env
+  })).status, 403);
+  assert.equal((await handleAuth({
+    request: req('passkey/step-up', { currentPassword: 'some-password' }), env
+  })).status, 401);
+});
 test('legacy password confirmation authorizes one WebAuthn registration challenge on the same account', async () => {
   const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
   await provision(env, 'sharkmeister');
