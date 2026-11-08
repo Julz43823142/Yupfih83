@@ -97,6 +97,59 @@ no production or remote staging credentials are touched.
 5. Passkey deletion, credential recovery, password removal and public signup are
    intentionally **not enabled**. Build/approve them separately before launch.
 
+## Account recovery: mandatory policy before passkey-only launch
+
+**Present release state:** existing password login remains available during
+migration. No password hashes are deleted. The current passkey enrollment path
+requires the existing password; it is **not suitable** for accounts after their
+passwords are disabled. Do not launch passkey-only registration yet.
+
+Minimum launch design:
+
+- Allow registration of at least two independently usable passkeys before
+  disabling the legacy password. A synchronized passkey on multiple devices may
+  rely on one cloud account; a hardware security key or independently managed
+  second passkey is preferable. Show active credential count on the account page.
+- For passwordless users, replacing, adding, renaming or removing a passkey
+  requires a fresh **passkey-authenticated** step-up. Session possession alone
+  must not suffice. The current password-confirmed step-up is for migration only.
+- Decide whether to support **single-use recovery codes**. If implemented,
+  generate cryptographically random high-entropy codes, reveal each only once,
+  store only secret-keyed digests (never plaintext), require a proven recovery
+  credential before a new passkey can be bound, rate-limit attempts and
+  invalidate existing sessions after recovery. Protect code replacement with a
+  fresh phishing-resistant passkey step-up. No email, username or support agent
+  may unilaterally reset access.
+- On device loss, let a still-authenticated user with another passkey revoke
+  the lost credential; a session without reauthentication must not revoke it.
+  Test one-device loss, cloud-provider lockout, synced-copy recovery and
+  malicious session reuse.
+- If all authenticators and recovery methods are lost, account recovery may
+  be impossible. State this plainly to users rather than creating an insecure
+  staff reset shortcut.
+- Old password-based deletion and password-change forms must be redesigned
+  for passkey-only accounts; do **not** silently disable the last usable login
+  method or allow deletion on mere session possession.
+
+## Passkey security regression evidence (local only)
+
+- Registration remains blocked even with the legacy signup flag and passkey
+  feature enabled. Unlisted Better Auth routes, passkey deletion and update
+  endpoints return 404.
+- A current password is required to authorize one registration challenge; the
+  short-lived grant is tied to the session and cannot be used twice or after
+  logout. Password and session changes invalidate outstanding grants.
+- The D1 schema enforces credential uniqueness, same-owner updates and a
+  five-passkey limit. Database constraints supplement handler checks.
+- A virtual Chromium WebAuthn authenticator exercises existing-account
+  enrollment, signed challenge verification, logout and passkey login. The
+  browser test also rejects assertion replay and wrong-origin POST requests.
+- Independent D1 counters limit source attempts at obtaining passkey sign-in
+  challenges (20/minute) and verifying assertions (30/minute). A network-wide
+  shared IP can also encounter these limits; edge protections remain necessary.
+- Build and npm audit run in GitHub CI. These checks do not establish security
+  against production compromise, distributed denial-of-service or malware.
+
 ## Safe sequencing
 
 A. Land schema and hard-closed legacy signup, with tests (this PR).
