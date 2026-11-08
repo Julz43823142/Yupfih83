@@ -15,3 +15,21 @@ CREATE TABLE "passkey" (
   "aaguid" TEXT
 );
 CREATE INDEX "passkey_userId_idx" ON "passkey" ("userId");
+
+-- D1/SQLite serializes writes. A DB trigger prevents concurrent ceremonies
+-- bypassing the per-user 5-passkey limit, independent of handler implementation.
+CREATE TRIGGER "passkey_limit_insert"
+BEFORE INSERT ON "passkey"
+WHEN (SELECT COUNT(*) FROM "passkey" WHERE "userId" = NEW."userId") >= 5
+BEGIN
+  SELECT RAISE(ABORT, 'passkey limit reached');
+END;
+
+-- Never allow moving a credential between existing accounts as an "update".
+-- Re-enrollment must create a fresh credential for the authenticated account.
+CREATE TRIGGER "passkey_no_owner_change"
+BEFORE UPDATE OF "userId" ON "passkey"
+WHEN OLD."userId" <> NEW."userId"
+BEGIN
+  SELECT RAISE(ABORT, 'passkey owner cannot change');
+END;
