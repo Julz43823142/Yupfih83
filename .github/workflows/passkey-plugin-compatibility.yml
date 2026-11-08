@@ -1,0 +1,47 @@
+name: Passkey plugin compatibility (pre-integration)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/passkey-foundation-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing locked dependencies
+        run: npm ci
+      - name: Inspect exact matching passkey plugin without changing lockfile
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @better-auth/passkey@1.7.17
+      - name: Validate import, version alignment, and option support
+        run: |
+          node --input-type=module <<'EOF'
+          import { passkey } from '@better-auth/passkey';
+          import { createRequire } from 'node:module';
+          import assert from 'node:assert/strict';
+          const require = createRequire(import.meta.url);
+          const base = require('better-auth/package.json').version;
+          const plugin = require('@better-auth/passkey/package.json').version;
+          assert.equal(base, '1.7.17');
+          assert.equal(plugin, base);
+          const configured = passkey({
+            rpID: 'eloscanner.com',
+            rpName: 'EloScanner',
+            origin: 'https://eloscanner.com',
+            authenticatorSelection: { residentKey: 'required', userVerification: 'required' }
+          });
+          assert.equal(configured.id, 'passkey');
+          console.log('Matching passkey plugin loaded:', plugin);
+          EOF
+      - name: Audit dependency tree after passkey plugin install
+        run: npm audit --omit=dev --audit-level=high
+      - name: Assert tracked dependencies were not changed by smoke test
+        run: git diff --exit-code -- package.json package-lock.json
