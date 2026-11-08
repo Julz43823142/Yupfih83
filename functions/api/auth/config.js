@@ -23,10 +23,18 @@ export const onRequestGet = async ({ request, env }) => {
     return Response.json({ message: 'Request not allowed.', code: denialCode }, { status: 403, headers });
   }
   const configured = !!env.AUTH_DB && typeof env.BETTER_AUTH_SECRET === 'string' && env.BETTER_AUTH_SECRET.length >= 32;
+  const passkeyReady = configured && passkeyConfigured(env) && await passkeyStorageReady(env.AUTH_DB);
+  let registrationOpen = false;
+  if (passkeyReady && env.PUBLIC_SIGNUP_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY) {
+    try {
+      const row = await env.AUTH_DB.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='auth_passkey_signup_attempt'").first();
+      registrationOpen = Number(row?.count) === 1;
+    } catch { registrationOpen = false; }
+  }
   return Response.json({
-    registrationOpen: false,
+    registrationOpen,
     loginConfigured: configured,
-    passkeyReady: configured && passkeyConfigured(env) && await passkeyStorageReady(env.AUTH_DB),
+    passkeyReady,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
 };
