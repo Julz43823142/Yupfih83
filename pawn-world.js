@@ -56,7 +56,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function touchend(e){if(!touch||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;move(...(Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,-Math.sign(dy)]));}
  function frame(now){if(dead)return;if(!overlay.hidden){origin+=16;raf=requestAnimationFrame(frame);return}const t=(now-origin)/1000;camera+=(Math.max(0,player.row-4)-camera)*.13;
   ctx.clearRect(0,0,width,height);const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#12243d');sky.addColorStop(1,'#224969');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
-  ctx.fillStyle='#b3dafa';ctx.font='bold 17px system-ui';ctx.textAlign='left';ctx.fillText('PAWN KINGDOM',18,28);ctx.font='13px system-ui';ctx.fillText('LANES '+highest+'  ·  KEEP HOPPING',18,49);
+  ctx.fillStyle='#b3dafa';ctx.font='bold 17px system-ui';ctx.textAlign='right';ctx.fillText('PAWN KINGDOM',width-18,28);ctx.font='13px system-ui';ctx.fillText('LANES '+highest+'  ·  KEEP HOPPING',width-18,49);
   const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+12;
   for(let row=high;row>=low;row--){const type=lane(row);for(let x=0;x<9;x++){tile(x,row,type);if(type==='grass'&&roll(row*25+x*4)>.91)piece(x,row,'♜','#65cd98',.43);if(type==='river'&&roll(row*4+x)>.64){const [px,py]=project(x,row);ctx.fillStyle='#122b51';ctx.beginPath();ctx.arc(px,py,cellSize()*.13,0,Math.PI*2);ctx.fill();}}}
   for(let row=high;row>=low;row--){const type=lane(row);if(type==='road'||type==='castle')for(let k=0;k<(type==='castle'?1:2);k++){const x=hazard(row*3+k,t);if(x>=-.2&&x<=8.2)piece(x,row,k?'♞':'♜',k?'#ed8da9':'#f4b973',.85)}}
