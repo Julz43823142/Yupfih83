@@ -47,7 +47,7 @@ document.addEventListener("click",event=>{
  const button=event.target.closest("button.rank-report");
  if(!button||button.disabled||reportDialog.open)return;
  const nickname=button.dataset.nickname,mode=button.dataset.mode,score=Number(button.dataset.score);
- if(!nickname||!["sprint","survival","knight-maze","endgame-survivor","guess-the-elo","chess-memory","safe-square-rush","falling-board","queen-chase","chess-block-party","pawn-dash"].includes(mode)||!Number.isInteger(score))return;
+ if(!nickname||!["sprint","survival","knight-maze","endgame-survivor","guess-the-elo","chess-memory","missing-piece","safe-square-rush","falling-board","queen-chase","chess-block-party","pawn-dash"].includes(mode)||!Number.isInteger(score))return;
  pendingReport={button,nickname,mode,score};
  reportDialog.querySelector(".nickname-report-question").textContent='Are you sure you want to report "'+nickname+'"?';
  reportDialog.returnValue="cancel";
