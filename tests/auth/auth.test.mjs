@@ -4,7 +4,7 @@ import { createAuth } from '../../lib/auth/config.mjs';
 import { handleAuth, consumeCounter } from '../../lib/auth/gateway.mjs';
 import { passwordFunctions, checkNewPassword } from '../../lib/auth/password.mjs';
 import { database } from './fixture.mjs';
-import { createSignupAttempt, consumeSignupAttempt } from '../../lib/auth/passkey-signup-attempt.mjs';
+import { createSignupAttempt, consumeSignupAttempt, generateSignupChallenge, signupSourceDigest } from '../../lib/auth/passkey-signup-attempt.mjs';
 import { passkeyConfigured, createPasskeyPlugin } from '../../lib/auth/passkeys.mjs';
 const secret = 'synthetic-test-only-secret-with-over-32-characters';
 const password = 'Orchard!violet!planet!73519';
@@ -407,4 +407,18 @@ test('signup attempt quota is enforced by SQLite even for simultaneous sources',
   }, now));
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_signup_attempt').get().c, 5);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
+});
+
+test('signup challenges use 256-bit randomness and source identifiers are pseudonymous', async () => {
+  const first = generateSignupChallenge();
+  const second = generateSignupChallenge();
+  assert.match(first, /^[A-Za-z0-9_-]{43}$/);
+  assert.match(second, /^[A-Za-z0-9_-]{43}$/);
+  assert.notEqual(first, second);
+  const a = await signupSourceDigest(secret, '192.0.2.1');
+  const b = await signupSourceDigest(secret, '192.0.2.2');
+  assert.match(a, /^[a-f0-9]{64}$/);
+  assert.notEqual(a, b);
+  assert.equal(a, await signupSourceDigest(secret, '192.0.2.1'));
+  assert.notEqual(a, await signupSourceDigest(secret + '-other', '192.0.2.1'));
 });
