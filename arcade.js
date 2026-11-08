@@ -463,8 +463,9 @@ function stockfishQueenEscape(){
   if(token!==botToken||!state||state.finished||state.phase!=='thinking'||mode!=='queen-chase')return;
   stopBot();
   const queen=state.queen;
+  const vacant={...state.pieces};delete vacant[queen];
   const candidates=moves('Q',queen,state.pieces,{side:'enemy'})
-   .filter(i=>!state.pieces[i]&&!threatened(i,state.pieces,'player'));
+   .filter(i=>!vacant[i]&&!threatened(i,{...vacant,[i]:{type:'Q',side:'enemy'}},'player'));
   let target=Number.isInteger(result)&&candidates.includes(result)?result:queenEscape(state.pieces,queen);
   if(!Number.isInteger(target)||target<0){successfulCapture();paint();return}
   delete state.pieces[queen];state.pieces[target]={type:'Q',side:'enemy'};state.queen=target;
