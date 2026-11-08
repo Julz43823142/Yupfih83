@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 export function database() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys=ON');
-  for (const file of ['0001_auth.sql', '0002_security.sql']) sqlite.exec(readFileSync(new URL(`../../migrations/auth/${file}`, import.meta.url), 'utf8'));
+  for (const file of ['0001_auth.sql', '0002_security.sql', '0007_passkeys.sql']) sqlite.exec(readFileSync(new URL(`../../migrations/auth/${file}`, import.meta.url), 'utf8'));
   const wrapper = {
     sqlite,
     prepare(sql) {
