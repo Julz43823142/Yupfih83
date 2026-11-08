@@ -8,6 +8,7 @@
     byId('registration-panel').hidden = true;
     byId('login-panel').hidden = !!user;
     byId('profile-panel').hidden = !user;
+    byId('passkey-profile-panel').hidden = !(user && config?.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
     if (user) {
       byId('profile-username').textContent = user.username;
       byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
@@ -90,6 +91,28 @@
       } finally { token = ''; if (widgetId !== undefined && window.turnstile) window.turnstile.reset(widgetId); }
     });
   });
+  byId('passkey-login').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential) throw new Error('Passkey sign-in is not available.');
+    message('Confirm the passkey on your device…');
+    const result = await window.eloPasskey.signIn();
+    if (!result?.user) throw new Error('Passkey sign-in did not complete.');
+    showUser(result.user);
+    message('You are logged in with your passkey.');
+    history.replaceState(null, '', '/account.html');
+  }));
+  byId('passkey-enrollment-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, async () => {
+      if (!config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential) throw new Error('Passkey enrollment is not available.');
+      await post('passkey/step-up', { currentPassword: byId('passkey-confirm-password').value });
+      byId('passkey-confirm-password').value = '';
+      message('Confirm the new passkey on your device…');
+      await window.eloPasskey.enroll();
+      form.reset();
+      message('Your passkey is registered. Test a passkey login before removing any old sign-in method.');
+    });
+  });
   byId('password-form').addEventListener('submit', event => {
     event.preventDefault(); const form = event.currentTarget;
     busy(form, async () => {
@@ -110,6 +133,7 @@
     if (!response.ok) throw new Error('Account services are not available yet.');
     if (!(response.headers.get('content-type') || '').toLowerCase().includes('application/json')) throw new Error('Account API is not responding correctly. Check the Cloudflare Pages Functions deployment.');
     config = await response.json();
+    byId('passkey-login').hidden = !(config.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
     if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; byId('signup-submit').disabled = !config.registrationOpen; message(config.registrationOpen ? '' : 'Registration is currently unavailable.'); if(config.registrationOpen) await signupChallenge(); return; }
     const session = await (window.eloAccountSession || fetch('/api/auth/get-session', { cache: 'no-store' }).then(async r => ({ available: r.ok, ...(r.ok ? await r.json() : {}) })));
     showUser(session.user || null);
