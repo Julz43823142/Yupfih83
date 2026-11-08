@@ -66,6 +66,17 @@ cross-platform and synced passkey authenticators; do not force Face ID.
 10. Validate in isolated staging, review all 22 security checklist items, then
     explicitly approve a separate deployment/migration and eventual signup launch.
 
+## Automated pre-integration evidence
+
+The scoped GitHub Actions workflow
+`.github/workflows/passkey-plugin-compatibility.yml` installs
+`@better-auth/passkey@1.7.17` **ephemerally** after `npm ci`, checks that
+the plugin matches the pinned Better Auth version, tests its server import and
+runs a production-dependency security audit. It does **not** add the passkey
+package to the production dependency lockfile, bundle a browser client, enable
+WebAuthn routes or create credentials. Those remain gated until staging and
+new code are reviewed.
+
 ## Safe sequencing
 
 A. Land schema and hard-closed legacy signup, with tests (this PR).
