@@ -31,3 +31,17 @@ test('Guess the Elo falls back to a verified archived real game when upstream fa
  try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,200);const game=await r.json();assert.equal(game.id,'PpwPOZMq');assert.equal(game.archived,true);assert.ok([2100,2000].includes(game.elo));const chess=new Chess();for(const uci of game.moves)assert.ok(chess.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]}));assert.equal(chess.history().length,26)}
  finally{globalThis.fetch=previous}
 });
+
+test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original player ratings',async()=>{
+ const previous=globalThis.fetch, visited=[];
+ const pgn='[Event "Live Chess"]\\n[Site "Chess.com"]\\n[White "PlayerA"]\\n[Black "PlayerB"]\\n[Result "1-0"]\\n\\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
+ globalThis.fetch=async input=>{visited.push(String(input));return Response.json({games:[{rated:true,rules:'chess',time_class:'rapid',url:'https://www.chess.com/game/live/123456789',pgn,white:{rating:1837},black:{rating:1722}}]})};
+ try{
+  const response=await onRequestGet({request:new Request(url)}),game=await response.json();
+  assert.equal(response.status,200);assert.equal(game.platform,'chesscom');
+  assert.equal(game.link,'https://www.chess.com/game/live/123456789');
+  assert.ok([1837,1722].includes(game.elo));assert.equal(game.elo,game.side==='white'?1837:1722);
+  const board=new Chess();board.loadPgn(game.pgn);assert.equal(board.history().length,12);
+  assert.ok(visited.some(x=>x.startsWith('https://api.chess.com/pub/player/')));
+ }finally{globalThis.fetch=previous}
+});
