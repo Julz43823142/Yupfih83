@@ -96,3 +96,38 @@ test('Chess Memory palette has draggable SVGs and mobile board stays inside view
  expect(overflow.width<=overflow.vw).toBe(true);
  expect(errors).toEqual([]);
 });
+
+test('Safe Square Rush, Pawn Dash and Queen Chase all support actual piece dragging',async({page})=>{
+ await stubScores(page);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/arcade.html?game=safe-square-rush');
+ await page.locator('#arcade-start').click();
+ const source=page.locator('#arcade-board .arcade-square:has(.chess-piece[alt^="White"])').first();
+ await source.click();
+ const dest=page.locator('#arcade-board .arcade-square.available.safe-zone').first();
+ await expect(dest).toBeVisible();
+ await drag(page,source,dest);
+ await expect(page.locator('#arcade-score')).toHaveText('1');
+
+ await page.goto(base+'/arcade.html?game=pawn-dash');
+ await page.locator('#arcade-start').click();
+ const pawn=page.locator('#arcade-board [data-square="e1"]');
+ await expect(pawn.locator('.chess-piece')).toBeVisible();
+ await pawn.click();
+ const dest2=page.locator('#arcade-board [data-square="d2"]');
+ await expect(dest2).toHaveClass(/available/);
+ await drag(page,pawn,dest2);
+ await expect(page.locator('#arcade-score')).toHaveText('1');
+ await expect(dest2.locator('.chess-piece')).toBeVisible();
+
+ await page.goto(base+'/arcade.html?game=queen-chase');
+ await page.locator('#arcade-start').click();
+ const rook=page.locator('#arcade-board [data-square="a8"]');
+ await expect(rook.locator('.chess-piece')).toBeVisible();
+ await rook.click();
+ const dest3=page.locator('#arcade-board .arcade-square.available').first();
+ const target=await dest3.getAttribute('data-square');
+ await drag(page,rook,dest3);
+ await expect(page.locator('#arcade-board [data-square="'+target+'"] .chess-piece')).toBeVisible();
+ expect(errors).toEqual([]);
+});
