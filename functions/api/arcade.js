@@ -25,7 +25,7 @@ async function ready(db){
 const maxScore={'endgame-survivor':1000,'guess-the-elo':250000,'chess-memory':100000,'missing-piece':1000,'safe-square-rush':2500,'falling-board':5000,'queen-chase':5000,'chess-block-party':2500,'pawn-dash':5000};
 async function rankings(db,mode){
  const r=await db.prepare("SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM arcade_score_entries WHERE mode=? ORDER BY score DESC,created_at ASC,id ASC LIMIT 100").bind(mode).all();
- return (r.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry);
+ return r.results||[];
 }
 export async function onRequestGet({request,env}){
  const mode=new URL(request.url).searchParams.get('mode');
