@@ -49,5 +49,11 @@ jobs:
             env.PASSKEY_RP_ID?.value==='feature-passkey-foundation-2.fairplaychess.pages.dev' &&
             env.PASSKEY_LOGIN_ENABLED?.value==='true' &&
             id==='e1d84922-0f74-414f-8fe5-2c3ac48f7884';
+          console.log('Preview auth URL matches expected hostname: '+(env.BETTER_AUTH_URL?.value==='https://feature-passkey-foundation-2.fairplaychess.pages.dev'?'yes':'no'));
+          console.log('Preview passkey RP ID matches expected hostname: '+(env.PASSKEY_RP_ID?.value==='feature-passkey-foundation-2.fairplaychess.pages.dev'?'yes':'no'));
+          console.log('Preview passkey login flag enabled: '+(env.PASSKEY_LOGIN_ENABLED?.value==='true'?'yes':'no'));
+          console.log('Preview auth secret configured: '+(has('BETTER_AUTH_SECRET')?'yes':'no'));
+          console.log('Preview Turnstile secret configured: '+(has('TURNSTILE_SECRET_KEY')?'yes':'no'));
+          console.log('Preview Turnstile site key configured: '+(has('TURNSTILE_SITE_KEY')?'yes':'no'));
           console.log('Ready to enable preview signup: '+(ready?'yes':'no'));
           NODE
