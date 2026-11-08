@@ -87,6 +87,20 @@ test('preview passkey gateway denies unapproved management and malformed proofs'
     request: req('passkey/step-up', { currentPassword: 'some-password' }), env
   })).status, 401);
 });
+test('changing a password invalidates all unconsumed passkey enrollment grants', async () => {
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
+  await provision(env, 'password_owner');
+  const login = await handleAuth({ request: req('sign-in/username', { username: 'password_owner', password }), env });
+  assert.equal(login.status, 200);
+  const c = cookie(login);
+  const call = (route, body) => handleAuth({ request: req(route, body, c), env }, { fetch: safeLookup });
+  assert.equal((await call('passkey/step-up', { currentPassword: password })).status, 200);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_stepup').get().c, 1);
+  const changed = await call('change-password', { currentPassword: password, newPassword: password + '-changed' });
+  assert.equal(changed.status, 200, await changed.clone().text());
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_stepup').get().c, 0);
+  assert.equal((await call('passkey/generate-register-options')).status, 403);
+});
 test('WebAuthn challenges and verification attempts are independently rate-limited', async () => {
   for (const [route, max, payload] of [
     ['passkey/generate-authenticate-options', 20, undefined],
