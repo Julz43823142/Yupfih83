@@ -2,7 +2,7 @@ import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
 import {createPawnWorld} from '/pawn-world.js';
 import {attachChessBoardControls} from '/chess-board-controls.js';
 import {appendChessArrow} from '/chess-board-arrows.js';
-import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from '/arcade-rules.mjs';
 
 const $=id=>document.getElementById(id);
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
@@ -312,7 +312,7 @@ function placePalette(to){
 }
 function guessElo(guess){
  if(!state||state.finished||state.phase!=='guess'||!Number.isInteger(guess)||guess<100||guess>4000)return;
- const diff=Math.abs(guess-state.answer),points=diff===0?10:diff<=10?9:diff<=25?7:diff<=50?5:diff<=100?4:diff<=200?3:diff<=300?2:diff<=450?1:0;
+ const diff=Math.abs(guess-state.answer),points=guessEloPoints(diff);
  score(points);state.phase='revealed';
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=false;
  const answer=document.createElement('strong');answer.className='arcade-elo-reveal';answer.textContent='Actual '+state.eloSide+' Elo: '+state.answer+' · Your guess: '+guess+' · +'+points+' points';
