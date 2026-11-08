@@ -99,7 +99,9 @@ test('changing a password invalidates all unconsumed passkey enrollment grants',
   const changed = await call('change-password', { currentPassword: password, newPassword: password + '-changed' });
   assert.equal(changed.status, 200, await changed.clone().text());
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_stepup').get().c, 0);
-  assert.equal((await call('passkey/generate-register-options')).status, 403);
+  // Better Auth may revoke the prior session during password rotation (401).
+  // A retained session with its step-up revoked yields 403. Neither may enroll.
+  assert.ok([401, 403].includes((await call('passkey/generate-register-options')).status));
 });
 test('WebAuthn challenges and verification attempts are independently rate-limited', async () => {
   for (const [route, max, payload] of [
