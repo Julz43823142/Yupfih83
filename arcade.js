@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {createPawnWorld} from '/pawn-world.js';
 import {attachChessBoardControls} from '/chess-board-controls.js';
 import {appendChessArrow} from '/chess-board-arrows.js';
 import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape} from '/arcade-rules.mjs';
@@ -10,6 +11,7 @@ const info=GAME_CATALOG.find(g=>g.id===mode);
 $('arcade-title').textContent=info.name;
 $('arcade-description').textContent=info.description;
 $('arcade-ranking-name').textContent=info.name;
+$('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(mode);
 document.title=info.name+' | EloScanner';
 const instructions={
  'endgame-survivor':'You start in a winning endgame as White. Actually finish the win against Stockfish at its maximum available strength. You have three lives. A draw or loss costs one life. Every win is a point.',
@@ -24,7 +26,7 @@ const instructions={
 };
 $('arcade-instructions').textContent=instructions[mode];
 
-let state=null,selected=null,palettePiece=null,submitted=false,session=null,botWorker=null,botToken=0,clockTimer=null,account=null;
+let state=null,selected=null,palettePiece=null,submitted=false,session=null,botWorker=null,botToken=0,clockTimer=null,account=null,pawnWorld=null,queuedPremove=null,premovePointer=null;
 const marks=[],highlights=new Set(),cells=[];
 const svgNS='http://www.w3.org/2000/svg';
 const marksLayer=document.createElementNS(svgNS,'svg');
@@ -43,8 +45,9 @@ const letters={K:'King',Q:'Queen',R:'Rook',B:'Bishop',N:'Knight',P:'Pawn'};
 const currentPosition=()=>{
  if(!state)return {};
  if(mode==='endgame-survivor'||mode==='guess-the-elo'||(mode==='missing-piece'&&state.chess)){
+  const chess=mode==='guess-the-elo'?(state.eloView||state.chess):state.chess;
   const list={};
-  for(let i=0;i<64;i++){const p=state.chess.get(square(i));if(p)list[i]={type:p.type.toUpperCase(),side:p.color==='w'?'player':'enemy'};}
+  for(let i=0;i<64;i++){const p=chess.get(square(i));if(p)list[i]={type:p.type.toUpperCase(),side:p.color==='w'?'player':'enemy'};}
   return list;
  }
  if(mode==='falling-board'){
@@ -118,16 +121,11 @@ function paint(){
   const [x,y]=xy(i);
   let classes='arcade-square '+((x+y)%2?'dark':'light');
   if(selected===square(i))classes+=' selected';
-  if(sources.includes(i))classes+=' available';
+  if(sources.includes(i)&&!['safe-square-rush','chess-block-party'].includes(mode))classes+=' available';
   if(state&&mode==='falling-board'&&state.falling.gone.includes(i))classes+=' lost';
-  if(state&&mode==='safe-square-rush'&&state.phase==='playing'){
-   if(state.safe.safe.includes(i))classes+=' safe-zone';
-   else if(threatened(i,state.pieces,'enemy'))classes+=' threatened';
-  }
   if(state&&mode==='chess-block-party'){
    classes+=' board-color';
    el.style.setProperty('--board-color',COLORS[state.block.palette[i]]);
-   if(state.block.palette[i]===state.block.target&&state.phase==='playing')classes+=' goal-colour';
   }else el.style.removeProperty('--board-color');
   if(state&&mode==='pawn-dash'&&state.stars?.includes(i))classes+=' star';
   if(state&&mode==='chess-memory'&&state.phase==='build'&&state.placed[i]&&state.answer[i])classes+=' safe-zone';
@@ -163,7 +161,7 @@ function lose(message){
 }
 function nextLevel(){
  if(!state||state.finished)return;
- state.level++;
+ $('arcade-next').hidden=true;state.level++;
  resetAnnotations();
  setupLevel();
  paint();
@@ -171,8 +169,14 @@ function nextLevel(){
 const endgames=[
  '7k/8/5K2/8/8/8/8/6Q1 w - - 0 1',
  '7k/8/5K2/8/8/8/8/R7 w - - 0 1',
- '8/7k/5K2/8/8/8/8/3Q4 w - - 0 1',
- '8/8/6k1/8/3K4/8/8/5Q2 w - - 0 1'
+ '6k1/5ppp/8/8/4P3/5P2/6PP/6K1 w - - 0 1',
+ '8/4k3/8/3P1K2/8/8/8/8 w - - 0 1',
+ '6k1/5p1p/6p1/8/3PP3/6P1/5P1P/6K1 w - - 0 1',
+ '8/5pk1/5np1/8/4P3/3N2P1/5P1P/6K1 w - - 0 1',
+ '8/5pk1/4p1p1/8/3PP3/4B1P1/5P1P/6K1 w - - 0 1',
+ '6k1/5ppp/8/8/8/1P3P2/P5PP/2R3K1 w - - 0 1',
+ '4r1k1/5ppp/8/4P3/3P4/8/5PPP/3R2K1 w - - 0 1',
+ '8/6kp/5pp1/8/2P5/3P2P1/5P1P/4R1K1 w - - 0 1'
 ];
 const examples=[
  {elo:400,moves:['f3','e5','g4','Qh4#']},
@@ -195,21 +199,15 @@ function setupLevel(){
   state.chess=new Chess(endgames[(state.level-1)%endgames.length]);
   status('Winning position. White to move. Beat Stockfish to earn one point.');
  }else if(mode==='guess-the-elo'){
-  const e=examples[(state.level-1)%examples.length];
-  state.chess=new Chess();let applied=0;
-  for(const m of e.moves){try{state.chess.move(m);applied++}catch{break}}
-  state.answer=e.elo;state.phase='guess';
-  status('Illustrative game ('+applied+' moves). Estimate the player strength.');
-  const choices=$('arcade-choices');choices.hidden=false;
-  for(const guess of [400,700,1000,1300,1600,1900,2200,2500,2800]){
-   const b=document.createElement('button');b.textContent=guess+' Elo';b.type='button';b.addEventListener('click',()=>guessElo(guess));
-   choices.append(b);
-  }
+  state.chess=new Chess();state.eloView=new Chess();state.phase='waiting';
+  status('Loading a real, finished rated Lichess game…');
+  void loadRealEloGame(state);
  }else if(mode==='chess-memory'){
   state.answer=memoryLevel(state.seed,state.level);state.placed={};state.phase='preview';
   state.revealUntil=Date.now()+Math.max(2700,6500-state.level*200);
   status('Memorize the pieces! They disappear shortly.');
  }else if(mode==='missing-piece'){
+  state.phase='waiting';status('Coming soon — Missing Piece is under construction.');return;
   state.puzzle=missing[(state.level-1)%missing.length];
   state.chess=new Chess(state.puzzle.fen);state.phase='placement';
   palette(['Q','R','B','N'].map(type=>({type,side:'player'})));
@@ -218,11 +216,10 @@ function setupLevel(){
   state.safe=safeSquareLevel(state.seed,state.level);
   state.pieces=state.safe.pieces;
   state.levelUntil=Date.now()+Math.max(1500,4600-state.level*55);
-  status('Reach any safe square with your '+(letters[state.safe.type]||state.safe.type)+'! Red means attacked.');
+  status('Find a safe square with your '+(letters[state.safe.type]||state.safe.type)+'. No hints!');
  }else if(mode==='falling-board'){
   state.falling=freshFalling(state.seed+':'+state.level);
-  state.nextBots=Date.now()+900;
-  const now=Date.now();
+  const now=Date.now();state.botDue=Object.fromEntries([1,2,3].map(id=>[id,now+300+Math.random()*1000]));
   for(const k of state.falling.knights)k.lastAt=now;
   status('Blue knight is yours. Jump within 3 seconds. Last knight standing wins.');
  }else if(mode==='queen-chase'){
@@ -237,11 +234,9 @@ function setupLevel(){
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
   status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
-  state.pawn=at(4,7);state.enemies=pawnEnemies(state.seed,state.level);
-  state.pieces={[state.pawn]:{type:'P',side:'player'}};
-  state.nextEnemies=Date.now()+650;
-  status('Cross the road! Move your pawn forward or diagonally; avoid the roaming pieces.');
-  drawRoad();
+  status('Hop across the Pawn Kingdom! Use arrows, WASD, swipe or directional buttons.');
+  board.hidden=true;pawnWorld?.destroy();
+  pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message)});
  }
 }
 function drawRoad(){
@@ -295,7 +290,7 @@ function placePalette(to){
   if(a&&a.type===palettePiece.type&&a.side===palettePiece.side){
    state.placed[to]={...palettePiece};const n=Object.keys(state.placed).length,total=Object.keys(state.answer).length;
    status(n+' of '+total+' pieces placed.');
-   if(n===total){score(10+state.level*3);status('Perfect board! Next level.');nextLevel();}
+   if(n===total){score(1);status('Perfect board! +1 point.');nextLevel();}
   }else{lose('Incorrect square or piece.');}
   paint();return;
  }
@@ -315,13 +310,13 @@ function placePalette(to){
  }
 }
 function guessElo(guess){
- if(!state||state.finished||state.phase!=='guess')return;
- const diff=Math.abs(guess-state.answer);
- const points=Math.max(0,120-Math.round(diff/10));
- score(points);
- $('arcade-choices').hidden=true;
- status('Target: '+state.answer+' Elo (illustrative). You earned '+points+' points.');
- nextLevel();
+ if(!state||state.finished||state.phase!=='guess'||!Number.isInteger(guess)||guess<100||guess>4000)return;
+ const diff=Math.abs(guess-state.answer),points=diff===0?10:diff<=10?9:diff<=25?7:diff<=50?5:diff<=100?4:diff<=200?3:diff<=300?2:diff<=450?1:0;
+ score(points);state.phase='revealed';
+ const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=false;
+ const answer=document.createElement('strong');answer.className='arcade-elo-reveal';answer.textContent='Actual '+state.eloSide+' Elo: '+state.answer+' · Your guess: '+guess+' · +'+points+' points';
+ const link=document.createElement('a');link.href=state.eloLink;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View the real Lichess game ↗';choices.append(answer,link);
+ $('arcade-next').hidden=false;status('Rating revealed. You were '+diff+' Elo away. Continue when ready.');
 }
 function successfulCapture(){
  score(20+Math.max(0,12-state.turns));
@@ -411,33 +406,26 @@ function tick(){
    $('arcade-move-clock').textContent=(left/1000).toFixed(1)+'s';
    if(left===0){player.alive=false;status('Three seconds expired. Your knight is out.');finish();return}
   }
-  if(now>=state.nextBots){
-   const rand=makeRandom(state.seed+':bots:'+state.level+':'+state.falling.turns);
-   for(const k of state.falling.knights.slice(1)){
-    if(!k.alive)continue;
-    const targets=knightOptions(state.falling,k.id);
-    if(!targets.length){k.alive=false;continue}
-    stepKnight(state.falling,k.id,targets[Math.floor(rand()*targets.length)],now);
-   }
-   state.nextBots=now+850;checkFalling();paint();
+  for(const k of state.falling.knights.slice(1)){
+   if(!k.alive||now<state.botDue[k.id])continue;
+   const targets=knightOptions(state.falling,k.id);
+   if(!targets.length)k.alive=false;
+   else stepKnight(state.falling,k.id,targets[Math.floor(Math.random()*targets.length)],now);
+   state.botDue[k.id]=now+260+Math.random()*1450;
+   checkFalling();paint();
   }
  }else if(mode==='safe-square-rush'&&state.phase==='playing'&&now>=state.levelUntil){
   lose('Too slow!');if(!state.finished){nextLevel();paint();}
  }else if(mode==='chess-block-party'&&state.phase==='playing'&&now>=state.levelUntil){
   lose('The other colours collapsed!');if(!state.finished){nextLevel();paint();}
  }else if(mode==='chess-memory'&&state.phase==='preview'&&now>=state.revealUntil){
-  state.phase='build';state.placed={};palette([
+  resetAnnotations();state.phase='build';state.placed={};palette([
    ...['K','Q','R','B','N','P'].map(type=>({type,side:'player'})),
    ...['K','Q','R','B','N','P'].map(type=>({type,side:'enemy'}))
   ]);
   status('Rebuild the position! Choose a piece and place it on its original square.');
   paint();
- }else if(mode==='pawn-dash'&&now>=state.nextEnemies){
-  state.nextEnemies=now+Math.max(250,650-state.level*20);
-  for(const e of state.enemies)e.x=(e.x+e.dir+8)%8;
-  if(state.enemies.some(e=>at(e.x,e.y)===state.pawn)){pawnHit();}
-  drawRoad();paint();
- }
+
  if(mode!=='endgame-survivor'&&now>=state.endsAt)finish();
 }
 function checkEndgame(){
@@ -502,7 +490,8 @@ async function getSession(){
  }catch{}
 }
 async function start(){
- stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();
+ stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
+ if(mode==='missing-piece'){status('Coming soon — this game is being redesigned.');return;}
  const now=Date.now(),s=seed();
  state={mode,seed:s,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
@@ -521,6 +510,7 @@ async function start(){
 }
 function finish(){
  if(!state||state.finished)return;
+ queuedPremove=null;pawnWorld?.destroy();pawnWorld=null;
  state.finished=true;state.phase='done';clearInterval(clockTimer);stopBot();controls.cancelDrag();
  $('arcade-finish').hidden=true;
  $('arcade-final-score').textContent='Final score: '+state.score+' points · level '+state.level+'.';
@@ -557,7 +547,8 @@ async function loadRanking(){
    n.textContent=row.nickname;n.className='nickname'+(row.sourceType==='account'?' account':'');
    if(row.profileVerified)n.href='/profile/'+encodeURIComponent(row.nickname);
    const points=document.createElement('span');points.className='score';points.textContent=String(row.score);
-   li.append(n,points);list.append(li);
+   const report=document.createElement('button');report.className='rank-report';report.type='button';report.textContent='Report';report.dataset.nickname=row.nickname;report.dataset.mode=mode;report.dataset.score=String(row.score);
+   li.append(n,points,report);list.append(li);
   }
  }catch(e){const li=document.createElement('li');li.className='arcade-empty';li.textContent='Rankings temporarily unavailable: '+e.message;list.append(li);}
 }
@@ -566,5 +557,6 @@ $('arcade-finish').addEventListener('click',finish);
 $('arcade-submit').addEventListener('click',submit);
 $('arcade-next').addEventListener('click',nextLevel);
 window.addEventListener('elo-account-changed',e=>{account=e.detail?.user||null;if(account?.username){$('arcade-nickname').value=account.username;$('arcade-nickname').disabled=true}});
-window.addEventListener('pagehide',stopBot);
+window.addEventListener('pagehide',()=>{stopBot();pawnWorld?.destroy()});
+if(mode==='missing-piece'){$('arcade-start').disabled=true;$('arcade-start').textContent='Coming soon';status('Missing Piece is under construction.');}
 void getSession();void loadRanking();paint();
