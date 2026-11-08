@@ -12,8 +12,15 @@ export const onRequestGet = async ({ request, env }) => {
     'Referrer-Policy': 'no-referrer',
     'Cross-Origin-Resource-Policy': 'same-origin'
   };
-  if (url.origin !== base || (origin && origin !== base) || request.headers.get('Sec-Fetch-Site') === 'cross-site') {
-    return Response.json({ message: 'Request not allowed.' }, { status: 403, headers });
+  // Keep the origin policy unchanged. Report only a coarse rejection reason
+  // so an isolated Pages preview can diagnose environment/hostname mismatches
+  // without exposing secrets, tokens, or request headers.
+  const denialCode = url.origin !== base ? 'URL_ORIGIN_MISMATCH'
+    : origin && origin !== base ? 'HEADER_ORIGIN_MISMATCH'
+    : request.headers.get('Sec-Fetch-Site') === 'cross-site' ? 'CROSS_SITE_REQUEST'
+    : null;
+  if (denialCode) {
+    return Response.json({ message: 'Request not allowed.', code: denialCode }, { status: 403, headers });
   }
   const configured = !!env.AUTH_DB && typeof env.BETTER_AUTH_SECRET === 'string' && env.BETTER_AUTH_SECRET.length >= 32;
   return Response.json({
