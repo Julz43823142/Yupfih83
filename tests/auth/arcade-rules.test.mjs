@@ -16,7 +16,7 @@ test('all chessboard moves use a8=0 to h1=63 and respect blockers',()=>{
  assert.equal(cell('a8'),0);assert.equal(cell('h1'),63);assert.equal(square(0),'a8');assert.equal(square(63),'h1');
  assert.deepEqual(moves('N',cell('a1')).sort((a,b)=>a-b),[cell('b3'),cell('c2')].sort((a,b)=>a-b));
  const occupied={[cell('a4')]:{type:'P',side:'player'}};
- assert.deepEqual(moves('R',cell('a1'),occupied),[cell('a2'),cell('a3'),cell('b1'),cell('c1'),cell('d1'),cell('e1'),cell('f1'),cell('g1'),cell('h1')]);
+ assert.deepEqual(moves('R',cell('a1'),occupied).sort((a,b)=>a-b),[cell('a2'),cell('a3'),cell('b1'),cell('c1'),cell('d1'),cell('e1'),cell('f1'),cell('g1'),cell('h1')].sort((a,b)=>a-b));
  assert.deepEqual(moves('B',cell('a1')),[cell('b2'),cell('c3'),cell('d4'),cell('e5'),cell('f6'),cell('g7'),cell('h8')]);
 });
 
