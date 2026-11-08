@@ -20,3 +20,13 @@ test('ranking response is validated before accessing entries',()=>{
  assert.match(html,/if\(!Array\.isArray\(data\.entries\)\)throw Error/);
  assert.match(html,/\(data\.entries\|\|\[\]\)\.forEach/);
 });
+
+test('Top 100 organizes puzzle and minigame leaderboards into separate category tabs',()=>{
+ const html=readFileSync(new URL('../../puzzle-top100.html',import.meta.url),'utf8');
+ assert.match(html,/data-category="puzzles"/);
+ assert.match(html,/data-category="minigames"/);
+ assert.match(html,/id="puzzle-leaderboard-tabs"/);
+ assert.match(html,/id="minigame-leaderboard-tabs"[^>]*hidden/);
+ assert.match(html,/category==='minigames'\?'knight-maze':'sprint'/);
+ assert.match(html,/\.puzzles-tabs\[hidden\]\{display:none!important\}/);
+});
