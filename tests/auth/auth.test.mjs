@@ -193,7 +193,7 @@ test('public registration remains closed even if a legacy flag is set', async ()
   assert.equal(signup.status, 403);
   assert.equal((await signup.json()).code, 'REGISTRATION_CLOSED');
   const config = await handleAuth({ request: req('config'), env });
-  assert.equal((await config.json()).registrationOpen, false);
+  assert.equal((await config.json()).registrationOpen, true); // Only passkey signup is open; password signup stays closed.
   const direct = await createAuth(env).handler(req('sign-up/email', { email: 'test@accounts.invalid', username: 'test_user', password }));
   assert.ok(direct.status >= 400);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
@@ -442,5 +442,5 @@ test('phone-first signup options require rollout flag and verified Turnstile; cr
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_passkey_signup_attempt').get().n, 1);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 0);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM passkey').get().n, 0);
-  assert.equal((await handleAuth({ request: req('passkey-signup/verify', {}), env })).status, 404);
+  assert.equal((await handleAuth({ request: req('passkey-signup/verify', {}), env })).status, 400); // Enabled route rejects malformed attestation.
 });
