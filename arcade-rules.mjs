@@ -36,7 +36,7 @@ function shiftMissingPawn(p,delta){
 }
 const MISSING_VARIATIONS=MISSING_BASE.flatMap(p=>Array.from({length:5},(_,delta)=>shiftMissingPawn(p,delta)));
 export const MISSING_PUZZLES=Object.freeze([...MISSING_VARIATIONS,...MISSING_VARIATIONS.map(p=>({fen:mirrorMissingFen(p.fen),square:mirrorMissingFile(p.square),piece:p.piece,response:p.response.map(mirrorMissingFile),mate:p.mate.map(mirrorMissingFile)}))]);
-export const COLORS=['#ee6686','#f7be57','#70d4ef','#79dba5','#a99dfb','#ef96ed','#e9e6b9','#fb985d'];
+export const COLORS=['#ee6686','#f7be57','#70d4ef','#79dba5','#823dea','#ef96ed','#e9e6b9','#fb985d'];
 export const KNIGHT_COLORS=['#52bdff','#f67878','#ffd16a','#8ce597'];
 export const xy=i=>[i%8,Math.floor(i/8)];
 export const at=(x,y)=>x>=0&&x<8&&y>=0&&y<8?y*8+x:-1;
