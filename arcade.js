@@ -303,10 +303,11 @@ function placePalette(to){
   if(state.placed[to])return;
   const a=state.answer[to];
   if(a&&a.type===palettePiece.type&&a.side===palettePiece.side){
+    flashFeedback('Correct!');
    state.placed[to]={...palettePiece};const n=Object.keys(state.placed).length,total=Object.keys(state.answer).length;
    status(n+' of '+total+' pieces placed.');
    if(n===total){score(1);status('Perfect board! +1 point.');nextLevel();}
-  }else{lose('Incorrect square or piece.');}
+  }else{lose('Incorrect '+palettePiece.type+' at '+square(to)+'.');}
   paint();return;
  }
  if(mode==='missing-piece'&&state.phase==='placement'){
@@ -567,7 +568,7 @@ async function start(){
  state?.eloAbort?.abort();stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
  const now=Date.now(),s=seed();runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
- state={mode,seed:s,positionOffset:runOffset%endgames.length,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
+ state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
