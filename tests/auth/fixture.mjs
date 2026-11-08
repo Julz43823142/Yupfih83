@@ -16,7 +16,18 @@ export function database() {
         async run() { const result = statement.run(...args); return { success: true, results: [], meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid) } }; }
       };
     },
-    async batch(statements) { return Promise.all(statements.map(statement => statement.all())); },
+    async batch(statements) {
+      sqlite.exec('BEGIN');
+      try {
+        const results = [];
+        for (const statement of statements) results.push(await statement.all());
+        sqlite.exec('COMMIT');
+        return results;
+      } catch (error) {
+        sqlite.exec('ROLLBACK');
+        throw error;
+      }
+    },
     async exec(sql) { sqlite.exec(sql); return {}; }
   };
   return wrapper;
