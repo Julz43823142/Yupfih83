@@ -98,7 +98,7 @@ test('Elo prediction points respect exact, 50, 100, 200 and zero cutoffs',()=>{
 });
 
 test('Missing Piece mirrored setups preserve a legal pawn reply and valid mate in one',()=>{
- assert.equal(MISSING_PUZZLES.length,8);
+ assert.equal(MISSING_PUZZLES.length,40);
  for(const [index,p] of MISSING_PUZZLES.entries()){
   const chess=new Chess(p.fen);
   assert.ok(chess.put({type:p.piece.toLowerCase(),color:'w'},p.square),'placement '+index);
