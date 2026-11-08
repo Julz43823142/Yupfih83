@@ -16,7 +16,7 @@ export const onRequestGet = ({ request, env }) => {
   }
   const configured = !!env.AUTH_DB && typeof env.BETTER_AUTH_SECRET === 'string' && env.BETTER_AUTH_SECRET.length >= 32;
   return Response.json({
-    registrationOpen: configured && env.PUBLIC_SIGNUP_ENABLED === 'true' && !!env.TURNSTILE_SECRET_KEY && !!env.TURNSTILE_SITE_KEY,
+    registrationOpen: false,
     loginConfigured: configured,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
