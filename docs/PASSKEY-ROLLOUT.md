@@ -260,3 +260,13 @@ E. Only after a separate explicit approval open passkey-only registration.
 
 The SQL migration is **additive** and should be applied to an isolated preview D1
 only after pin/schema verification. No production database has been touched.
+
+## Preview rebuild after Cloudflare settings update (2026-11-08)
+
+A documentation-only commit on this unmerged feature branch requests a fresh
+Cloudflare Pages **preview** build so updated preview environment variables,
+D1 binding, and `nodejs_compat` compatibility flag can take effect. This does
+not modify the `main` branch, production D1 schema, or production secrets.
+After the build, verify the exact preview origin and `/api/auth/config` result;
+a successful build alone is not proof that the runtime is healthy. Keep
+`PASSKEY_LOGIN_ENABLED=false` until preview migrations and a test user are ready.
