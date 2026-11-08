@@ -1,6 +1,6 @@
 # EloScanner passkey migration — security-first staging plan
 
-Status: **schema preparation only; no passkey login is implemented or enabled**.
+Status: **passkey implementation in an unmerged draft PR; disabled by default**.
 Public registration stays closed. No production D1 migration, secret change, merge
 or live deployment is authorized by this branch.
 
@@ -13,13 +13,13 @@ or live deployment is authorized by this branch.
 - The current `account` table stores legacy password hashes. Keep it and its
   existing credentials during the migration; never delete hashes before proven
   recovery and explicit release approval.
-- The existing account pages use vanilla JavaScript and have no bundler-delivered
-  WebAuthn client at present.
+- The account pages use vanilla JavaScript and a bundled same-origin passkey
+  client built from the official Better Auth plugin.
 
 ## Implementation choice
 
 Use the **Better Auth passkey plugin** `@better-auth/passkey` with the **same
-version as `better-auth`**, once separately pinned and dependency-audited.
+version as `better-auth`**, pinned to 1.7.17 and dependency-audited.
 The plugin uses SimpleWebAuthn internally. This minimizes new custom crypto and
 reuses Better Auth user IDs, sessions and D1. Do not independently implement
 signature verification or rely on a third-party QR-code service.
@@ -76,15 +76,32 @@ version, tests its server import and runs a production-dependency security audit
 workflow with write access was removed immediately after committing the
 manifests. The plugin loads only if `PASSKEY_LOGIN_ENABLED=true` and
 `PASSKEY_RP_ID` exactly matches the configured origin hostname, with HTTPS
-required outside localhost. **The public gateway still denies every passkey
-endpoint**, including when the flag is set. There is no browser client,
-registration, sign-in or working credential enrollment yet.
+required outside localhost. The public gateway allows only a narrow set of authentication, read-only list
+and password-confirmed enrollment routes when the flag is set. It denies all
+other passkey management routes. Public account creation is always blocked.
+The browser client uses SimpleWebAuthn via the official Better Auth client.
+A real WebAuthn virtual-authenticator test is included in the local CI suite;
+no production or remote staging credentials are touched.
+
+## Preview-only setup and test
+
+1. Use isolated Cloudflare preview D1. Apply `0007_passkeys.sql` **only there**
+   after prior migrations. Never bind preview to live production D1.
+2. Configure exact `BETTER_AUTH_URL` and matching `PASSKEY_RP_ID` to the stable
+   HTTPS preview host, and set `PASSKEY_LOGIN_ENABLED=true` only in preview.
+   The default without these variables is OFF.
+3. On the account page, log in with an existing password, reenter the current
+   password in Passkeys, create a passkey, log out, then log in via passkey.
+4. Test Chromium virtual authenticator CI, real phone/QR flows, lost device and
+   second authenticator behavior; do not assume all browsers support QR transfer.
+5. Passkey deletion, credential recovery, password removal and public signup are
+   intentionally **not enabled**. Build/approve them separately before launch.
 
 ## Safe sequencing
 
 A. Land schema and hard-closed legacy signup, with tests (this PR).
-B. Pin/integrate passkey plugin and client UI on separate review branch, still
-   disabled for public signup.
+B. Pin/integrate passkey plugin and client UI (this unmerged review branch),
+   with passkey routes opt-in and public signup hard-closed.
 C. Operator migration: sign in with existing password, reenter password,
    register passkey, sign out, test passkey sign-in, attach a second passkey.
 D. Only after independently tested migration/recovery and approved release:
