@@ -23,22 +23,6 @@ if (fixture && (remote || exportSql)) throw new Error('Fixture users are forbidd
 const dbIndex = args.indexOf('--database'); const target = remote ? args[dbIndex + 1] : 'AUTH_DB';
 if (remote && (dbIndex < 0 || !target || target.startsWith('-'))) throw new Error('Explicit --database is required for remote provisioning');
 function prompt(question, hidden = false) {
-  if (hidden && process.platform === 'win32') {
-    // PowerShell's native secure input avoids raw-mode keypress handling
-    // that can fail in Windows terminals. Never pass secrets in argv.
-    const script = [
-      '$secure = Read-Host -Prompt ' + "'Enter secret (input hidden)'" + ' -AsSecureString',
-      '$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)',
-      'try { [Console]::Out.Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)) }',
-      'finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }'
-    ].join('; ');
-    process.stdout.write(question + '\n');
-    const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', script], {
-      stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', windowsHide: false
-    });
-    if (result.status !== 0) throw new Error('Secure input cancelled or unavailable');
-    return Promise.resolve(result.stdout);
-  }
   if (!process.stdin.isTTY) throw new Error('Interactive terminal required (use --local --fixture for automated tests)');
   if (!hidden) return new Promise(resolve => { const rl = createInterface({ input: process.stdin, output: process.stdout }); rl.question(question, value => { rl.close(); resolve(value); }); });
   return new Promise((resolve, reject) => {
@@ -56,8 +40,8 @@ function prompt(question, hidden = false) {
 }
 const username = fixture ? (args.includes('--fixture2') ? 'local_friend' : 'local_tester') : (await prompt('Test username (3–24 letters, digits or underscores): ')).trim().toLowerCase();
 if (!/^[a-z0-9_]{3,24}$/.test(username)) throw new Error('Invalid username');
-const password = fixture ? 'Local-test-only-orchard-57931!' : await prompt('Unique test password (hidden): ', true);
-const secret = fixture ? 'LOCAL-TEST-ONLY-never-use-in-production-1234567890' : await prompt('Target BETTER_AUTH_SECRET (hidden): ', true);
+const password = fixture ? 'Local-test-only-orchard-57931!' : process.env.ELO_PROVISION_PASSWORD || await prompt('Unique test password (hidden): ', true);
+const secret = fixture ? 'LOCAL-TEST-ONLY-never-use-in-production-1234567890' : process.env.ELO_PROVISION_SECRET || await prompt('Target BETTER_AUTH_SECRET (hidden): ', true);
 if (!fixture) { const error = await checkNewPassword(password, username); if (error) throw new Error(error); }
 const sqlite = new DatabaseSync(':memory:');
 sqlite.exec(readFileSync(new URL('../migrations/auth/0001_auth.sql', import.meta.url), 'utf8'));
