@@ -83,6 +83,50 @@ The browser client uses SimpleWebAuthn via the official Better Auth client.
 A real WebAuthn virtual-authenticator test is included in the local CI suite;
 no production or remote staging credentials are touched.
 
+## Cloudflare Pages configuration migration: stop before applying
+
+The operator has created `eloscanner-auth-preview`, but its **D1 database
+UUID is not yet available in the repository**, and the existing Pages dashboard
+has production `AUTH_DB`, `SUS_DB`, and `ONLINE_ROOM` bindings plus secrets.
+The dashboard did not expose a verified Preview/Production selector. **Do not
+edit the existing `AUTH_DB` binding to point at preview.**
+
+Cloudflare's Pages Wrangler configuration can specify `env.preview` and
+`env.production` D1 bindings. However, introducing a Wrangler file to an
+existing Pages project changes the configuration source and can accidentally
+drop other bindings, secrets or compatibility flags. Cloudflare recommends
+`npx wrangler pages download config fairplaychess` to capture the current
+project configuration before switching. Download/review that output privately;
+**never commit secret values or tokens**.
+
+Before a Wrangler config can be safely committed and deployed, collect and
+verify, without posting any secrets publicly:
+
+1. The production and preview D1 **database UUIDs**, their exact names, and
+   the Pages project name `fairplaychess`.
+2. The current Pages config downloaded from Cloudflare, including compatibility
+   date/flags, `AUTH_DB`, `SUS_DB`, `ONLINE_ROOM`, runtime variables and
+   which secrets are stored in Cloudflare rather than source control.
+3. A plan to preserve `SUS_DB` and `ONLINE_ROOM` in both environments
+   without accidentally connecting test traffic to production game rooms.
+4. Exact HTTPS preview origin and its matching `BETTER_AUTH_URL` and
+   `PASSKEY_RP_ID`; no passkeys should be issued for `eloscanner.com` on
+   an untrusted preview origin.
+5. A preview-only migration and fixture-account strategy: the new database is
+   empty and must receive the base `0001`–`0006` auth migrations before
+   `0007_passkeys.sql`. Do not copy production password hashes, sessions or
+   personal game history to preview just to test a passkey.
+
+Cloudflare documentation notes that preview configuration applies to **all
+preview deployments**, not only this PR branch. Verify this scope before
+changing project-level preview bindings. Merely seeing a successful GitHub
+preview build does not establish the runtime bindings or passkey readiness.
+
+Do not deploy a guessed `wrangler.jsonc` containing fake UUIDs or an
+incomplete replacement for the live Pages configuration. Keep the current
+draft PR unmerged until the downloaded configuration and binding inventory
+have been reviewed.
+
 ## Preview-only setup and test
 
 1. Use isolated Cloudflare preview D1. Apply `0007_passkeys.sql` **only there**
