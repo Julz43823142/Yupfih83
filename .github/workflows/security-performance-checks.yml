@@ -50,6 +50,12 @@ jobs:
           node --check functions/api/puzzle-report.js
           node --check script.js
           node --check analysis-stockfish-fixed.js
+          node --check arcade.js
+          node --check arcade-rules.mjs
+          node --check pawn-world.js
+          node --check functions/api/arcade-game.js
+          node --check functions/api/arcade.js
+          node --check functions/api/puzzle-report.js
 
   account-browser:
     runs-on: ubuntu-latest
