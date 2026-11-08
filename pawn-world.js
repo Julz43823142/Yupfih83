@@ -1,6 +1,6 @@
 // Original EloScanner Pawn Dash: an isometric, endless chess-world crossing game.
 // No game sprites, levels or assets from third-party titles are used.
-export function createPawnWorld({host,seed,onScore,onHit,onStatus}){
+export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=()=>{}}){
  const root=document.createElement('div');root.className='pawn-world pawn-world-immersive';
  const menuButton=document.createElement('button');menuButton.type='button';menuButton.className='pawn-world-menu-button';menuButton.textContent='☰ Menu';menuButton.setAttribute('aria-label','Open game menu');
  const overlay=document.createElement('div');overlay.className='pawn-world-overlay';overlay.hidden=true;
@@ -9,7 +9,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus}){
  const exit=document.createElement('button');exit.type='button';exit.textContent='Exit to minigames';
  const menuHelp=document.createElement('p');menuHelp.textContent='Escape pauses or resumes · Arrow keys / WASD move';
  overlay.append(menuTitle,resume,exit,menuHelp);
- const setMenu=open=>{overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));if(!open)canvas.focus({preventScroll:true})};
+ const setMenu=open=>{overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
  menuButton.onclick=()=>setMenu(overlay.hidden);resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
  const canvas=document.createElement('canvas');canvas.className='pawn-world-canvas';canvas.tabIndex=0;
  canvas.setAttribute('aria-label','Pawn Dash: arrow keys or WASD to hop between chess-themed roads');
@@ -23,9 +23,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus}){
  const lane=row=>row<=1||row%6===0?'grass':row%7===0?'river':row%5===0?'castle':'road';
  const size=()=>{const rect=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2);width=rect.width||640;height=rect.height||630;canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0)};
  const cellSize=()=>Math.min(width/9.9,height/10.7);
- const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*tile,height*.74-dy*tile*.72]};
+ const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile*.72]};
  function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fill()}
- function tile(x,row,type){const [px,py]=project(x,row),s=cellSize(),h=s*.36,w=s*.55;
+ function tile(x,row,type){const [px,py]=project(x,row),s=cellSize(),h=s*.36,w=width/20.6;
   const top=[[px,py-h],[px+w,py],[px,py+h],[px-w,py]];
   polygon(top,type==='grass'?'#3b875d':type==='castle'?'#7d719b':type==='river'?'#3181ad':(row+x)%2?'#465b83':'#526894');
   polygon([[px-w,py],[px,py+h],[px,py+h+8],[px-w,py+8]],'#1b3451');
