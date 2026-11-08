@@ -1,7 +1,7 @@
-import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {attachChessBoardControls} from '/chess-board-controls.js?v=20261108-arcade';
-import {appendChessArrow} from '/chess-board-arrows.js?v=20261108-arcade';
-import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from '/arcade-rules.mjs?v=20261108-elo-points-2';
+import {Chess} from './vendor/chess/chess-1.4.0.mjs';
+import {attachChessBoardControls} from './chess-board-controls.js';
+import {appendChessArrow} from './chess-board-arrows.js';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from './arcade-rules.mjs';
 
 const $=id=>document.getElementById(id);
 window.__eloArcadeLoaded=true;
@@ -236,7 +236,7 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Hop across the Pawn Kingdom! Use arrows, WASD, swipe or directional buttons.');
   board.hidden=true;pawnWorld?.destroy();
-  import('/pawn-world.js').then(({createPawnWorld})=>{
+  import('./pawn-world.js').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message)});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
