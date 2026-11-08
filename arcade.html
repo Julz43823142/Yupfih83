@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<script type="module" src="/arcade.js?v=2"></script>
+<script type="module" src="/arcade.js?v=3"></script>
+<script src="/puzzle-report.js?v=4-arcade" defer></script>
 </head>
 <body class="elo-unified-chess">
 <header class="navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -36,7 +37,7 @@
 <div id="arcade-choices" class="arcade-choices" hidden></div>
 <p id="arcade-status" class="arcade-status" role="status" aria-live="polite">Press Start game to play.</p>
 <div class="arcade-actions"><button id="arcade-start" type="button" class="arcade-primary">Start game</button><button id="arcade-next" type="button" hidden>Next level</button><button id="arcade-finish" type="button" hidden>Finish run</button></div>
-<p class="arcade-help">Click or drag a piece to move. On a computer, right-drag to draw an arrow and right-click a square to highlight it. Touchscreens support drag-and-drop.</p>
+<p class="arcade-help">Click or drag pieces to move. During computer moves, queue a premove, even onto your own piece; it executes only if legal later. On a computer, right-drag to draw an arrow and right-click a square to highlight it. Touchscreens support drag-and-drop.</p>
 </section>
 <aside class="arcade-side">
 <section class="arcade-panel"><h2>How to play</h2><p id="arcade-instructions"></p><p>Every minigame has a score and its own all-time Top 100. Multiplayer is not enabled.</p></section>
