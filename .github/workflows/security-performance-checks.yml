@@ -41,6 +41,9 @@ jobs:
           node --check functions/api/social/'[[path]].js'
           node --check lib/online/security.mjs
           node --check play.js
+          node --check arcade.js
+          node --check arcade-rules.mjs
+          node --check functions/api/arcade.js
           node --check play-bot-controls.mjs
           node --check puzzles.js
           node --check puzzle-pool-client.js
