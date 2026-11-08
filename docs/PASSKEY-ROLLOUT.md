@@ -103,8 +103,10 @@ project configuration before switching. Download/review that output privately;
 Before a Wrangler config can be safely committed and deployed, collect and
 verify, without posting any secrets publicly:
 
-1. The **production** D1 database UUID for `eloscanner-auth` and the Pages
-   project name `fairplaychess` (preview UUID is confirmed above).
+1. Both D1 database UUIDs are confirmed: production `eloscanner-auth` =
+   `82e07afa-79eb-47e5-aa77-5bac6fb5bbdf`, preview
+   `eloscanner-auth-preview` = `e1d84922-0f74-414f-8fe5-2c3ac48f7884`.
+   Pages project: `fairplaychess`.
 2. The current Pages config downloaded from Cloudflare, including compatibility
    date/flags, `AUTH_DB`, `SUS_DB`, `ONLINE_ROOM`, runtime variables and
    which secrets are stored in Cloudflare rather than source control.
