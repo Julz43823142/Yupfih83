@@ -1,9 +1,10 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
-import {attachChessBoardControls} from '/chess-board-controls.js';
-import {appendChessArrow} from '/chess-board-arrows.js';
-import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from '/arcade-rules.mjs';
+import {attachChessBoardControls} from '/chess-board-controls.js?v=20261108-arcade';
+import {appendChessArrow} from '/chess-board-arrows.js?v=20261108-arcade';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from '/arcade-rules.mjs?v=20261108-elo-points-2';
 
 const $=id=>document.getElementById(id);
+window.__eloArcadeLoaded=true;
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
 const mode=IDs.has(modeParam)?modeParam:'endgame-survivor';
 const info=GAME_CATALOG.find(g=>g.id===mode);
