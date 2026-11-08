@@ -103,6 +103,7 @@ export async function onRequestGet({request}){
   throw Error('Chess.com archive unavailable');
  }catch{
   const original=await lichessFallback({request});
+  if(!original.ok)return original;
   const result=await original.json();
   return reply({...result,platform:'lichess'});
  }
