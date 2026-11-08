@@ -9,13 +9,17 @@ import { createAuth } from '../lib/auth/config.mjs';
 import { checkNewPassword } from '../lib/auth/password.mjs';
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
-  console.log('node scripts/provision-auth-user.mjs --local [--fixture]\nnode scripts/provision-auth-user.mjs --remote --database <D1-name-or-ID>\nPrompts for username, password and the target BETTER_AUTH_SECRET. Never prints credentials. --fixture only works locally.');
+  console.log('node scripts/provision-auth-user.mjs --local [--fixture]\nnode scripts/provision-auth-user.mjs --remote --database <D1-name-or-ID>\nnode scripts/provision-auth-user.mjs --export-sql --output <file.sql>\nPrompts for username, password and target BETTER_AUTH_SECRET. Export contains sensitive password hashes; never share it.');
   process.exit(0);
 }
 const remote = args.includes('--remote');
-if (remote === args.includes('--local')) throw new Error('Choose exactly one of --local or --remote');
+const exportSql = args.includes('--export-sql');
+if (Number(remote) + Number(args.includes('--local')) + Number(exportSql) !== 1) throw new Error('Choose exactly one of --local, --remote or --export-sql');
+const outputIndex = args.indexOf('--output');
+const outputFile = exportSql ? args[outputIndex + 1] : null;
+if (exportSql && (outputIndex < 0 || !outputFile || outputFile.startsWith('-'))) throw new Error('--export-sql requires --output <file.sql>');
 const fixture = args.includes('--fixture') || args.includes('--fixture2');
-if (fixture && remote) throw new Error('Fixture users are forbidden on remote databases');
+if (fixture && (remote || exportSql)) throw new Error('Fixture users are forbidden for remote databases and SQL exports');
 const dbIndex = args.indexOf('--database'); const target = remote ? args[dbIndex + 1] : 'AUTH_DB';
 if (remote && (dbIndex < 0 || !target || target.startsWith('-'))) throw new Error('Explicit --database is required for remote provisioning');
 function prompt(question, hidden = false) {
@@ -47,6 +51,13 @@ const literal = value => value === null ? 'NULL' : typeof value === 'number' ? S
 const lines = [];
 for (const table of ['user', 'account']) {
   for (const row of sqlite.prepare(`SELECT * FROM "${table}"`).all()) lines.push(`INSERT INTO "${table}" (${Object.keys(row).map(k => `"${k}"`).join(',')}) VALUES (${Object.values(row).map(literal).join(',')});`);
+}
+if (exportSql) {
+  // Never overwrite an existing export. It contains password hashes and account identifiers.
+  writeFileSync(outputFile, lines.join('\n') + '\n', { mode: 0o600, flag: 'wx' });
+  sqlite.close();
+  console.log('SQL export created at the requested path. Sensitive: do not share or commit this file.');
+  process.exit(0);
 }
 const dir = mkdtempSync(join(tmpdir(), 'elo-auth-provision-'));
 try {
