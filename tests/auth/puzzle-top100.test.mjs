@@ -8,7 +8,7 @@ test('puzzle sprint, survival and knight maze rankings always request Top 100',(
  assert.match(html,/\/api\/knight-maze\?limit=100/);
  assert.match(html,/\/api\/puzzle-leaderboard\?mode=/);
  assert.match(html,/\/api\/arcade\?mode=/);
- for(const mode of ['endgame-survivor','guess-the-elo','chess-memory','safe-square-rush','falling-board','queen-chase','chess-block-party','pawn-dash'])assert.match(html,new RegExp('data-mode="'+mode+'"'));
+ for(const mode of ['endgame-survivor','guess-the-elo','chess-memory','missing-piece','safe-square-rush','falling-board','queen-chase','chess-block-party','pawn-dash'])assert.match(html,new RegExp('data-mode="'+mode+'"'));
  assert.match(html,/<th>Report<\/th>/);
  assert.match(html,/&limit=100/);
  assert.doesNotMatch(html,/\bfilter\b/);
@@ -27,6 +27,6 @@ test('Top 100 organizes puzzle and minigame leaderboards into separate category 
  assert.match(html,/data-category="minigames"/);
  assert.match(html,/id="puzzle-leaderboard-tabs"/);
  assert.match(html,/id="minigame-leaderboard-tabs"[^>]*hidden/);
- assert.match(html,/category==='minigames'\?'knight-maze':'sprint'/);
+ assert.match(html,/get\('category'\)==='minigames'\?'knight-maze':'sprint'/);
  assert.match(html,/\.puzzles-tabs\[hidden\]\{display:none!important\}/);
 });
