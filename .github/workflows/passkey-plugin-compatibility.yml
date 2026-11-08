@@ -19,8 +19,6 @@ jobs:
           node-version: '22'
       - name: Install existing locked dependencies
         run: npm ci
-      - name: Inspect exact matching passkey plugin without changing lockfile
-        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @better-auth/passkey@1.7.17
       - name: Validate import, version alignment, and option support
         run: |
           node --input-type=module <<'EOF'
@@ -42,5 +40,5 @@ jobs:
           EOF
       - name: Audit dependency tree after passkey plugin install
         run: npm audit --omit=dev --audit-level=high
-      - name: Assert tracked dependencies were not changed by smoke test
+      - name: Assert tracked dependencies were not changed by compatibility test
         run: git diff --exit-code -- package.json package-lock.json
