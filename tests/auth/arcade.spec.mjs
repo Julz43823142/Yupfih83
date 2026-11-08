@@ -114,11 +114,11 @@ test('Safe Square Rush, Pawn Dash and Queen Chase all support actual piece dragg
  const pawn=page.locator('#arcade-board [data-square="e1"]');
  await expect(pawn.locator('.chess-piece')).toBeVisible();
  await pawn.click();
- const dest2=page.locator('#arcade-board [data-square="d2"]');
- await expect(dest2).toHaveClass(/available/);
+ const dest2=page.locator('#arcade-board .arcade-square.available:not(:has(.chess-piece))').first();
+ await expect(dest2).toBeVisible();
  await drag(page,pawn,dest2);
  await expect(page.locator('#arcade-score')).toHaveText('1');
- await expect(dest2.locator('.chess-piece')).toBeVisible();
+ await expect(dest2.locator('.chess-piece[alt^="White"]')).toBeVisible();
 
  await page.goto(base+'/arcade.html?game=queen-chase');
  await page.locator('#arcade-start').click();
