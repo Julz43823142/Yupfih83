@@ -107,7 +107,7 @@ export async function onRequestGet({request,env}){
    ? `SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT *,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM (${base})) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?`
    : `SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (${base}) ORDER BY score DESC,created_at ASC,id ASC LIMIT ?`;
   const rows=await db.prepare(sql).bind(...(sprint?[limit]:[mode,limit])).all();
-  return json({mode,hour:current,endsAt:(current+1)*3600000,entries:(rows.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry),unverified:true,allTime:true});
+  return json({mode,hour:current,endsAt:(current+1)*3600000,entries:(rows.results||[]).map(entry=>entry),unverified:true,allTime:true});
  }catch{return json({error:"Leaderboard temporarily unavailable."},503)}
 }
 export async function onRequestPost({request,env}){
