@@ -10,7 +10,8 @@
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
-<script src="/account.js?v=5-auth-busy-retry" defer></script>
+<script src="/passkey-client.js?v=1" defer></script>
+<script src="/account.js?v=6-passkey-preview" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -32,6 +33,7 @@
   </section>
   <section id="login-panel" class="account-card" hidden>
     <h2>Welcome back</h2><p>Log in with your username and password.</p>
+    <button id="passkey-login" class="account-primary" type="button" hidden>Log in with passkey</button>
     <form id="login-form">
       <label for="username">Username</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required>
       <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
@@ -44,6 +46,7 @@
   </section>
   <section id="profile-panel" hidden>
     <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
+    <div id="passkey-profile-panel" class="account-card" hidden><h2>Passkeys</h2><p>Use your phone, computer or security key to log in without a password. Existing users must confirm their current password once to attach a passkey to their account.</p><form id="passkey-enrollment-form"><label for="passkey-confirm-password">Confirm your current password</label><input id="passkey-confirm-password" type="password" autocomplete="current-password" maxlength="128" required><button type="submit" class="account-primary">Create passkey</button></form><p class="account-note">Use your device screen lock, fingerprint or face recognition. For computer login, your browser can offer a QR code to use your phone.</p></div>
     <div class="account-card"><h2>Password & security</h2><p>Use a unique password that you don't use on any other website.</p>
       <form id="password-form">
         <label for="current-password">Current password</label><input id="current-password" name="currentPassword" type="password" autocomplete="current-password" maxlength="128" required>
