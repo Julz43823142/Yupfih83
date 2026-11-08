@@ -109,3 +109,17 @@
 .arcade-feedback{height:0;overflow:hidden;opacity:0;transition:opacity .15s;font-weight:850;text-align:center;color:#fff}
 .arcade-feedback.visible{height:auto;min-height:30px;opacity:1;background:#165d69;border-radius:9px;padding:7px}
 .arcade-review[hidden]{display:none!important}.arcade-review{padding:13px;background:#102f45;border:1px solid #326c82;border-radius:12px}.arcade-review h3{font-size:16px;margin:0 0 8px}.arcade-review-nav{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:8px}.arcade-review-nav button{background:#184d69;color:white;border:1px solid #70bed0;border-radius:7px;padding:7px 12px;cursor:pointer}.arcade-review-nav button:disabled{opacity:.45}.arcade-review-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));max-width:320px;margin:auto}.arcade-review-board span{aspect-ratio:1;display:grid;place-items:center;font-size:clamp(15px,3vw,30px);color:#fff}.arcade-review-board span.light{background:#dfc9a0}.arcade-review-board span.dark{background:#917354}.arcade-review-board span.enemy{color:#242a33}.review-correct{color:#8fe7bb}.review-error{color:#ffc1b9}
+
+/* Pawn Kingdom immersive mode: canvas occupies the entire viewport. */
+body.pawn-dash-active{overflow:hidden}
+.pawn-world-immersive{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:100000;background:#102740;margin:0!important;padding:0!important;display:block!important}
+.pawn-world-immersive .pawn-world-canvas{width:100vw!important;height:100dvh!important;max-width:none!important;aspect-ratio:auto!important;border:0!important;border-radius:0!important;display:block!important}
+.pawn-world-immersive .pawn-world-controls{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#0c2949aa;border-radius:14px;padding:5px;z-index:2}
+.pawn-world-immersive .pawn-world-controls button{background:#164563dc;min-width:52px;padding:8px 13px}
+.pawn-world-immersive .pawn-world-hint{display:none}
+.pawn-world-menu-button{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;z-index:4;background:#09263cdd;border:1px solid #81e3ea;border-radius:10px;padding:12px 17px;color:white;font:700 15px system-ui;cursor:pointer}
+.pawn-world-overlay[hidden]{display:none!important}
+.pawn-world-overlay{position:absolute;inset:0;z-index:5;background:#081c2eea;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;color:#fff}
+.pawn-world-overlay h2{font-size:clamp(32px,5vw,54px);margin:0 0 12px}
+.pawn-world-overlay button{background:#16617b;border:1px solid #77e0ed;border-radius:11px;color:white;padding:15px 25px;font:700 19px system-ui;min-width:230px;cursor:pointer}
+.pawn-world-overlay p{color:#c6deed;text-align:center;padding:10px}
