@@ -102,3 +102,10 @@
 .arcade-square.knight-red::before{content:'2'}
 .arcade-square.knight-yellow::before{content:'3'}
 .arcade-square.knight-green::before{content:'4'}
+
+/* Visible move deadline fills the occupied square from bottom upward. */
+.arcade-square.lava-tile::after{content:'';position:absolute;inset:auto 0 0;height:var(--lava-progress,0%);background:linear-gradient(0deg,#ff253eeb,#fe6d48b8);pointer-events:none;z-index:1;box-shadow:0 0 10px #f1254a99}
+.arcade-square.lava-tile .chess-piece{z-index:3}
+.arcade-feedback{height:0;overflow:hidden;opacity:0;transition:opacity .15s;font-weight:850;text-align:center;color:#fff}
+.arcade-feedback.visible{height:auto;min-height:30px;opacity:1;background:#165d69;border-radius:9px;padding:7px}
+.arcade-review[hidden]{display:none!important}.arcade-review{padding:13px;background:#102f45;border:1px solid #326c82;border-radius:12px}.arcade-review h3{font-size:16px;margin:0 0 8px}.arcade-review-nav{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:8px}.arcade-review-nav button{background:#184d69;color:white;border:1px solid #70bed0;border-radius:7px;padding:7px 12px;cursor:pointer}.arcade-review-nav button:disabled{opacity:.45}.arcade-review-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));max-width:320px;margin:auto}.arcade-review-board span{aspect-ratio:1;display:grid;place-items:center;font-size:clamp(15px,3vw,30px);color:#fff}.arcade-review-board span.light{background:#dfc9a0}.arcade-review-board span.dark{background:#917354}.arcade-review-board span.enemy{color:#242a33}.review-correct{color:#8fe7bb}.review-error{color:#ffc1b9}
