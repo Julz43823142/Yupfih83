@@ -1,5 +1,5 @@
 // Lightweight health/config endpoint: do not initialize Better Auth, Argon2 or D1.
-import { passkeyConfigured } from '../../../lib/auth/passkeys.mjs';
+import { passkeyConfigured } from '../../../lib/auth/passkey-policy.mjs';
 // This endpoint is public and must never expose secrets or database contents.
 export const onRequestGet = ({ request, env }) => {
   const url = new URL(request.url);
