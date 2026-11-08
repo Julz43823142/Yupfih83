@@ -78,7 +78,7 @@
 /* Pawn Dash is a separate illustrated crossing world, not a chessboard. */
 .arcade-board[hidden]{display:none!important}
 .pawn-world{display:flex;flex-direction:column;gap:9px}
-.pawn-world-canvas{width:100%;aspect-ratio:1;display:block;border:2px solid #61b6d3;border-radius:14px;touch-action:none;background:#1d3b59;outline-offset:3px}
+.pawn-world-canvas{box-sizing:border-box;width:100%;aspect-ratio:1;display:block;border:2px solid #61b6d3;border-radius:14px;touch-action:none;background:#1d3b59;outline-offset:3px}
 .pawn-world-controls{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .pawn-world-controls button{border:1px solid #5bbbd7;border-radius:10px;background:#164563;color:#f9e8b4;padding:10px 17px;font-size:22px;min-width:58px;cursor:pointer}
 .pawn-world-controls button:focus-visible,.pawn-world-controls button:hover{outline:2px solid #f7df78}
