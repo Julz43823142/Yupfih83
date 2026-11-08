@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAuth } from '../../lib/auth/config.mjs';
+import { onRequestGet as getPublicAuthConfig } from '../../functions/api/auth/config.js';
 import { handleAuth, consumeCounter } from '../../lib/auth/gateway.mjs';
 import { passwordFunctions, checkNewPassword } from '../../lib/auth/password.mjs';
 import { database } from './fixture.mjs';
@@ -481,4 +482,23 @@ test('passkey signup commits account and credential atomically, rejects replay a
   assert.equal((await verify(second)).status, 201);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM user').get().n, 2);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n, 2);
+});
+
+test('public config enables phone signup only with rollout, Turnstile and migration, and rejects foreign origins', async () => {
+  const env = { ...envFor(), PASSKEY_LOGIN_ENABLED: 'true', PASSKEY_RP_ID: 'eloscanner.com' };
+  const get = async (request = req('config')) => getPublicAuthConfig({ request, env }).then(async response => ({ status: response.status, body: await response.json() }));
+  assert.equal((await get()).body.registrationOpen, false);
+  env.PUBLIC_SIGNUP_ENABLED = 'true';
+  assert.equal((await get()).body.registrationOpen, true);
+  delete env.TURNSTILE_SECRET_KEY;
+  assert.equal((await get()).body.registrationOpen, false);
+  env.TURNSTILE_SECRET_KEY = 'test-secret';
+  delete env.TURNSTILE_SITE_KEY;
+  assert.equal((await get()).body.registrationOpen, false);
+  env.TURNSTILE_SITE_KEY = 'public-test-site-key';
+  env.AUTH_DB.sqlite.exec('DROP TABLE auth_passkey_signup_attempt');
+  assert.equal((await get()).body.registrationOpen, false);
+  const foreign = await get(req('config', undefined, undefined, { Origin: 'https://untrusted.example' }));
+  assert.equal(foreign.status, 403);
+  assert.equal(foreign.body.code, 'HEADER_ORIGIN_MISMATCH');
 });
