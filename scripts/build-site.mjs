@@ -45,6 +45,20 @@ export function buildSite(root = resolve('.'), output = resolve(root, 'dist')) {
     }
   }
   copy('');
+  // WebAuthn uses the official Better Auth client and SimpleWebAuthn; bundle
+  // only the browser-safe entry point, never server auth modules or secrets.
+  if (existsSync(join(root, 'scripts/passkey-client.mjs'))) {
+    buildSync({
+      absWorkingDir: root,
+      entryPoints: ['scripts/passkey-client.mjs'],
+      bundle: true,
+      platform: 'browser',
+      format: 'iife',
+      target: ['es2020'],
+      outfile: join(output, 'passkey-client.js'),
+      logLevel: 'warning'
+    });
+  }
   // The production arcade is one classic script. This removes dependency on
   // Cloudflare/edge MIME and cache behavior for chained ESM module imports.
   // Keep fixture-only buildSite tests working when no arcade source exists.
