@@ -34,6 +34,8 @@ marksLayer.classList.add('arcade-marks');
 for(let i=0;i<64;i++){
  const el=document.createElement('button');el.type='button';el.className='arcade-square';
  el.dataset.square=square(i);el.dataset.index=String(i);
+ if(i%8===0){const rank=document.createElement('span');rank.className='arcade-coordinate';rank.textContent=String(8-Math.floor(i/8));rank.setAttribute('aria-hidden','true');el.append(rank);}
+ if(i>=56){const file=document.createElement('span');file.className='arcade-coordinate file';file.textContent='abcdefgh'[i%8];file.setAttribute('aria-hidden','true');el.append(file);}
  cells.push(el);board.append(el);
 }
 board.append(marksLayer);
