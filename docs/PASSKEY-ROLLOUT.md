@@ -69,10 +69,9 @@ cross-platform and synced passkey authenticators; do not force Face ID.
 ## Automated pre-integration evidence
 
 The scoped GitHub Actions workflow
-`.github/workflows/passkey-plugin-compatibility.yml` installs
-`@better-auth/passkey@1.7.17` **ephemerally** after `npm ci`, checks that
-the plugin matches the pinned Better Auth version, tests its server import and
-runs a production-dependency security audit. The matching 1.7.17 passkey package is now pinned in both
+`.github/workflows/passkey-plugin-compatibility.yml` uses the committed
+lockfile via `npm ci`, checks that the plugin matches the pinned Better Auth
+version, tests its server import and runs a production-dependency security audit. The matching 1.7.17 passkey package is now pinned in both
 `package.json` and `package-lock.json`. The temporary dependency-lock
 workflow with write access was removed immediately after committing the
 manifests. The plugin loads only if `PASSKEY_LOGIN_ENABLED=true` and
