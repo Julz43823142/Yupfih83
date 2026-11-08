@@ -65,3 +65,31 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: 'false'
         run: npx wrangler pages deploy dist --project-name fairplaychess --branch feature/passkey-foundation-20261108 --commit-hash "$GITHUB_SHA"
+
+      - name: Verify deployed preview auth config and account script
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://feature-passkey-foundation-2.fairplaychess.pages.dev';
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          let last;
+          for(let attempt=0;attempt<12;attempt++){
+            try{
+              const configResponse=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}});
+              const cfg=await configResponse.json();
+              const scriptResponse=await fetch(base+'/account.js?v=8-phone-signup-identity-guard',{headers:{'Cache-Control':'no-cache'}});
+              const script=await scriptResponse.text();
+              const start=script.indexOf("byId('registration-preview-form').addEventListener");
+              const end=script.indexOf("byId('login-form').addEventListener",start);
+              const signup=start>=0&&end>start?script.slice(start,end):'';
+              if(configResponse.ok&&cfg.registrationOpen===true&&cfg.passkeyReady===true&&
+                 !/eloPasskey\\.signIn\\s*\\(/.test(signup)&&
+                 signup.includes('created.username !== username.toLowerCase()')){
+                console.log('Live preview registration open; account identity guard deployed.');
+                process.exit(0);
+              }
+              last='config HTTP '+configResponse.status+', registrationOpen='+cfg.registrationOpen+', passkeyReady='+cfg.passkeyReady+', new signup script='+(signup.includes('created.username !== username.toLowerCase()'));
+            }catch(error){last=String(error);}
+            await sleep(3000);
+          }
+          throw Error('Preview not validated: '+last);
+          NODE
