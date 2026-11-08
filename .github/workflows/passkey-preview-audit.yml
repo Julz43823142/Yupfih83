@@ -1,4 +1,5 @@
 name: Audit EloScanner passkey preview configuration
+# Recheck preview settings after Turnstile keys were added.
 
 on:
   push:
