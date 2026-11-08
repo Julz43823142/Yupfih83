@@ -12,12 +12,17 @@ export const GAME_CATALOG = Object.freeze([
  {id:'pawn-dash',name:'Pawn Dash',icon:'♟',description:'Cross a chess-themed obstacle course with your pawn.'}
 ]);
 export const IDs=new Set(GAME_CATALOG.map(g=>g.id));
-export const MISSING_PUZZLES = Object.freeze([
+const MISSING_BASE = [
  {fen:'7k/p7/5K2/8/8/8/8/8 b - - 0 1',square:'g6',piece:'Q',response:['a7','a6'],mate:['g6','g7']},
  {fen:'7k/p4K2/8/8/8/8/8/8 b - - 0 1',square:'g6',piece:'Q',response:['a7','a5'],mate:['g6','g7']},
  {fen:'k7/7p/2K5/8/8/8/8/8 b - - 0 1',square:'b6',piece:'Q',response:['h7','h6'],mate:['b6','b7']},
  {fen:'k7/2K4p/8/8/8/8/8/8 b - - 0 1',square:'b6',piece:'Q',response:['h7','h5'],mate:['b6','b7']}
-]);
+];
+// Mirror the mate-in-one positions across files so repeat runs do not recycle
+// the same four diagrams. Preserve the exact legal script and accept any mate.
+function mirrorMissingFile(s){return String.fromCharCode(201-s.charCodeAt(0))+s.slice(1)}
+function mirrorMissingFen(fen){const parts=fen.split(' '),rows=parts[0].split('/');parts[0]=rows.map(row=>{const full=row.replace(/[1-8]/g,n=>'1'.repeat(Number(n)));return full.split('').reverse().join('').replace(/1+/g,m=>String(m.length))}).join('/');return parts.join(' ')}
+export const MISSING_PUZZLES=Object.freeze([...MISSING_BASE,...MISSING_BASE.map(p=>({fen:mirrorMissingFen(p.fen),square:mirrorMissingFile(p.square),piece:p.piece,response:p.response.map(mirrorMissingFile),mate:p.mate.map(mirrorMissingFile)}))]);
 export const COLORS=['#ee6686','#f7be57','#70d4ef','#79dba5','#a99dfb','#ef96ed','#e9e6b9','#fb985d'];
 export const KNIGHT_COLORS=['#52bdff','#f67878','#ffd16a','#8ce597'];
 export const xy=i=>[i%8,Math.floor(i/8)];
