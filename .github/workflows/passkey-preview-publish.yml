@@ -82,7 +82,7 @@ jobs:
               const end=script.indexOf("byId('login-form').addEventListener",start);
               const signup=start>=0&&end>start?script.slice(start,end):'';
               if(configResponse.ok&&cfg.registrationOpen===true&&cfg.passkeyReady===true&&
-                 !/eloPasskey\\.signIn\\s*\\(/.test(signup)&&
+                 !signup.includes('eloPasskey.signIn(')&&
                  signup.includes('created.username !== username.toLowerCase()')){
                 console.log('Live preview registration open; account identity guard deployed.');
                 process.exit(0);
