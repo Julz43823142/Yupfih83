@@ -11,7 +11,7 @@ import {lagCredit,lagGrace,MAX_LAG_PER_GAME_MS} from '../../lib/online/lag.mjs';
 const ORIGIN='http://localhost:8788',secret='LOCAL-TEST-ONLY-never-use-in-production-1234567890';
 function databaseWithOnline(){
  const db=database();
- for(const n of ['0003_online_chess.sql','0004_social.sql','0005_online_lag.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
+ for(const n of ['0003_online_chess.sql','0004_social.sql','0005_online_lag.sql','0006_online_draw_offers.sql'])db.sqlite.exec(readFileSync(new URL('../../migrations/auth/'+n,import.meta.url),'utf8'));
  db.close=()=>db.sqlite.close();return db;
 }
 function api(db,path,data={},options={}){
