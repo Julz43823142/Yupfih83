@@ -59,23 +59,40 @@ test('passkey requires exact operator-approved HTTPS RP ID and strong user verif
   ]) assert.equal(passkeyConfigured({ ...env, ...changes }), false);
   assert.equal(passkeyConfigured({ ...env, BETTER_AUTH_URL: 'http://localhost:8788', PASSKEY_RP_ID: 'localhost' }), true);
 });
-test('passkey endpoints remain inaccessible until audited integration is enabled', async () => {
-  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
-  for (const path of [
-    'passkey/generate-register-options',
-    'passkey/verify-registration',
-    'passkey/generate-authenticate-options',
-    'passkey/verify-authentication',
-    'passkey/list-user-passkeys',
-    'passkey/delete-passkey',
-    'passkey/update-passkey',
-    'sign-in/passkey'
-  ]) {
-    for (const methodBody of [undefined, {}]) {
-      const response = await handleAuth({ request: req(path, methodBody), env });
+test('passkey APIs remain closed by default and when the RP origin mismatches', async () => {
+  for (const env of [envFor(), { ...envFor(), PASSKEY_LOGIN_ENABLED: 'true', PASSKEY_RP_ID: 'evil.example' }]) {
+    for (const path of [
+      'passkey/step-up', 'passkey/generate-register-options', 'passkey/verify-registration',
+      'passkey/generate-authenticate-options', 'passkey/verify-authentication',
+      'passkey/list-user-passkeys', 'passkey/delete-passkey', 'passkey/update-passkey', 'sign-in/passkey'
+    ]) {
+      const body = path === 'passkey/step-up' || path.includes('verify') ? {} : undefined;
+      const response = await handleAuth({ request: req(path, body), env });
       assert.equal(response.status, 404, path);
     }
   }
+});
+test('legacy password confirmation authorizes one WebAuthn registration challenge on the same account', async () => {
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
+  await provision(env, 'sharkmeister');
+  const login = await handleAuth({ request: req('sign-in/username', { username: 'sharkmeister', password }), env });
+  assert.equal(login.status, 200);
+  const c = cookie(login);
+  const call = (route, body) => handleAuth({ request: req(route, body, c), env });
+  const noProof = await call('passkey/generate-register-options');
+  assert.equal(noProof.status, 403);
+  assert.equal((await call('passkey/step-up', { currentPassword: 'incorrect' })).status, 403);
+  assert.equal((await call('passkey/step-up', { currentPassword: password })).status, 200);
+  const options = await call('passkey/generate-register-options');
+  assert.equal(options.status, 200, await options.clone().text());
+  const challenge = await options.json();
+  assert.equal(typeof challenge.challenge, 'string');
+  assert.equal(challenge.rp.id, 'eloscanner.com');
+  assert.equal(challenge.authenticatorSelection.userVerification, 'required');
+  assert.equal((await call('passkey/generate-register-options')).status, 403);
+  const session = await call('get-session');
+  assert.equal((await session.json()).user.username, 'sharkmeister');
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey').get().c, 0);
 });
 test('public registration remains closed even if a legacy flag is set', async () => {
   const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
