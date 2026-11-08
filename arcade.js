@@ -481,7 +481,7 @@ function tick(){
   ]);
   status('Rebuild the position! Choose a piece and place it on its original square.');
   paint();
-
+ }
  if(mode!=='endgame-survivor'&&now>=state.endsAt)finish();
 }
 function checkEndgame(){
