@@ -1,0 +1,31 @@
+name: Prepare passkey dependency lockfile (review artifact)
+on:
+  push:
+    branches: [feature/passkey-foundation-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Generate exact passkey dependency lockfile in runner only
+        run: npm install --package-lock-only --ignore-scripts --save-exact --no-fund @better-auth/passkey@1.7.17
+      - name: Check package version alignment
+        run: |
+          node -e "const p=require('./package.json');if(p.dependencies['better-auth']!==p.dependencies['@better-auth/passkey'])process.exit(1)"
+      - name: Archive generated manifests for manual PR review
+        uses: actions/upload-artifact@v4
+        with:
+          name: passkey-dependency-manifests
+          path: |
+            package.json
+            package-lock.json
+          retention-days: 2
