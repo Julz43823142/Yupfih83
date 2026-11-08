@@ -103,16 +103,19 @@ export function pawnEnemies(seed,n){
  return list;
 }
 export function queenEscape(pieces,queenPos){
- // Queen can only move like a queen; it cannot capture officers. Pick the
- // square maximizing mobility and safety two moves ahead.
- const own={...pieces,[queenPos]:{type:'Q',side:'enemy'}};
- const candidate=moves('Q',queenPos,own,{side:'enemy'}).filter(t=>!threatened(t,own,'player'));
- if(!candidate.length)return -1;
+ // Re-evaluate attacks after the queen VACATES her original square.
+ // Otherwise her old position incorrectly blocks rook/bishop rays.
+ const from={...pieces};delete from[queenPos];
+ const occupied={...from,[queenPos]:{type:'Q',side:'enemy'}};
+ const candidates=moves('Q',queenPos,occupied,{side:'enemy'})
+  .filter(t=>!from[t]&&!threatened(t,{...from,[t]:{type:'Q',side:'enemy'}},'player'));
+ if(!candidates.length)return -1;
  const score=t=>{
-  const next={...pieces,[t]:{type:'Q',side:'enemy'}};
-  let mobility=moves('Q',t,next,{side:'enemy'}).filter(i=>!threatened(i,next,'player')).length;
-  const [x,y]=xy(t);const edge=Math.min(x,7-x,y,7-y);
+  const next={...from,[t]:{type:'Q',side:'enemy'}};
+  const mobility=moves('Q',t,next,{side:'enemy'})
+   .filter(i=>!next[i]&&!threatened(i,{...from,[i]:{type:'Q',side:'enemy'}},'player')).length;
+  const [x,y]=xy(t),edge=Math.min(x,7-x,y,7-y);
   return mobility*30+edge*2;
  };
- return candidate.sort((a,b)=>score(b)-score(a)||a-b)[0];
+ return candidates.sort((a,b)=>score(b)-score(a)||a-b)[0];
 }
