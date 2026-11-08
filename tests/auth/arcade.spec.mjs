@@ -97,9 +97,9 @@ test('Guess the Elo reviews authentic-game-shaped moves, allows manual rating an
  await expect(page.locator('.arcade-elo-reveal')).toContainText('Actual white Elo: 1650');
  await expect(page.getByRole('link',{name:/real Lichess game/})).toHaveAttribute('href','https://lichess.org/PpwPOZMq');
 });
-test('Pawn Dash is a separate isometric world and hopping scores lane progress',async({page})=>{
+test('Pawn Dash starts instantly, fills the viewport and supports Escape pause',async({page})=>{
  await stubScores(page);await page.goto(base+'/arcade.html?game=pawn-dash');
- await page.locator('#arcade-start').click();
+ // Do not click Start: entering Pawn Dash launches the world automatically.
  await expect(page.locator('.pawn-world-canvas')).toBeVisible();
  await expect(page.locator('.pawn-world-immersive')).toBeVisible();
  await expect(page.locator('.pawn-world-canvas')).toHaveCSS('position','static');
