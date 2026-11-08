@@ -51,3 +51,27 @@ test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original p
   assert.ok(visited.some(x=>x.startsWith('https://api.chess.com/pub/player/')));
  }finally{globalThis.fetch=previous}
 });
+
+test('Guess the Elo excludes already-viewed Chess.com games and never repeats its single fallback',async()=>{
+ const previous=globalThis.fetch;
+ const pgn='[Event "Rated"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
+ globalThis.fetch=async input=>{
+  const dest=String(input);
+  if(dest.endsWith('/games/archives'))return Response.json({archives:['https://api.chess.com/pub/player/test/games/2026/08']});
+  if(dest.includes('api.chess.com'))return Response.json({games:[
+   ...['123456789','987654321'].map(id=>({url:'https://www.chess.com/game/live/'+id,rated:true,rules:'chess',time_class:'rapid',pgn,white:{rating:1600},black:{rating:1900}}))
+  ]});
+  return new Response('unavailable',{status:503});
+ };
+ try{
+  const first=await (await onRequestGet({request:new Request(url+'?exclude=987654321')})).json();
+  assert.equal(first.id,'123456789');
+  const second=await (await onRequestGet({request:new Request(url+'?exclude=123456789')})).json();
+  assert.equal(second.id,'987654321');
+ }finally{globalThis.fetch=previous}
+ globalThis.fetch=async()=>new Response('unavailable',{status:503});
+ try{
+  const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});
+  assert.equal(r.status,503);assert.match((await r.json()).error,/No new rated game/);
+ }finally{globalThis.fetch=previous}
+});
