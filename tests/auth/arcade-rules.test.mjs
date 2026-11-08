@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GAME_CATALOG,IDs,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened} from '../../arcade-rules.mjs';
+import {GAME_CATALOG,IDs,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened,safeMoves} from '../../arcade-rules.mjs';
 import {onRequestGet,onRequestPost} from '../../functions/api/arcade.js';
 
 test('nine standalone modes have unique URLs and score/ranking identities',()=>{
@@ -74,4 +74,10 @@ test('invalid arcade modes are rejected without touching database',async()=>{
  assert.equal(r.status,400);
  const s=await onRequestPost({request:new Request('https://eloscanner.com/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start',mode:'unknown'})}),env:{SUS_DB:{}}});
  assert.equal(s.status,400);
+});
+
+test('moving the king must not expose a rook attack along the vacated line',()=>{
+ const king=cell('e3'),rook=cell('e8');
+ const pieces={[king]:{type:'K',side:'player'},[rook]:{type:'R',side:'enemy'}};
+ assert.equal(safeMoves('K',king,pieces).includes(cell('e2')),false);
 });
