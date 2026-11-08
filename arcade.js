@@ -284,7 +284,7 @@ board.addEventListener('pointerup',e=>{
  // Ordinary tap-to-place is handled on pointerup even when pointerdown began on an empty cell.
  if(e.pointerType==='mouse'&&e.button!==0)return;
  const sq=controls.squareAt(e.clientX,e.clientY);
- if(sq&&e.target.closest('.arcade-square'))placePalette(cell(sq));
+ if(sq)placePalette(cell(sq)); // board pointer capture retargets pointerup to the board, not the child square
 },true);
 board.addEventListener('click',e=>{
  if(e.detail!==0||!palettePiece||!state||!['build','placement'].includes(state.phase))return;
