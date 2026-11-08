@@ -391,3 +391,20 @@ test('signup attempts are bound to a challenge and source, expire and are single
   await assert.rejects(() => createSignupAttempt(db, secret, { username: 'bad name', challenge, sourceDigest }, now));
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
+
+
+test('signup attempt quota is enforced by SQLite even for simultaneous sources', async () => {
+  const db = database();
+  const now = 1_700_000_000_000;
+  const sourceDigest = 'c'.repeat(64);
+  for (let i = 0; i < 5; i++) {
+    await createSignupAttempt(db, secret, {
+      username: 'phoneuser', challenge: 'challenge-' + String(i).repeat(40), sourceDigest
+    }, now);
+  }
+  await assert.rejects(() => createSignupAttempt(db, secret, {
+    username: 'phoneuser', challenge: 'challenge-' + '9'.repeat(40), sourceDigest
+  }, now));
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_signup_attempt').get().c, 5);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
+});
