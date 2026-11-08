@@ -31,6 +31,7 @@ test('all playable chessboard modes load a stable board, SVGs and clock/score wi
  for(const game of games)expect(links).toContain('/arcade.html?game='+game);
  for(const game of games){
   await page.goto(base+'/arcade.html?game='+game);
+  await expect.poll(()=>page.evaluate(()=>window.__eloArcadeLoaded===true)).toBe(true);
   await page.waitForTimeout(350);
   if(await page.locator('#arcade-board .arcade-square').count()!==64)console.log('ARCADE FAILURE',game,JSON.stringify({errors,network,location:page.url(),scripts:await page.locator('script').evaluateAll(all=>all.map(e=>e.src))}));
   await expect(page.locator('#arcade-board .arcade-square')).toHaveCount(64);
