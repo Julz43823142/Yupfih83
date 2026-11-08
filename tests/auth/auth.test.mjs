@@ -154,7 +154,7 @@ test('passkey enrollment proof cannot be reused in another session or after logo
   assert.equal((await call('passkey/generate-register-options', undefined, ownerCookie)).status, 401);
 });
 test('public registration remains closed even if a legacy flag is set', async () => {
-  const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
+  const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true'; env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
   const signup = await handleAuth({ request: req('sign-up/email', { username: 'test_user', password }), env });
   assert.equal(signup.status, 403);
   assert.equal((await signup.json()).code, 'REGISTRATION_CLOSED');
