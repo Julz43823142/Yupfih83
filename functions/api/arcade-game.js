@@ -56,24 +56,36 @@ async function lichessFallback({request}){
 export async function onRequestGet({request}){
  const url=new URL(request.url),excluded=url.searchParams.get('exclude')||'';
  try{
-  const names=['hikaru','gothamchess','danielnaroditsky','chessbrah','ericrosen'];
-  const now=new Date(),monthOffset=Math.floor(Math.random()*2);
-  const month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
-  const player=names[Math.floor(Math.random()*names.length)];
-  const endpoint='https://api.chess.com/pub/player/'+player+'/games/'+month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
-  const result=await fetch(endpoint,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(5500)});
-  if(!result.ok)throw Error('Chess.com temporarily unavailable');
-  const games=await result.json();
-  const choices=(Array.isArray(games.games)?games.games:[]).filter(g=>
-   g.rated===true&&g.rules==='chess'&&['rapid','blitz','bullet'].includes(g.time_class)&&
-   /^https:\/\/www\.chess\.com\/game\/(?:live|daily)\/[0-9]+$/.test(g.url||'')&&
-   typeof g.pgn==='string'&&g.pgn.length>=80&&g.pgn.length<22000&&
-   Number.isInteger(g.white?.rating)&&Number.isInteger(g.black?.rating)&&
-   g.white.rating>=100&&g.white.rating<=4000&&g.black.rating>=100&&g.black.rating<=4000&&
-   g.url.split('/').pop()!==excluded);
-  if(!choices.length)throw Error('No eligible Chess.com games in selected archive');
-  const game=choices[Math.floor(Math.random()*choices.length)],side=Math.random()<.5?'white':'black';
-  return reply({platform:'chesscom',id:game.url.split('/').pop(),link:game.url,pgn:game.pgn,side,elo:game[side].rating});
+  const names=['hikaru','gothamchess','ericrosen'];
+  const monthOffset=Math.random()<.8?1:2; // completed month; more reliable than the current partial month
+  const now=new Date(),month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
+  const monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
+  const first=Math.floor(Math.random()*names.length);
+  for(let attempt=0;attempt<2;attempt++){
+   const player=names[(first+attempt)%names.length];
+   const key=new Request('https://eloscanner.com/__elo_chesscom_games/'+player+'/'+monthKey);
+   const cache=typeof caches!=='undefined'?caches.default:null;
+   let eligible=null;
+   if(cache){try{const hit=await cache.match(key);if(hit)eligible=await hit.json()}catch{}}
+   if(!Array.isArray(eligible)){
+    const endpoint='https://api.chess.com/pub/player/'+player+'/games/'+monthKey;
+    const result=await fetch(endpoint,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(4500)});
+    if(!result.ok)continue;
+    const games=await result.json();
+    eligible=(Array.isArray(games.games)?games.games:[]).filter(g=>
+     g.rated===true&&g.rules==='chess'&&['rapid','blitz','bullet'].includes(g.time_class)&&
+     /^https:\/\/www\.chess\.com\/game\/(?:live|daily)\/[0-9]+$/.test(g.url||'')&&
+     typeof g.pgn==='string'&&g.pgn.length>=80&&g.pgn.length<22000&&
+     Number.isInteger(g.white?.rating)&&Number.isInteger(g.black?.rating)&&
+     g.white.rating>=100&&g.white.rating<=4000&&g.black.rating>=100&&g.black.rating<=4000).slice(-180);
+    if(cache&&eligible.length)try{await cache.put(key,Response.json(eligible,{headers:{'Cache-Control':'public,max-age=1800'}}))}catch{}
+   }
+   const choices=eligible.filter(g=>g.url.split('/').pop()!==excluded);
+   if(!choices.length)continue;
+   const game=choices[Math.floor(Math.random()*choices.length)],side=Math.random()<.5?'white':'black';
+   return reply({platform:'chesscom',id:game.url.split('/').pop(),link:game.url,pgn:game.pgn,side,elo:game[side].rating});
+  }
+  throw Error('Chess.com archive unavailable');
  }catch{
   const original=await lichessFallback({request});
   const result=await original.json();
