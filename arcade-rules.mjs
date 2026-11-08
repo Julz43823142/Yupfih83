@@ -42,7 +42,7 @@ export function moves(type,from,pieces={},options={}){
  return out;
 }
 export const threatened=(target,pieces,by='enemy')=>Object.entries(pieces).some(([i,p])=>p.side===by&&moves(p.type,Number(i),pieces,{side:by,capture:true}).includes(target));
-export const safeMoves=(type,from,pieces={},side='player')=>moves(type,from,pieces,{side,capture:false}).filter(i=>!threatened(i,pieces,'enemy'));
+export const safeMoves=(type,from,pieces={},side='player')=>moves(type,from,pieces,{side,capture:false}).filter(i=>{const next={...pieces};delete next[from];next[i]={type,side};return !threatened(i,next,'enemy')});
 export function knightsAlive(state){
  return state.knights.filter(k=>k.alive).length;
 }
