@@ -121,6 +121,7 @@ function paint(){
   const [x,y]=xy(i);
   let classes='arcade-square '+((x+y)%2?'dark':'light');
   if(selected===square(i))classes+=' selected';
+  if(p?.colour)classes+=' knight-'+p.colour;
   if(sources.includes(i)&&!['safe-square-rush','chess-block-party'].includes(mode))classes+=' available';
   if(state&&mode==='falling-board'&&state.falling.gone.includes(i))classes+=' lost';
   if(state&&mode==='chess-block-party'){
@@ -136,7 +137,7 @@ function paint(){
    if(p)el.append(pieceImage(p));
    el.dataset.pieceKey=id;
   }
-  const label=square(i)+(p?', '+(p.side==='player'?'white ':'black ')+(letters[p.type]||p.type):'')+(sources.includes(i)?', available move':'');
+  const label=square(i)+(p?', '+(p.colour?p.colour+' ':p.side==='player'?'white ':'black ')+(letters[p.type]||p.type):'')+(sources.includes(i)?', available move':'');
   el.setAttribute('aria-label',label);
  }
  $('arcade-score').textContent=String(state?.score||0);
