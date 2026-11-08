@@ -27,6 +27,8 @@ const instructions={
 $('arcade-instructions').textContent=instructions[mode];
 
 let runOffset=Math.floor(Math.random()*1000000),feedbackUntil=0,reviewStep=0,runReview=[];
+const eloSeen=(()=>{try{const a=JSON.parse(localStorage.getItem('elo-arcade-seen-v2')||'[]');return Array.isArray(a)?a.filter(x=>/^[a-zA-Z0-9]{6,20}$/.test(x)).slice(-30):[]}catch{return []}})();
+function rememberEloGame(id){if(!/^[a-zA-Z0-9]{6,20}$/.test(String(id)))return;const old=eloSeen.indexOf(id);if(old>=0)eloSeen.splice(old,1);eloSeen.push(id);while(eloSeen.length>30)eloSeen.shift();try{localStorage.setItem('elo-arcade-seen-v2',JSON.stringify(eloSeen))}catch{}}
 let state=null,selected=null,palettePiece=null,submitted=false,session=null,botWorker=null,botToken=0,clockTimer=null,account=null,pawnWorld=null,queuedPremove=null,premovePointer=null;
 const marks=[],highlights=new Set(),cells=[];
 const svgNS='http://www.w3.org/2000/svg';
@@ -215,7 +217,7 @@ function setupLevel(){
   status('Challenging endgame. White to move; win against Stockfish for one point.');
  }else if(mode==='guess-the-elo'){
   state.chess=new Chess();state.eloView=new Chess();state.phase='waiting';
-  status('Loading a real, finished rated Lichess game…');
+  status('Loading a different finished Chess.com game…');
   void loadRealEloGame(state);
  }else if(mode==='chess-memory'){
   state.answer=memoryLevel(state.seed,state.level);state.placed={};state.phase='preview';
@@ -340,7 +342,7 @@ async function loadRealEloGame(run){
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=true;
  run.eloAbort?.abort();run.eloAbort=new AbortController();
  try{
-  const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(state?.eloGameId||''),{cache:'no-store'});
+  const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(eloSeen.join(',')),{cache:'no-store',signal:run.eloAbort.signal});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
   if(state!==run||state.finished)return;
   if(!Number.isInteger(data.elo)||!/^https:\/\/(?:lichess\.org\/[A-Za-z0-9]+|www\.chess\.com\/game\/(?:live|daily)\/[0-9]+)$/.test(data.link))throw Error('Invalid real game');
@@ -348,7 +350,7 @@ async function loadRealEloGame(run){
   if(data.platform==='chesscom'&&typeof data.pgn==='string'){validate.loadPgn(data.pgn);moves.push(...validate.history({verbose:true}))}
   else for(const uci of data.moves||[]){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
   if(moves.length<12)throw Error('Incomplete game record');
-  state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloGameId=data.id;state.eloPlatform=data.platform==='chesscom'?'Chess.com':'Lichess';state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
+  rememberEloGame(data.id);state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloGameId=data.id;state.eloPlatform=data.platform==='chesscom'?'Chess.com':'Lichess';state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
   const prompt=document.createElement('p');prompt.textContent='Real '+state.eloPlatform+' game · Estimate the '+data.side+' player Elo.';
   const prev=document.createElement('button');prev.type='button';prev.textContent='◀ Previous move';
   const progress=document.createElement('span');progress.className='arcade-elo-progress';
