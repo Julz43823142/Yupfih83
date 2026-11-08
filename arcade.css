@@ -126,3 +126,7 @@ body.pawn-dash-active{overflow:hidden}
 
 .arcade-feedback.visible.incorrect{background:#742838}
 .arcade-review-board span.review-ghost{opacity:.48;outline:2px dashed #fff8;outline-offset:-3px}
+
+/* Plain, readable countdown: solid red, lighter for opponent knights. */
+.arcade-square.lava-tile::after{content:'';position:absolute;left:0;right:0;top:auto;bottom:0;height:var(--lava-progress,0%);background:#f52d38!important;opacity:var(--lava-opacity,.94);box-shadow:none!important;border:0!important;pointer-events:none;z-index:1;transition:height .08s linear}
+.arcade-square.lava-tile .chess-piece{z-index:3}
