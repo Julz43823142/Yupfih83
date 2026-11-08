@@ -237,7 +237,9 @@ function setupLevel(){
  }else if(mode==='queen-chase'){
   const rand=makeRandom(state.seed+':queen:'+state.level);
   const q=[18,19,20,21,26,27,28,29,34,35,36,37,42,43,44,45][Math.floor(rand()*16)];
-  state.pieces={0:{type:'R',side:'player'},7:{type:'R',side:'player'},48:{type:'N',side:'player'},63:{type:'B',side:'player'},[q]:{type:'Q',side:'enemy'}};
+  const pick=pool=>pool[Math.floor(rand()*pool.length)];
+  const r1=pick([0,1,2,3,4,5,6,7]),r2=pick([56,57,58,59,60,61,62,63]),n=pick([40,41,42,43,44,45,46,47].filter(i=>i!==q)),bishop=pick([48,49,50,51,52,53,54,55]);
+  state.pieces={[r1]:{type:'R',side:'player'},[r2]:{type:'R',side:'player'},[n]:{type:'N',side:'player'},[bishop]:{type:'B',side:'player'},[q]:{type:'Q',side:'enemy'}};
   state.queen=q;state.turns=0;state.phase='playing';
   status('Move your officers to corner the queen. She can only move, not capture.');
  }else if(mode==='chess-block-party'){
@@ -388,6 +390,20 @@ board.addEventListener('pointerup',e=>{
  if(selected!==null&&selected!==square(i)){const f=cell(selected);if(f>=0){queuedPremove={from:f,to:i};selected=null;status('Premove queued: '+square(f)+' → '+square(i));paint();return}}
  if(from===i&&getPiece(i)?.side==='player'){selected=square(i);paint();return}
  if(getPiece(from)?.side==='player'){queuedPremove={from,to:i};selected=null;status('Premove queued: '+square(from)+' → '+square(i));paint()}
+},true);
+// Allow analysis arrows while a piece is held: the shared board controller
+// cancels left-drag on right-click, so handle the combined gesture first.
+let heldAnalysisFrom=null;
+board.addEventListener('mousedown',e=>{
+ if(e.button!==2||!selected||!state||state.finished)return;
+ heldAnalysisFrom=selected;e.preventDefault();e.stopImmediatePropagation();
+},true);
+board.addEventListener('mouseup',e=>{
+ if(e.button!==2||!heldAnalysisFrom)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ const destination=controls.squareAt(e.clientX,e.clientY),from=heldAnalysisFrom;
+ heldAnalysisFrom=null;
+ if(destination&&from!==destination){marks.push([from,destination,'#0a9cff']);paint()}
 },true);
 function successfulCapture(){
  score(20+Math.max(0,12-state.turns));
