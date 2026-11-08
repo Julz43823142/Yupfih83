@@ -79,7 +79,8 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://localhost:8788/api/auth/config > /dev/null
-          npx playwright test
+          npx playwright test tests/auth/online.spec.mjs
+          npx playwright test tests/auth/browser.spec.mjs tests/auth/arcade.spec.mjs
 
   realtime-websocket:
     runs-on: ubuntu-latest

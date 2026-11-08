@@ -2,6 +2,7 @@ import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
+import {isReservedIdentity} from '../../lib/identity.mjs';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
 const json=(value,status=200)=>Response.json(value,{status,headers});
@@ -22,10 +23,10 @@ function seededRoll(runId,level){
 }
 const duration=180000;
 let lastRunCleanup=0;
-let schemaPromise=null;
+const schemas=new WeakMap();
 async function ready(db){
- if(schemaPromise)return schemaPromise;
- schemaPromise=(async()=>{
+ if(schemas.has(db))return schemas.get(db);
+ const schemaPromise=(async()=>{
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_runs (id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, level INTEGER NOT NULL, position INTEGER NOT NULL, goal INTEGER NOT NULL, blocked TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0, finished INTEGER NOT NULL DEFAULT 0, submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_scores (nickname TEXT PRIMARY KEY COLLATE NOCASE, score INTEGER NOT NULL, created_at INTEGER NOT NULL)").run();
  const cols=await db.prepare("PRAGMA table_info(knight_maze_scores)").all();
@@ -37,7 +38,8 @@ async function ready(db){
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_entries_rank ON knight_maze_score_entries(score DESC,created_at ASC)").run();
  await db.prepare("INSERT OR IGNORE INTO knight_maze_score_entries(nickname,score,created_at,source_type,account_id,legacy_key) SELECT nickname,score,created_at,source_type,account_id,'legacy:'||lower(nickname) FROM knight_maze_scores").run();
- })().catch(error=>{schemaPromise=null;throw error});
+ })().catch(error=>{schemas.delete(db);throw error});
+ schemas.set(db,schemaPromise);
  return schemaPromise;
 }
 function maze(level,runId){
@@ -131,7 +133,7 @@ export async function onRequestPost({request,env}){
   let nickname=accountId?session.user.username:String(data?.nickname||'').trim();
   if(!accountId&&data?.sourceType==='account')return json({error:'Sign in to publish using your account.'},401);
   if(!(sourceType==='account'?/^[a-zA-Z0-9_]{3,24}$/:/^[a-zA-Z0-9 _-]{2,20}$/).test(nickname))return json({error:'Use a nickname of 2–20 letters, numbers, spaces, _ or -.'},400);
-  if(['tttt','tttttttt'].includes(nickname.toLowerCase()))return json({error:'Please choose another nickname.'},400);
+  if(['tttt','tttttttt'].includes(nickname.toLowerCase())||(sourceType==='nickname'&&isReservedIdentity(nickname)))return json({error:'Please choose another nickname.'},400);
   try{if(checkProfanity(nickname,{allLanguages:true,detectLeetspeak:true,leetspeakLevel:'moderate',normalizeUnicode:true}).containsProfanity)return json({error:'Please choose a family-friendly nickname.'},400)}
   catch{return json({error:'Nickname moderation temporarily unavailable.'},503)}
   if(sourceType==='nickname'&&env.AUTH_DB){

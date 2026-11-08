@@ -2,10 +2,9 @@ import {test,expect} from '@playwright/test';
 const base='http://localhost:8788',password='Local-test-only-orchard-57931!';
 const post=(request,route,data)=>request.post(base+route,{headers:{Origin:base},data});
 async function login(page,username){
+ const response=await post(page.request,'/api/auth/sign-in/username',{username,password,rememberMe:false,turnstileToken:''});
+ expect(response.status(),'fixture login '+username+': '+await response.text()).toBe(200);
  await page.goto(base+'/account.html');
- await page.locator('#username').fill(username);
- await page.locator('#password').fill(password);
- await page.getByRole('button',{name:'Log in',exact:true}).click();
  await expect(page.locator('#profile-username')).toHaveText(username,{timeout:30000});
 }
 test('optimistic move appears without a server reply and rolls back on rejection',async({browser})=>{
@@ -158,6 +157,7 @@ test('two isolated guest browsers join once, exchange moves and safely resume',a
   await pageA.locator('#online-board button[data-sq="e4"]').click();
   await expect(pageB.locator('#online-moves')).toContainText('e4',{timeout:15000});
   await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
+  pageA.once('dialog',dialog=>dialog.accept());
   await pageA.reload();await expect(pageA.locator('#online-moves')).toContainText('e5',{timeout:15000});
   expect(errors).toEqual([]);
  }finally{await a.close();await b.close()}
