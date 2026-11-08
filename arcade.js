@@ -252,7 +252,7 @@ function setupLevel(){
   board.hidden=true;pawnWorld?.destroy();
   import('./pawn-world.js').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
-   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message)});
+   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
  }
 }
@@ -482,7 +482,7 @@ function checkFalling(){
  }
 }
 function tick(){
- if(!state||state.finished)return;
+ if(!state||state.finished||state.pausedAt)return;
  const now=Date.now();
  if(feedbackUntil&&now>feedbackUntil){$('arcade-feedback')?.classList.remove('visible');feedbackUntil=0}
  if(mode==='falling-board'||mode==='chess-block-party')paint();
