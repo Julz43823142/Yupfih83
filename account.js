@@ -85,16 +85,28 @@
   byId('registration-preview-form').addEventListener('submit', event => {
     event.preventDefault(); const form=event.currentTarget;
     busy(form, async()=>{
-      const username=byId('signup-username').value.trim();
-      const password=byId('signup-password').value;
-      if(password!==byId('signup-confirm').value) throw new Error('Passwords do not match.');
-      if(!config?.registrationOpen) throw new Error('Registration is temporarily unavailable.');
-      if(!signupToken) throw new Error('Complete the security check first.');
-      const result=await post('sign-up/email',{username,password,turnstileToken:signupToken});
-      form.reset(); signupToken='';
-      if(signupWidgetId!==undefined)window.turnstile.reset(signupWidgetId);
-      showUser(result.user); message('Account created successfully.');
-      location.href='/profile/'+encodeURIComponent(result.user.username);
+      const username = byId('signup-username').value.trim();
+      if (!config?.registrationOpen || !config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential)
+        throw new Error('Phone-passkey registration is not available yet.');
+      if (!signupToken) throw new Error('Complete the security check first.');
+      message('Preparing your phone passkey…');
+      const options = await post('passkey-signup/options', { username, turnstileToken: signupToken });
+      signupToken = '';
+      if (signupWidgetId !== undefined) window.turnstile.reset(signupWidgetId);
+      message('Confirm the passkey on your phone. Scan the QR code if your browser shows one…');
+      const credential = await window.eloPasskey.registerPhone(options.publicKey);
+      message('Verifying your new passkey…');
+      const created = await post('passkey-signup/verify', {
+        attemptId: options.attemptId, challenge: options.publicKey.challenge, credential
+      });
+      if (!created.success) throw new Error('Registration could not be completed.');
+      form.reset();
+      message('Account created. Confirm your passkey once more to sign in…');
+      const result = await window.eloPasskey.signIn();
+      if (!result?.user) throw new Error('Account created. Sign in using the passkey button.');
+      showUser(result.user);
+      message('Your account is ready and you are logged in.');
+      history.replaceState(null, '', '/account.html');
     });
   });
   byId('login-form').addEventListener('submit', event => {
