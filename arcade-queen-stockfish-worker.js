@@ -57,8 +57,9 @@ self.onmessage=e=>{
  let chess;
  try{chess=new Chess(fen)}catch{self.postMessage({token,error:'Invalid virtual position'});return}
  const from=square(queen);
+ const vacant={...pieces};delete vacant[queen];
  const allowed=moves('Q',queen,pieces,{side:'enemy'})
-  .filter(i=>!pieces[i]&&!threatened(i,pieces,'player'))
+  .filter(i=>!vacant[i]&&!threatened(i,{...vacant,[i]:{type:'Q',side:'enemy'}},'player'))
   .map(square);
  const legal=chess.moves({verbose:true})
   .filter(m=>m.from===from&&allowed.includes(m.to)).map(m=>m.from+m.to);
