@@ -35,7 +35,7 @@ jobs:
           const prod=project?.deployment_configs?.production;
           if(!preview || !prod) throw new Error('Expected distinct preview and production configurations');
           const env=preview.env_vars || {};
-          const has=k=>Object.hasOwn(env,k) && env[k]!==null && (env[k].type==='secret' || (typeof env[k].value==='string' && env[k].value.length>0));
+          const has=k=>Object.hasOwn(env,k) && env[k]!==null && (String(env[k].type||'').includes('secret') || (typeof env[k].value==='string' && env[k].value.length>0));
           const defined=k=>Object.hasOwn(env,k) && env[k]!==null;
           const vars=['BETTER_AUTH_URL','BETTER_AUTH_SECRET','PASSKEY_RP_ID','PASSKEY_LOGIN_ENABLED','PUBLIC_SIGNUP_ENABLED','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY'];
           for(const key of vars) console.log(key+': '+(defined(key)?'present':'missing'));
