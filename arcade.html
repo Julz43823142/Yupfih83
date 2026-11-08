@@ -13,8 +13,22 @@
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<script type="module" src="/arcade.js?v=5-restore-games"></script>
+<script type="module" src="/arcade.js?v=20261108-force-dependency-refresh-2"></script>
 <script src="/puzzle-report.js?v=4-arcade" defer></script>
+<style>
+.arcade-panel-title #arcade-ranking-link,.arcade-panel-title #arcade-ranking-link:link,.arcade-panel-title #arcade-ranking-link:visited,.arcade-panel-title #arcade-ranking-link:hover,.arcade-panel-title #arcade-ranking-link:focus{color:#fff!important;-webkit-text-fill-color:#fff!important;text-decoration:underline;text-underline-offset:3px}
+</style>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+ setTimeout(()=>{
+  if(window.__eloArcadeLoaded)return;
+  const message=document.getElementById('arcade-status');
+  if(message)message.textContent='The arcade could not load. Please refresh this page. If it persists, report a game loading error.';
+  const title=document.getElementById('arcade-description');
+  if(title)title.textContent='Game loading error — refresh to retry.';
+ },3500);
+});
+</script>
 </head>
 <body class="elo-unified-chess">
 <header class="navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
