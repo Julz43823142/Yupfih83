@@ -41,6 +41,24 @@ test('Registration and unneeded library routes fail closed even without configur
   assert.ok(direct.status >= 400);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
+test('passkey endpoints remain inaccessible until audited integration is enabled', async () => {
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true';
+  for (const path of [
+    'passkey/generate-register-options',
+    'passkey/verify-registration',
+    'passkey/generate-authenticate-options',
+    'passkey/verify-authentication',
+    'passkey/list-user-passkeys',
+    'passkey/delete-passkey',
+    'passkey/update-passkey',
+    'sign-in/passkey'
+  ]) {
+    for (const methodBody of [undefined, {}]) {
+      const response = await handleAuth({ request: req(path, methodBody), env });
+      assert.equal(response.status, 404, path);
+    }
+  }
+});
 test('public registration remains closed even if a legacy flag is set', async () => {
   const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
   const signup = await handleAuth({ request: req('sign-up/email', { username: 'test_user', password }), env });
