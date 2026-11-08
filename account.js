@@ -4,6 +4,24 @@
   let config, token = '', widgetId, turnstileLoading;
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
   function changed(user) { window.dispatchEvent(new CustomEvent('elo-account-changed', { detail: { user } })); }
+  let passkeyListGeneration = 0;
+  async function refreshPasskeyCount() {
+    const generation = ++passkeyListGeneration;
+    const count = byId('passkey-count');
+    if (!count || !config?.passkeyReady || !window.eloPasskey) return;
+    count.textContent = 'Checking registered passkeys…';
+    try {
+      const keys = await window.eloPasskey.list();
+      if (generation !== passkeyListGeneration || byId('passkey-profile-panel').hidden) return;
+      if (!Array.isArray(keys)) throw new Error('Unable to read passkeys.');
+      count.textContent = keys.length === 0 ? 'No passkeys registered yet.' :
+        keys.length === 1 ? '1 passkey registered. Add a second passkey as a backup.' :
+        keys.length + ' passkeys registered (maximum 5).';
+      byId('passkey-enrollment-form').querySelector('button').disabled = keys.length >= 5;
+    } catch {
+      if (generation === passkeyListGeneration && !byId('passkey-profile-panel').hidden) count.textContent = 'Passkey list unavailable. Try refreshing the page.';
+    }
+  }
   function showUser(user) {
     byId('registration-panel').hidden = true;
     byId('login-panel').hidden = !!user;
@@ -16,6 +34,8 @@
       byId('profile-created').textContent = `Member since ${new Date(user.createdAt).toLocaleDateString()}`;
     }
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }
+    if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
+    if (!user) ++passkeyListGeneration;
     changed(user);
   }
   async function post(route, body) {
@@ -111,6 +131,7 @@
       await window.eloPasskey.enroll();
       form.reset();
       message('Your passkey is registered. Test a passkey login before removing any old sign-in method.');
+      await refreshPasskeyCount();
     });
   });
   byId('password-form').addEventListener('submit', event => {
