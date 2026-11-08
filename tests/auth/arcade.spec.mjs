@@ -69,6 +69,9 @@ test('Block Party supports dragging pieces and right-mouse arrows; Falling Board
  const target=page.locator('#arcade-board .arcade-square.available').first();
  await drag(page,knight,target);
  await expect(page.locator('#arcade-score')).toHaveText('1');
+ await page.locator('#arcade-finish').click();
+ await expect(page.locator('#arcade-review')).toBeVisible();
+ await expect(page.locator('.arcade-review-board span')).toHaveCount(64);
  expect(errors).toEqual([]);
 });
 
