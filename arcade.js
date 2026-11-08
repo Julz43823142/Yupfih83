@@ -96,6 +96,8 @@ const controls=attachChessBoardControls({
 function resetAnnotations(){marks.length=0;highlights.clear();selected=null}
 function drawAnnotations(){
  marksLayer.replaceChildren();
+ if(mode==='endgame-survivor'&&state?.lastOpponentMove)appendChessArrow(marksLayer,state.lastOpponentMove.from,state.lastOpponentMove.to,'#ffd86a',.93);
+ if(queuedPremove)appendChessArrow(marksLayer,square(queuedPremove.from),square(queuedPremove.to),'#48f2e0',.9);
  for(const s of highlights){
   const i=cell(s);if(i<0)continue;
   const r=document.createElementNS(svgNS,'rect');
@@ -201,7 +203,7 @@ const examples=[
 const missing=MISSING_PUZZLES;
 function setupLevel(){
  if(state.finished)return;
- state.phase='playing';state.pieces={};palettePiece=null;
+ state.phase='playing';state.pieces={};palettePiece=null;premoveSource=null;queuedPremove=null;
  $('arcade-choices').replaceChildren();$('arcade-choices').hidden=true;
  $('arcade-palette').replaceChildren();$('arcade-palette').hidden=true;
  if(mode==='endgame-survivor'){
@@ -369,28 +371,42 @@ async function loadRealEloGame(run){
 }
 function applyQueuedPremove(){
  const move=queuedPremove;queuedPremove=null;
+ selected=null;
  if(!move||!state||state.finished||state.phase!=='playing')return false;
  if(canMove(move.from,move.to)){play(move.from,move.to);return true}
  status('Premove is no longer legal. Choose another move.');return false;
 }
 // Premoves permit a friendly-occupied target during planning, like the live
 // online board. The actual move is only committed if legal on the next turn.
+// During the engine's turn, accept either two clicks or a direct drag.
+// This capture-phase handler keeps the shared board controller out of the
+// premove gesture, even while the real chess.js position has Black to move.
+let premoveSource=null;
+function queuePremove(from,to){
+ if(from<0||to<0||from===to)return;
+ if(getPiece(from)?.side!=='player')return;
+ queuedPremove={from,to};premoveSource=null;selected=null;
+ status('Premove queued: '+square(from)+' → '+square(to));paint();
+}
 board.addEventListener('pointerdown',e=>{
  if(e.button!==0||state?.phase!=='thinking'||!['endgame-survivor','queen-chase'].includes(mode))return;
- const sq=controls.squareAt(e.clientX,e.clientY),i=cell(sq);
- if(i<0)return;e.preventDefault();e.stopImmediatePropagation();
- premovePointer={from:i};
+ const i=cell(controls.squareAt(e.clientX,e.clientY));if(i<0)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ premovePointer={from:i,id:e.pointerId,x:e.clientX,y:e.clientY};
 },true);
 board.addEventListener('pointerup',e=>{
- if(!premovePointer)return;
+ if(!premovePointer||e.pointerId!==premovePointer.id)return;
  e.preventDefault();e.stopImmediatePropagation();
- const sq=controls.squareAt(e.clientX,e.clientY),i=cell(sq);
- if(i<0){premovePointer=null;return}
- const from=premovePointer.from;premovePointer=null;
- if(selected!==null&&selected!==square(i)){const f=cell(selected);if(f>=0){queuedPremove={from:f,to:i};selected=null;status('Premove queued: '+square(f)+' → '+square(i));paint();return}}
- if(from===i&&getPiece(i)?.side==='player'){selected=square(i);paint();return}
- if(getPiece(from)?.side==='player'){queuedPremove={from,to:i};selected=null;status('Premove queued: '+square(from)+' → '+square(i));paint()}
+ const to=cell(controls.squareAt(e.clientX,e.clientY)),from=premovePointer.from;
+ premovePointer=null;if(to<0)return;
+ if(to!==from&&getPiece(from)?.side==='player'){queuePremove(from,to);return}
+ if(premoveSource!==null&&to!==premoveSource){queuePremove(premoveSource,to);return}
+ if(getPiece(to)?.side==='player'){
+  premoveSource=premoveSource===to?null:to;selected=premoveSource===null?null:square(premoveSource);
+  status(premoveSource===null?'Premove selection cleared.':'Choose the destination for '+square(premoveSource)+' (premove).');paint();
+ }
 },true);
+board.addEventListener('pointercancel',()=>{premovePointer=null},true);
 // Allow analysis arrows while a piece is held: the shared board controller
 // cancels left-drag on right-click, so handle the combined gesture first.
 let heldAnalysisFrom=null;
@@ -417,7 +433,8 @@ function play(f,t){
   const m=state.chess.move({from:square(f),to:square(t),promotion:'q'});
   if(!m)return false;
   if(checkEndgame()){paint();return true}
-  state.phase='thinking';status('Stockfish is calculating its strongest available reply…');
+  premoveSource=null;queuedPremove=null;state.lastOpponentMove=null;
+  state.phase='thinking';status('Stockfish is choosing a quick reply…');
   stockfishMove();paint();return true;
  }
  if(mode==='missing-piece'){
@@ -561,10 +578,10 @@ function stockfishMove(){
    if(token!==botToken||!state||state.finished||state.phase!=='thinking')return;
    const m=e.data?.move;
    if(!m){stopBot();status('Stockfish unavailable. Restart this level.');state.phase='waiting';paint();return}
-   try{state.chess.move(m)}catch{stopBot();status('Engine returned an illegal move. Please restart.');state.phase='waiting';paint();return}
+   try{const played=state.chess.move(m);if(!played)throw Error('Illegal response');state.lastOpponentMove={from:played.from,to:played.to};}catch{stopBot();status('Engine returned an illegal move. Please restart.');state.phase='waiting';paint();return}
    stopBot();
    if(checkEndgame()){paint();return}
-   state.phase='playing';status('Stockfish played. Your turn.');if(!applyQueuedPremove())paint();
+   state.phase='playing';status('Stockfish played '+state.lastOpponentMove.from+' → '+state.lastOpponentMove.to+'. Your turn.');if(!applyQueuedPremove())paint();
   };
   worker.onerror=()=>{if(token!==botToken)return;stopBot();state.phase='waiting';status('Stockfish could not start. Finish this run or play again.');paint()};
   worker.postMessage({token,fen:state.chess.fen(),elo:3190,fullStrength:true,arcadeFast:true});
@@ -581,7 +598,7 @@ async function getSession(){
 async function start(){
  state?.eloAbort?.abort();stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
- const now=Date.now(),s=seed();runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
+ const now=Date.now(),s=seed();premoveSource=null;runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
  state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
