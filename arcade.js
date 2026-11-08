@@ -134,9 +134,17 @@ function paint(){
    el.style.setProperty('--board-color',COLORS[state.block.palette[i]]);
   }else el.style.removeProperty('--board-color');
   if(state&&mode==='pawn-dash'&&state.stars?.includes(i))classes+=' star';
-  if(state&&mode==='falling-board'&&p?.side==='player'&&state.falling?.knights?.[0]?.alive){el.style.setProperty('--lava-progress',String(Math.min(100,Math.max(0,(Date.now()-state.falling.knights[0].lastAt)/30)))+'%');classes+=' lava-tile'}
-  else if(state&&mode==='chess-block-party'&&i===state.block?.pos&&state.phase==='playing'){el.style.setProperty('--lava-progress',String(Math.min(100,Math.max(0,(Date.now()-(state.levelUntil-state.block.seconds*1000))/(state.block.seconds*10))))+'%');classes+=' lava-tile'}
-  else el.style.removeProperty('--lava-progress');
+  const standingKnight=state&&mode==='falling-board'?state.falling?.knights.find(k=>k.alive&&k.pos===i):null;
+  if(standingKnight){
+   const elapsed=(Date.now()-standingKnight.lastAt)/30;
+   el.style.setProperty('--lava-progress',Math.min(100,Math.max(0,elapsed))+'%');
+   el.style.setProperty('--lava-opacity',standingKnight.id===0?'0.94':'0.43');
+   classes+=' lava-tile';
+  }else if(state&&mode==='chess-block-party'&&i===state.block?.pos&&state.phase==='playing'){
+   const elapsed=100*(Date.now()-(state.levelUntil-state.block.seconds*1000))/(state.block.seconds*1000);
+   el.style.setProperty('--lava-progress',Math.min(100,Math.max(0,elapsed))+'%');
+   el.style.setProperty('--lava-opacity','0.94');classes+=' lava-tile';
+  }else{el.style.removeProperty('--lava-progress');el.style.removeProperty('--lava-opacity')}
   if(state&&mode==='chess-memory'&&state.phase==='build'&&state.placed[i]&&state.answer[i])classes+=' safe-zone';
   el.className=classes;
   const existing=el.querySelector(':scope > .chess-piece');
