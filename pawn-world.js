@@ -25,13 +25,46 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const cellSize=()=>Math.min(width/9.9,height/10.7);
  const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile*.72]};
  function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fill()}
- function tile(x,row,type){const [px,py]=project(x,row),s=cellSize(),h=s*.36,w=width/20.6;
-  const top=[[px,py-h],[px+w,py],[px,py+h],[px-w,py]];
-  polygon(top,type==='grass'?'#3b875d':type==='castle'?'#7d719b':type==='river'?'#3181ad':(row+x)%2?'#465b83':'#526894');
-  polygon([[px-w,py],[px,py+h],[px,py+h+8],[px-w,py+8]],'#1b3451');
-  polygon([[px,py+h],[px+w,py],[px+w,py+8],[px,py+h+8]],'#233a59');
-  if(type==='road'&&x%3===0){ctx.fillStyle='#d3c6a3';ctx.fillRect(px-3,py-3,6,6)}
-  if(type==='river'){ctx.strokeStyle='#83d6ee';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px-w*.5,py);ctx.lineTo(px,py+h*.5);ctx.stroke()}
+ // Rectangular ground tiles: columns and rows are axis-aligned, never diamonds.
+ function tile(x,row,type){
+  const [px,py]=project(x,row),w=width/10.3,h=cellSize()*.72;
+  const left=px-w*.5,top=py-h*.5;
+  ctx.fillStyle='#12253d';ctx.fillRect(left+1,top+4,w-2,h-1);
+  const base=type==='grass'?(row+x)%2?'#3d996c':'#46aa78':type==='castle'?'#77659c':type==='river'?'#2f8fba':(row+x)%2?'#4b6286':'#536b90';
+  ctx.fillStyle=base;ctx.fillRect(left+1,top+1,w-2,h-4);
+  ctx.fillStyle='#ffffff1a';ctx.fillRect(left+2,top+2,w-4,Math.max(2,h*.1));
+  ctx.fillStyle='#102943aa';ctx.fillRect(left+1,top+h-5,w-2,4);
+  if(type==='road'){ctx.fillStyle='#f6d9a557';ctx.fillRect(left+w*.38,top+h*.45,w*.24,Math.max(2,h*.09))}
+  if(type==='river'){ctx.fillStyle='#9eeeff65';ctx.fillRect(left+5,top+h*.35,w*.4,2);ctx.fillRect(left+w*.52,top+h*.74,w*.26,2)}
+  if(type==='grass'&&roll(row*17+x*11)>.84){ctx.fillStyle='#b5f3b8a8';ctx.fillRect(left+w*.2,top+h*.35,Math.max(2,w*.06),Math.max(3,h*.2))}
+  if(type==='castle'){ctx.strokeStyle='#d8c6f588';ctx.lineWidth=1.5;ctx.strokeRect(left+4,top+4,w-8,h-10)}
+ }
+ function scenery(t){
+  // Distant medieval kingdom, clouds, mountains and trees on both road edges.
+  const horizon=height*.27;
+  ctx.fillStyle='#e9c7a9';ctx.beginPath();ctx.arc(width*.78,horizon*.42,Math.max(18,width*.029),0,Math.PI*2);ctx.fill();
+  for(let i=0;i<7;i++){
+   const cx=((i*0.21+roll(i+4)*.12)*width)%width,cy=horizon*.4+roll(i+31)*horizon*.44;
+   ctx.fillStyle='#ffffff20';ctx.beginPath();ctx.ellipse(cx,cy,width*.055,height*.011,0,0,Math.PI*2);ctx.fill();
+  }
+  const m1=[[0,horizon+height*.09],[width*.11,horizon*.48],[width*.23,horizon+height*.06],[width*.37,horizon*.6],[width*.53,horizon+height*.10],[width*.71,horizon*.47],[width*.87,horizon+height*.08],[width,horizon*.63],[width,height*.58],[0,height*.58]];
+  polygon(m1,'#294967');polygon(m1.slice(0,8).map(([x,y])=>[x,y+height*.07]).concat([[width,height*.6],[0,height*.6]]),'#24425e');
+  const wallY=height*.42;
+  ctx.fillStyle='#203b55';ctx.fillRect(width*.025,wallY,width*.14,height*.22);ctx.fillRect(width*.82,wallY,width*.15,height*.22);
+  for(const x of [width*.05,width*.13,width*.85,width*.94]){ctx.fillRect(x,wallY-height*.08,width*.027,height*.105);ctx.fillStyle='#aec5ce';ctx.fillRect(x+width*.007,wallY-height*.06,width*.012,height*.023);ctx.fillStyle='#203b55'}
+  // Two tree-lined shoulders track the rows and advance with the camera.
+  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/(cellSize()*.72)) +3;
+  for(let row=low;row<=high;row+=2){
+   for(const side of [-1,1]){
+    if(roll(row*13+side*199)<.27)continue;
+    const x=side<0?-1.3:9.3,[px,py]=project(x,row),s=Math.min(cellSize()*.9,45);
+    if(py<height*.14||py>height+60)continue;
+    ctx.fillStyle='#263e40';ctx.fillRect(px-s*.08,py-s*.5,s*.16,s*.65);
+    ctx.fillStyle=roll(row*5)>.5?'#26754e':'#338665';
+    polygon([[px-s*.47,py-s*.22],[px,py-s*1.36],[px+s*.47,py-s*.22]],ctx.fillStyle);
+    polygon([[px-s*.38,py-s*.57],[px,py-s*1.54],[px+s*.38,py-s*.57]],'#45a276');
+   }
+  }
  }
  function piece(x,row,kind,colour='#ffc86b',heightScale=1){const [px,py]=project(x,row),s=cellSize()*heightScale;
   ctx.fillStyle='#10233bb0';ctx.beginPath();ctx.ellipse(px,py+s*.12,s*.39,s*.15,0,0,Math.PI*2);ctx.fill();
@@ -56,8 +89,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function touchend(e){if(!touch||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;move(...(Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,-Math.sign(dy)]));}
  function frame(now){if(dead)return;if(!overlay.hidden){origin+=16;raf=requestAnimationFrame(frame);return}const t=(now-origin)/1000;camera+=(Math.max(0,player.row-4)-camera)*.13;
   ctx.clearRect(0,0,width,height);const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#12243d');sky.addColorStop(1,'#224969');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
+  scenery(t);
   ctx.fillStyle='#b3dafa';ctx.font='bold 17px system-ui';ctx.textAlign='right';ctx.fillText('PAWN KINGDOM',width-18,28);ctx.font='13px system-ui';ctx.fillText('LANES '+highest+'  ·  KEEP HOPPING',width-18,49);
-  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+12;
+  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/(cellSize()*.72)*.75)+4;
   for(let row=high;row>=low;row--){const type=lane(row);for(let x=0;x<9;x++){tile(x,row,type);if(type==='grass'&&roll(row*25+x*4)>.91)piece(x,row,'♜','#65cd98',.43);if(type==='river'&&roll(row*4+x)>.64){const [px,py]=project(x,row);ctx.fillStyle='#122b51';ctx.beginPath();ctx.arc(px,py,cellSize()*.13,0,Math.PI*2);ctx.fill();}}}
   for(let row=high;row>=low;row--){const type=lane(row);if(type==='road'||type==='castle')for(let k=0;k<(type==='castle'?1:2);k++){const x=hazard(row*3+k,t);if(x>=-.2&&x<=8.2)piece(x,row,k?'♞':'♜',k?'#ed8da9':'#f4b973',.85)}}
   if(now<invincibleUntil){ctx.globalAlpha=.48+.45*Math.abs(Math.sin(now/100));}
