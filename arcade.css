@@ -72,3 +72,5 @@
 @media(max-width:1140px){.arcade-layout{grid-template-columns:minmax(120px,170px) minmax(350px,1fr)}.arcade-side{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}.arcade-side>.arcade-panel:last-child{grid-column:1/-1}}
 @media(max-width:760px){.arcade-page{width:calc(100% - 20px);margin-top:20px}.arcade-heading{align-items:flex-start;flex-direction:column}.arcade-layout{grid-template-columns:1fr;gap:12px}.arcade-stats{grid-template-columns:repeat(4,minmax(0,1fr));padding:10px;gap:6px}.arcade-stats h2{grid-column:1/-1;margin:0}.arcade-stat{padding:6px}.arcade-stat span{font-size:9px}.arcade-stat strong{font-size:21px}.arcade-main{padding:9px}.arcade-side{grid-template-columns:1fr}.arcade-side>.arcade-panel:last-child{grid-column:auto}.arcade-panel{padding:13px}}
 @media(max-width:390px){.arcade-stat strong{font-size:17px}.arcade-stat span{font-size:8px}.arcade-submit{flex-wrap:wrap}}
+
+.arcade-stat[hidden]{display:none!important}
