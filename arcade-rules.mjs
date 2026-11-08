@@ -22,7 +22,20 @@ const MISSING_BASE = [
 // the same four diagrams. Preserve the exact legal script and accept any mate.
 function mirrorMissingFile(s){return String.fromCharCode(201-s.charCodeAt(0))+s.slice(1)}
 function mirrorMissingFen(fen){const parts=fen.split(' '),rows=parts[0].split('/');parts[0]=rows.map(row=>{const full=row.replace(/[1-8]/g,n=>'1'.repeat(Number(n)));return full.split('').reverse().join('').replace(/1+/g,m=>String(m.length))}).join('/');return parts.join(' ')}
-export const MISSING_PUZZLES=Object.freeze([...MISSING_BASE,...MISSING_BASE.map(p=>({fen:mirrorMissingFen(p.fen),square:mirrorMissingFile(p.square),piece:p.piece,response:p.response.map(mirrorMissingFile),mate:p.mate.map(mirrorMissingFile)}))]);
+// Vary the harmless black pawn and its waiting move to create forty
+// distinct setups with the same verified mate-in-one geometry.
+function expandRank(row){return row.replace(/[1-8]/g,n=>'1'.repeat(Number(n)))}
+function compressRank(row){return row.replace(/1+/g,m=>String(m.length))}
+function shiftMissingPawn(p,delta){
+ const parts=p.fen.split(' '),ranks=parts[0].split('/');
+ const row=expandRank(ranks[1]).split('');const oldFile=p.response[0].charCodeAt(0)-97;
+ const nextFile=oldFile===0?delta:7-delta;
+ row[oldFile]='1';row[nextFile]='p';ranks[1]=compressRank(row.join(''));parts[0]=ranks.join('/');
+ const file=String.fromCharCode(97+nextFile);
+ return {...p,fen:parts.join(' '),response:[file+'7',file+p.response[1][1]]};
+}
+const MISSING_VARIATIONS=MISSING_BASE.flatMap(p=>Array.from({length:5},(_,delta)=>shiftMissingPawn(p,delta)));
+export const MISSING_PUZZLES=Object.freeze([...MISSING_VARIATIONS,...MISSING_VARIATIONS.map(p=>({fen:mirrorMissingFen(p.fen),square:mirrorMissingFile(p.square),piece:p.piece,response:p.response.map(mirrorMissingFile),mate:p.mate.map(mirrorMissingFile)}))]);
 export const COLORS=['#ee6686','#f7be57','#70d4ef','#79dba5','#a99dfb','#ef96ed','#e9e6b9','#fb985d'];
 export const KNIGHT_COLORS=['#52bdff','#f67878','#ffd16a','#8ce597'];
 export const xy=i=>[i%8,Math.floor(i/8)];
