@@ -184,10 +184,10 @@ const examples=[
  {elo:2800,moves:['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6','O-O','Be7','Re1','b5','Bb3','O-O']}
 ];
 const missing=[
- {fen:'7k/p7/8/5K2/8/8/8/8 b - - 0 1',square:'g6',response:['a7','a6'],mate:['g6','g7']},
- {fen:'7k/p7/8/8/8/5K2/8/8 b - - 0 1',square:'g6',response:['a7','a5'],mate:['g6','g7']},
- {fen:'k7/7p/8/2K5/8/8/8/8 b - - 0 1',square:'b6',response:['h7','h6'],mate:['b6','b7']},
- {fen:'k7/7p/8/8/8/2K5/8/8 b - - 0 1',square:'b6',response:['h7','h5'],mate:['b6','b7']}
+ {fen:'7k/p7/5K2/8/8/8/8/8 b - - 0 1',square:'g6',response:['a7','a6'],mate:['g6','g7']},
+ {fen:'7k/p4K2/8/8/8/8/8/8 b - - 0 1',square:'g6',response:['a7','a5'],mate:['g6','g7']},
+ {fen:'k7/7p/2K5/8/8/8/8/8 b - - 0 1',square:'b6',response:['h7','h6'],mate:['b6','b7']},
+ {fen:'k7/2K4p/8/8/8/8/8/8 b - - 0 1',square:'b6',response:['h7','h5'],mate:['b6','b7']}
 ];
 function setupLevel(){
  if(state.finished)return;
