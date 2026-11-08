@@ -101,12 +101,10 @@
       });
       if (!created.success) throw new Error('Registration could not be completed.');
       form.reset();
-      message('Account created. Confirm your passkey once more to sign in…');
-      const result = await window.eloPasskey.signIn();
-      if (!result?.user) throw new Error('Account created. Sign in using the passkey button.');
-      showUser(result.user);
-      message('Your account is ready and you are logged in.');
-      history.replaceState(null, '', '/account.html');
+      // Never sign in automatically with a discoverable credential: the browser
+      // could select an unrelated existing account after registration.
+      byId('signup-submit').disabled = true;
+      message('Account ' + username + ' created successfully. You are not signed in yet. Use passkey sign-in on the account page and verify the displayed username.');
     });
   });
   byId('login-form').addEventListener('submit', event => {
