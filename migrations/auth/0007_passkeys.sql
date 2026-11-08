@@ -33,3 +33,12 @@ WHEN OLD."userId" <> NEW."userId"
 BEGIN
   SELECT RAISE(ABORT, 'passkey owner cannot change');
 END;
+
+-- An existing password account must reauthenticate before binding a passkey.
+-- A stolen session alone is insufficient to authorize enrollment.
+CREATE TABLE "auth_passkey_stepup" (
+  "sessionId" TEXT NOT NULL PRIMARY KEY REFERENCES "session"("id") ON DELETE CASCADE,
+  "userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "expiresAt" INTEGER NOT NULL
+);
+CREATE INDEX "auth_passkey_stepup_expiry" ON "auth_passkey_stepup"("expiresAt");
