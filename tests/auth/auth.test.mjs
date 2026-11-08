@@ -72,6 +72,23 @@ test('passkey APIs remain closed by default and when the RP origin mismatches', 
     }
   }
 });
+test('passkey feature flag does not break existing logins before D1 migration', async () => {
+  const env = envFor();
+  await provision(env, 'legacy_survivor');
+  env.AUTH_DB.sqlite.exec('DROP TABLE auth_passkey_stepup; DROP TABLE passkey;');
+  env.PASSKEY_LOGIN_ENABLED = 'true';
+  env.PASSKEY_RP_ID = 'eloscanner.com';
+  const configuration = await handleAuth({ request: req('config'), env });
+  assert.equal(configuration.status, 200);
+  assert.equal((await configuration.json()).passkeyReady, false);
+  const blocked = await handleAuth({ request: req('passkey/generate-authenticate-options'), env });
+  assert.equal(blocked.status, 404);
+  const login = await handleAuth({
+    request: req('sign-in/username', { username: 'legacy_survivor', password }), env
+  });
+  assert.equal(login.status, 200, await login.clone().text());
+  assert.equal((await login.json()).user.username, 'legacy_survivor');
+});
 test('preview passkey gateway denies unapproved management and malformed proofs', async () => {
   const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
   for (const route of ['passkey/delete-passkey', 'passkey/update-passkey', 'sign-in/passkey']) {
