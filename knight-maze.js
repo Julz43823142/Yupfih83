@@ -6,7 +6,7 @@ let run=null,busy=false,timer=null,showAll=false,submitted=false,finished=false;
 let drag=null, right=null, selected=false;
 let mazeAccount=null;
 const accountName=()=>mazeAccount?.username||null;
-function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name.charAt(0).toUpperCase()+name.slice(1):'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name;}
+function syncScoreIdentity(){const name=accountName(),input=$('maze-nickname'),label=$('maze-nickname-label');if(!input||!label)return;label.textContent=name?'Account: '+name:'Leaderboard nickname';input.hidden=!!name;input.disabled=!!name;if(name)input.value=name;}
 // This script loads before account-nav.js; fetch the session directly.
 const mazeIdentityReady=fetch('/api/auth/get-session',{credentials:'same-origin',cache:'no-store'})
  .then(async response=>{if(!response.ok)throw Error('Account status unavailable');const data=await response.json();mazeAccount=data.user||null;syncScoreIdentity();return true})
@@ -193,7 +193,7 @@ async function submit(){
 function renderRanking(entries){
  const list=$('maze-ranking');list.replaceChildren();
  if(!entries.length){const li=document.createElement('li');li.className='maze-empty';li.textContent='No scores yet. Be the first!';list.append(li);return}
- for(const entry of entries){const li=document.createElement('li'),verified=entry.sourceType==='account'&&!!entry.profileVerified&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname),name=document.createElement(verified?'a':'span'),score=document.createElement('strong');name.className='maze-rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;if(verified){name.href='/profile/'+encodeURIComponent(entry.nickname);name.title='View '+entry.nickname+' account profile'}score.className='maze-rank-score';score.textContent=entry.score;li.append(name,score);list.append(li)}
+ for(const entry of entries){const li=document.createElement('li'),verified=entry.sourceType==='account'&&!!entry.profileVerified&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname),name=document.createElement(verified?'a':'span'),score=document.createElement('strong');name.className='maze-rank-name '+(entry.sourceType==='account'?'rank-account':'rank-nickname');name.textContent=entry.nickname;if(verified){name.href='/profile/'+encodeURIComponent(entry.nickname);name.title='View '+entry.nickname+' account profile'}score.className='maze-rank-score';score.textContent=entry.score;const report=document.createElement('button');report.className='rank-report';report.type='button';report.textContent='Report';report.dataset.nickname=entry.nickname;report.dataset.mode='knight-maze';report.dataset.score=String(entry.score);li.append(name,score,report);list.append(li)}
 }
 async function loadRanking(){
  try{const res=await fetch('/api/knight-maze?limit='+(showAll?'100':'10'),{cache:'no-store'}),data=await res.json();if(!res.ok)throw Error(data.error||'Leaderboard unavailable');renderRanking(data.entries||[])}
