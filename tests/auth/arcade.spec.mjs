@@ -24,6 +24,10 @@ test('all nine games load a stable 64-square board, piece SVGs and clock/score w
  page.on('requestfailed',r=>network.push(r.url()+' '+r.failure()?.errorText));
  await page.goto(base+'/minigames.html');
  await expect(page.locator('.hub-card.live')).toHaveCount(10); // Knight Maze plus nine new games.
+ const links=await page.locator('.hub-card.live').evaluateAll(cards=>cards.map(a=>new URL(a.href).pathname+new URL(a.href).search));
+ expect(new Set(links).size).toBe(10);
+ expect(links).toContain('/knight-maze.html');
+ for(const game of games)expect(links).toContain('/arcade.html?game='+game);
  for(const game of games){
   await page.goto(base+'/arcade.html?game='+game);
   await page.waitForTimeout(350);
