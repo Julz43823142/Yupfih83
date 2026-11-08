@@ -23,3 +23,16 @@ WHEN OLD."consumedAt" IS NOT NULL
 BEGIN
   SELECT RAISE(ABORT, 'registration attempt already consumed');
 END;
+
+-- Even concurrent requests cannot accumulate unlimited pending attempts from
+-- one source. Expired/consumed rows are ignored by the quota.
+CREATE TRIGGER "auth_passkey_signup_pending_limit"
+BEFORE INSERT ON "auth_passkey_signup_attempt"
+WHEN (
+  SELECT COUNT(*) FROM "auth_passkey_signup_attempt"
+  WHERE "sourceDigest" = NEW."sourceDigest"
+    AND "consumedAt" IS NULL AND "expiresAt" > NEW."createdAt"
+) >= 5
+BEGIN
+  SELECT RAISE(ABORT, 'too many pending signup attempts');
+END;
