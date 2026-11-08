@@ -74,3 +74,20 @@
 @media(max-width:390px){.arcade-stat strong{font-size:17px}.arcade-stat span{font-size:8px}.arcade-submit{flex-wrap:wrap}}
 
 .arcade-stat[hidden]{display:none!important}
+
+/* Pawn Dash is a separate illustrated crossing world, not a chessboard. */
+.arcade-board[hidden]{display:none!important}
+.pawn-world{display:flex;flex-direction:column;gap:9px}
+.pawn-world-canvas{width:100%;aspect-ratio:1;display:block;border:2px solid #61b6d3;border-radius:14px;touch-action:none;background:#1d3b59;outline-offset:3px}
+.pawn-world-controls{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.pawn-world-controls button{border:1px solid #5bbbd7;border-radius:10px;background:#164563;color:#f9e8b4;padding:10px 17px;font-size:22px;min-width:58px;cursor:pointer}
+.pawn-world-controls button:focus-visible,.pawn-world-controls button:hover{outline:2px solid #f7df78}
+.pawn-world-hint{font-size:12px;color:#b4d6e3;text-align:center}
+.arcade-choices{align-items:center}
+.arcade-elo-input{min-width:130px;max-width:180px;padding:11px;border:1px solid #67b9da;border-radius:9px;background:#0b263d;color:#fff;font:inherit}
+.arcade-elo-reveal{width:100%;font-size:clamp(18px,2.7vw,27px);line-height:1.4;color:#fce49b}
+.arcade-choices a{color:#80e9ff;font-weight:700}
+.arcade-elo-progress{font-size:13px;min-width:88px;text-align:center}
+.arcade-ranking .rank-report{background:transparent;border:1px solid #57839b;color:#abd1e3;border-radius:6px;padding:3px 6px;cursor:pointer;font-size:11px}
+.arcade-ranking .rank-report:disabled{opacity:.6}
+.arcade-ranking li{gap:8px}
