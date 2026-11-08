@@ -63,7 +63,21 @@ export async function onRequestGet({request}){
   for(let attempt=0;attempt<3;attempt++){
    const player=names[(first+attempt)%names.length],monthOffset=monthOffsets[(Math.floor(Math.random()*monthOffsets.length)+attempt)%monthOffsets.length];
    const month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
-   const monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
+   let monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
+   // Players are not active every month. Use their actual published archive
+   // list to select a real month with finished games when available.
+   try{
+    const archivesResponse=await fetch('https://api.chess.com/pub/player/'+player+'/games/archives',{
+     headers:{Accept:'application/json'},signal:AbortSignal.timeout(3200)
+    });
+    if(archivesResponse.ok){
+     const archives=await archivesResponse.json();
+     const available=(Array.isArray(archives.archives)?archives.archives:[])
+      .map(link=>String(link).match(/\/games\/(\d{4})\/(\d{2})$/)?.slice(1,3).join('/'))
+      .filter(Boolean).slice(-18);
+     if(available.length)monthKey=available[Math.floor(Math.random()*Math.min(available.length,12))+Math.max(0,available.length-12)];
+    }
+   }catch{}
    const key=new Request('https://eloscanner.com/__elo_chesscom_games/'+player+'/'+monthKey);
    const cache=typeof caches!=='undefined'?caches.default:null;
    let eligible=null;
