@@ -87,6 +87,27 @@ test('preview passkey gateway denies unapproved management and malformed proofs'
     request: req('passkey/step-up', { currentPassword: 'some-password' }), env
   })).status, 401);
 });
+test('WebAuthn challenges and verification attempts are independently rate-limited', async () => {
+  for (const [route, max, payload] of [
+    ['passkey/generate-authenticate-options', 20, undefined],
+    ['passkey/verify-authentication', 30, { response: { id: 'synthetic' } }]
+  ]) {
+    const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
+    let reached = 0;
+    const services = { createAuth: () => ({ handler: async () => {
+      reached++;
+      return Response.json({ challenge: 'fixture', user: { id: 'fixture', username: 'fixture' } });
+    } }) };
+    for (let i = 0; i < max; i++) {
+      const response = await handleAuth({ request: req(route, payload), env }, services);
+      assert.equal(response.status, 200, `${route} request ${i + 1}`);
+    }
+    const denied = await handleAuth({ request: req(route, payload), env }, services);
+    assert.equal(denied.status, 429, route);
+    assert.equal(reached, max, 'blocked requests must never reach WebAuthn verification');
+    assert.equal(denied.headers.get('Retry-After'), '60');
+  }
+});
 test('legacy password confirmation authorizes one WebAuthn registration challenge on the same account', async () => {
   const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
   await provision(env, 'sharkmeister');
