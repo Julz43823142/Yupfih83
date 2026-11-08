@@ -32,8 +32,8 @@ function prompt(question, hidden = false) {
       'try { [Console]::Out.Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)) }',
       'finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }'
     ].join('; ');
-    process.stdout.write(question + '\\n');
-    const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    process.stdout.write(question + '\n');
+    const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', script], {
       stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', windowsHide: false
     });
     if (result.status !== 0) throw new Error('Secure input cancelled or unavailable');
