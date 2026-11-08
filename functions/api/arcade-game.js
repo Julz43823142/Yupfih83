@@ -6,12 +6,12 @@ const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Contro
 // Retain an authentic offline fallback when upstream requests are rate-limited.
 const archived={id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',whiteElo:2100,blackElo:2000,
  moves:['e2e4','c7c5','g1f3','b8c6','f1c4','e7e6','c2c3','b7b5','c4b3','c5c4','b3c2','a7a5','d2d4','c4d3','d1d3','g8f6','e4e5','f6d5','c1g5','d8c7','b1d2','h7h6','g5h4','c8a6','b2b3','d5f4']};
-const fail=()=>{const side=Math.random()<.5?'white':'black';return reply({...archived,side,elo:side==='white'?archived.whiteElo:archived.blackElo,archived:true})};
+const fail=excluded=>{if(excluded.has(archived.id))return reply({error:'No new rated game available right now. Retry in a moment.'},503);const side=Math.random()<.5?'white':'black';return reply({...archived,side,elo:side==='white'?archived.whiteElo:archived.blackElo,archived:true})};
 const timeout=()=>AbortSignal.timeout(6500);
 const ratings=g=>[g?.players?.white?.rating,g?.players?.black?.rating];
 async function lichessFallback({request}){
  const url=new URL(request.url);
- const excluded=(url.searchParams.get('exclude')||'').slice(0,12);
+ const excluded=new Set((url.searchParams.get('exclude')||'').split(',').slice(0,35));
  const api='https://lichess.org';
  try{
   const cache=typeof caches!=='undefined'?caches.default:null;
@@ -21,7 +21,7 @@ async function lichessFallback({request}){
   if(cache){const hit=await cache.match(cacheRequest);if(hit){games=await hit.json();}}
   if(!Array.isArray(games)||!games.length){
    const channelsResponse=await fetch(api+'/api/tv/channels',{headers:{Accept:'application/json'},signal:timeout()});
-   if(!channelsResponse.ok)return fail();
+   if(!channelsResponse.ok)return fail(excluded);
    const channels=await channelsResponse.json();
    const ids=['rapid','classical','blitz','bullet','ultraBullet'].map(k=>channels?.[k]?.user?.id).filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{2,30}$/.test(id));
    games=[];
@@ -41,28 +41,29 @@ async function lichessFallback({request}){
     }
     if(games.length>=4)break;
    }
-   if(!games.length)return fail();
+   if(!games.length)return fail(excluded);
    if(cache)try{await cache.put(cacheRequest,Response.json(games,{headers:{'Cache-Control':'public,max-age=600'}}))}catch{}
   }
-  const choices=games.filter(g=>g.id!==excluded);
-  const game=(choices.length?choices:games)[Math.floor(Math.random()*(choices.length||games.length))];
+  const choices=games.filter(g=>!excluded.has(g.id));
+  if(!choices.length)return fail(excluded);
+  const game=choices[Math.floor(Math.random()*choices.length)];
   const side=Math.random()<.5?'white':'black';
   return reply({id:game.id,link:game.link,moves:game.moves,side,elo:side==='white'?game.whiteElo:game.blackElo});
- }catch{return fail()}
+ }catch{return fail(excluded)}
 }
 
 // Prefer Chess.com's documented public, read-only monthly game archives.
 // Keep the older Lichess loader only as a transparent availability fallback.
 export async function onRequestGet({request}){
- const url=new URL(request.url),excluded=url.searchParams.get('exclude')||'';
+ const url=new URL(request.url),excluded=new Set((url.searchParams.get('exclude')||'').split(',').slice(0,35));
  try{
-  const names=['hikaru','gothamchess','ericrosen'];
-  const monthOffset=Math.random()<.8?1:2; // completed month; more reliable than the current partial month
-  const now=new Date(),month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
-  const monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
-  const first=Math.floor(Math.random()*names.length);
-  for(let attempt=0;attempt<2;attempt++){
-   const player=names[(first+attempt)%names.length];
+  const names=['hikaru','gothamchess','ericrosen','chessbrah'];
+  const now=new Date(),first=Math.floor(Math.random()*names.length),monthOffsets=[1,2,3,5,7,10,13,17];
+  // Try distinct archived months and players, not one current-month sample.
+  for(let attempt=0;attempt<3;attempt++){
+   const player=names[(first+attempt)%names.length],monthOffset=monthOffsets[(Math.floor(Math.random()*monthOffsets.length)+attempt)%monthOffsets.length];
+   const month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
+   const monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
    const key=new Request('https://eloscanner.com/__elo_chesscom_games/'+player+'/'+monthKey);
    const cache=typeof caches!=='undefined'?caches.default:null;
    let eligible=null;
@@ -80,7 +81,7 @@ export async function onRequestGet({request}){
      g.white.rating>=100&&g.white.rating<=4000&&g.black.rating>=100&&g.black.rating<=4000).slice(-180);
     if(cache&&eligible.length)try{await cache.put(key,Response.json(eligible,{headers:{'Cache-Control':'public,max-age=1800'}}))}catch{}
    }
-   const choices=eligible.filter(g=>g.url.split('/').pop()!==excluded);
+   const choices=eligible.filter(g=>!excluded.has(g.url.split('/').pop()));
    if(!choices.length)continue;
    const game=choices[Math.floor(Math.random()*choices.length)],side=Math.random()<.5?'white':'black';
    return reply({platform:'chesscom',id:game.url.split('/').pop(),link:game.url,pgn:game.pgn,side,elo:game[side].rating});
