@@ -423,3 +423,24 @@ test('signup challenges use 256-bit randomness and source identifiers are pseudo
   assert.equal(a, await signupSourceDigest(secret, '192.0.2.1'));
   assert.notEqual(a, await signupSourceDigest(secret + '-other', '192.0.2.1'));
 });
+
+test('phone-first signup options require rollout flag and verified Turnstile; create no account', async () => {
+  const env = { ...envFor(), PASSKEY_LOGIN_ENABLED: 'true', PASSKEY_RP_ID: 'eloscanner.com' };
+  const request = () => req('passkey-signup/options', { username: 'new_phone_user', turnstileToken: 'verified-token' });
+  assert.equal((await handleAuth({ request: request(), env })).status, 404);
+  env.PUBLIC_SIGNUP_ENABLED = 'true';
+  const denied = await handleAuth({ request: request(), env }, { fetch: async () => Response.json({ success: false }) });
+  assert.equal(denied.status, 403);
+  const services = { fetch: async () => Response.json({ success: true, hostname: 'eloscanner.com', action: 'signup' }) };
+  const response = await handleAuth({ request: request(), env }, services);
+  assert.equal(response.status, 200, await response.clone().text());
+  const data = await response.json();
+  assert.match(data.publicKey.challenge, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(data.publicKey.rp.id, 'eloscanner.com');
+  assert.deepEqual(data.publicKey.hints, ['hybrid']);
+  assert.equal(data.publicKey.authenticatorSelection.userVerification, 'required');
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_passkey_signup_attempt').get().n, 1);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 0);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM passkey').get().n, 0);
+  assert.equal((await handleAuth({ request: req('passkey-signup/verify', {}), env })).status, 404);
+});
