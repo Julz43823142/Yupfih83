@@ -85,8 +85,9 @@ no production or remote staging credentials are touched.
 
 ## Cloudflare Pages configuration migration: stop before applying
 
-The operator has created `eloscanner-auth-preview`, but its **D1 database
-UUID is not yet available in the repository**, and the existing Pages dashboard
+The operator has created `eloscanner-auth-preview` with confirmed D1 database
+UUID **`e1d84922-0f74-414f-8fe5-2c3ac48f7884`** (copied from the
+Cloudflare D1 preview database page). The existing Pages dashboard
 has production `AUTH_DB`, `SUS_DB`, and `ONLINE_ROOM` bindings plus secrets.
 The dashboard did not expose a verified Preview/Production selector. **Do not
 edit the existing `AUTH_DB` binding to point at preview.**
@@ -102,8 +103,8 @@ project configuration before switching. Download/review that output privately;
 Before a Wrangler config can be safely committed and deployed, collect and
 verify, without posting any secrets publicly:
 
-1. The production and preview D1 **database UUIDs**, their exact names, and
-   the Pages project name `fairplaychess`.
+1. The **production** D1 database UUID for `eloscanner-auth` and the Pages
+   project name `fairplaychess` (preview UUID is confirmed above).
 2. The current Pages config downloaded from Cloudflare, including compatibility
    date/flags, `AUTH_DB`, `SUS_DB`, `ONLINE_ROOM`, runtime variables and
    which secrets are stored in Cloudflare rather than source control.
