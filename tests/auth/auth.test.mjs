@@ -63,6 +63,17 @@ test('passkey preparation preserves existing accounts and enforces credential ow
   assert.throws(() => insert('pk-2', 'credential-1'));
   assert.throws(() => insert('pk-3', 'credential-3', 'nonexistent-user'));
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey WHERE userId=?').get(user.id).c, 1);
+  // Database invariants must hold even if a future handler forgets the limit.
+  for (let i = 2; i <= 5; i++) insert('pk-' + i, 'credential-' + i);
+  assert.throws(() => insert('pk-6', 'credential-6'), /passkey limit reached/);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey WHERE userId=?').get(user.id).c, 5);
+  await provision(env, 'another_user');
+  const other = env.AUTH_DB.sqlite.prepare('SELECT id FROM user WHERE username=?').get('another_user');
+  assert.throws(() => env.AUTH_DB.sqlite.prepare('UPDATE passkey SET userId=? WHERE id=?').run(other.id, 'pk-1'), /passkey owner cannot change/);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT userId FROM passkey WHERE id=?').get('pk-1').userId, user.id);
+  env.AUTH_DB.sqlite.prepare('DELETE FROM passkey WHERE id=?').run('pk-5');
+  insert('pk-6', 'credential-6');
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey WHERE userId=?').get(user.id).c, 5);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT username FROM user WHERE id=?').get(user.id).username, 'sharkmeister');
   env.AUTH_DB.sqlite.prepare('DELETE FROM user WHERE id=?').run(user.id);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey').get().c, 0);
