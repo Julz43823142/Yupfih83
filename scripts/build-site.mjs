@@ -5,6 +5,9 @@ import { createHash } from 'node:crypto';
 
 const directories = new Set(['assets', 'client-v87', 'vendor', 'engine', 'stockfish', 'images', 'fonts']);
 const files = /\.(html|css|js|mjs|json|svg|png|jpg|jpeg|webp|ico|txt|xml|wasm|webmanifest|woff2?)$/i;
+// Only ship recognized runtime formats from public asset directories; unknown
+// formats must not become public just because they are nested under assets/.
+const nestedRuntimeFile = /\.(?:html|css|js|mjs|json|svg|png|jpg|jpeg|webp|ico|txt|xml|wasm|webmanifest|woff2?|py|zip)$/i;
 const privateFile = /(?:^|[._-])(?:credentials?|secrets?|private|backup|dump|token)(?:[._-]|$)|\.(?:sql|sqlite3?|db|pem|key|p12|pfx|bak|log|map)$/i;
 
 // Each document permits only its own static inline scripts, without unsafe-inline
@@ -31,6 +34,7 @@ export function buildSite(root = resolve('.'), output = resolve(root, 'dist')) {
         continue;
       }
       if (!item.isFile()) continue;
+      if (nested && !nestedRuntimeFile.test(item.name)) continue;
       if (!nested && (['package.json', 'package-lock.json', 'playwright.config.mjs'].includes(item.name) || !(files.test(item.name) || ['_headers', '_redirects', '_routes.json'].includes(item.name)))) continue;
       // Vendor demos are unnecessary same-origin pages with external scripts.
       if (nested && /\.html?$/i.test(item.name)) continue;

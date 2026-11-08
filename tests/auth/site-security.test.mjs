@@ -17,21 +17,17 @@ function post(env,body,handler=puzzlePost,headers={}){
 }
 async function start(env){const r=await post(env,{action:'start',mode:'survival'});assert.equal(r.status,200);return (await r.json()).session;}
 
-test('parallel puzzle proofs cannot evade pacing, double count, or score a concurrently submitted run',async()=>{
- const env=fixture(), db=env.SUS_DB, originalNow=Date.now;let now=1800000000000;
- Date.now=()=>now;
+test('parallel puzzle proofs accept fast correct play, reject duplicates and stale submissions',async()=>{
+ const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
+ let now=1800000000000;Date.now=()=>now;
  try{
-  const session=await start(env);now++;
+  const session=await start(env);
   const responses=await Promise.all(bank.slice(0,12).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
-  assert.equal(responses.filter(r=>r.status===200).length,1);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  now+=350;
+  assert.ok(responses.every(r=>r.status===200));
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,12);
   const repeated=await Promise.all(Array.from({length:8},()=>post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})));
   assert.ok(repeated.every(r=>r.status===200));
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,1);
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof1',solution:'b1b2'})).status,200);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
-  now+=700;
+  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,12);
   const prepare=db.prepare;
   db.prepare=function(sql){
    const stmt=prepare(sql);
@@ -41,10 +37,18 @@ test('parallel puzzle proofs cannot evade pacing, double count, or score a concu
    }
    return stmt;
   };
-  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof2',solution:'b1b2'})).status,409);
-  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves').get().c,2);
-  assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,2);
- }finally{Date.now=originalNow;}
+  assert.equal((await post(env,{action:'solve',session,puzzleId:'proof12',solution:'b1b2'})).status,409);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_verified_solves').get().c,12);
+ }finally{Date.now=originalNow}
+});
+
+test('rapid correct proofs still cannot submit forged client scores',async()=>{
+ const env=fixture(),db=env.SUS_DB,session=await start(env);
+ const responses=await Promise.all(bank.slice(0,19).map(row=>post(env,{action:'solve',session,puzzleId:row[0],solution:'b1b2'})));
+ assert.ok(responses.every(r=>r.status===200));
+ assert.equal(db.sqlite.prepare('SELECT score FROM puzzle_verified_runs WHERE id=?').get(session).score,19);
+ assert.equal((await post(env,{action:'submit',session,mode:'survival',nickname:'FastPlayer',score:20})).status,409);
+ assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
 });
 
 test('a concurrent solve invalidates a stale score submission; an unknown run cannot write scores',async()=>{
@@ -68,6 +72,15 @@ test('a concurrent solve invalidates a stale score submission; an unknown run ca
  assert.equal((await post(env,{...data,score:99999})).status,409);
 });
 
+test('anonymous puzzle leaderboard rejects staff impersonation even after a valid proof',async()=>{
+ const env=fixture(),session=await start(env);
+ assert.equal((await post(env,{action:'solve',session,puzzleId:'proof0',solution:'b1b2'})).status,200);
+ const attempt=await post(env,{action:'submit',mode:'survival',nickname:'Elo Scanner',score:1,session});
+ assert.equal(attempt.status,400);
+ assert.equal(env.SUS_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM puzzle_score_entries').get().n,0);
+ assert.equal(env.SUS_DB.sqlite.prepare('SELECT submitted FROM puzzle_verified_runs WHERE id=?').get(session).submitted,0);
+});
+
 test('expired puzzle history is cleaned in bounded batches without deleting active runs or rankings',async()=>{
  const env=fixture(),db=env.SUS_DB,active=await start(env),old=crypto.randomUUID();
  db.sqlite.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').run(old,'survival',Date.now()-90000000);
@@ -81,6 +94,27 @@ test('expired puzzle history is cleaned in bounded batches without deleting acti
  assert.equal(db.sqlite.prepare('SELECT id FROM puzzle_verified_runs WHERE id=?').get(old),undefined);
  assert.ok(db.sqlite.prepare('SELECT id FROM puzzle_verified_runs WHERE id=?').get(active));
  assert.equal(db.sqlite.prepare('SELECT COUNT(*) c FROM puzzle_hourly_scores').get().c,1);
+});
+
+test('fast legal knight-maze levels count without an arbitrary time threshold',async()=>{
+ const env=fixture(),db=env.SUS_DB,originalNow=Date.now;
+ let now=1800000000000;Date.now=()=>now;
+ try{
+  const started=await post(env,{action:'start'},mazePost);
+  assert.equal(started.status,200);
+  const id=(await started.json()).run.id;
+  const jumps=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+  const next=square=>{const x=square%8,y=Math.floor(square/8);for(const [dx,dy] of jumps){const a=x+dx,b=y+dy;if(a>=0&&a<8&&b>=0&&b<8)return b*8+a;}throw Error('No knight jump')};
+  let row=db.sqlite.prepare('SELECT * FROM knight_maze_runs WHERE id=?').get(id);
+  let goal=next(row.position);
+  db.sqlite.prepare('UPDATE knight_maze_runs SET goal=?,blocked=? WHERE id=?').run(goal,'[]',id);
+  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,200);
+  row=db.sqlite.prepare('SELECT * FROM knight_maze_runs WHERE id=?').get(id);
+  goal=next(row.position);
+  db.sqlite.prepare('UPDATE knight_maze_runs SET goal=?,blocked=? WHERE id=?').run(goal,'[]',id);
+  assert.equal((await post(env,{action:'move',id,to:goal},mazePost)).status,200);
+  assert.equal(db.sqlite.prepare('SELECT score FROM knight_maze_runs WHERE id=?').get(id).score,2);
+ }finally{Date.now=originalNow}
 });
 
 test('global anonymous start budgets are atomic, saturate without extra writes, and reset by window',async()=>{
@@ -121,7 +155,7 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
   for(const dir of ['assets','vendor','client-v87','lib'])mkdirSync(join(root,dir));
   const source={
    'index.html':'<!doctype html><html><head><script>window.expected=true;</script></head><body></body></html>',
-   'credentials.json':'PRIVATE', 'package.json':'PRIVATE', 'assets/.env':'PRIVATE', 'assets/auth.db':'PRIVATE',
+   'credentials.json':'PRIVATE', 'package.json':'PRIVATE', 'assets/.env':'PRIVATE', 'assets/auth.db':'PRIVATE', 'assets/internal.csv':'PRIVATE', 'assets/config.yml':'PRIVATE', 'vendor/typed.d.ts':'PRIVATE',
    'vendor/secrets.json':'PRIVATE', 'assets/backup.txt':'PRIVATE', 'vendor/console.html':'<script src="https://example.com"></script>',
    'lib/auth.js':'PRIVATE', 'client-v87/runner.py':'print(1)', 'vendor/runtime.zip':'RUNTIME', 'assets/board.svg':'<svg/>', 'app.js':'window.ok=true;'
   };
@@ -129,7 +163,7 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
   symlinkSync(join(root,'lib'),join(root,'assets','linked'));
   symlinkSync(join(root,'lib/auth.js'),join(root,'linked.js'));
   buildSite(root);
-  for(const name of ['credentials.json','package.json','assets/.env','assets/auth.db','vendor/secrets.json','assets/backup.txt','vendor/console.html','lib/auth.js','assets/linked/auth.js','linked.js'])assert.equal(existsSync(join(root,'dist',name)),false,name);
+  for(const name of ['credentials.json','package.json','assets/.env','assets/auth.db','vendor/secrets.json','assets/backup.txt','vendor/console.html','lib/auth.js','assets/linked/auth.js','linked.js','assets/internal.csv','assets/config.yml','vendor/typed.d.ts'])assert.equal(existsSync(join(root,'dist',name)),false,name);
   for(const name of ['client-v87/runner.py','vendor/runtime.zip','assets/board.svg','app.js'])assert.equal(existsSync(join(root,'dist',name)),true,name);
   const html=readFileSync(join(root,'dist/index.html'),'utf8');
   assert.match(html,/http-equiv="Content-Security-Policy"/);
@@ -137,6 +171,16 @@ test('public build excludes nested secrets, dumps, symlinks and vendor demos; ke
   assert.ok(html.indexOf('Content-Security-Policy')<html.indexOf('<script>'));
   assert.ok(!html.includes("'unsafe-inline'")&&!html.includes("'unsafe-eval'"));
  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+test('asset automation has read-only GitHub token and never pushes generated files',()=>{
+ const workflows=['build-puzzle-pool.yml','vendor-privacy-assets.yml','vendor-stockfish.yml'];
+ for(const name of workflows){
+  const yaml=readFileSync(new URL('../../.github/workflows/'+name,import.meta.url),'utf8');
+  assert.match(yaml,/contents:\s*read/,name);
+  assert.doesNotMatch(yaml,/contents:\s*write|git\s+push|persist-credentials:\s*true/,name);
+  assert.ok(yaml.includes('actions/upload-artifact@v4'),name);
+ }
 });
 
 test('legacy engine routes use only deployed assets and do not accept an upstream URL',async()=>{

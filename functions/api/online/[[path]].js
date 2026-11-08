@@ -5,6 +5,13 @@ import {reply,readJSON,rateLimitPair,sameOrigin,secretHash,random,isToken,validG
 const gameId=s=>isToken(s);
 const time=()=>Date.now();
 const turns=JSON.stringify;
+// Resolve routes before creating per-route D1 throttle buckets. Otherwise an
+// unauthenticated caller can invent unlimited route names and database keys.
+const ROUTE_METHODS=new Map([
+ ['live','GET'],['create','POST'],['join','POST'],['state','POST'],
+ ['draw-offer','POST'],['draw-decline','POST'],['draw-accept','POST'],
+ ['resign','POST'],['move','POST']
+]);
 // The Durable Object receives only public game state; it never sees IP addresses,
 // login cookies, bearer secrets, or raw request headers.
 async function pushState(env,g){
@@ -69,6 +76,9 @@ async function guarded(db,env,request,scope,limit=20,window=60000,identity=''){
 export async function onRequest({request,env,waitUntil}){
  const requestStarted=performance.now();
  const url=new URL(request.url),route=url.pathname.replace(/^\/api\/online\/?/,'').replace(/\/$/,'');
+ const expectedMethod=ROUTE_METHODS.get(route);
+ if(!expectedMethod)return reply({error:'Route not found.'},404);
+ if(request.method!==expectedMethod)return reply({error:'Method not allowed.'},405);
  if(!env.AUTH_DB||typeof env.BETTER_AUTH_SECRET!=='string'||env.BETTER_AUTH_SECRET.length<32)return reply({error:'Multiplayer unavailable.'},503);
  if(!sameOrigin(request))return reply({error:'Request origin rejected.'},403);
  // WebSocket upgrade: authorize the seat before invoking the private room.

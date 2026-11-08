@@ -7,7 +7,7 @@
 <main class="puzzles-page puzzle-leaderboard-page"><a class="puzzles-back" href="/puzzles.html">← Back to puzzles</a><h1>Leaderboards</h1>
 
 <div class="puzzles-tabs"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a><a data-mode="knight-maze" href="?mode=knight-maze">Knight Maze</a></div>
-<p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><div class="puzzle-ranking-limits" aria-label="Leaderboard size"><button type="button" data-limit="10">Top 10</button><button type="button" data-limit="50">Top 50</button><button type="button" data-limit="100">Top 100</button></div><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
+<p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
 <table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr></thead><tbody id="ranking-rows"></tbody></table>
 </main>
 <script>
@@ -17,21 +17,19 @@
  const status=document.getElementById('ranking-status'),body=document.getElementById('ranking-rows');
  const isMaze=mode==='knight-maze';
  document.querySelector('.puzzle-top100-table thead').innerHTML=isMaze?'<tr><th>Rank</th><th>Nickname</th><th>Score</th></tr>':'<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
- let limit=100;
  async function load(){
  body.replaceChildren();
- for(const button of document.querySelectorAll('[data-limit]'))button.setAttribute('aria-pressed',String(Number(button.dataset.limit)===limit));
  try{
 
-  const url=isMaze?'/api/knight-maze?limit='+limit:'/api/puzzle-leaderboard?mode='+mode+'&limit='+limit+'&filter='+filter;
+  const url=isMaze?'/api/knight-maze?limit=100':'/api/puzzle-leaderboard?mode='+encodeURIComponent(mode)+'&limit=100';
   const r=await fetch(url,{cache:'no-store'}),data=await r.json();
   if(!r.ok)throw Error(data.error||'Unavailable');
   
+  if(!Array.isArray(data.entries))throw Error('Invalid rankings response');
   status.textContent=data.entries.length?'Top '+data.entries.length+' scores':'No scores yet.';
   (data.entries||[]).forEach((entry,i)=>{const tr=document.createElement('tr');for(const v of [i+1,entry.nickname,entry.score]){const td=document.createElement('td');td.textContent=String(v);if(v===entry.nickname){td.className=entry.sourceType==='account'?'rank-account':'rank-nickname';td.title=entry.sourceType==='account'?'Account':'Nickname';if(entry.sourceType==='account'&&entry.profileVerified&&/^[A-Za-z0-9_]{3,24}$/.test(entry.nickname)){const a=document.createElement('a');a.href='/profile/'+encodeURIComponent(entry.nickname);a.textContent=entry.nickname;a.className='rank-profile-link';td.replaceChildren(a)}}tr.append(td)}if(isMaze){body.append(tr);return;}const td=document.createElement('td'),report=document.createElement('button');report.type='button';report.className='rank-report';report.textContent='Report';report.title='Report an inappropriate nickname';report.dataset.nickname=entry.nickname;report.dataset.mode=mode;report.dataset.score=entry.score;td.append(report);tr.append(td);body.append(tr)});
  }catch(e){status.textContent='Rankings temporarily unavailable: '+e.message}
  }
- document.querySelectorAll('[data-limit]').forEach(button=>button.addEventListener('click',()=>{limit=Number(button.dataset.limit);load()}));
 
  await load();
 })();

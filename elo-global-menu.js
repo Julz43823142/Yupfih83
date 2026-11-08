@@ -13,7 +13,7 @@
  const caption=document.createElement('span');caption.textContent='Menu';summary.append(svg,caption);
  const nav=document.createElement('nav');nav.setAttribute('aria-label','Chess Tools');
  const path=location.pathname.replace(/\/$/,'')||'/';
- const currentSection=path==='/play.html'?'Play':path==='/analysis.html'||path==='/opening-explorer.html'?'Analyse':path==='/player-prep.html'?'Player Prep':path==='/puzzles.html'||path==='/puzzle-top100.html'?'Puzzels':path==='/minigames.html'||path==='/knight-maze.html'?'Mini Games':path==='/'?'Home':null;
+ const currentSection=path==='/play.html'?'Play':path==='/analysis.html'||path==='/opening-explorer.html'?'Analyse':path==='/player-prep.html'?'Player Prep':path==='/puzzles.html'||path==='/puzzle-top100.html'?'Puzzels':path==='/minigames.html'||path==='/knight-maze.html'||path==='/arcade.html'?'Mini Games':path==='/'?'Home':null;
  routes.forEach(([name,href])=>{
   const a=document.createElement('a');a.textContent=name;a.href=href;
   if(name===currentSection){

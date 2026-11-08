@@ -41,6 +41,10 @@ jobs:
           node --check functions/api/social/'[[path]].js'
           node --check lib/online/security.mjs
           node --check play.js
+          node --check arcade.js
+          node --check arcade-queen-stockfish-worker.js
+          node --check arcade-rules.mjs
+          node --check functions/api/arcade.js
           node --check play-bot-controls.mjs
           node --check puzzles.js
           node --check puzzle-pool-client.js
@@ -79,7 +83,12 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://localhost:8788/api/auth/config > /dev/null
-          npx playwright test
+          # The online integration test uses two real account logins. Run it
+          # before broad page smoke tests, which generate many get-session
+          # calls from the same local IP and can exhaust the production-like
+          # 60-request/minute auth limiter. Do not weaken rate limits.
+          npx playwright test tests/auth/online.spec.mjs
+          npx playwright test tests/auth/browser.spec.mjs tests/auth/arcade.spec.mjs
 
   realtime-websocket:
     runs-on: ubuntu-latest
