@@ -103,6 +103,9 @@ test('legacy password confirmation authorizes one WebAuthn registration challeng
   const challenge = await options.json();
   assert.equal(typeof challenge.challenge, 'string');
   assert.equal(challenge.rp.id, 'eloscanner.com');
+  assert.equal(challenge.user.name, 'sharkmeister');
+  assert.equal(challenge.user.displayName, 'sharkmeister');
+  assert.ok(!JSON.stringify(challenge).includes('@accounts.invalid'));
   assert.equal(challenge.authenticatorSelection.userVerification, 'required');
   assert.equal((await call('passkey/generate-register-options')).status, 403);
   const session = await call('get-session');
