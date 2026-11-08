@@ -1,6 +1,7 @@
+import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GAME_CATALOG,IDs,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened,safeMoves} from '../../arcade-rules.mjs';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened,safeMoves} from '../../arcade-rules.mjs';
 import {onRequestGet,onRequestPost} from '../../functions/api/arcade.js';
 
 test('nine standalone modes have unique URLs and score/ranking identities',()=>{
@@ -94,4 +95,15 @@ test('queen cannot escape along a rook ray hidden behind her original square',()
 import {guessEloPoints} from '../../arcade-rules.mjs';
 test('Elo prediction points respect exact, 50, 100, 200 and zero cutoffs',()=>{
  for(const [diff,points] of [[0,10],[10,9],[25,7],[50,5],[100,4],[200,3],[300,2],[450,1],[451,0]])assert.equal(guessEloPoints(diff),points);
+});
+
+test('Missing Piece mirrored setups preserve a legal pawn reply and valid mate in one',()=>{
+ assert.equal(MISSING_PUZZLES.length,8);
+ for(const [index,p] of MISSING_PUZZLES.entries()){
+  const chess=new Chess(p.fen);
+  assert.ok(chess.put({type:p.piece.toLowerCase(),color:'w'},p.square),'placement '+index);
+  assert.ok(chess.move({from:p.response[0],to:p.response[1]}),'black reply '+index);
+  assert.ok(chess.move({from:p.mate[0],to:p.mate[1]}),'mate move '+index);
+  assert.ok(chess.isCheckmate(),'solution must mate '+index);
+ }
 });
