@@ -18,11 +18,16 @@ async function drag(page,source,target){
 
 test('all nine games load a stable 64-square board, piece SVGs and clock/score with no JS exceptions',async({page})=>{
  await stubScores(page);
- const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const errors=[],network=[];page.on('pageerror',e=>errors.push(e.message));
+ page.on('console',m=>{if(m.type()==='error')network.push(m.text())});
+ page.on('response',r=>{if(r.status()>=400&&/arcade|chess-board|chess-1.4/i.test(r.url()))network.push(r.status()+' '+r.url())});
+ page.on('requestfailed',r=>network.push(r.url()+' '+r.failure()?.errorText));
  await page.goto(base+'/minigames.html');
  await expect(page.locator('.hub-card.live')).toHaveCount(10); // Knight Maze plus nine new games.
  for(const game of games){
   await page.goto(base+'/arcade.html?game='+game);
+  await page.waitForTimeout(350);
+  if(await page.locator('#arcade-board .arcade-square').count()!==64)console.log('ARCADE FAILURE',game,JSON.stringify({errors,network,location:page.url(),scripts:await page.locator('script').evaluateAll(all=>all.map(e=>e.src))}));
   await expect(page.locator('#arcade-board .arcade-square')).toHaveCount(64);
   await expect(page.locator('#arcade-board .arcade-marks')).toHaveCount(1);
   await page.getByRole('button',{name:'Start game'}).click();
