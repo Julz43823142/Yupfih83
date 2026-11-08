@@ -11,7 +11,7 @@
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
 <script src="/passkey-client.js?v=1" defer></script>
-<script src="/account.js?v=6-passkey-preview" defer></script>
+<script src="/account.js?v=7-phone-signup" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -21,12 +21,10 @@
   <p id="account-status" class="account-status" role="status" aria-live="polite">Checking account availability…</p>
   <section id="registration-panel" class="account-card" hidden>
     <span class="account-badge">CREATE YOUR ACCOUNT</span><h2>Create your account</h2>
-    <p>New account registration is closed. Existing members can sign in and add one passkey; a backup passkey is optional.</p>
+    <p>Choose a username, then confirm a passkey on your phone. Your browser may display a QR code to scan with your phone.</p>
     <form id="registration-preview-form">
       <label for="signup-username">Username</label><input id="signup-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" required>
-      <label for="signup-password">Password</label><input id="signup-password" type="password" autocomplete="new-password" minlength="15" maxlength="128" placeholder="At least 15 characters" required>
-      <label for="signup-confirm">Confirm password</label><input id="signup-confirm" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
-      <div id="signup-turnstile"></div><button id="signup-submit" class="account-primary" type="submit">Create account</button>
+      <div id="signup-turnstile"></div><button id="signup-submit" class="account-primary" type="submit">Create account with phone passkey</button>
     </form>
     <p id="registration-preview-status" class="account-note" role="status" aria-live="polite"></p>
     <a class="account-link" href="/account.html">Already have an account? Log in</a>
@@ -42,7 +40,7 @@
       <button type="submit" class="account-primary">Log in</button>
     </form>
     <p class="account-note">There is no email or password-recovery service. Keep your unique password in a password manager.</p>
-    <p class="account-note">New account registration is currently closed.</p>
+    <p class="account-note">New account registration is available when the phone-passkey preview is enabled.</p>
   </section>
   <section id="profile-panel" hidden>
     <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
