@@ -1,7 +1,7 @@
-// Lightweight health/config endpoint: do not initialize Better Auth, Argon2 or D1.
-import { passkeyConfigured } from '../../../lib/auth/passkey-policy.mjs';
+// Lightweight config endpoint: check D1 schema without initializing Better Auth or Argon2.
+import { passkeyConfigured, passkeyStorageReady } from '../../../lib/auth/passkey-policy.mjs';
 // This endpoint is public and must never expose secrets or database contents.
-export const onRequestGet = ({ request, env }) => {
+export const onRequestGet = async ({ request, env }) => {
   const url = new URL(request.url);
   const base = env.BETTER_AUTH_URL || 'https://eloscanner.com';
   const origin = request.headers.get('Origin');
@@ -19,7 +19,7 @@ export const onRequestGet = ({ request, env }) => {
   return Response.json({
     registrationOpen: false,
     loginConfigured: configured,
-    passkeyReady: configured && passkeyConfigured(env),
+    passkeyReady: configured && passkeyConfigured(env) && await passkeyStorageReady(env.AUTH_DB),
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
 };
