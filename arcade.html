@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<script defer src="/arcade-bundle.js?v=20261108-single-script-fix-1"></script>
+<script defer src="/arcade-bundle.js?v=20261108-arcade-enhancements-1"></script>
 <script src="/puzzle-report.js?v=4-arcade" defer></script>
 <style>
 .arcade-panel-title #arcade-ranking-link,.arcade-panel-title #arcade-ranking-link:link,.arcade-panel-title #arcade-ranking-link:visited,.arcade-panel-title #arcade-ranking-link:hover,.arcade-panel-title #arcade-ranking-link:focus{color:#fff!important;-webkit-text-fill-color:#fff!important;text-decoration:underline;text-underline-offset:3px}
@@ -47,10 +47,12 @@ window.addEventListener('DOMContentLoaded',()=>{
 <div class="arcade-board-wrap">
 <div id="arcade-board" class="arcade-board" data-orientation="white" role="group" aria-label="Chessboard. Select a piece, then a destination, or drag it. Right click for arrows."></div>
 </div>
+<div id="arcade-feedback" class="arcade-feedback" role="status" aria-live="polite"></div>
 <div id="arcade-palette" class="arcade-palette" aria-label="Piece selection" hidden></div>
 <div id="arcade-choices" class="arcade-choices" hidden></div>
 <p id="arcade-status" class="arcade-status" role="status" aria-live="polite">Press Start game to play.</p>
 <div class="arcade-actions"><button id="arcade-start" type="button" class="arcade-primary">Start game</button><button id="arcade-next" type="button" hidden>Next level</button><button id="arcade-finish" type="button" hidden>Finish run</button></div>
+<div id="arcade-review" class="arcade-review" hidden></div>
 <p class="arcade-help">Click or drag pieces to move. During computer moves, queue a premove, even onto your own piece; it executes only if legal later. On a computer, right-drag to draw an arrow and right-click a square to highlight it. Touchscreens support drag-and-drop.</p>
 </section>
 <aside class="arcade-side">
