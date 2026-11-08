@@ -125,3 +125,9 @@ export function queenEscape(pieces,queenPos){
  };
  return candidates.sort((a,b)=>score(b)-score(a)||a-b)[0];
 }
+
+// Piecewise Elo guessing rewards: exact = 10, 50 away = 5, 100 = 4, 200 = 3.
+export function guessEloPoints(diff){
+ if(!Number.isFinite(diff)||diff<0)return 0;
+ return diff===0?10:diff<=10?9:diff<=25?7:diff<=50?5:diff<=100?4:diff<=200?3:diff<=300?2:diff<=450?1:0;
+}
