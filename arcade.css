@@ -123,3 +123,6 @@ body.pawn-dash-active{overflow:hidden}
 .pawn-world-overlay h2{font-size:clamp(32px,5vw,54px);margin:0 0 12px}
 .pawn-world-overlay button{background:#16617b;border:1px solid #77e0ed;border-radius:11px;color:white;padding:15px 25px;font:700 19px system-ui;min-width:230px;cursor:pointer}
 .pawn-world-overlay p{color:#c6deed;text-align:center;padding:10px}
+
+.arcade-feedback.visible.incorrect{background:#742838}
+.arcade-review-board span.review-ghost{opacity:.48;outline:2px dashed #fff8;outline-offset:-3px}
