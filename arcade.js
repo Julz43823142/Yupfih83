@@ -692,3 +692,5 @@ window.addEventListener('elo-account-changed',e=>{account=e.detail?.user||null;i
 window.addEventListener('pagehide',()=>{stopBot();pawnWorld?.destroy()});
 
 void getSession();void loadRanking();paint();
+// Pawn Dash is an immersive arcade: launching its card launches the game.
+if(mode==='pawn-dash')void start();
