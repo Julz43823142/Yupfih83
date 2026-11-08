@@ -28,13 +28,33 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     await page.locator('#passkey-confirm-password').fill('Local-test-only-orchard-57931!');
     await page.getByRole('button', { name: 'Create passkey' }).click();
     await expect(page.locator('#account-status')).toContainText('Your passkey is registered.', { timeout: 30000 });
+    await expect(page.locator('#passkey-count')).toContainText('1 passkey registered.', { timeout: 30000 });
     await page.locator('#sign-out').click();
     await expect(page.locator('#login-form')).toBeVisible();
+    let firstAssertion = null;
+    await page.route('**/api/auth/passkey/verify-authentication', async route => {
+      firstAssertion ??= route.request().postDataJSON();
+      await route.continue();
+    });
     await page.locator('#passkey-login').click();
     await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
     await expect(page.locator('#account-status')).toContainText('logged in with your passkey');
     const session = await page.request.get(base + '/api/auth/get-session');
     expect((await session.json()).user.username).toBe('local_tester');
+    expect(firstAssertion?.response?.id).toBeTruthy();
+    // A previously accepted signature must never create a second session.
+    const replay = await page.request.post(base + '/api/auth/passkey/verify-authentication', {
+      headers: { Origin: base },
+      data: firstAssertion
+    });
+    expect(replay.status()).toBeGreaterThanOrEqual(400);
+    const crossOrigin = await page.request.post(base + '/api/auth/passkey/verify-authentication', {
+      headers: { Origin: 'https://attacker.example' },
+      data: firstAssertion
+    });
+    expect(crossOrigin.status()).toBe(403);
+    const stillSignedIn = await page.request.get(base + '/api/auth/get-session');
+    expect((await stillSignedIn.json()).user.username).toBe('local_tester');
   } finally {
     await client.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
     await client.send('WebAuthn.disable');
