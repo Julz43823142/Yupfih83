@@ -4,6 +4,7 @@ import { createAuth } from '../../lib/auth/config.mjs';
 import { handleAuth, consumeCounter } from '../../lib/auth/gateway.mjs';
 import { passwordFunctions, checkNewPassword } from '../../lib/auth/password.mjs';
 import { database } from './fixture.mjs';
+import { passkeyConfigured, createPasskeyPlugin } from '../../lib/auth/passkeys.mjs';
 const secret = 'synthetic-test-only-secret-with-over-32-characters';
 const password = 'Orchard!violet!planet!73519';
 const envFor = () => ({ AUTH_DB: database(), BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: 'https://eloscanner.com', TURNSTILE_SITE_KEY: 'public-test-site-key', TURNSTILE_SECRET_KEY: 'test-secret' });
@@ -41,8 +42,25 @@ test('Registration and unneeded library routes fail closed even without configur
   assert.ok(direct.status >= 400);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
+test('passkey requires exact operator-approved HTTPS RP ID and strong user verification', () => {
+  const env = { BETTER_AUTH_URL: 'https://eloscanner.com', PASSKEY_LOGIN_ENABLED: 'true', PASSKEY_RP_ID: 'eloscanner.com' };
+  assert.equal(passkeyConfigured(env), true);
+  const configured = createPasskeyPlugin(env);
+  assert.equal(configured.id, 'passkey');
+  assert.equal(configured.options.authenticatorSelection.userVerification, 'required');
+  assert.equal(configured.options.authenticatorSelection.residentKey, 'required');
+  for (const changes of [
+    { PASSKEY_LOGIN_ENABLED: 'false' },
+    { PASSKEY_RP_ID: 'evil.example' },
+    { BETTER_AUTH_URL: 'http://eloscanner.com' },
+    { BETTER_AUTH_URL: 'https://eloscanner.com.evil.example' },
+    { BETTER_AUTH_URL: 'https://eloscanner.com/other' },
+    { BETTER_AUTH_URL: 'https://user:pass@eloscanner.com' }
+  ]) assert.equal(passkeyConfigured({ ...env, ...changes }), false);
+  assert.equal(passkeyConfigured({ ...env, BETTER_AUTH_URL: 'http://localhost:8788', PASSKEY_RP_ID: 'localhost' }), true);
+});
 test('passkey endpoints remain inaccessible until audited integration is enabled', async () => {
-  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true';
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
   for (const path of [
     'passkey/generate-register-options',
     'passkey/verify-registration',
