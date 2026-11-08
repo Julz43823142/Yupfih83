@@ -494,7 +494,7 @@ function stockfishMove(){
    state.phase='playing';status('Stockfish played. Your turn.');paint();
   };
   worker.onerror=()=>{if(token!==botToken)return;stopBot();state.phase='waiting';status('Stockfish could not start. Finish this run or play again.');paint()};
-  worker.postMessage({token,fen:state.chess.fen(),elo:3190});
+  worker.postMessage({token,fen:state.chess.fen(),elo:3190,fullStrength:true});
  }catch{state.phase='waiting';status('Stockfish unavailable. Please try again.')}
 }
 async function getSession(){
