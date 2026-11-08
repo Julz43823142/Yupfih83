@@ -91,3 +91,14 @@
 .arcade-ranking .rank-report{background:transparent;border:1px solid #57839b;color:#abd1e3;border-radius:6px;padding:3px 6px;cursor:pointer;font-size:11px}
 .arcade-ranking .rank-report:disabled{opacity:.6}
 .arcade-ranking li{gap:8px}
+
+/* Falling Board: distinct tile outlines and knight identities, not only filtered SVG colours. */
+.arcade-square.knight-blue{box-shadow:inset 0 0 0 4px #35b8ff}
+.arcade-square.knight-red{box-shadow:inset 0 0 0 4px #ff5272}
+.arcade-square.knight-yellow{box-shadow:inset 0 0 0 4px #ffd345}
+.arcade-square.knight-green{box-shadow:inset 0 0 0 4px #62ec8e}
+.arcade-square.knight-blue::before,.arcade-square.knight-red::before,.arcade-square.knight-yellow::before,.arcade-square.knight-green::before{position:absolute;top:1px;right:2px;z-index:3;font-size:clamp(10px,1.5vw,15px);font-weight:900;color:#102131;text-shadow:0 0 3px #fff;pointer-events:none}
+.arcade-square.knight-blue::before{content:'1'}
+.arcade-square.knight-red::before{content:'2'}
+.arcade-square.knight-yellow::before{content:'3'}
+.arcade-square.knight-green::before{content:'4'}
