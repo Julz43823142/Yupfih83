@@ -112,6 +112,26 @@ test('legacy password confirmation authorizes one WebAuthn registration challeng
   assert.equal((await session.json()).user.username, 'sharkmeister');
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey').get().c, 0);
 });
+test('passkey enrollment proof cannot be reused in another session or after logout', async () => {
+  const env = envFor(); env.PASSKEY_LOGIN_ENABLED = 'true'; env.PASSKEY_RP_ID = 'eloscanner.com';
+  await provision(env, 'session_owner');
+  const login = async () => {
+    const result = await handleAuth({ request: req('sign-in/username', { username: 'session_owner', password }), env });
+    assert.equal(result.status, 200);
+    return cookie(result);
+  };
+  const ownerCookie = await login();
+  const otherCookie = await login();
+  const call = (route, body, c) => handleAuth({ request: req(route, body, c), env });
+  assert.equal((await call('passkey/step-up', { currentPassword: password }, ownerCookie)).status, 200);
+  assert.equal((await call('passkey/generate-register-options', undefined, otherCookie)).status, 403);
+  assert.equal((await call('passkey/generate-register-options', undefined, ownerCookie)).status, 200);
+  assert.equal((await call('passkey/generate-register-options', undefined, ownerCookie)).status, 403);
+  assert.equal((await call('passkey/step-up', { currentPassword: password }, ownerCookie)).status, 200);
+  assert.equal((await call('sign-out', {}, ownerCookie)).status, 200);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM auth_passkey_stepup').get().c, 0);
+  assert.equal((await call('passkey/generate-register-options', undefined, ownerCookie)).status, 401);
+});
 test('public registration remains closed even if a legacy flag is set', async () => {
   const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
   const signup = await handleAuth({ request: req('sign-up/email', { username: 'test_user', password }), env });
