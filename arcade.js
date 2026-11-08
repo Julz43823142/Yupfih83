@@ -168,15 +168,15 @@ function nextLevel(){
  paint();
 }
 const endgames=[
- '7k/8/5K2/8/8/8/8/6Q1 w - - 0 1',
- '7k/8/5K2/8/8/8/8/R7 w - - 0 1',
+ // Start with material-balanced conversion problems, not instant queen/rook mates.
+ '4r1k1/5ppp/8/4P3/3P4/8/5PPP/3R2K1 w - - 0 1',
+ '8/5pk1/5np1/8/4P3/3N2P1/5P1P/6K1 w - - 0 1',
  '6k1/5ppp/8/8/4P3/5P2/6PP/6K1 w - - 0 1',
  '8/4k3/8/3P1K2/8/8/8/8 w - - 0 1',
  '6k1/5p1p/6p1/8/3PP3/6P1/5P1P/6K1 w - - 0 1',
  '8/5pk1/5np1/8/4P3/3N2P1/5P1P/6K1 w - - 0 1',
  '8/5pk1/4p1p1/8/3PP3/4B1P1/5P1P/6K1 w - - 0 1',
  '6k1/5ppp/8/8/8/1P3P2/P5PP/2R3K1 w - - 0 1',
- '4r1k1/5ppp/8/4P3/3P4/8/5PPP/3R2K1 w - - 0 1',
  '8/6kp/5pp1/8/2P5/3P2P1/5P1P/4R1K1 w - - 0 1'
 ];
 const examples=[
