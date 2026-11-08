@@ -334,3 +334,27 @@ test('forged session, injection fields and malicious Turnstile responses cannot 
   assert.equal(check.status,403);assert.equal(reached,false);
  }
 });
+
+
+test('new login sessions expire after 30 days, not seven', async () => {
+  const env = envFor();
+  await provision(env);
+  const before = Date.now();
+  const response = await handleAuth({
+    request: req('sign-in/username', { username: 'johan', password }),
+    env
+  });
+  assert.equal(response.status, 200);
+  const sessionCookie = cookie(response);
+  const sessionResponse = await handleAuth({
+    request: req('get-session', undefined, sessionCookie),
+    env
+  });
+  assert.equal(sessionResponse.status, 200);
+  const session = await sessionResponse.json();
+  assert.equal(session.user.username, 'johan');
+  const expiry = new Date(session.expiresAt).getTime();
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  assert.ok(expiry >= before + thirtyDays - 60_000, 'session should last approximately 30 days');
+  assert.ok(expiry <= Date.now() + thirtyDays + 60_000, 'session must not exceed 30 days');
+});
