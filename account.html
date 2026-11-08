@@ -21,7 +21,7 @@
   <p id="account-status" class="account-status" role="status" aria-live="polite">Checking account availability…</p>
   <section id="registration-panel" class="account-card" hidden>
     <span class="account-badge">CREATE YOUR ACCOUNT</span><h2>Create your account</h2>
-    <p>Choose a username and a strong, unique password to join EloScanner.</p>
+    <p>New account registration is closed. Existing members can sign in and add one passkey; a backup passkey is optional.</p>
     <form id="registration-preview-form">
       <label for="signup-username">Username</label><input id="signup-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" required>
       <label for="signup-password">Password</label><input id="signup-password" type="password" autocomplete="new-password" minlength="15" maxlength="128" placeholder="At least 15 characters" required>
@@ -32,7 +32,7 @@
     <a class="account-link" href="/account.html">Already have an account? Log in</a>
   </section>
   <section id="login-panel" class="account-card" hidden>
-    <h2>Welcome back</h2><p>Log in with your username and password.</p>
+    <h2>Welcome back</h2><p>Existing members can log in with a passkey or their current username and password.</p>
     <button id="passkey-login" class="account-primary" type="button" hidden>Log in with passkey</button>
     <form id="login-form">
       <label for="username">Username</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required>
@@ -42,7 +42,7 @@
       <button type="submit" class="account-primary">Log in</button>
     </form>
     <p class="account-note">There is no email or password-recovery service. Keep your unique password in a password manager.</p>
-    <a class="account-link" href="/account.html?view=signup">New here? Create an account</a>
+    <p class="account-note">New account registration is currently closed.</p>
   </section>
   <section id="profile-panel" hidden>
     <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
