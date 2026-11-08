@@ -444,3 +444,41 @@ test('phone-first signup options require rollout flag and verified Turnstile; cr
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM passkey').get().n, 0);
   assert.equal((await handleAuth({ request: req('passkey-signup/verify', {}), env })).status, 400); // Enabled route rejects malformed attestation.
 });
+
+test('passkey signup commits account and credential atomically, rejects replay and duplicate credentials', async () => {
+  const env = { ...envFor(), PASSKEY_LOGIN_ENABLED: 'true', PASSKEY_RP_ID: 'eloscanner.com', PUBLIC_SIGNUP_ENABLED: 'true' };
+  let credentialId = 'test-credential-unique';
+  const services = {
+    fetch: async () => Response.json({ success: true, hostname: 'eloscanner.com', action: 'signup' }),
+    verifyRegistrationResponse: async () => ({
+      verified: true,
+      registrationInfo: {
+        credential: { id: credentialId, publicKey: new Uint8Array([1, 2, 3, 4]), counter: 0 },
+        credentialDeviceType: 'multiDevice', credentialBackedUp: true
+      }
+    })
+  };
+  const start = async username => {
+    const response = await handleAuth({ request: req('passkey-signup/options', { username, turnstileToken: 'test' }), env }, services);
+    assert.equal(response.status, 200, await response.clone().text());
+    return response.json();
+  };
+  const verify = options => handleAuth({ request: req('passkey-signup/verify', {
+    attemptId: options.attemptId, challenge: options.publicKey.challenge, credential: { id: credentialId }
+  }), env }, services);
+  const first = await start('phone_first');
+  const success = await verify(first);
+  assert.equal(success.status, 201, await success.clone().text());
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM user').get().n, 1);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n, 1);
+  assert.equal((await verify(first)).status, 403);
+  const second = await start('phone_second');
+  assert.equal((await verify(second)).status, 409);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM user').get().n, 1);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n, 1);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT consumedAt FROM auth_passkey_signup_attempt WHERE id=?').get(second.attemptId).consumedAt, null);
+  credentialId = 'test-credential-second';
+  assert.equal((await verify(second)).status, 201);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM user').get().n, 2);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n, 2);
+});
