@@ -539,7 +539,7 @@ async function getSession(){
   const r=await fetch('/api/auth/get-session',{credentials:'same-origin',cache:'no-store'});
   if(!r.ok)return;const data=await r.json();
   account=data.user||null;
-  if(account?.username){$('arcade-nickname').value=account.username;$('arcade-nickname').disabled=true;}
+  if(account?.username){$('arcade-nickname').value=account.username.charAt(0).toUpperCase()+account.username.slice(1);$('arcade-nickname').disabled=true;}
  }catch{}
 }
 async function start(){
