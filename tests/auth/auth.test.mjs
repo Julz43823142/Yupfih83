@@ -41,16 +41,32 @@ test('Registration and unneeded library routes fail closed even without configur
   assert.ok(direct.status >= 400);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
-test('public signup refuses usernames impersonating EloScanner staff', async () => {
+test('public registration remains closed even if a legacy flag is set', async () => {
   const env = envFor(); env.PUBLIC_SIGNUP_ENABLED = 'true';
-  for (const username of ['admin','a_d_m_i_n','eloscanner','elo_scanner_support','support','mod_erator']) {
-    const result = await handleAuth({request:req('sign-up/email',{username,password}),env});
-    assert.equal(result.status,400,username);
-    assert.match((await result.json()).message,/reserved/i);
-  }
-  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c,0);
+  const signup = await handleAuth({ request: req('sign-up/email', { username: 'test_user', password }), env });
+  assert.equal(signup.status, 403);
+  assert.equal((await signup.json()).code, 'REGISTRATION_CLOSED');
+  const config = await handleAuth({ request: req('config'), env });
+  assert.equal((await config.json()).registrationOpen, false);
+  const direct = await createAuth(env).handler(req('sign-up/email', { email: 'test@accounts.invalid', username: 'test_user', password }));
+  assert.ok(direct.status >= 400);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM user').get().c, 0);
 });
-
+test('passkey preparation preserves existing accounts and enforces credential ownership', async () => {
+  const env = envFor(); await provision(env, 'sharkmeister');
+  const user = env.AUTH_DB.sqlite.prepare('SELECT id FROM user WHERE username=?').get('sharkmeister');
+  assert.ok(user?.id);
+  const insert = (id, credentialID, userId = user.id) => env.AUTH_DB.sqlite.prepare(
+    'INSERT INTO passkey (id,publicKey,userId,credentialID,counter,deviceType,backedUp) VALUES (?,?,?,?,?,?,?)'
+  ).run(id, 'test-public-key', userId, credentialID, 0, 'singleDevice', 0);
+  insert('pk-1', 'credential-1');
+  assert.throws(() => insert('pk-2', 'credential-1'));
+  assert.throws(() => insert('pk-3', 'credential-3', 'nonexistent-user'));
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey WHERE userId=?').get(user.id).c, 1);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT username FROM user WHERE id=?').get(user.id).username, 'sharkmeister');
+  env.AUTH_DB.sqlite.prepare('DELETE FROM user WHERE id=?').run(user.id);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) c FROM passkey').get().c, 0);
+});
 test('origin/method/body guards reject cross-site and oversized requests', async () => {
   const env = envFor();
   for (const headers of [{ Origin: 'https://evil.example' }, { Origin: '' }, { 'Sec-Fetch-Site': 'cross-site' }]) {
