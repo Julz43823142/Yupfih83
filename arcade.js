@@ -26,6 +26,7 @@ const instructions={
 };
 $('arcade-instructions').textContent=instructions[mode];
 
+let runOffset=Math.floor(Math.random()*1000000),feedbackUntil=0,reviewStep=0,runReview=[];
 let state=null,selected=null,palettePiece=null,submitted=false,session=null,botWorker=null,botToken=0,clockTimer=null,account=null,pawnWorld=null,queuedPremove=null,premovePointer=null;
 const marks=[],highlights=new Set(),cells=[];
 const svgNS='http://www.w3.org/2000/svg';
@@ -122,13 +123,16 @@ function paint(){
   let classes='arcade-square '+((x+y)%2?'dark':'light');
   if(selected===square(i))classes+=' selected';
   if(p?.colour)classes+=' knight-'+p.colour;
-  if(sources.includes(i)&&!['safe-square-rush','chess-block-party'].includes(mode))classes+=' available';
+  if(sources.includes(i)&&mode!=='chess-block-party')classes+=' available';
   if(state&&mode==='falling-board'&&state.falling.gone.includes(i))classes+=' lost';
   if(state&&mode==='chess-block-party'){
    classes+=' board-color';
    el.style.setProperty('--board-color',COLORS[state.block.palette[i]]);
   }else el.style.removeProperty('--board-color');
   if(state&&mode==='pawn-dash'&&state.stars?.includes(i))classes+=' star';
+  if(state&&mode==='falling-board'&&p?.side==='player'&&state.falling?.knights?.[0]?.alive){el.style.setProperty('--lava-progress',String(Math.min(100,Math.max(0,(Date.now()-state.falling.knights[0].lastAt)/30)))+'%');classes+=' lava-tile'}
+  else if(state&&mode==='chess-block-party'&&i===state.block?.pos&&state.phase==='playing'){el.style.setProperty('--lava-progress',String(Math.min(100,Math.max(0,(Date.now()-(state.levelUntil-state.block.seconds*1000))/(state.block.seconds*10))))+'%');classes+=' lava-tile'}
+  else el.style.removeProperty('--lava-progress');
   if(state&&mode==='chess-memory'&&state.phase==='build'&&state.placed[i]&&state.answer[i])classes+=' safe-zone';
   el.className=classes;
   const existing=el.querySelector(':scope > .chess-piece');
@@ -154,9 +158,13 @@ const timeLeft=()=>!state?180:Math.max(0,Math.ceil((state.endsAt-Date.now())/100
 function clockLabel(sec){return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
 const seed=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
 const random=()=>Math.random();
-function score(points){state.score+=points;paint()}
+function score(points){state.score+=points;recordReview('Correct · +'+points+' point'+(points===1?'':'s'),true);flashFeedback('Correct! +'+points);paint()}
+function flashFeedback(message){const el=$('arcade-feedback');if(!el)return;el.textContent=message;el.classList.add('visible');feedbackUntil=Date.now()+1100}
+function recordReview(message,correct=false){if(!state||state.finished)return;runReview.push({message,correct,level:state.level,position:structuredClone(currentPosition())});if(runReview.length>150)runReview.shift()}
+function displayReview(){const wrap=$('arcade-review');if(!wrap||!runReview.length)return;wrap.replaceChildren();wrap.hidden=false;const title=document.createElement('h3');title.textContent='Round review · '+runReview.length+' moments';wrap.append(title);const buttons=document.createElement('div');buttons.className='arcade-review-nav';const prev=document.createElement('button'),next=document.createElement('button'),counter=document.createElement('span'),label=document.createElement('p'),mini=document.createElement('div');prev.textContent='← Previous';next.textContent='Next →';mini.className='arcade-review-board';const render=()=>{const item=runReview[reviewStep];counter.textContent=(reviewStep+1)+' / '+runReview.length+' · Level '+item.level;label.textContent=item.message;label.className=item.correct?'review-correct':'review-error';mini.replaceChildren();for(let i=0;i<64;i++){const el=document.createElement('span');el.className=(Math.floor(i/8)+i%8)%2?'dark':'light';const p=item.position[i];el.textContent=p?({'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙'}[p.type]||'♙'):'';if(p?.side==='enemy')el.classList.add('enemy');mini.append(el)}prev.disabled=reviewStep===0;next.disabled=reviewStep===runReview.length-1};prev.onclick=()=>{reviewStep--;render()};next.onclick=()=>{reviewStep++;render()};buttons.append(prev,counter,next);wrap.append(buttons,label,mini);render()}
 function lose(message){
  if(!state||state.finished)return;
+ recordReview('Mistake: '+message,false);flashFeedback('Incorrect!');
  state.lives--;status(message+' '+(state.lives>0?'Lives remaining: '+state.lives:'No lives left.'));
  if(state.lives<=0){finish();return}
 }
@@ -197,7 +205,11 @@ function setupLevel(){
  $('arcade-choices').replaceChildren();$('arcade-choices').hidden=true;
  $('arcade-palette').replaceChildren();$('arcade-palette').hidden=true;
  if(mode==='endgame-survivor'){
-  state.chess=new Chess(endgames[(state.level-1)%endgames.length]);
+  const rng=makeRandom(state.seed+':endgame:'+state.level),index=(state.level-1+state.positionOffset)%endgames.length;
+  state.chess=new Chess(endgames[index]);
+  // Create different but fully legal starting variations from each endgame family.
+  for(let i=0,plies=Math.floor(rng()*6)*2;i<plies;i++){const candidates=state.chess.moves({verbose:true});if(!candidates.length)break;state.chess.move(candidates[Math.floor(rng()*candidates.length)]);if(state.chess.isGameOver())break}
+  if(state.chess.isGameOver())state.chess=new Chess(endgames[index]);
   status('Challenging endgame. White to move; win against Stockfish for one point.');
  }else if(mode==='guess-the-elo'){
   state.chess=new Chess();state.eloView=new Chess();state.phase='waiting';
@@ -208,7 +220,7 @@ function setupLevel(){
   state.revealUntil=Date.now()+Math.max(2700,6500-state.level*200);
   status('Memorize the pieces! They disappear shortly.');
  }else if(mode==='missing-piece'){
-  state.puzzle=missing[(state.level-1)%missing.length];
+  state.puzzle=missing[(state.level-1+state.positionOffset)%missing.length];
   state.chess=new Chess(state.puzzle.fen);state.phase='placement';
   palette(['Q','R','B','N'].map(type=>({type,side:'player'})));
   status('Which missing piece goes where? Drag from the tray or tap a piece, then a square.');
@@ -224,7 +236,7 @@ function setupLevel(){
   status('Blue knight is yours. Jump within 3 seconds. Last knight standing wins.');
  }else if(mode==='queen-chase'){
   const rand=makeRandom(state.seed+':queen:'+state.level);
-  const q=[27,28,35,36][Math.floor(rand()*4)];
+  const q=[18,19,20,21,26,27,28,29,34,35,36,37,42,43,44,45][Math.floor(rand()*16)];
   state.pieces={0:{type:'R',side:'player'},7:{type:'R',side:'player'},48:{type:'N',side:'player'},63:{type:'B',side:'player'},[q]:{type:'Q',side:'enemy'}};
   state.queen=q;state.turns=0;state.phase='playing';
   status('Move your officers to corner the queen. She can only move, not capture.');
@@ -453,6 +465,8 @@ function checkFalling(){
 function tick(){
  if(!state||state.finished)return;
  const now=Date.now();
+ if(feedbackUntil&&now>feedbackUntil){$('arcade-feedback')?.classList.remove('visible');feedbackUntil=0}
+ if(mode==='falling-board'||mode==='chess-block-party')paint();
  if(mode==='endgame-survivor')$('arcade-time').textContent='∞';
  else $('arcade-time').textContent=clockLabel(timeLeft());
  if(mode==='falling-board'){
@@ -534,7 +548,7 @@ function stockfishMove(){
    state.phase='playing';status('Stockfish played. Your turn.');if(!applyQueuedPremove())paint();
   };
   worker.onerror=()=>{if(token!==botToken)return;stopBot();state.phase='waiting';status('Stockfish could not start. Finish this run or play again.');paint()};
-  worker.postMessage({token,fen:state.chess.fen(),elo:3190,fullStrength:true});
+  worker.postMessage({token,fen:state.chess.fen(),elo:3190,fullStrength:true,arcadeFast:true});
  }catch{state.phase='waiting';status('Stockfish unavailable. Please try again.')}
 }
 async function getSession(){
@@ -548,8 +562,8 @@ async function getSession(){
 async function start(){
  stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
- const now=Date.now(),s=seed();
- state={mode,seed:s,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
+ const now=Date.now(),s=seed();runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
+ state={mode,seed:s,positionOffset:runOffset%endgames.length,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
@@ -574,7 +588,7 @@ function finish(){
  $('arcade-submit').disabled=state.score<1;
  $('arcade-submit-status').textContent=state.score<1?'Score at least one point to enter the Top 100.':'';
  if(mode!=='endgame-survivor')$('arcade-time').textContent=clockLabel(timeLeft());
- status('Run finished with '+state.score+' points. You can play again or submit your score.');
+ status('Run finished with '+state.score+' points. Review your moves and mistakes below.');reviewStep=Math.max(0,runReview.length-1);displayReview();
  paint();
 }
 async function submit(){
