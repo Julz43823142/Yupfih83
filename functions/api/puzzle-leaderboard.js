@@ -2,6 +2,7 @@ import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
+import {isReservedIdentity} from '../../lib/identity.mjs';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
@@ -135,23 +136,19 @@ export async function onRequestPost({request,env}){
    const elapsed=Date.now()-run.started_at;
    const duration=run.mode==='sprint3'?180000:run.mode==='sprint5'?300000:86400000;
    if(elapsed<0||elapsed>duration+15000)return json({error:'Run has expired.'},409);
-   // A submitted proof must represent human-paced solving, not a script
-   // uploading hundreds of public puzzle answers immediately after starting.
-   // This is a modest aggregate limit, not a claim of tamper-proof gameplay.
-   if(elapsed<run.score*350)return json({error:'Puzzle proofs are arriving too quickly.'},429);
    const bank=data?.shard===null||data?.shard===undefined
     ?await puzzleBank(env,request)
     :await verifiedShard(env,request,Number(data.shard));
    if(bank.get(puzzleId)!==line)return json({error:'Puzzle solution not verified.'},400);
    // Recheck against current state at the actual write, after async asset I/O.
-   // A prior SELECT alone lets parallel requests evade pacing and submission.
+   // A prior SELECT alone lets parallel requests evade submission state checks.
    const now=Date.now();
    const inserted=await db.prepare(`INSERT OR IGNORE INTO puzzle_verified_solves(run_id,puzzle_id)
     SELECT id,? FROM puzzle_verified_runs WHERE id=? AND submitted=0 AND score<100000
-    AND started_at<=? AND started_at>=? AND ?-started_at>=score*350`).bind(puzzleId,id,now,now-duration-15000,now).run();
+    AND started_at<=? AND started_at>=?`).bind(puzzleId,id,now,now-duration-15000).run();
    if(!inserted.meta?.changes){
     const duplicate=await db.prepare('SELECT 1 AS solved FROM puzzle_verified_solves WHERE run_id=? AND puzzle_id=?').bind(id,puzzleId).first();
-    if(!duplicate)return json({error:'Run changed or puzzle proofs are arriving too quickly. Please retry.'},409);
+    if(!duplicate)return json({error:'Run changed. Please retry.'},409);
    }
    return json({ok:true});
   }catch{return json({error:'Could not verify puzzle. Please retry.'},503)}
@@ -174,7 +171,7 @@ export async function onRequestPost({request,env}){
   return json({error:"Use a valid name (2–20 characters) and score."},400);
  if(score===0)return json({error:"Solve at least one puzzle to enter."},400);
  // Disallowed leaderboard entries cannot be submitted again.
- if(["tttt","tttttttt"].includes(nickname.toLowerCase()))return json({error:"This nickname is not available. Please choose another."},400);
+ if(["tttt","tttttttt"].includes(nickname.toLowerCase())||(sourceType==='nickname'&&isReservedIdentity(nickname)))return json({error:"This nickname is not available. Please choose another."},400);
  // Anonymous entries must not impersonate registered account names.
  if(sourceType==='nickname'&&env.AUTH_DB){
   try{
