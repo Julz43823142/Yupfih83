@@ -23,6 +23,22 @@ if (fixture && (remote || exportSql)) throw new Error('Fixture users are forbidd
 const dbIndex = args.indexOf('--database'); const target = remote ? args[dbIndex + 1] : 'AUTH_DB';
 if (remote && (dbIndex < 0 || !target || target.startsWith('-'))) throw new Error('Explicit --database is required for remote provisioning');
 function prompt(question, hidden = false) {
+  if (hidden && process.platform === 'win32') {
+    // PowerShell's native secure input avoids raw-mode keypress handling
+    // that can fail in Windows terminals. Never pass secrets in argv.
+    const script = [
+      '$secure = Read-Host -Prompt ' + "'Enter secret (input hidden)'" + ' -AsSecureString',
+      '$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)',
+      'try { [Console]::Out.Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)) }',
+      'finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }'
+    ].join('; ');
+    process.stdout.write(question + '\\n');
+    const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+      stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', windowsHide: false
+    });
+    if (result.status !== 0) throw new Error('Secure input cancelled or unavailable');
+    return Promise.resolve(result.stdout);
+  }
   if (!process.stdin.isTTY) throw new Error('Interactive terminal required (use --local --fixture for automated tests)');
   if (!hidden) return new Promise(resolve => { const rl = createInterface({ input: process.stdin, output: process.stdout }); rl.question(question, value => { rl.close(); resolve(value); }); });
   return new Promise((resolve, reject) => {
