@@ -15,6 +15,15 @@
     return 'EloScanner emergency recovery codes\nKeep these private. Each code works only once.\n\n' +
       recoveryCodes.map((code, index) => (index + 1) + '. ' + code).join('\n') + '\n';
   }
+  function displayRecoveryCodes(result) {
+    if (!Array.isArray(result?.codes) || result.codes.length !== 8 ||
+        result.codes.some(code => !/^[A-Z2-7]{4}(?:-[A-Z2-7]{4}){7}$/.test(code)))
+      throw new Error('Recovery codes were not returned correctly.');
+    recoveryCodes = result.codes;
+    byId('recovery-codes-text').textContent = recoveryCodeText();
+    byId('recovery-codes-output').hidden = false;
+    byId('recovery-codes-notice').textContent = 'Download or copy your codes now. Do not share them.';
+  }
   let passkeyListGeneration = 0;
   async function refreshPasskeyCount() {
     const generation = ++passkeyListGeneration;
@@ -158,9 +167,19 @@
         form.reset();
         showUser(created.user);
         if (config?.recoveryCodesReady) {
-          byId('recovery-codes-panel').scrollIntoView({ behavior: 'smooth' });
-          message('Your account is ready. Generate and save your eight emergency recovery codes below.');
-        } else message('Your account is ready. You are signed in as ' + created.username + '.');
+          // New passkey-only accounts need an independent recovery method before
+          // they leave the signup screen. Never silently rotate existing codes.
+          try {
+            const codes = await post('passkey/recovery-codes/rotate', {});
+            displayRecoveryCodes(codes);
+            byId('recovery-codes-panel').scrollIntoView({ behavior: 'smooth' });
+            message('Account created. Save these eight recovery codes now; they cannot be shown again.');
+          } catch {
+            message('Account created, but recovery codes were not generated or could not be displayed. Sign in again with your primary passkey and generate recovery codes before using this account.', true);
+          }
+        } else {
+          message('Account created, but recovery codes are unavailable. Do not rely on this account until recovery is configured.', true);
+        }
         history.replaceState(null, '', '/account.html');
         return;
       }
@@ -252,13 +271,7 @@
     if (!confirm('Create eight new recovery codes? Any previously saved recovery codes will stop working.')) return;
     clearRecoveryCodes();
     const result = await post('passkey/recovery-codes/rotate', {});
-    if (!Array.isArray(result.codes) || result.codes.length !== 8 ||
-        result.codes.some(code => !/^[A-Z2-7]{4}(?:-[A-Z2-7]{4}){7}$/.test(code)))
-      throw new Error('Recovery codes were not returned correctly.');
-    recoveryCodes = result.codes;
-    byId('recovery-codes-text').textContent = recoveryCodeText();
-    byId('recovery-codes-output').hidden = false;
-    byId('recovery-codes-notice').textContent = 'Download or copy your codes now. Do not share them.';
+    displayRecoveryCodes(result);
   }));
   byId('recovery-codes-copy').addEventListener('click', event => busy(event.currentTarget, async () => {
     await navigator.clipboard.writeText(recoveryCodeText());
