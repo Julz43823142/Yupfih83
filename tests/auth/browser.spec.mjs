@@ -115,3 +115,42 @@ test('real Workers/D1 validates puzzle scores and denies replay, fabricated scor
   expect((await post('/api/knight-maze',{action:'move',id:run.id,to:run.position})).status()).toBe(400);
   expect((await post('/api/knight-maze',{action:'move',id:crypto.randomUUID(),to:run.position})).status()).toBe(404);
 });
+
+test('desktop signup displays a scannable phone QR instead of offering Windows PIN', async ({ page }) => {
+  await page.route('**/api/auth/config', route => route.fulfill({
+    json: { registrationOpen: true, passkeyReady: true, loginConfigured: true, turnstileSiteKey: 'fixture' }
+  }));
+  await page.route('**/api/auth/get-session', route => route.fulfill({ json: { user: null } }));
+  await page.goto(base + '/account.html?view=signup');
+  await expect(page.locator('#signup-phone-handoff')).toBeVisible();
+  await expect(page.locator('#registration-preview-form')).toBeHidden();
+  await expect(page.locator('#signup-phone-qr svg')).toBeVisible();
+  await expect(page.locator('#signup-phone-qr svg path')).toHaveCount(1);
+  await expect(page.locator('#signup-phone-link')).toHaveAttribute('href',
+    'https://feature-passkey-foundation-2.fairplaychess.pages.dev/account.html?view=signup');
+  await expect(page.locator('#account-status')).toContainText('Registration on this computer is disabled.');
+});
+
+test('phone signup keeps the form accessible instead of showing desktop QR handoff', async ({ browser }) => {
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    viewport: { width: 412, height: 915 },
+    isMobile: true, hasTouch: true
+  });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.turnstile = { render: () => 1, reset: () => {} };
+    });
+    await page.route('**/api/auth/config', route => route.fulfill({
+      json: { registrationOpen: true, passkeyReady: true, loginConfigured: true, turnstileSiteKey: 'fixture' }
+    }));
+    await page.route('**/api/auth/get-session', route => route.fulfill({ json: { user: null } }));
+    await page.goto(base + '/account.html?view=signup');
+    await expect(page.locator('#registration-preview-form')).toBeVisible();
+    await expect(page.locator('#signup-phone-handoff')).toBeHidden();
+    await expect(page.locator('#signup-submit')).toBeEnabled();
+  } finally {
+    await context.close();
+  }
+});
