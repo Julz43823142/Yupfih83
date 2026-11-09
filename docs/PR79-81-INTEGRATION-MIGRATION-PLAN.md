@@ -1,5 +1,12 @@
 # PR 79–81 integration and production D1 migration plan
 
+## Live D1 audit outcome — 2026-11-09
+- PR 83 was merged to main with all PR checks green, including synthetic 0010–0013 SQLite migration and independent SQLite backup/restore rehearsal.
+- Protected automatic read-only production audit run 42659548917 failed with HTTP 401. No D1 queries, migration statements or restore operations were executed.
+- The Cloudflare production API token was sufficient for the earlier Pages deployment-control change but D1 access is **not** established. The audit now identifies which endpoint denied access without exposing secrets.
+- Cloudflare D1 bookmark lookup requires **D1 Read** or **D1 Write** for the account. Creating a disposable D1 restoration rehearsal database requires **D1 Write**. Use narrowly scoped credentials in the protected GitHub production environment. Do not paste token values in chat or logs.
+- STOP: production migration and publication remain blocked until D1 credentials work and a genuine Cloudflare D1 Time Travel restore on a disposable database has succeeded. The local SQLite rehearsal is not sufficient by itself.
+
 ## Current execution record — 2026-11-09 (supersedes earlier historical blocker)
 - PR 79, 80, 81, and 82 have been merged to `main`.
 - Cloudflare production release preflight run 42654829949 (attempt 2) succeeded and disabled native Git production/preview auto-deployments.
