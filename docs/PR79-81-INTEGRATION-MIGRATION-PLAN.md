@@ -1,5 +1,16 @@
 # PR 79–81 integration and production D1 migration plan
 
+## Current execution record — 2026-11-09 (supersedes earlier historical blocker)
+- PR 79, 80, 81, and 82 have been merged to `main`.
+- Cloudflare production release preflight run 42654829949 (attempt 2) succeeded and disabled native Git production/preview auto-deployments.
+- Read-only production merge safety gate run 42654419521 (attempt 2) passed with signup closed, isolated D1 bindings and native auto-deploy disabled.
+- Final main security/performance regression run 42657065060 passed after PR 81.
+- PR 82 replaced the old partial primary-schema write workflow with a read-only audit. No production D1 write or application deploy followed those PR merges.
+- The synthetic SQLite ordered migration-and-restore rehearsal exercises 0010–0013 but **does not** establish a Cloudflare production D1 Time Travel restore or production D1 permissions.
+- **STOP:** Do not apply production 0010–0013 or deploy new Passkey code until a current live D1 audit, disposable D1 Time Travel recovery rehearsal, and compatible whole-chain migration executor are verified. Public signup remains CLOSED.
+- The older status/blocker text below is an immutable *historical preflight record*, not the current Cloudflare state.
+
+
 Status: PREPARED, NOT EXECUTED. Public registration must remain CLOSED.
 
 **Confirmed blocker, 2026-11-09:** read-only Cloudflare Pages API returned
