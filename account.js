@@ -100,6 +100,13 @@
         attemptId: options.attemptId, challenge: options.publicKey.challenge, credential
       });
       if (!created.success || created.username !== username.toLowerCase()) throw new Error('Registration response did not match the requested username. Do not sign in; contact support.');
+      if (created.loggedIn && created.user?.username === created.username) {
+        form.reset();
+        showUser(created.user);
+        message('Your account is ready. You are signed in as ' + created.username + '.');
+        history.replaceState(null, '', '/account.html');
+        return;
+      }
       form.reset();
       // Registration intentionally does not sign in: a generic passkey prompt
       // could select a different existing account. Never present that as success.
