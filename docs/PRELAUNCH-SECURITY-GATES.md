@@ -29,7 +29,7 @@ workflows deploys the application, migrates production D1, or changes secrets.
   which does not prove a legacy credential was registered from a phone.
 - Signup fails closed unless the primary-key D1 table/triggers exist.
 - Database triggers block primary deletion/reassignment and enforce the existing
-  five-key cap. The public gateway still does not expose ANY passkey-delete route.
+  five-key cap. The public gateway exposes only `POST /api/auth/passkey/remove-secondary`, which requires a fresh primary-passkey proof, checks account ownership, and excludes the primary credential in SQL. No primary-key deletion route exists.
 - Primary-key authentication is tied to the new exact Better Auth session via
   `auth_primary_passkey_proof`; ordinary secondary-key login does not authorize
   new passkey enrollment. The existing-account password migration remains supported.
