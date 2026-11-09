@@ -135,8 +135,8 @@ def run(tmp):
     original.execute('DELETE FROM "passkey" WHERE "id"=?', ("old-primary",))
     expect_rejected(original, 'DELETE FROM "passkey" WHERE "id"=?', ("new-primary",))
 
-    for i in range(3, 7):
-        if i == 6:
+    for i in range(3, 8):
+        if i == 7:
             expect_rejected(original,
                 'INSERT INTO "passkey" ("id","publicKey","userId",'
                 '"credentialID","deviceType","backedUp") VALUES (?,?,?,?,?,?)',
