@@ -33,7 +33,7 @@ jobs:
           const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
           const get=async path=>{
             const r=await fetch(api+path,{headers,signal:AbortSignal.timeout(30000)});
-            if(!r.ok)throw Error('Cloudflare read failed HTTP '+r.status);
+            if(!r.ok)throw Error('Cloudflare read failed at '+path+' HTTP '+r.status+' (check scope: Pages Read for project, D1 Read for bookmark)');
             const j=await r.json();
             if(j.success!==true)throw Error('Cloudflare read rejected');
             return j.result;
