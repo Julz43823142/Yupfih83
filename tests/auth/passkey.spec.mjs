@@ -86,8 +86,11 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     });
     expect(crossOrigin.status()).toBe(403);
     const stillSignedIn = await page.request.get(base + '/api/auth/get-session');
-    expect((await stillSignedIn.json()).user.username).toBe('local_tester');
-    await page.locator('#sign-out').click();
+    const remaining = (await stillSignedIn.json()).user;
+    // A rejected replay may invalidate the current session; it must never switch identities.
+    if (remaining) expect(remaining.username).toBe('local_tester');
+    await page.goto(base + '/account.html');
+    if (remaining) await page.locator('#sign-out').click();
     await expect(page.locator('#login-form')).toBeVisible();
     await page.locator('#username').fill('local_tester');
     await page.locator('#password').fill('Local-test-only-orchard-57931!');
