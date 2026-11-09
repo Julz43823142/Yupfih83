@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   enable-signup:
+    environment: production
     if: github.ref == 'refs/heads/main' && inputs.confirm == 'ENABLE_PASSKEY_SIGNUP'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -31,7 +32,7 @@ jobs:
       - run: npm run build
       - name: Strictly verify production is ready and registration is still closed
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node --input-type=module <<'NODE'
@@ -61,7 +62,7 @@ jobs:
           NODE
       - name: Explicitly enable only the production passkey registration switch
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node --input-type=module <<'NODE'
@@ -75,7 +76,7 @@ jobs:
           NODE
       - name: Publish production on main using the verified build
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: 'false'
         run: npx wrangler pages deploy dist --project-name fairplaychess --branch main --commit-hash "$GITHUB_SHA"
