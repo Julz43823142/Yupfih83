@@ -47,14 +47,35 @@ jobs:
             hasTurnstileKeys:!!vars.TURNSTILE_SITE_KEY&&!!vars.TURNSTILE_SECRET_KEY
           };
           console.log(JSON.stringify(report,null,2));
+          // Read-only D1 schema audit. Never query stored credentials, account data or tokens.
+          const sql = "SELECT name,type,sql FROM sqlite_master WHERE (type='table' AND name IN ('user','session','passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof')) OR (type='trigger' AND name IN ('passkey_limit_insert','passkey_no_owner_change','auth_passkey_signup_no_reuse','auth_passkey_signup_pending_limit')) ORDER BY type,name";
           const query=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
             method:'POST',headers:{...headers,'Content-Type':'application/json'},
-            body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','d1_migrations') ORDER BY name"})
+            body:JSON.stringify({sql})
           });
           if(!query.ok)throw Error('Production D1 schema audit HTTP '+query.status);
           const q=await query.json();
-          if(!q.success)throw Error('Production D1 schema audit failed');
-          console.log('Production D1 passkey tables present: '+JSON.stringify((q.result||[]).flatMap(x=>(x.results||[]).map(y=>y.name))));
+          if(!q.success || (q.result||[]).some(x=>x.success===false))throw Error('Production D1 schema audit failed');
+          const entries=(q.result||[]).flatMap(x=>x.results||[]);
+          const names=new Set(entries.map(x=>x.name));
+          const required=[
+            'user','session','passkey','auth_passkey_stepup',
+            'auth_passkey_signup_attempt','auth_passkey_login_proof',
+            'passkey_limit_insert','passkey_no_owner_change',
+            'auth_passkey_signup_no_reuse','auth_passkey_signup_pending_limit'
+          ];
+          const missing=required.filter(name=>!names.has(name));
+          console.log('Required production auth tables/triggers: '+(missing.length?'INCOMPLETE':'present'));
+          const passkeyTable=entries.find(x=>x.name==='passkey')?.sql||'';
+          const attemptsTable=entries.find(x=>x.name==='auth_passkey_signup_attempt')?.sql||'';
+          if(!/"credentialID"\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i.test(passkeyTable) ||
+             !/REFERENCES\s+"user"\s*\("id"\)\s+ON\s+DELETE\s+CASCADE/i.test(passkeyTable))
+            throw Error('Passkey credential uniqueness or user FK integrity not proven');
+          if(!/challengeDigest"\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i.test(attemptsTable))
+            throw Error('Signup challenge uniqueness not proven');
+          if(missing.length)throw Error('Missing required production D1 controls: '+missing.join(', '));
+          if(p.production_branch!=='main')throw Error('Unexpected production deployment branch');
           if(!report.productionAuthDatabaseExpected || !report.previewAuthDatabaseIsolated)throw Error('Unexpected D1 target; no changes permitted');
           if(report.productionSignupEnabled)throw Error('Production signup is already enabled: STOP');
+          console.log('Read-only production schema checks passed; registration remains closed.');
           NODE
