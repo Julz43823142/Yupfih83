@@ -92,3 +92,30 @@ test('public signup stays closed when primary D1 migration is not installed',asy
   }),env});
   assert.equal(attempt.status,404);
 });
+
+test('synthetic auth database backup restores passkey relationships and guards', async()=>{
+  const { backup, DatabaseSync }=await import('node:sqlite');
+  const { mkdtemp, rm }=await import('node:fs/promises');
+  const { tmpdir }=await import('node:os');
+  const { join }=await import('node:path');
+  const source=database();
+  user(source,'backuptest');
+  key(source,'primary-device','backuptest');
+  key(source,'secondary-device','backuptest');
+  const dir=await mkdtemp(join(tmpdir(),'eloscanner-auth-restore-'));
+  let restored;
+  try {
+    const destination=join(dir,'auth-synthetic.sqlite');
+    await backup(source.sqlite,destination);
+    restored=new DatabaseSync(destination);
+    restored.exec('PRAGMA foreign_keys=ON');
+    assert.equal(restored.prepare('SELECT passkeyId FROM auth_primary_passkey WHERE userId=?').get('backuptest').passkeyId,'primary-device');
+    assert.throws(()=>restored.prepare('DELETE FROM passkey WHERE id=?').run('primary-device'),/primary passkey cannot be deleted/);
+    restored.prepare('DELETE FROM passkey WHERE id=?').run('secondary-device');
+    assert.equal(restored.prepare('SELECT COUNT(*) n FROM passkey WHERE userId=?').get('backuptest').n,1);
+  } finally {
+    restored?.close();
+    source.sqlite.close();
+    await rm(dir,{recursive:true,force:true});
+  }
+});
