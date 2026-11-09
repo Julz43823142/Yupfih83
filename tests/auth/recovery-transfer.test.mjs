@@ -61,3 +61,20 @@ test('ordinary SQL cannot change primary without a valid recovery attempt',async
   assert.throws(()=>db.sqlite.prepare('INSERT INTO auth_primary_transfer_gate(userId,oldPasskeyId,newPasskeyId,attemptId,nowMs) VALUES(?,?,?,?,?)')
     .run('owner','phone','fake','not-a-real-attempt',Date.now()),/invalid recovery authorization/);
 });
+
+test('failed new credential insertion rolls back transfer gate, old keys and unused codes',async()=>{
+  const db=setup(),now=Date.now();
+  const codes=await rotateRecoveryCodes(db,secret,'owner',now);
+  const attempt=await startRecovery(db,secret,{username:'owner',code:codes.codes[0],sourceDigest:source},now);
+  const result=await completeRecovery(db,secret,{
+    attemptId:attempt.id,challenge:attempt.challenge,sourceDigest:source,
+    credential:{response:{}},registrationInfo:credential('credential-phone')
+  },now+10);
+  assert.equal(result,false,'duplicate credentialID must abort transaction');
+  assert.equal(db.sqlite.prepare('SELECT passkeyId FROM auth_primary_passkey').get().passkeyId,'phone');
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n,5);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM session').get().n,1);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n,8);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_primary_transfer_gate').get().n,0);
+  assert.equal(db.sqlite.prepare('SELECT consumedAt FROM auth_recovery_attempt WHERE id=?').get(attempt.id).consumedAt,null);
+});
