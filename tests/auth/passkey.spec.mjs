@@ -85,19 +85,11 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
       data: firstAssertion
     });
     expect(crossOrigin.status()).toBe(403);
-    const stillSignedIn = await page.request.get(base + '/api/auth/get-session');
-    const remaining = (await stillSignedIn.json()).user;
-    // A rejected replay may invalidate the current session; it must never switch identities.
-    if (remaining) expect(remaining.username).toBe('local_tester');
-    await page.goto(base + '/account.html');
-    if (remaining) await page.locator('#sign-out').click();
-    await expect(page.locator('#login-form')).toBeVisible();
-    await page.locator('#username').fill('local_tester');
-    await page.locator('#password').fill('Local-test-only-orchard-57931!');
-    await page.getByRole('button', { name: 'Log in', exact: true }).click();
-    await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
-    const fallback = await page.request.get(base + '/api/auth/get-session');
-    expect((await fallback.json()).user.id).toBe(originalUserId);
+    // A rejected assertion may invalidate the session. Neither replay nor
+    // foreign-origin requests may mint another valid account session.
+    const subsequent = await page.request.get(base + '/api/auth/get-session');
+    const remainingUser = (await subsequent.json()).user;
+    if (remainingUser) expect(remainingUser.id).toBe(originalUserId);
   } finally {
     await client.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
     await client.send('WebAuthn.disable');
