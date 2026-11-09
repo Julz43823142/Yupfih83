@@ -37,6 +37,7 @@ jobs:
             throw Error('Unexpected production branch or D1 bindings');
           if(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='false')
             throw Error('Production registration flag not explicitly false');
+          console.log('Native Git deployment audit:',JSON.stringify({sourceType:p.source?.type,productionDeploymentsEnabled:p.source?.config?.production_deployments_enabled,previewDeploymentSetting:p.source?.config?.preview_deployment_setting}));
           if(p.source?.type==='github' && (p.source.config?.production_deployments_enabled!==false ||
               p.source.config?.preview_deployment_setting!=='none'))
             throw Error('Native Git deployment is enabled or cannot be proven disabled');
