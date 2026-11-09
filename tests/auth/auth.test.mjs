@@ -439,8 +439,8 @@ test('phone-first signup options require rollout flag and verified Turnstile; cr
   assert.match(data.publicKey.challenge, /^[A-Za-z0-9_-]{43}$/);
   assert.equal(data.publicKey.rp.id, 'eloscanner.com');
   assert.equal(Buffer.from(data.publicKey.user.id, 'base64url').toString('utf8'), data.attemptId);
-  assert.deepEqual(data.publicKey.hints, ['hybrid']);
-  assert.equal(data.publicKey.authenticatorSelection.authenticatorAttachment, 'cross-platform');
+  assert.deepEqual(data.publicKey.hints, ['client-device']);
+  assert.equal(data.publicKey.authenticatorSelection.authenticatorAttachment, 'platform');
   assert.equal(data.publicKey.authenticatorSelection.userVerification, 'required');
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_passkey_signup_attempt').get().n, 1);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 0);
