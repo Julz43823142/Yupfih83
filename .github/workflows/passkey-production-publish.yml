@@ -74,6 +74,38 @@ jobs:
             throw Error('Production auth config or closed-registration safety guard failed');
           console.log('Production database isolated; passkey login enabled; public registration disabled.');
           NODE
+      - name: Require complete 0010-0013 D1 security schema before any publication
+        env:
+          CLOUDFLARE_D1_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_D1_API_TOKEN,account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!/^[a-f0-9]{32}$/i.test(account||''))throw Error('Protected production D1 credential unavailable');
+          const url='https://api.cloudflare.com/client/v4/accounts/'+account+
+            '/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query';
+          const sql="SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')";
+          const r=await fetch(url,{method:'POST',headers:{
+            Authorization:'Bearer '+token,'Content-Type':'application/json'
+          },body:JSON.stringify({sql}),signal:AbortSignal.timeout(30000)});
+          if(!r.ok)throw Error('Production D1 schema read HTTP '+r.status);
+          const j=await r.json();
+          if(j.success!==true||!Array.isArray(j.result)||
+            j.result.some(x=>x.success===false))throw Error('Production D1 schema inspection failed');
+          const found=new Set(j.result.flatMap(x=>x.results||[]).map(x=>x.name));
+          const required=[
+            'auth_primary_passkey','auth_primary_passkey_proof',
+            'auth_primary_passkey_assign','auth_primary_passkey_no_delete',
+            'auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign',
+            'auth_primary_passkey_no_mapping_delete','auth_primary_passkey_no_user_change',
+            'auth_recovery_code','auth_recovery_attempt',
+            'auth_primary_transfer_gate','auth_primary_transfer_gate_valid',
+            'auth_primary_phone_transfer_attempt'
+          ];
+          const missing=required.filter(x=>!found.has(x));
+          if(missing.length)throw Error('Production 0010-0013 incomplete: missing '+missing.join(','));
+          console.log('Complete primary/recovery/phone-transfer database controls verified. Public signup remains CLOSED.');
+          NODE
       - name: Deploy built Functions and site to production branch ONLY
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
