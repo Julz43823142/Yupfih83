@@ -4,6 +4,17 @@
   let config, token = '', widgetId, turnstileLoading;
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
   function changed(user) { window.dispatchEvent(new CustomEvent('elo-account-changed', { detail: { user } })); }
+  let recoveryCodes = null;
+  function clearRecoveryCodes() {
+    recoveryCodes = null;
+    byId('recovery-codes-text').textContent = '';
+    byId('recovery-codes-output').hidden = true;
+  }
+  function recoveryCodeText() {
+    if (!recoveryCodes) throw new Error('Generate recovery codes first.');
+    return 'EloScanner emergency recovery codes\\nKeep these private. Each code works only once.\\n\\n' +
+      recoveryCodes.map((code, index) => (index + 1) + '. ' + code).join('\\n') + '\\n';
+  }
   let passkeyListGeneration = 0;
   async function refreshPasskeyCount() {
     const generation = ++passkeyListGeneration;
@@ -74,7 +85,8 @@
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
-    if (!user) ++passkeyListGeneration;
+    if (!user) { ++passkeyListGeneration; clearRecoveryCodes(); }
+    byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady);
     changed(user);
   }
   async function post(route, body) {
@@ -193,6 +205,36 @@
       await refreshPasskeyCount();
       await refreshPasswordStatus();
     });
+  });
+  byId('recovery-codes-generate').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!confirm('Create eight new recovery codes? Any previously saved recovery codes will stop working.')) return;
+    clearRecoveryCodes();
+    const result = await post('passkey/recovery-codes/rotate', {});
+    if (!Array.isArray(result.codes) || result.codes.length !== 8 ||
+        result.codes.some(code => !/^[A-Z2-7]{4}(?:-[A-Z2-7]{4}){7}$/.test(code)))
+      throw new Error('Recovery codes were not returned correctly.');
+    recoveryCodes = result.codes;
+    byId('recovery-codes-text').textContent = recoveryCodeText();
+    byId('recovery-codes-output').hidden = false;
+    byId('recovery-codes-notice').textContent = 'Download or copy your codes now. Do not share them.';
+  }));
+  byId('recovery-codes-copy').addEventListener('click', event => busy(event.currentTarget, async () => {
+    await navigator.clipboard.writeText(recoveryCodeText());
+    byId('recovery-codes-notice').textContent = 'Codes copied. Clear your clipboard after saving them.';
+  }));
+  byId('recovery-codes-download').addEventListener('click', event => busy(event.currentTarget, async () => {
+    const blob = new Blob([recoveryCodeText()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url; a.download = 'eloscanner-recovery-codes.txt';
+      document.body.append(a); a.click(); a.remove();
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    byId('recovery-codes-notice').textContent = 'Download started. Keep the file somewhere private.';
+  }));
+  byId('recovery-codes-dismiss').addEventListener('click', () => {
+    clearRecoveryCodes();
+    byId('recovery-codes-notice').textContent = 'Codes hidden. They cannot be displayed again.';
   });
   byId('remove-password-form').addEventListener('submit', event => {
     event.preventDefault(); const form = event.currentTarget;
