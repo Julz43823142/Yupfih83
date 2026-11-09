@@ -12,8 +12,8 @@
   }
   function recoveryCodeText() {
     if (!recoveryCodes) throw new Error('Generate recovery codes first.');
-    return 'EloScanner emergency recovery codes\\nKeep these private. Each code works only once.\\n\\n' +
-      recoveryCodes.map((code, index) => (index + 1) + '. ' + code).join('\\n') + '\\n';
+    return 'EloScanner emergency recovery codes\nKeep these private. Each code works only once.\n\n' +
+      recoveryCodes.map((code, index) => (index + 1) + '. ' + code).join('\n') + '\n';
   }
   let passkeyListGeneration = 0;
   async function refreshPasskeyCount() {
