@@ -107,10 +107,11 @@ test('new account: real WebAuthn registration, session, duplicate and replay pro
         credential: attestation
       };
       const verified = await api('passkey-signup/verify', payload);
-      const replay = await api('passkey-signup/verify', payload);
       const sessionResponse = await fetch('/api/auth/get-session');
       const session = await sessionResponse.json();
       const duplicate = await api('passkey-signup/options', { username: 'second_account', turnstileToken: 'local-test' });
+      await api('sign-out', {});
+      const replay = await api('passkey-signup/verify', payload);
       return { options: options.status, verified, replay: replay.status, session, duplicate: duplicate.status };
     });
     expect(outcome.options).toBe(200);
