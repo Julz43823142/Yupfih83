@@ -85,6 +85,7 @@
   byId('registration-preview-form').addEventListener('submit', event => {
     event.preventDefault(); const form=event.currentTarget;
     busy(form, async()=>{
+      if (!window.eloPhoneSignup?.isPhone()) throw new Error('Create your account on your phone. Scan the QR code shown on this page.');
       const username = byId('signup-username').value.trim();
       if (!config?.registrationOpen || !config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential)
         throw new Error('Phone-passkey registration is not available yet.');
@@ -93,7 +94,7 @@
       const options = await post('passkey-signup/options', { username, turnstileToken: signupToken });
       signupToken = '';
       if (signupWidgetId !== undefined) window.turnstile.reset(signupWidgetId);
-      message('Confirm the passkey on your phone. Scan the QR code if your browser shows one…');
+      message('Confirm the passkey using your phone’s Face ID, fingerprint, or phone screen lock…');
       const credential = await window.eloPasskey.registerPhone(options.publicKey);
       message('Verifying your new passkey…');
       const created = await post('passkey-signup/verify', {
@@ -181,6 +182,15 @@
       if (existing?.username) {
         byId('registration-preview-form').hidden = true;
         message('You are already signed in as ' + existing.username + '. Open your account and log out before creating another account.');
+        return;
+      }
+      if (!window.eloPhoneSignup?.isPhone()) {
+        byId('registration-preview-form').hidden = true;
+        const handoff = byId('signup-phone-handoff');
+        handoff.hidden = false;
+        if (!window.eloPhoneSignup?.renderQr(byId('signup-phone-qr')))
+          throw new Error('Phone signup QR code unavailable for this domain.');
+        message('Scan the QR code with your phone to create an account. Registration on this computer is disabled.');
         return;
       }
       message('');
