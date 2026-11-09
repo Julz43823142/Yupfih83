@@ -27,6 +27,26 @@ jobs:
         run: npm run test:auth
       - name: Build site and browser passkey client
         run: npm run build
+      - name: Install Chromium for real passkey browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Prepare isolated local account fixtures
+        run: |
+          npm run auth:migrate:local
+          npm run auth:provision -- --local --fixture
+          npm run auth:provision -- --local --fixture2
+      - name: Require working passkey and password account flows in Chromium
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm run dev:auth > /tmp/eloscanner-prod-preflight.log 2>&1 &
+          AUTH_DEV_PID=$!
+          trap 'kill "$AUTH_DEV_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://localhost:8788/api/auth/config > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:8788/api/auth/config > /dev/null || { cat /tmp/eloscanner-prod-preflight.log; exit 1; }
+          npx playwright test tests/auth/browser.spec.mjs tests/auth/passkey.spec.mjs
       - name: Refuse wrong production target or open registration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
