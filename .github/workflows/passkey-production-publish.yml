@@ -1,21 +1,6 @@
 name: Publish passkey login on EloScanner production (signup stays CLOSED)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/passkey-production-publish.yml
-      - lib/auth/**
-      - functions/api/auth/**
-      - migrations/auth/**
-      - account.js
-      - account.html
-      - phone-account-qr.js
-      - phone-signup-qr.js
-      - scripts/passkey-client.mjs
-      - tests/auth/**
-      - package.json
-      - package-lock.json
   workflow_dispatch:
 
 permissions:
