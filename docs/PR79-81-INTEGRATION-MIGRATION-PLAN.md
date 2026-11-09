@@ -1,5 +1,15 @@
 # PR 79–81 integration and production D1 migration plan
 
+## Production 0010–0013 execution incident — 2026-11-09
+
+- Workflow run [42713101176](https://github.com/Julz43823142/Yupfih83/actions/runs/42713101176) issued all four files successfully: 0010, 0011, 0012, 0013. The run then returned HTTP 400 at a subsequent `PRAGMA integrity_check` query against Cloudflare D1; it **must not be rerun**.
+- All four D1 batch-query calls returned success before the diagnostic error. This is evidence of successful migration statements, **not** independent verification of final schema invariants.
+- A pre-migration Time Travel bookmark was captured in the **protected Actions log** of run 42713101176. Handle as recovery material; do not automatically restore production.
+- Use the new, production-protected, read-only verification workflow to confirm complete tables/triggers, account totals, Passkey mappings and signup closed. No SQL migration or deployment is part of that verification.
+- The HTTP 400 after `PRAGMA integrity_check` is not one of the Node.js 20 / Ubuntu GitHub runner warnings.
+- Production publication must remain blocked until this independent D1 verification succeeds, followed by the existing guarded publish workflow. Signup remains CLOSED.
+
+
 ## Protected D1 credential required for next live step
 - Create a Cloudflare API token scoped to the **HBAN account** with **D1 Write** permission (which also permits the required D1 reads), without changing the existing Pages token.
 - Add its value as the GitHub **production environment** secret `CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN`. Never send it in chat.
