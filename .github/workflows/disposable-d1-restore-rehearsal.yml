@@ -1,0 +1,54 @@
+name: Rehearse Cloudflare D1 Time Travel on isolated synthetic database
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/disposable-d1-restore-rehearsal.yml'
+      - 'scripts/infra/rehearse-d1-time-travel.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/disposable-d1-restore-rehearsal.yml'
+      - 'scripts/infra/rehearse-d1-time-travel.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eloscanner-disposable-d1-restore
+  cancel-in-progress: false
+
+jobs:
+  syntax-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Validate D1 rehearsal script (NO Cloudflare mutation)
+        run: node --check scripts/infra/rehearse-d1-time-travel.mjs
+  disposable-restore:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Create, mutate, restore and delete a disposable D1 with synthetic data only
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PRODUCTION_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN }}
+        run: node scripts/infra/rehearse-d1-time-travel.mjs
