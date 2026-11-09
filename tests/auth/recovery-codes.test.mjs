@@ -104,3 +104,21 @@ test('account UI contains one-time code controls and does not automatically requ
   assert.match(js,/URL\.createObjectURL/);
   assert.match(js,/clearRecoveryCodes\(\)/);
 });
+
+test('public signup stays closed when recovery or transfer migrations are missing',async()=>{
+  const {handleAuth}=await import('../../lib/auth/gateway.mjs');
+  for(const missing of ['auth_recovery_code','auth_primary_phone_transfer_attempt']){
+    const db=database();
+    db.sqlite.exec('DROP TABLE '+missing);
+    const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:'https://eloscanner.com',
+      PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com',
+      PUBLIC_SIGNUP_ENABLED:'true',TURNSTILE_SITE_KEY:'test',TURNSTILE_SECRET_KEY:'test'};
+    const config=await handleAuth({request:new Request('https://eloscanner.com/api/auth/config'),env});
+    assert.equal((await config.json()).registrationOpen,false);
+    const options=await handleAuth({request:new Request('https://eloscanner.com/api/auth/passkey-signup/options',{
+      method:'POST',headers:{Origin:'https://eloscanner.com','Content-Type':'application/json'},
+      body:JSON.stringify({username:'testperson',turnstileToken:'test'})
+    }),env});
+    assert.equal(options.status,404,'signup route must be absent without '+missing);
+  }
+});
