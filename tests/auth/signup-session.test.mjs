@@ -62,4 +62,8 @@ test('one verified registration creates a session for precisely that new usernam
   const session = await sessionResponse.json();
   assert.equal(session.user?.username, 'one_step_user');
   assert.equal(session.user?.id, options.attemptId);
+  const anotherSignup = await call('passkey-signup/options', { username: 'different_user', turnstileToken: 'fixture' }, cookies);
+  assert.equal(anotherSignup.status, 409, 'signed-in users may not silently create another identity');
+  assert.equal((await anotherSignup.json()).code, 'ALREADY_SIGNED_IN');
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 1);
 });
