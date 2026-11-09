@@ -1,0 +1,66 @@
+name: Read-only Cloudflare edge security inventory
+
+on:
+  push:
+    branches: [security/primary-phone-passkey-readiness-20261109]
+    paths:
+      - .github/workflows/cloudflare-edge-security-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect Pages bindings and WAF rules without changing settings
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!account)throw Error('Read-only Cloudflare token unavailable');
+          const headers={Authorization:'Bearer '+token,Accept:'application/json'};
+          const request=async path=>{
+            const r=await fetch('https://api.cloudflare.com/client/v4'+path,{headers});
+            const data=await r.json().catch(()=>({}));
+            return {status:r.status,ok:r.ok&&data.success===true,result:data.result};
+          };
+          const p=await request('/accounts/'+encodeURIComponent(account)+'/pages/projects/fairplaychess');
+          if(!p.ok)throw Error('Cannot inspect Pages deployment metadata');
+          const production=p.result?.deployment_configs?.production||{};
+          const preview=p.result?.deployment_configs?.preview||{};
+          const prod=production.d1_databases?.AUTH_DB?.id||production.d1_databases?.AUTH_DB?.database_id;
+          const prev=preview.d1_databases?.AUTH_DB?.id||preview.d1_databases?.AUTH_DB?.database_id;
+          if(p.result?.production_branch!=='main'||prod!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
+             prev!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+            throw Error('Unexpected Pages production/preview database binding');
+          if(production.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')
+            throw Error('Registration is OPEN unexpectedly');
+          console.log('PASS: production and preview database separation; registration not enabled');
+          const zones=await request('/zones?name=eloscanner.com&per_page=5');
+          if(!zones.ok){
+            console.log('INCONCLUSIVE: zone read scope unavailable (HTTP '+zones.status+')');
+            console.log('MANUAL: review WAF managed rules, bot mitigation, auth-path rate limits, DNS/SSL, 2FA, token least privilege and alerting');
+            process.exit(0);
+          }
+          const zone=zones.result?.find(x=>x.name==='eloscanner.com');
+          if(!zone){console.log('INCONCLUSIVE: zone not visible to this token');process.exit(0);}
+          console.log('Zone status: '+(zone.status||'unknown'));
+          for(const phase of ['http_request_firewall_managed','http_request_firewall_custom','http_ratelimit']){
+            const rules=await request('/zones/'+encodeURIComponent(zone.id)+'/rulesets/phases/'+phase+'/entrypoint');
+            if(rules.status===404){
+              console.log('NOT CONFIGURED OR NOT VISIBLE: '+phase);
+            } else if(!rules.ok){
+              console.log('INCONCLUSIVE: '+phase+' (HTTP '+rules.status+')');
+            } else {
+              const enabled=(rules.result?.rules||[]).filter(x=>x.enabled!==false);
+              console.log('Visible enabled rules in '+phase+': '+enabled.length);
+              if(enabled.length===0)console.log('REVIEW REQUIRED: no visible enabled rules in '+phase);
+            }
+          }
+          console.log('This inventory cannot verify account MFA, token scopes or the effectiveness of WAF rules.');
+          NODE
