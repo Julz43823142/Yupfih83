@@ -1,7 +1,7 @@
 // Post-migration READ-ONLY production D1 verification: never rerun SQL migrations.
 // Cloudflare D1 /query can reject PRAGMA integrity_check with HTTP 400 even when
 // all migration statements and ordinary read queries completed successfully.
-import {PROJECT, PRODUCTION_AUTH_DB, PREVIEW_AUTH_DB, assertProduction, assertPreviewIsolation} from './cloudflare.mjs';
+import {PROJECT, PRODUCTION_AUTH_DB, assertProduction, assertPreviewIsolation} from './cloudflare.mjs';
 
 const account=process.env.CLOUDFLARE_ACCOUNT_ID;
 const pagesToken=process.env.CLOUDFLARE_PRODUCTION_API_TOKEN;
