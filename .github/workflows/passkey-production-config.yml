@@ -1,0 +1,59 @@
+name: Configure production passkey login, with all registration OFF
+
+on:
+  push:
+    branches: [feature/passkey-foundation-20261108]
+    paths: [.github/workflows/passkey-production-config.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  configure-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enable passkey login settings on production but keep signup off
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Cloudflare credentials unavailable');
+          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const url=api+'/pages/projects/fairplaychess';
+          const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+          const get=async()=>{const r=await fetch(url,{headers});if(!r.ok)throw Error('Project GET HTTP '+r.status);const j=await r.json();if(!j.success)throw Error('Project GET failed');return j.result;};
+          const before=await get();
+          if(before.production_branch!=='main')throw Error('Unexpected production branch');
+          const prod=before.deployment_configs?.production, prev=before.deployment_configs?.preview;
+          const prodDb=prod?.d1_databases?.AUTH_DB, previewDb=prev?.d1_databases?.AUTH_DB;
+          if((prodDb?.id||prodDb?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
+             (previewDb?.id||previewDb?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+            throw Error('Unexpected production/preview binding');
+          if(prod?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')throw Error('Production signup already open: refusing rollout');
+          if(!prod?.env_vars?.BETTER_AUTH_SECRET)throw Error('Preserved production auth secret not configured');
+          const q=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
+            method:'POST',headers,body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_login_proof','auth_passkey_signup_attempt')"})});
+          if(!q.ok)throw Error('Production D1 readiness HTTP '+q.status);
+          const json=await q.json();if(!json.success)throw Error('Production D1 check failed');
+          const tables=new Set((json.result||[]).flatMap(x=>(x.results||[]).map(y=>y.name)));
+          for(const name of ['passkey','auth_passkey_stepup','auth_passkey_login_proof','auth_passkey_signup_attempt'])
+            if(!tables.has(name))throw Error('Missing '+name);
+          const body={deployment_configs:{production:{env_vars:{
+            PASSKEY_RP_ID:{type:'plain_text',value:'eloscanner.com'},
+            PASSKEY_LOGIN_ENABLED:{type:'plain_text',value:'true'},
+            PUBLIC_SIGNUP_ENABLED:{type:'plain_text',value:'false'}
+          }}}};
+          const response=await fetch(url,{method:'PATCH',headers,body:JSON.stringify(body)});
+          if(!response.ok)throw Error('Production passkey configuration HTTP '+response.status);
+          const payload=await response.json();if(!payload.success)throw Error('Production passkey configuration rejected');
+          const after=await get();
+          const vars=after.deployment_configs?.production?.env_vars||{};
+          if(vars.PASSKEY_RP_ID?.value!=='eloscanner.com'||vars.PASSKEY_LOGIN_ENABLED?.value!=='true'||
+             vars.PUBLIC_SIGNUP_ENABLED?.value!=='false')throw Error('Production passkey config not persisted');
+          if(!vars.BETTER_AUTH_SECRET || JSON.stringify(after.deployment_configs?.preview)!==JSON.stringify(prev))
+            throw Error('Auth secret lost or preview configuration changed');
+          console.log('Production passkey login prepared, public signup explicitly disabled, all existing account IDs preserved.');
+          NODE
