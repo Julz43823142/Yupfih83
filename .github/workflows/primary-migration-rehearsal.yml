@@ -1,0 +1,36 @@
+name: Rehearse primary and recovery SQL migrations (synthetic only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/primary-migration-rehearsal.yml'
+      - 'scripts/infra/rehearse-primary-migrations.py'
+      - 'migrations/auth/0010_primary_passkey.sql'
+      - 'migrations/auth/0011_recovery_codes.sql'
+      - 'migrations/auth/0012_recovery_transfer.sql'
+      - 'migrations/auth/0013_phone_transfer.sql'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/primary-migration-rehearsal.yml'
+      - 'scripts/infra/rehearse-primary-migrations.py'
+      - 'migrations/auth/0010_primary_passkey.sql'
+      - 'migrations/auth/0011_recovery_codes.sql'
+      - 'migrations/auth/0012_recovery_transfer.sql'
+      - 'migrations/auth/0013_phone_transfer.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-migration-and-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test ordered SQL migrations and isolated SQLite restore (NO Cloudflare)
+        run: python3 scripts/infra/rehearse-primary-migrations.py
