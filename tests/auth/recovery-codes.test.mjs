@@ -76,3 +76,31 @@ test('recovery generation endpoint rejects unauthenticated and secondary-only se
   assert.equal((await response.json()).codes.length,8);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n,8);
 });
+
+test('recovery readiness is false without migration and true only with migration',async()=>{
+  const { handleAuth }=await import('../../lib/auth/gateway.mjs');
+  const db=database();
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:'https://eloscanner.com',
+    PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com'};
+  const config=async()=> (await handleAuth({
+    request:new Request('https://eloscanner.com/api/auth/config'),env
+  })).json();
+  assert.equal((await config()).recoveryCodesReady,true);
+  db.sqlite.exec('DROP TABLE auth_recovery_code');
+  assert.equal((await config()).recoveryCodesReady,false);
+  assert.equal((await config()).registrationOpen,false);
+});
+
+test('account UI contains one-time code controls and does not automatically request new codes',async()=>{
+  const { readFileSync }=await import('node:fs');
+  const html=readFileSync(new URL('../../account.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../../account.js',import.meta.url),'utf8');
+  for(const id of ['recovery-codes-panel','recovery-codes-generate','recovery-codes-output',
+    'recovery-codes-download','recovery-codes-copy','recovery-codes-dismiss']) {
+    assert.match(html,new RegExp('id="'+id+'"'));
+  }
+  assert.match(js,/recoveryCodesReady/);
+  assert.match(js,/navigator\.clipboard\.writeText/);
+  assert.match(js,/URL\.createObjectURL/);
+  assert.match(js,/clearRecoveryCodes\(\)/);
+});
