@@ -2,6 +2,10 @@ name: Audit production D1 migration readiness (read-only; signup CLOSED)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/passkey-primary-production-schema.yml'
 
 permissions:
   contents: read
