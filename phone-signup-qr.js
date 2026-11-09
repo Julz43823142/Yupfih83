@@ -22,7 +22,7 @@
     navigator.userAgentData?.mobile === true ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const renderQr = element => {
-    if (!element || location.hostname !== previewHost) return false;
+    if (!element || (location.hostname !== previewHost && location.hostname !== 'localhost')) return false;
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', '0 0 53 53');
