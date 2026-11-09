@@ -172,7 +172,21 @@
     if (!(response.headers.get('content-type') || '').toLowerCase().includes('application/json')) throw new Error('Account API is not responding correctly. Check the Cloudflare Pages Functions deployment.');
     config = await response.json();
     byId('passkey-login').hidden = !(config.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
-    if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; byId('signup-submit').disabled = !config.registrationOpen; message(config.registrationOpen ? '' : 'Registration is currently unavailable.'); if(config.registrationOpen) await signupChallenge(); return; }
+    if (new URLSearchParams(location.search).get('view') === 'signup') {
+      byId('registration-panel').hidden = false;
+      byId('signup-submit').disabled = !config.registrationOpen;
+      if (!config.registrationOpen) { message('Registration is currently unavailable.'); return; }
+      const current = await fetch('/api/auth/get-session', { credentials: 'same-origin', cache: 'no-store' });
+      const existing = current.ok ? (await current.json()).user : null;
+      if (existing?.username) {
+        byId('registration-preview-form').hidden = true;
+        message('You are already signed in as ' + existing.username + '. Open your account and log out before creating another account.');
+        return;
+      }
+      message('');
+      await signupChallenge();
+      return;
+    }
     const session = await (window.eloAccountSession || fetch('/api/auth/get-session', { cache: 'no-store' }).then(async r => ({ available: r.ok, ...(r.ok ? await r.json() : {}) })));
     showUser(session.user || null);
     message(config.loginConfigured && session.available ? '' : 'Account services are not available yet. Registration remains closed.');
