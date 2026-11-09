@@ -1,0 +1,40 @@
+name: Recovery and primary-phone transfer security
+on:
+  pull_request:
+    paths:
+      - 'lib/auth/recovery-*.mjs'
+      - 'lib/auth/phone-transfer.mjs'
+      - 'lib/auth/gateway.mjs'
+      - 'migrations/auth/001[123]_*.sql'
+      - 'tests/auth/recovery-*.mjs'
+      - 'tests/auth/phone-transfer.test.mjs'
+      - 'tests/auth/phone-transfer-browser.spec.mjs'
+      - 'tests/auth/fixture.mjs'
+      - '.github/workflows/recovery-transfer-security.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recovery-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/auth/recovery-codes.test.mjs tests/auth/recovery-transfer.test.mjs tests/auth/phone-transfer.test.mjs tests/auth/primary-passkey.test.mjs
+  recovery-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/auth/recovery-browser.spec.mjs tests/auth/phone-transfer-browser.spec.mjs tests/auth/passkey-signup.spec.mjs

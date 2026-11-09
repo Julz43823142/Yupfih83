@@ -21,3 +21,9 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
  body:not(.elo-subpage)>header.navbar:has(.account-nav)>.brand{flex:1 1 auto!important;max-width:calc(100% - 95px)!important}
  body:not(.elo-subpage)>header.navbar:has(.account-nav)>.mobile-chess-menu{flex:0 0 auto!important}
 }
+
+/* Recovery codes must remain legible on narrow phone screens. */
+#recovery-codes-text{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;max-width:100%;padding:12px;border:1px solid #315b75;border-radius:9px;background:#0b1d2a;line-height:1.7}
+#recovery-codes-output button{margin:4px 6px 4px 0}
+#recovery-login-panel{margin:18px 0}
+#recovery-login-panel summary{cursor:pointer;font-weight:700}

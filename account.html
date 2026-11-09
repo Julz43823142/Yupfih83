@@ -13,7 +13,7 @@
 <script src="/passkey-client.js?v=1" defer></script>
 <script src="/phone-signup-qr.js?v=1" defer></script>
 <script src="/phone-account-qr.js?v=1" defer></script>
-<script src="/account.js?v=12-passwordless-migration" defer></script>
+<script src="/account.js?v=15-phone-transfer" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -48,12 +48,43 @@
       <div id="turnstile-container"></div>
       <button type="submit" class="account-primary">Log in</button>
     </form>
+    <details id="recovery-login-panel">
+      <summary>Lost your primary phone? Recover with an emergency code</summary>
+      <p>Enter your username and one unused recovery code, then create a new phone passkey. This signs out every previous device and invalidates all old recovery codes.</p>
+      <form id="recovery-login-form">
+        <label for="recovery-username">Username</label>
+        <input id="recovery-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" required>
+        <label for="recovery-code">Emergency recovery code</label>
+        <input id="recovery-code" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+        <button class="account-primary" type="submit">Recover with a new phone passkey</button>
+      </form>
+    </details>
     <p class="account-note">There is no email or password-recovery service. Keep your unique password in a password manager.</p>
     <p class="account-note">New account registration is available when the phone-passkey preview is enabled.</p>
   </section>
   <section id="profile-panel" hidden>
     <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
     <div id="passkey-profile-panel" class="account-card" hidden><h2>Passkeys</h2><p>Use your phone, computer or security key to log in without a password. Existing users must confirm their current password once to attach a passkey to their account.</p><div id="passkey-phone-enroll-handoff" hidden><p>To add a phone passkey without Windows Hello, open this account on your phone and sign in as the same user. Scan with your phone's camera:</p><div id="passkey-phone-enroll-qr" class="phone-signup-qr"></div><a id="passkey-phone-enroll-link" class="account-link" href="/account.html">Open this account on your phone</a><p class="account-note">This QR contains only the website address. It does not sign in or transfer a session.</p></div><form id="passkey-enrollment-form"><label for="passkey-confirm-password">Confirm your current password</label><input id="passkey-confirm-password" type="password" autocomplete="current-password" maxlength="128" required><button type="submit" class="account-primary">Create passkey</button></form><p id="passkey-count" class="account-note" role="status" aria-live="polite">Checking registered passkeys…</p><p class="account-note">Register a second passkey or security key as a backup. Losing your only passkey can make your account inaccessible once passwords are disabled.</p><p class="account-note">Use your device screen lock, fingerprint or face recognition. On supported browsers, you can also use your phone by scanning a QR code.</p></div>
+    <div id="phone-transfer-panel" class="account-card" hidden>
+      <h2>Replace primary phone</h2>
+      <p>While your old primary passkey still works, sign in using that passkey, then register a new primary passkey on your new phone. This revokes all old passkeys, sessions and recovery codes.</p>
+      <p class="account-note">You must have recently verified your primary passkey. Open this page on the new phone to create its new passkey.</p>
+      <button id="phone-transfer-start" class="account-secondary" type="button">Replace primary phone passkey</button>
+    </div>
+    <div id="recovery-codes-panel" class="account-card" hidden>
+      <h2>Emergency recovery codes</h2>
+      <p>Save eight one-time recovery codes in a password manager or download them to a safe place. One code can be used during a future account-recovery process. After a successful recovery, all old codes will be invalidated.</p>
+      <p class="account-note">The website cannot show these codes again. Creating a new set invalidates all earlier codes. You must have signed in recently using your primary passkey.</p>
+      <button id="recovery-codes-generate" class="account-secondary" type="button">Generate eight recovery codes</button>
+      <div id="recovery-codes-output" hidden>
+        <p><strong>Save these codes now. They will disappear when you leave this page.</strong></p>
+        <pre id="recovery-codes-text" class="account-note" aria-label="One-time recovery codes"></pre>
+        <button id="recovery-codes-download" class="account-secondary" type="button">Download codes</button>
+        <button id="recovery-codes-copy" class="account-secondary" type="button">Copy codes</button>
+        <button id="recovery-codes-dismiss" class="account-secondary" type="button">I have saved them</button>
+      </div>
+      <p id="recovery-codes-notice" class="account-note" role="status" aria-live="polite"></p>
+    </div>
     <div id="passwordless-migration-panel" class="account-card" hidden>
       <h2>Switch to passkey only</h2>
       <p id="passwordless-readiness" class="account-note">Checking your passkeys…</p>

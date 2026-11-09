@@ -65,5 +65,8 @@ test('one verified registration creates a session for precisely that new usernam
   const anotherSignup = await call('passkey-signup/options', { username: 'different_user', turnstileToken: 'fixture' }, cookies);
   assert.equal(anotherSignup.status, 409, 'signed-in users may not silently create another identity');
   assert.equal((await anotherSignup.json()).code, 'ALREADY_SIGNED_IN');
+  assert.equal(env.AUTH_DB.sqlite.prepare(
+    'SELECT COUNT(*) AS n FROM auth_primary_passkey_proof WHERE userId=?'
+  ).get(options.attemptId).n, 1, 'verified first phone passkey authorizes initial recovery-code setup');
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM user').get().n, 1);
 });

@@ -4,6 +4,17 @@
   let config, token = '', widgetId, turnstileLoading;
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
   function changed(user) { window.dispatchEvent(new CustomEvent('elo-account-changed', { detail: { user } })); }
+  let recoveryCodes = null;
+  function clearRecoveryCodes() {
+    recoveryCodes = null;
+    byId('recovery-codes-text').textContent = '';
+    byId('recovery-codes-output').hidden = true;
+  }
+  function recoveryCodeText() {
+    if (!recoveryCodes) throw new Error('Generate recovery codes first.');
+    return 'EloScanner emergency recovery codes\nKeep these private. Each code works only once.\n\n' +
+      recoveryCodes.map((code, index) => (index + 1) + '. ' + code).join('\n') + '\n';
+  }
   let passkeyListGeneration = 0;
   async function refreshPasskeyCount() {
     const generation = ++passkeyListGeneration;
@@ -74,7 +85,10 @@
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
-    if (!user) ++passkeyListGeneration;
+    if (!user) { ++passkeyListGeneration; clearRecoveryCodes(); }
+    byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady && config?.recoveryCodesReady);
+    byId('phone-transfer-panel').hidden = !(user && config?.phoneTransferReady);
+    byId('recovery-login-panel').hidden = !(!user && config?.recoveryCodesReady);
     changed(user);
   }
   async function post(route, body) {
@@ -143,7 +157,10 @@
       if (created.loggedIn && created.user?.username === created.username) {
         form.reset();
         showUser(created.user);
-        message('Your account is ready. You are signed in as ' + created.username + '.');
+        if (config?.recoveryCodesReady) {
+          byId('recovery-codes-panel').scrollIntoView({ behavior: 'smooth' });
+          message('Your account is ready. Generate and save your eight emergency recovery codes below.');
+        } else message('Your account is ready. You are signed in as ' + created.username + '.');
         history.replaceState(null, '', '/account.html');
         return;
       }
@@ -152,6 +169,28 @@
       // could select a different existing account. Never present that as success.
       form.hidden = true;
       message('Account ' + created.username + ' created. You are not signed in. Open the login page, choose Log in with passkey, and confirm the displayed username is ' + created.username + '.');
+    });
+  });
+  byId('recovery-login-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, async () => {
+      if (!config?.recoveryCodesReady || !window.eloPhoneSignup?.isPhone() ||
+          !window.eloPasskey?.registerRecoveryPhone || !window.PublicKeyCredential)
+        throw new Error('Open EloScanner on your phone to recover your account.');
+      const username = byId('recovery-username').value.trim().toLowerCase();
+      const code = byId('recovery-code').value.trim();
+      message('Verifying emergency recovery code…');
+      const options = await post('passkey/recovery/options', { username, code });
+      byId('recovery-code').value = '';
+      message('Create a new phone passkey using your device screen lock…');
+      const credential = await window.eloPasskey.registerRecoveryPhone(options.publicKey);
+      const verified = await post('passkey/recovery/verify', {
+        attemptId: options.attemptId, challenge: options.challenge, credential
+      });
+      if (!verified.success) throw new Error('Recovery could not be completed.');
+      form.reset();
+      message('Your primary passkey has been replaced. All old sessions, passkeys and recovery codes are invalid. Sign in with your new passkey, then generate eight new recovery codes.');
     });
   });
   byId('login-form').addEventListener('submit', event => {
@@ -193,6 +232,51 @@
       await refreshPasskeyCount();
       await refreshPasswordStatus();
     });
+  });
+  byId('phone-transfer-start').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!window.eloPhoneSignup?.isPhone() || !window.eloPasskey?.registerRecoveryPhone)
+      throw new Error('Open your signed-in account on the new phone to register its primary passkey.');
+    if (!confirm('Replace your primary passkey? This signs out all devices and invalidates all existing passkeys and recovery codes.')) return;
+    message('Checking recent primary passkey verification…');
+    const options = await post('passkey/phone-transfer/options', {});
+    message('Create a new primary passkey on this phone…');
+    const credential = await window.eloPasskey.registerRecoveryPhone(options.publicKey);
+    const result = await post('passkey/phone-transfer/verify', {
+      attemptId: options.attemptId, challenge: options.challenge, credential
+    });
+    if (!result.success) throw new Error('Phone transfer could not be completed.');
+    showUser(null);
+    message('Your primary phone passkey was replaced. Sign in with the new passkey and save eight new recovery codes.');
+  }));
+  byId('recovery-codes-generate').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!confirm('Create eight new recovery codes? Any previously saved recovery codes will stop working.')) return;
+    clearRecoveryCodes();
+    const result = await post('passkey/recovery-codes/rotate', {});
+    if (!Array.isArray(result.codes) || result.codes.length !== 8 ||
+        result.codes.some(code => !/^[A-Z2-7]{4}(?:-[A-Z2-7]{4}){7}$/.test(code)))
+      throw new Error('Recovery codes were not returned correctly.');
+    recoveryCodes = result.codes;
+    byId('recovery-codes-text').textContent = recoveryCodeText();
+    byId('recovery-codes-output').hidden = false;
+    byId('recovery-codes-notice').textContent = 'Download or copy your codes now. Do not share them.';
+  }));
+  byId('recovery-codes-copy').addEventListener('click', event => busy(event.currentTarget, async () => {
+    await navigator.clipboard.writeText(recoveryCodeText());
+    byId('recovery-codes-notice').textContent = 'Codes copied. Clear your clipboard after saving them.';
+  }));
+  byId('recovery-codes-download').addEventListener('click', event => busy(event.currentTarget, async () => {
+    const blob = new Blob([recoveryCodeText()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url; a.download = 'eloscanner-recovery-codes.txt';
+      document.body.append(a); a.click(); a.remove();
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    byId('recovery-codes-notice').textContent = 'Download started. Keep the file somewhere private.';
+  }));
+  byId('recovery-codes-dismiss').addEventListener('click', () => {
+    clearRecoveryCodes();
+    byId('recovery-codes-notice').textContent = 'Codes hidden. They cannot be displayed again.';
   });
   byId('remove-password-form').addEventListener('submit', event => {
     event.preventDefault(); const form = event.currentTarget;
