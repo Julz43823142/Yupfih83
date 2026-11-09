@@ -137,7 +137,7 @@ jobs:
               });
               const configValid=r.ok && cfg.passkeyReady===true && cfg.loginConfigured===true &&
                 cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
-                page.includes('account.js?v=12-passwordless-migration');
+                page.includes('account.js?v=15-phone-transfer');
               if(configValid && signup.status===403 && phoneSignup.status===404) {
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
