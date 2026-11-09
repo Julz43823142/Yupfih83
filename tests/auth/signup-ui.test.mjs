@@ -11,7 +11,7 @@ test('phone signup must not silently authenticate using an unrelated existing pa
   assert.match(signup, /created\.username !== username\.toLowerCase\(\)/);
   assert.match(signup, /form\.hidden = true/);
   assert.doesNotMatch(signup, /eloPasskey\.signIn\s*\(/, 'signup must not automatically trigger generic discoverable sign-in');
-  assert.doesNotMatch(signup, /showUser\s*\(/, 'signup must not pretend to have created an authenticated session');
+  assert.match(signup, /created\\.loggedIn && created\\.user\\?\\.username === created\\.username/, 'only a verified matching signup session may show the user');
 });
 
 test('phone signup WebAuthn ceremony requests an external authenticator', () => {
