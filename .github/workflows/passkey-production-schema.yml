@@ -1,0 +1,77 @@
+name: Prepare production passkey schema (additive, no signup)
+
+on:
+  push:
+    branches: [feature/passkey-foundation-20261108]
+    paths: [.github/workflows/passkey-production-schema.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eloscanner-production-passkey-schema
+  cancel-in-progress: false
+
+jobs:
+  additive-production-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify isolated D1 targets and apply additive passkey tables only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Cloudflare credentials unavailable');
+          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+          const get=async url=>{const r=await fetch(url,{headers});if(!r.ok)throw Error('GET HTTP '+r.status);const j=await r.json();if(!j.success)throw Error('GET failed');return j.result;};
+          const project=await get(api+'/pages/projects/fairplaychess');
+          const production=project.deployment_configs?.production, preview=project.deployment_configs?.preview;
+          if(project.production_branch!=='main' || !production || !preview)throw Error('Unexpected Cloudflare production target');
+          const prodDB=production.d1_databases?.AUTH_DB, previewDB=preview.d1_databases?.AUTH_DB;
+          if((prodDB?.id||prodDB?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf' ||
+             (previewDB?.id||previewDB?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+            throw Error('Cannot prove isolated production database');
+          if(production.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')throw Error('Production registration must stay disabled');
+          const query=async sql=>{
+            const r=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
+              method:'POST',headers,body:JSON.stringify({sql})});
+            if(!r.ok)throw Error('Production D1 statement HTTP '+r.status);
+            const q=await r.json();if(!q.success||(q.result||[]).some(x=>x.success===false))throw Error('Production D1 statement failed');
+            return q.result;
+          };
+          const read=async()=> (await query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof') ORDER BY name"))[0]?.results?.map(x=>x.name)||[];
+          const before=await read();
+          console.log('Existing passkey schema tables: '+JSON.stringify(before));
+          const statements=[
+            `CREATE TABLE IF NOT EXISTS "passkey" ("id" TEXT NOT NULL PRIMARY KEY,"name" TEXT,"publicKey" TEXT NOT NULL,"userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,"credentialID" TEXT NOT NULL UNIQUE,"counter" INTEGER NOT NULL DEFAULT 0 CHECK ("counter" >= 0),"deviceType" TEXT NOT NULL,"backedUp" INTEGER NOT NULL CHECK ("backedUp" IN (0,1)),"transports" TEXT,"createdAt" DATE,"aaguid" TEXT)`,
+            'CREATE INDEX IF NOT EXISTS "passkey_userId_idx" ON "passkey" ("userId")',
+            `CREATE TRIGGER IF NOT EXISTS "passkey_limit_insert" BEFORE INSERT ON "passkey" WHEN (SELECT COUNT(*) FROM "passkey" WHERE "userId" = NEW."userId") >= 5 BEGIN SELECT RAISE(ABORT, 'passkey limit reached'); END`,
+            `CREATE TRIGGER IF NOT EXISTS "passkey_no_owner_change" BEFORE UPDATE OF "userId" ON "passkey" WHEN OLD."userId" <> NEW."userId" BEGIN SELECT RAISE(ABORT, 'passkey owner cannot change'); END`,
+            `CREATE TABLE IF NOT EXISTS "auth_passkey_stepup" ("sessionId" TEXT NOT NULL PRIMARY KEY REFERENCES "session"("id") ON DELETE CASCADE,"userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,"expiresAt" INTEGER NOT NULL)`,
+            'CREATE INDEX IF NOT EXISTS "auth_passkey_stepup_expiry" ON "auth_passkey_stepup"("expiresAt")',
+            `CREATE TABLE IF NOT EXISTS "auth_passkey_signup_attempt" ("id" TEXT NOT NULL PRIMARY KEY,"username" TEXT NOT NULL CHECK (length("username") BETWEEN 3 AND 24),"challengeDigest" TEXT NOT NULL UNIQUE,"expiresAt" INTEGER NOT NULL,"createdAt" INTEGER NOT NULL,"consumedAt" INTEGER,"sourceDigest" TEXT NOT NULL,CHECK ("consumedAt" IS NULL OR "consumedAt" >= "createdAt"))`,
+            'CREATE INDEX IF NOT EXISTS "auth_passkey_signup_attempt_expiry_idx" ON "auth_passkey_signup_attempt" ("expiresAt")',
+            'CREATE INDEX IF NOT EXISTS "auth_passkey_signup_attempt_source_idx" ON "auth_passkey_signup_attempt" ("sourceDigest","createdAt")',
+            `CREATE TRIGGER IF NOT EXISTS "auth_passkey_signup_no_reuse" BEFORE UPDATE OF "consumedAt" ON "auth_passkey_signup_attempt" WHEN OLD."consumedAt" IS NOT NULL BEGIN SELECT RAISE(ABORT, 'registration attempt already consumed'); END`,
+            `CREATE TRIGGER IF NOT EXISTS "auth_passkey_signup_pending_limit" BEFORE INSERT ON "auth_passkey_signup_attempt" WHEN (SELECT COUNT(*) FROM "auth_passkey_signup_attempt" WHERE "sourceDigest" = NEW."sourceDigest" AND "consumedAt" IS NULL AND "expiresAt" > NEW."createdAt") >= 5 BEGIN SELECT RAISE(ABORT, 'too many pending signup attempts'); END`,
+            `CREATE TABLE IF NOT EXISTS "auth_passkey_login_proof" ("sessionId" TEXT NOT NULL PRIMARY KEY REFERENCES "session"("id") ON DELETE CASCADE,"userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,"verifiedAt" INTEGER NOT NULL)`,
+            'CREATE INDEX IF NOT EXISTS "auth_passkey_login_proof_user" ON "auth_passkey_login_proof" ("userId","verifiedAt")'
+          ];
+          for(let i=0;i<statements.length;i++) {
+            await query(statements[i]);
+            console.log('Applied additive schema operation '+(i+1)+'/'+statements.length);
+          }
+          const after=await read();
+          for(const name of ['passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof'])
+            if(!after.includes(name))throw Error('Missing production passkey table '+name);
+          const post=await get(api+'/pages/projects/fairplaychess');
+          if(post.deployment_configs?.production?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')
+            throw Error('Production registration unexpectedly enabled');
+          if(JSON.stringify(post.deployment_configs?.preview)!==JSON.stringify(preview))
+            throw Error('Preview configuration unexpectedly changed');
+          console.log('Production additive passkey schema ready; registrations OFF; no existing account or score modified.');
+          NODE
