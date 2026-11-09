@@ -1,0 +1,57 @@
+name: Check production D1 recovery readiness (read-only)
+
+on:
+  push:
+    branches: [security/primary-phone-passkey-readiness-20261109]
+    paths:
+      - .github/workflows/passkey-prelaunch-readiness.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-recovery-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify production/preview separation, signup closed and recovery bookmark
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Read-only Cloudflare credentials unavailable');
+          const prodId='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf';
+          const previewId='e1d84922-0f74-414f-8fe5-2c3ac48f7884';
+          const base='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const headers={Authorization:'Bearer '+token,Accept:'application/json'};
+          const get=async path=>{
+            const r=await fetch(base+path,{headers});
+            if(!r.ok)throw Error('Cloudflare read-only audit HTTP '+r.status+' for '+path.split('/').slice(-1)[0]);
+            const j=await r.json();
+            if(j.success!==true)throw Error('Cloudflare read-only audit returned failure');
+            return j.result;
+          };
+          const p=await get('/pages/projects/fairplaychess');
+          const production=p.deployment_configs?.production||{},preview=p.deployment_configs?.preview||{};
+          const actualProd=production.d1_databases?.AUTH_DB?.id||production.d1_databases?.AUTH_DB?.database_id;
+          const actualPreview=preview.d1_databases?.AUTH_DB?.id||preview.d1_databases?.AUTH_DB?.database_id;
+          if(p.production_branch!=='main'||actualProd!==prodId||actualPreview!==previewId)
+            throw Error('Cloudflare production/preview target mismatch');
+          if(production.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')
+            throw Error('Registration must remain CLOSED');
+          const metadata=await get('/d1/database/'+prodId);
+          const version=metadata?.version;
+          console.log('D1 storage version: '+(version||'not reported'));
+          if(version && version!=='production')throw Error('D1 is not on the Time Travel production storage backend');
+          const bookmark=await get('/d1/database/'+prodId+'/time_travel/bookmark');
+          if(typeof bookmark?.bookmark!=='string'||!bookmark.bookmark.length)
+            throw Error('No production D1 recovery bookmark available');
+          // The bookmark is intentionally NOT logged (recovery identifiers need
+          // not be exposed in public CI logs). Never call the restore endpoint.
+          console.log('Production Time Travel bookmark available: YES');
+          console.log('Production/preview D1 separated: YES; public signup CLOSED');
+          console.log('This is not a destructive restore test or RBAC audit.');
+          NODE
