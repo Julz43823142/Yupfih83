@@ -13,7 +13,7 @@
 <script src="/passkey-client.js?v=1" defer></script>
 <script src="/phone-signup-qr.js?v=1" defer></script>
 <script src="/phone-account-qr.js?v=1" defer></script>
-<script src="/account.js?v=13-recovery-codes" defer></script>
+<script src="/account.js?v=14-recovery-transfer" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -48,6 +48,17 @@
       <div id="turnstile-container"></div>
       <button type="submit" class="account-primary">Log in</button>
     </form>
+    <details id="recovery-login-panel">
+      <summary>Lost your primary phone? Recover with an emergency code</summary>
+      <p>Enter your username and one unused recovery code, then create a new phone passkey. This signs out every previous device and invalidates all old recovery codes.</p>
+      <form id="recovery-login-form">
+        <label for="recovery-username">Username</label>
+        <input id="recovery-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" required>
+        <label for="recovery-code">Emergency recovery code</label>
+        <input id="recovery-code" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+        <button class="account-primary" type="submit">Recover with a new phone passkey</button>
+      </form>
+    </details>
     <p class="account-note">There is no email or password-recovery service. Keep your unique password in a password manager.</p>
     <p class="account-note">New account registration is available when the phone-passkey preview is enabled.</p>
   </section>
