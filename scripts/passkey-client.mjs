@@ -16,6 +16,7 @@ function unwrap(result) {
 
 window.eloPasskey = Object.freeze({
   registerPhone: async optionsJSON => startRegistration({ optionsJSON }),
+  registerRecoveryPhone: async optionsJSON => startRegistration({ optionsJSON }),
   signIn: async () => unwrap(await client.signIn.passkey()),
   enroll: async () => unwrap(await client.passkey.addPasskey({ name: 'EloScanner passkey' })),
   list: async () => unwrap(await client.passkey.listUserPasskeys())
