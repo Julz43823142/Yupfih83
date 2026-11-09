@@ -86,7 +86,7 @@
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
     if (!user) { ++passkeyListGeneration; clearRecoveryCodes(); }
-    byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady);
+    byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady && config?.recoveryCodesReady);
     changed(user);
   }
   async function post(route, body) {
