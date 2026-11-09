@@ -1,12 +1,7 @@
-name: Prepare primary-passkey production D1 controls (manual approval only)
+name: Audit production D1 migration readiness (read-only; signup CLOSED)
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Type APPLY_PRIMARY_PASSKEY_SCHEMA after owner approval, backup review and merged code'
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -16,75 +11,76 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  primary-schema:
-    if: github.ref == 'refs/heads/main' && inputs.confirm == 'APPLY_PRIMARY_PASSKEY_SCHEMA'
+  audit-schema:
+    if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Validate release guardrails and create only additive primary-passkey controls
+      - name: Inspect isolated production schema and recovery bookmark without writes
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node --input-type=module <<'NODE'
-          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
-          if(!token||!id)throw Error('Production migration credentials unavailable');
-          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
-          const dbId='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf';
+          const token=process.env.CLOUDFLARE_API_TOKEN,account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!/^[a-f0-9]{32}$/i.test(account||''))throw Error('Missing dedicated production credentials');
+          const api='https://api.cloudflare.com/client/v4/accounts/'+account;
           const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
           const get=async path=>{
-            const r=await fetch(api+path,{headers});
-            if(!r.ok)throw Error('Cloudflare read HTTP '+r.status);
-            const j=await r.json();if(!j.success)throw Error('Cloudflare read failed');
+            const r=await fetch(api+path,{headers,signal:AbortSignal.timeout(30000)});
+            if(!r.ok)throw Error('Cloudflare read failed HTTP '+r.status);
+            const j=await r.json();
+            if(j.success!==true)throw Error('Cloudflare read rejected');
             return j.result;
           };
-          const p=await get('/pages/projects/fairplaychess');
-          const prod=p.deployment_configs?.production||{},prev=p.deployment_configs?.preview||{};
-          const prodDb=prod.d1_databases?.AUTH_DB?.id||prod.d1_databases?.AUTH_DB?.database_id;
-          const prevDb=prev.d1_databases?.AUTH_DB?.id||prev.d1_databases?.AUTH_DB?.database_id;
-          if(p.production_branch!=='main'||prodDb!==dbId||prevDb!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
-            throw Error('Unexpected database binding; STOP');
-          if(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')
-            throw Error('Signup must be CLOSED while migrating');
-          const bookmark=await get('/d1/database/'+dbId+'/time_travel/bookmark');
-          if(!bookmark?.bookmark)throw Error('No point-in-time recovery bookmark; STOP');
+          const project=await get('/pages/projects/fairplaychess');
+          const id=b=>b?.id||b?.database_id;
+          const prod=project.deployment_configs?.production,prev=project.deployment_configs?.preview;
+          if(project.production_branch!=='main'||
+            id(prod?.d1_databases?.AUTH_DB)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
+            id(prev?.d1_databases?.AUTH_DB)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+            throw Error('Production/preview database isolation check failed');
+          if(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='false')
+            throw Error('Public signup is not explicitly disabled');
+          if(project.source?.config?.production_deployments_enabled!==false||
+            project.source?.config?.preview_deployment_setting!=='none')
+            throw Error('Native Git deployments must remain disabled');
+          const db='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf';
+          const bookmark=await get('/d1/database/'+db+'/time_travel/bookmark');
+          if(!bookmark?.bookmark)throw Error('No D1 Time Travel bookmark available');
+          // This is a READ-ONLY audit. No migrations, DDL, writes or restore calls.
           const query=async sql=>{
-            const r=await fetch(api+'/d1/database/'+dbId+'/query',{
-              method:'POST',headers,body:JSON.stringify({sql})
+            const r=await fetch(api+'/d1/database/'+db+'/query',{
+              method:'POST',headers,body:JSON.stringify({sql}),
+              signal:AbortSignal.timeout(30000)
             });
-            if(!r.ok)throw Error('D1 statement HTTP '+r.status);
+            if(!r.ok)throw Error('D1 read query HTTP '+r.status);
             const j=await r.json();
-            if(!j.success||(j.result||[]).some(x=>x.success===false))
-              throw Error('D1 statement rejected; stop and inspect migration before retry');
+            if(j.success!==true||(j.result||[]).some(x=>x.success===false))
+              throw Error('D1 read query failed');
             return (j.result||[]).flatMap(x=>x.results||[]);
           };
-          // Mandatory baseline tables; never create a new user database by accident.
-          const tables=await query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('user','session','passkey','auth_passkey_login_proof')");
-          if(new Set(tables.map(x=>x.name)).size!==4)throw Error('Baseline auth schema missing; STOP');
-          // Idempotent DDL, no user/passkey/session deletes and no credential payload reads.
-          const statements=[
-            'CREATE TABLE IF NOT EXISTS "auth_primary_passkey" ("userId" TEXT NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,"passkeyId" TEXT NOT NULL UNIQUE)',
-            `INSERT OR IGNORE INTO "auth_primary_passkey" ("userId","passkeyId") SELECT p."userId",p."id" FROM "passkey" p WHERE p."id"=(SELECT q."id" FROM "passkey" q WHERE q."userId"=p."userId" ORDER BY COALESCE(q."createdAt",''),q."id" LIMIT 1)`,
-            `CREATE TRIGGER IF NOT EXISTS "auth_primary_passkey_assign" AFTER INSERT ON "passkey" WHEN NOT EXISTS (SELECT 1 FROM "auth_primary_passkey" WHERE "userId"=NEW."userId") BEGIN INSERT INTO "auth_primary_passkey" ("userId","passkeyId") VALUES (NEW."userId",NEW."id"); END`,
-            `CREATE TRIGGER IF NOT EXISTS "auth_primary_passkey_no_delete" BEFORE DELETE ON "passkey" WHEN EXISTS (SELECT 1 FROM "auth_primary_passkey" m JOIN "user" u ON u."id"=m."userId" WHERE m."passkeyId"=OLD."id" AND m."userId"=OLD."userId") BEGIN SELECT RAISE(ABORT,'primary passkey cannot be deleted'); END`,
-            `CREATE TRIGGER IF NOT EXISTS "auth_primary_passkey_no_id_change" BEFORE UPDATE OF "id" ON "passkey" WHEN OLD."id"<>NEW."id" BEGIN SELECT RAISE(ABORT,'passkey ID cannot be changed'); END`,
-            `CREATE TRIGGER IF NOT EXISTS "auth_primary_passkey_no_reassign" BEFORE UPDATE ON "auth_primary_passkey" BEGIN SELECT RAISE(ABORT,'primary passkey cannot be reassigned'); END`,
-            `CREATE TRIGGER IF NOT EXISTS "auth_primary_passkey_no_mapping_delete" BEFORE DELETE ON "auth_primary_passkey" WHEN EXISTS (SELECT 1 FROM "user" WHERE "id"=OLD."userId") BEGIN SELECT RAISE(ABORT,'primary mapping cannot be deleted'); END`,
-            'CREATE TABLE IF NOT EXISTS "auth_primary_passkey_proof" ("sessionId" TEXT NOT NULL PRIMARY KEY REFERENCES "session"("id") ON DELETE CASCADE,"userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,"verifiedAt" INTEGER NOT NULL)'
+          const objects=await query("SELECT name,type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('table','trigger','index')");
+          const present=new Set(objects.map(x=>x.name));
+          for(const name of ['user','session','passkey','auth_passkey_login_proof'])
+            if(!present.has(name))throw Error('Missing baseline auth object '+name);
+          const migrationObjects=[
+            'auth_primary_passkey','auth_primary_passkey_proof',
+            'auth_recovery_code','auth_recovery_attempt','auth_primary_transfer_gate',
+            'auth_primary_phone_transfer_attempt',
+            'auth_primary_passkey_assign','auth_primary_passkey_no_delete',
+            'auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign',
+            'auth_primary_passkey_no_mapping_delete','auth_primary_passkey_no_user_change',
+            'auth_primary_transfer_gate_valid'
           ];
-          // Existing DDL is checked before executing any writes to avoid
-          // silently accepting an incompatible schema on repeated dispatch.
-          const before=await query("SELECT name,type,sql FROM sqlite_master WHERE name IN ('auth_primary_passkey','auth_primary_passkey_proof','auth_primary_passkey_assign','auth_primary_passkey_no_delete','auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign','auth_primary_passkey_no_mapping_delete')");
-          const existing=new Set(before.map(x=>x.name));
-          if(existing.size>0&&existing.size!==7)throw Error('Incomplete prior migration detected. Stop for manual inspection.');
-          for(let i=0;i<statements.length;i++)await query(statements[i]);
-          const controls=await query("SELECT name FROM sqlite_master WHERE name IN ('auth_primary_passkey','auth_primary_passkey_proof','auth_primary_passkey_assign','auth_primary_passkey_no_delete','auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign','auth_primary_passkey_no_mapping_delete')");
-          if(new Set(controls.map(x=>x.name)).size!==7)throw Error('Primary schema controls incomplete');
-          const missing=await query('SELECT COUNT(*) AS count FROM "passkey" p WHERE NOT EXISTS (SELECT 1 FROM "auth_primary_passkey" m WHERE m."userId"=p."userId")');
-          if(Number(missing[0]?.count)>0)throw Error('Some Passkey owners lack a primary mapping');
-          const post=await get('/pages/projects/fairplaychess');
-          if(post.deployment_configs?.production?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value==='true')
-            throw Error('Registration unexpectedly enabled');
-          console.log('Primary-key D1 controls installed; production registration remains CLOSED.');
+          const found=migrationObjects.filter(x=>present.has(x));
+          const counts=await query('SELECT (SELECT COUNT(*) FROM "user") AS users,(SELECT COUNT(*) FROM "passkey") AS passkeys');
+          console.log(JSON.stringify({signupClosed:true,nativeGitDeploymentsDisabled:true,
+            bookmarkAvailable:true,baselineTablesPresent:true,
+            migrationObjectsPresent:found,users:Number(counts[0]?.users),passkeys:Number(counts[0]?.passkeys),
+            migrationExecuted:false,restoreRehearsed:false}));
+          if(found.length>0&&found.length!==migrationObjects.length)
+            throw Error('Partial migration objects detected; inspect before any write');
+          console.log('Read-only production D1 audit complete. No migration or signup change performed.');
           NODE
