@@ -10,12 +10,13 @@ permissions:
 
 jobs:
   configure-production:
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Enable passkey login settings on production but keep signup off
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node --input-type=module <<'NODE'
