@@ -11,7 +11,7 @@
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
 <script src="/passkey-client.js?v=1" defer></script>
-<script src="/account.js?v=9-one-confirmation-signup" defer></script>
+<script src="/account.js?v=10-phone-signup-session-guard" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -21,7 +21,7 @@
   <p id="account-status" class="account-status" role="status" aria-live="polite">Checking account availability…</p>
   <section id="registration-panel" class="account-card" hidden>
     <span class="account-badge">CREATE YOUR ACCOUNT</span><h2>Create your account</h2>
-    <p>Choose a username, then confirm a passkey on your phone. Your browser may display a QR code to scan with your phone.</p>
+    <p>Choose a username, then select your phone as the passkey device. On a computer, choose “Use another device” or “iPhone, iPad or Android device” and scan the QR code. If Windows offers your PC PIN, cancel and choose your phone instead.</p>
     <form id="registration-preview-form">
       <label for="signup-username">Username</label><input id="signup-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" required>
       <div id="signup-turnstile"></div><button id="signup-submit" class="account-primary" type="submit">Create account with phone passkey</button>
