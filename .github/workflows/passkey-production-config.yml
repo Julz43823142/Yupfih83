@@ -1,15 +1,14 @@
 name: Configure production passkey login, with all registration OFF
 
 on:
-  push:
-    branches: [feature/passkey-foundation-20261108]
-    paths: [.github/workflows/passkey-production-config.yml]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   configure-production:
+    if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 5
