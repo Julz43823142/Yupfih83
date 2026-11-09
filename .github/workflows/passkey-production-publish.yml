@@ -38,7 +38,7 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: |
-          npm run dev:auth > /tmp/eloscanner-prod-preflight.log 2>&1 &
+          LOCAL_PASSKEY_TEST=true npm run dev:auth > /tmp/eloscanner-prod-preflight.log 2>&1 &
           AUTH_DEV_PID=$!
           trap 'kill "$AUTH_DEV_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 45); do
@@ -46,7 +46,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://localhost:8788/api/auth/config > /dev/null || { cat /tmp/eloscanner-prod-preflight.log; exit 1; }
-          npx playwright test tests/auth/browser.spec.mjs tests/auth/passkey.spec.mjs
+          npx playwright test tests/auth/browser.spec.mjs tests/auth/passkey.spec.mjs tests/auth/passkey-signup.spec.mjs tests/auth/recovery-browser.spec.mjs tests/auth/phone-transfer-browser.spec.mjs
       - name: Refuse wrong production target or open registration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
@@ -64,6 +64,10 @@ jobs:
           const project=payload.result;
           const prod=project.deployment_configs?.production, preview=project.deployment_configs?.preview;
           if(project.production_branch!=='main')throw Error('Production branch mismatch');
+          if(project.source?.type!=='github' ||
+             project.source?.config?.production_deployments_enabled!==false ||
+             project.source?.config?.preview_deployment_setting!=='none')
+            throw Error('Native Git production/preview deployments must remain disabled');
           const prodDB=prod?.d1_databases?.AUTH_DB,previewDB=preview?.d1_databases?.AUTH_DB;
           if((prodDB?.id||prodDB?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
              (previewDB?.id||previewDB?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
@@ -133,7 +137,7 @@ jobs:
               });
               const configValid=r.ok && cfg.passkeyReady===true && cfg.loginConfigured===true &&
                 cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
-                page.includes('account.js?v=12-passwordless-migration');
+                page.includes('account.js?v=15-phone-transfer');
               if(configValid && signup.status===403 && phoneSignup.status===404) {
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
