@@ -46,3 +46,33 @@ test('code generation does not write to database and rejects short server secret
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n,0);
   await assert.rejects(createRecoveryCodeSet('short','owner'),/secret unavailable/);
 });
+
+test('recovery generation endpoint rejects unauthenticated and secondary-only sessions',async()=>{
+  const { handleAuth }=await import('../../lib/auth/gateway.mjs');
+  const db=database(),now=Date.now();
+  user(db,'owner');
+  db.sqlite.prepare('INSERT INTO session(id,expiresAt,token,createdAt,updatedAt,userId) VALUES(?,?,?,?,?,?)')
+    .run('recovery-session',new Date(now+3600000).toISOString(),'recovery-token','2026-11-09T00:00:00Z','2026-11-09T00:00:00Z','owner');
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:'https://eloscanner.com',
+    PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com'};
+  let loggedIn=false;
+  const services={now:()=>now,createAuth:()=>({api:{getSession:async()=>loggedIn?{
+    user:{id:'owner',username:'owner'},session:{id:'recovery-session'}
+  }:null}})};
+  const call=()=>handleAuth({request:new Request('https://eloscanner.com/api/auth/passkey/recovery-codes/rotate',{
+    method:'POST',headers:{Origin:'https://eloscanner.com','CF-Connecting-IP':'192.0.2.85','Content-Type':'application/json'},
+    body:'{}'
+  }),env},services);
+  assert.equal((await call()).status,401);
+  loggedIn=true;
+  assert.equal((await call()).status,403);
+  db.sqlite.prepare('INSERT INTO auth_primary_passkey_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .run('recovery-session','owner',now-6*60*1000);
+  assert.equal((await call()).status,403);
+  db.sqlite.prepare('UPDATE auth_primary_passkey_proof SET verifiedAt=?').run(now);
+  const response=await call();
+  assert.equal(response.status,200);
+  assert.match(response.headers.get('Cache-Control'),/no-store/);
+  assert.equal((await response.json()).codes.length,8);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n,8);
+});
