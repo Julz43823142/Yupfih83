@@ -1,6 +1,15 @@
 # PR 79–81 integration and production D1 migration plan
 
 Status: PREPARED, NOT EXECUTED. Public registration must remain CLOSED.
+
+**Confirmed blocker, 2026-11-09:** read-only Cloudflare Pages API returned
+`source.type=github`, `production_deployments_enabled=true` and
+`preview_deployment_setting=all`. A merge to main CAN automatically deploy
+production code. The read-only production merge safety gate correctly FAILED.
+DO NOT MERGE until a separately approved Cloudflare configuration change
+has disabled native Git production and preview deployments and the gate passes.
+The production release preflight workflow is available but was NOT executed.
+This check made no Cloudflare changes.
 Date: 2026-11-09.
 
 ## Verified branch topology and checks
