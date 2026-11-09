@@ -87,6 +87,7 @@
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
     if (!user) { ++passkeyListGeneration; clearRecoveryCodes(); }
     byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady && config?.recoveryCodesReady);
+    byId('phone-transfer-panel').hidden = !(user && config?.phoneTransferReady);
     byId('recovery-login-panel').hidden = !(!user && config?.recoveryCodesReady);
     changed(user);
   }
@@ -232,6 +233,21 @@
       await refreshPasswordStatus();
     });
   });
+  byId('phone-transfer-start').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!window.eloPhoneSignup?.isPhone() || !window.eloPasskey?.registerRecoveryPhone)
+      throw new Error('Open your signed-in account on the new phone to register its primary passkey.');
+    if (!confirm('Replace your primary passkey? This signs out all devices and invalidates all existing passkeys and recovery codes.')) return;
+    message('Checking recent primary passkey verification…');
+    const options = await post('passkey/phone-transfer/options', {});
+    message('Create a new primary passkey on this phone…');
+    const credential = await window.eloPasskey.registerRecoveryPhone(options.publicKey);
+    const result = await post('passkey/phone-transfer/verify', {
+      attemptId: options.attemptId, challenge: options.challenge, credential
+    });
+    if (!result.success) throw new Error('Phone transfer could not be completed.');
+    showUser(null);
+    message('Your primary phone passkey was replaced. Sign in with the new passkey and save eight new recovery codes.');
+  }));
   byId('recovery-codes-generate').addEventListener('click', event => busy(event.currentTarget, async () => {
     if (!confirm('Create eight new recovery codes? Any previously saved recovery codes will stop working.')) return;
     clearRecoveryCodes();
