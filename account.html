@@ -11,7 +11,8 @@
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
 <script src="/passkey-client.js?v=1" defer></script>
-<script src="/account.js?v=10-phone-signup-session-guard" defer></script>
+<script src="/phone-signup-qr.js?v=1" defer></script>
+<script src="/account.js?v=11-phone-only-qr-handoff" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -21,7 +22,14 @@
   <p id="account-status" class="account-status" role="status" aria-live="polite">Checking account availability…</p>
   <section id="registration-panel" class="account-card" hidden>
     <span class="account-badge">CREATE YOUR ACCOUNT</span><h2>Create your account</h2>
-    <p>Choose a username, then select your phone as the passkey device. On a computer, choose “Use another device” or “iPhone, iPad or Android device” and scan the QR code. If Windows offers your PC PIN, cancel and choose your phone instead.</p>
+    <p>New accounts are created on a phone, using its passkey. Your computer's Windows PIN is not used for registration.</p>
+    <div id="signup-phone-handoff" hidden>
+      <p><strong>Scan this QR code with your phone camera.</strong> It opens the signup page on your phone. Complete registration there with Face ID, fingerprint or your phone's own screen lock.</p>
+      <div id="signup-phone-qr" class="phone-signup-qr" role="group" aria-label="QR code to open phone signup"></div>
+      <p class="account-note">This is a link to the phone signup page, not a Windows passkey prompt. Your new account will be signed in on the phone; the computer stays signed out.</p>
+      <p class="account-note">Or open this URL directly on your phone:</p>
+      <a id="signup-phone-link" class="account-link" href="/account.html?view=signup">Open phone signup</a>
+    </div>
     <form id="registration-preview-form">
       <label for="signup-username">Username</label><input id="signup-username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" required>
       <div id="signup-turnstile"></div><button id="signup-submit" class="account-primary" type="submit">Create account with phone passkey</button>
