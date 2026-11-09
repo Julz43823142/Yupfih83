@@ -75,7 +75,7 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: |
-          npm run dev:auth > /tmp/eloscanner-auth-dev.log 2>&1 &
+          LOCAL_PASSKEY_TEST=true npm run dev:auth > /tmp/eloscanner-auth-dev.log 2>&1 &
           AUTH_DEV_PID=$!
           trap 'kill "$AUTH_DEV_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 45); do
