@@ -76,7 +76,7 @@ jobs:
             try{
               const configResponse=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}});
               const cfg=await configResponse.json();
-              const scriptResponse=await fetch(base+'/account.js?v=10-phone-signup-session-guard',{headers:{'Cache-Control':'no-cache'}});
+              const scriptResponse=await fetch(base+'/account.js?v=11-phone-only-qr-handoff',{headers:{'Cache-Control':'no-cache'}});
               const script=await scriptResponse.text();
               const page=await (await fetch(base+'/account.html?view=signup',{headers:{'Cache-Control':'no-cache'}})).text();
               const qr=await (await fetch(base+'/phone-signup-qr.js?v=1',{headers:{'Cache-Control':'no-cache'}})).text();
