@@ -22,6 +22,44 @@
       if (generation === passkeyListGeneration && !byId('passkey-profile-panel').hidden) count.textContent = 'Passkey list unavailable. Try refreshing the page.';
     }
   }
+  let accountPasswordEnabled = null;
+  async function refreshPasswordStatus() {
+    if (!config?.passkeyReady || byId('passkey-profile-panel').hidden) return;
+    try {
+      const response = await fetch('/api/auth/passkey/password-status', {
+        credentials: 'same-origin', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('Account security status unavailable.');
+      const state = await response.json();
+      accountPasswordEnabled = state.passwordEnabled;
+      byId('passwordless-migration-panel').hidden = false;
+      byId('remove-password-form').hidden = !state.passwordEnabled;
+      byId('passwordless-active').hidden = state.passwordEnabled;
+      byId('password-form').hidden = !state.passwordEnabled;
+      byId('delete-form').hidden = !state.passwordEnabled;
+      byId('delete-passkey-account-form').hidden = state.passwordEnabled;
+      byId('passkey-confirm-password').required = state.passwordEnabled;
+      byId('passkey-confirm-password').closest('form').querySelector('label').hidden = !state.passwordEnabled;
+      const readiness = byId('passwordless-readiness');
+      if (!state.passwordEnabled) {
+        readiness.textContent = 'Passkey-only account. Your previous password can no longer sign you in.';
+      } else if (!state.backupReady) {
+        readiness.textContent = 'Add at least one backed-up passkey or two distinct passkeys before disabling your password.';
+      } else if (!state.recentPasskeyLogin) {
+        readiness.textContent = 'Passkey ready. Sign out and sign back in with your passkey before removing your password.';
+      } else {
+        readiness.textContent = 'Passkey login verified on this session. You can now remove your password after confirming it below.';
+      }
+      const desktop = !window.eloPhoneAccount?.isPhone();
+      byId('passkey-enrollment-form').hidden = desktop;
+      byId('passkey-phone-enroll-handoff').hidden = !desktop;
+      if (desktop) window.eloPhoneAccount?.render(byId('passkey-phone-enroll-qr'));
+    } catch {
+      accountPasswordEnabled = null;
+      byId('passwordless-migration-panel').hidden = true;
+      // Fail closed: never offer password removal when its safety status is unavailable.
+    }
+  }
   function showUser(user) {
     byId('registration-panel').hidden = true;
     byId('login-panel').hidden = !!user;
@@ -35,6 +73,7 @@
     }
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
+    if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
     if (!user) ++passkeyListGeneration;
     changed(user);
   }
@@ -143,13 +182,39 @@
     const form = event.currentTarget;
     busy(form, async () => {
       if (!config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential) throw new Error('Passkey enrollment is not available.');
-      await post('passkey/step-up', { currentPassword: byId('passkey-confirm-password').value });
-      byId('passkey-confirm-password').value = '';
+      if (accountPasswordEnabled !== false) {
+        await post('passkey/step-up', { currentPassword: byId('passkey-confirm-password').value });
+        byId('passkey-confirm-password').value = '';
+      }
       message('Confirm the new passkey on your device…');
       await window.eloPasskey.enroll();
       form.reset();
       message('Your passkey is registered. Test a passkey login before removing any old sign-in method.');
       await refreshPasskeyCount();
+      await refreshPasswordStatus();
+    });
+  });
+  byId('remove-password-form').addEventListener('submit', event => {
+    event.preventDefault(); const form = event.currentTarget;
+    if (!confirm('Remove your password permanently? Only your verified passkeys will be able to sign in.')) return;
+    busy(form, async () => {
+      if (!byId('remove-password-understood').checked) throw new Error('Confirm that you have tested passkey sign-in.');
+      await post('passkey/remove-password', {
+        currentPassword: byId('remove-password-confirm').value,
+        confirm: 'REMOVE_PASSWORD'
+      });
+      form.reset();
+      message('Password removed. Your username and account remain unchanged. Sign in using your passkey.');
+      await refreshPasswordStatus();
+    });
+  });
+  byId('delete-passkey-account-form').addEventListener('submit', event => {
+    event.preventDefault(); const form = event.currentTarget;
+    if (!confirm('Permanently delete your passkey-only account and its login credentials?')) return;
+    busy(form, async () => {
+      if (!byId('passkey-delete-understood').checked) throw new Error('Confirm permanent deletion.');
+      await post('passkey/delete-account', { confirm: 'DELETE_MY_ACCOUNT' });
+      form.reset(); showUser(null); message('Your account has been deleted.');
     });
   });
   byId('password-form').addEventListener('submit', event => {
