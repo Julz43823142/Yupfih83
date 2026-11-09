@@ -35,7 +35,9 @@ test('desktop signup is a QR handoff, not a Windows Hello ceremony', () => {
   assert.match(script, /window\.eloPhoneSignup\?\.isPhone\(\)/);
   assert.match(script, /byId\('registration-preview-form'\)\.hidden = true/);
   assert.match(script, /window\.eloPhoneSignup\?\.renderQr/);
-  assert.match(qr, /const signupURL = 'https:\/\/' \+ previewHost \+ '\/account\.html\?view=signup'/);
+  assert.match(qr, /const signupURL = 'https:\\/\\/' \+ host \+ '\\/account\\.html\\?view=signup'/);
+  assert.match(qr, /const productionHost = 'eloscanner\\.com'/);
+  assert.match(qr, /const productionRows = \\[/);
   const start = qr.indexOf('const rows = [');
   const end = qr.indexOf('];', start);
   const rows = [...qr.slice(start, end).matchAll(/'([a-f0-9]{12})'/g)].map(x => x[1]);
