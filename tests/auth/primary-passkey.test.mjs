@@ -45,3 +45,50 @@ test('legacy passkey schema remains login-capable but signup storage gate fails 
   db.sqlite.exec('DROP TABLE auth_primary_passkey_proof; DROP TRIGGER auth_primary_passkey_no_mapping_delete; DROP TRIGGER auth_primary_passkey_no_reassign; DROP TRIGGER auth_primary_passkey_no_id_change; DROP TRIGGER auth_primary_passkey_no_delete; DROP TRIGGER auth_primary_passkey_assign; DROP TABLE auth_primary_passkey;');
   assert.equal(await primaryPasskeyStorageReady(db),false);
 });
+
+test('secondary-passkey login proof cannot authorize optional enrollment', async () => {
+  const { handleAuth } = await import('../../lib/auth/gateway.mjs');
+  const db = database(), now=Date.now();
+  user(db,'owner');
+  key(db,'phone','owner');
+  key(db,'laptop','owner');
+  db.sqlite.prepare('INSERT INTO session(id,expiresAt,token,createdAt,updatedAt,userId) VALUES(?,?,?,?,?,?)')
+    .run('current-session',new Date(now+3600000).toISOString(),'test-token',date,date,'owner');
+  db.sqlite.prepare('INSERT INTO auth_passkey_login_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .run('current-session','owner',now);
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:'synthetic-test-only-secret-with-over-32-characters',
+    BETTER_AUTH_URL:'https://eloscanner.com',PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com'};
+  const session={user:{id:'owner',username:'owner'},session:{id:'current-session'}};
+  let forwarded=0;
+  const services={now:()=>now,createAuth:()=>({
+    api:{getSession:async()=>session},
+    handler:async()=>{forwarded++;return Response.json({challenge:'synthetic-challenge',user:{id:'owner'}});}
+  })};
+  const call=()=>handleAuth({request:new Request('https://eloscanner.com/api/auth/passkey/generate-register-options',{
+    headers:{Origin:'https://eloscanner.com','CF-Connecting-IP':'192.0.2.44'}
+  }),env},services);
+  assert.equal((await call()).status,403,'secondary WebAuthn proof cannot authorize enrollment');
+  assert.equal(forwarded,0);
+  db.sqlite.prepare('INSERT INTO auth_primary_passkey_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .run('current-session','owner',now-11*60*1000);
+  assert.equal((await call()).status,403,'expired primary proof cannot authorize enrollment');
+  db.sqlite.prepare('UPDATE auth_primary_passkey_proof SET verifiedAt=? WHERE sessionId=?').run(now,'current-session');
+  assert.equal((await call()).status,200,'fresh primary proof permits options');
+  assert.equal(forwarded,1);
+});
+
+test('public signup stays closed when primary D1 migration is not installed',async()=>{
+  const { handleAuth }=await import('../../lib/auth/gateway.mjs');
+  const db=database();
+  db.sqlite.exec('DROP TABLE auth_primary_passkey_proof; DROP TRIGGER auth_primary_passkey_no_mapping_delete; DROP TRIGGER auth_primary_passkey_no_reassign; DROP TRIGGER auth_primary_passkey_no_id_change; DROP TRIGGER auth_primary_passkey_no_delete; DROP TRIGGER auth_primary_passkey_assign; DROP TABLE auth_primary_passkey;');
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:'synthetic-test-only-secret-with-over-32-characters',
+    BETTER_AUTH_URL:'https://eloscanner.com',PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com',
+    PUBLIC_SIGNUP_ENABLED:'true',TURNSTILE_SITE_KEY:'test-key',TURNSTILE_SECRET_KEY:'test-secret'};
+  const config=await handleAuth({request:new Request('https://eloscanner.com/api/auth/config'),env});
+  assert.equal((await config.json()).registrationOpen,false);
+  const attempt=await handleAuth({request:new Request('https://eloscanner.com/api/auth/passkey-signup/options',{
+    method:'POST',headers:{Origin:'https://eloscanner.com','Content-Type':'application/json'},
+    body:JSON.stringify({username:'testuser',turnstileToken:'test-token'})
+  }),env});
+  assert.equal(attempt.status,404);
+});
