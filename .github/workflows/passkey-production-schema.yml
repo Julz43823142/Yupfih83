@@ -1,9 +1,7 @@
 name: Prepare production passkey schema (additive, no signup)
 
 on:
-  push:
-    branches: [feature/passkey-foundation-20261108]
-    paths: [.github/workflows/passkey-production-schema.yml]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,6 +12,7 @@ concurrency:
 
 jobs:
   additive-production-schema:
+    if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 8
