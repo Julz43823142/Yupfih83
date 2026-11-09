@@ -123,7 +123,8 @@ test('new account: real WebAuthn registration, session, duplicate and replay pro
     expect(outcome.duplicate).toBe(409);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM "user"').get().n).toBe(1);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM passkey').get().n).toBe(1);
-    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM session').get().n).toBe(1);
+    // Logout revokes the newly issued session; the account and credential persist.
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM session').get().n).toBe(0);
     const key = db.sqlite.prepare('SELECT publicKey,credentialID,userId FROM passkey').get();
     expect(key.userId).toBe(outcome.verified.body.user.id);
     expect(key.publicKey.length).toBeGreaterThan(40);
