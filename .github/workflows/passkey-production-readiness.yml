@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/passkey-foundation-20261108
+      - security/passkey-signup-d1-verification-20261109
     paths:
       - .github/workflows/passkey-production-readiness.yml
   workflow_dispatch:
