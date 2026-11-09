@@ -67,6 +67,12 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     const signedInUser = (await session.json()).user;
     expect(signedInUser.username).toBe('local_tester');
     expect(signedInUser.id).toBe(originalUserId);
+    const passkeyStatusResponse = await page.request.get(base + '/api/auth/passkey/password-status');
+    expect(passkeyStatusResponse.status()).toBe(200);
+    const passkeyStatus = await passkeyStatusResponse.json();
+    expect(passkeyStatus.passwordEnabled).toBe(true);
+    expect(passkeyStatus.passkeyCount).toBe(1);
+    expect(passkeyStatus.recentPasskeyLogin).toBe(true);
     expect(firstAssertion?.response?.id).toBeTruthy();
     // A previously accepted signature must never create a second session.
     const replay = await page.request.post(base + '/api/auth/passkey/verify-authentication', {
