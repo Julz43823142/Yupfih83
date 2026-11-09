@@ -22,6 +22,8 @@ Stacked on draft PRs 79 and 80. No production database migration has been applie
   recovery attempt with unused code or an active primary-verified transfer.
 - Strict per-source and per-account rate limits, CSRF/origin checks, no-store
   responses, single-use attempts and credential uniqueness constraints.
+- Public signup and both recovery endpoints fail closed unless all four
+  recovery/transfer tables and the two authorization triggers are installed.
 - Synthetic tests cover replay, expiry, wrong source/challenge, wrong owner,
   missing/expired primary proof, five-passkey replacement, code revocation
   and transaction rollback. Virtual WebAuthn browser recovery test added.
