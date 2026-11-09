@@ -34,10 +34,10 @@ Date: 2026-11-09.
    DROP and trigger replacement; they are NOT idempotent. Do not blindly rerun.
 6. Existing manual production workflow passkey-primary-production-schema.yml
    covers only an equivalent subset of 0010; it DOES NOT apply 0011–0013
-   and must not be treated as a complete release mechanism. In particular,
-   rerunning its initial no-reassign trigger after 0012 could invalidate
-   the intended authorized transfer mechanism. Review/replace the workflow
-   before any production schema operation.
+   and must not be treated as a complete release mechanism. Its existing
+   preflight expects precisely the original seven 0010 objects, and its
+   IF NOT EXISTS statements cannot upgrade the authorization triggers.
+   Review/replace the workflow before any production schema operation.
 7. After migration, assert all four recovery tables, primary mapping and
    both transfer authorization/owner-change triggers, as well as the original
    immutable primary and five-key cap triggers. Verify all existing passkey
