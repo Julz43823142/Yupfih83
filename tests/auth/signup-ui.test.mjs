@@ -44,3 +44,16 @@ test('desktop signup is a QR handoff, not a Windows Hello ceremony', () => {
   assert.equal(rows.length, 45, 'QR matrix is 45 by 45');
   assert.equal(rows[0].slice(0, 2), '1f', 'QR finder pattern present');
 });
+
+test('new passkey signup displays freshly generated one-time recovery codes without a second user action', () => {
+  const source = readFileSync(new URL('../../account.js', import.meta.url), 'utf8');
+  const begin = source.indexOf("byId('registration-preview-form').addEventListener");
+  const end = source.indexOf("byId('recovery-login-form').addEventListener", begin);
+  assert.ok(begin >= 0 && end > begin, 'signup handler exists');
+  const signup = source.slice(begin, end);
+  assert.match(signup, /created\.loggedIn && created\.user\?\.username === created\.username/);
+  assert.match(signup, /post\('passkey\/recovery-codes\/rotate', \{\}\)/, 'generate recovery codes after verified signup session');
+  assert.match(signup, /displayRecoveryCodes\(codes\)/, 'show the one-time codes, not just a reminder');
+  assert.match(signup, /recovery codes were not generated or could not be displayed/, 'do not claim recovery is ready on failure');
+  assert.doesNotMatch(signup, /eloPasskey\.signIn\s*\(/, 'do not log in as an unrelated discoverable credential');
+});
