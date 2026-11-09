@@ -1,4 +1,4 @@
-name: Enable phone-passkey signup on preview only
+name: Disable public passkey signup on preview only
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 jobs:
-  enable-preview-only:
+  disable-preview-only:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Enable preview registration with strict environment guards
+      - name: Disable preview registration with strict environment guards
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -36,15 +36,15 @@ jobs:
              vars.PASSKEY_RP_ID?.value!=='feature-passkey-foundation-2.fairplaychess.pages.dev' ||
              vars.PASSKEY_LOGIN_ENABLED?.value!=='true' ||
              !has('BETTER_AUTH_SECRET') || !has('TURNSTILE_SITE_KEY') || !has('TURNSTILE_SECRET_KEY')) throw Error('Preview readiness prerequisites missing');
-          if(vars.PUBLIC_SIGNUP_ENABLED?.value==='true') {console.log('Preview signup already enabled; no changes');process.exit(0);}
-          const body={deployment_configs:{preview:{env_vars:{PUBLIC_SIGNUP_ENABLED:{type:'plain_text',value:'true'}}}}};
+          if(vars.PUBLIC_SIGNUP_ENABLED?.value==='false') {console.log('Preview signup already disabled; no changes');process.exit(0);}
+          const body={deployment_configs:{preview:{env_vars:{PUBLIC_SIGNUP_ENABLED:{type:'plain_text',value:'false'}}}}};
           const response=await fetch(url,{method:'PATCH',headers,body:JSON.stringify(body)});
           if(!response.ok) throw Error('Preview setting update HTTP '+response.status);
           const result=await response.json();if(!result.success)throw Error('Preview setting update failed');
           const after=await get();
-          if(after.deployment_configs?.preview?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='true') throw Error('Preview flag not persisted');
+          if(after.deployment_configs?.preview?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='false') throw Error('Preview flag not persisted');
           if(JSON.stringify(after.deployment_configs?.production)!==JSON.stringify(production)) throw Error('Production configuration unexpectedly changed');
           const remaining=after.deployment_configs?.preview?.env_vars||{};
           if(!has('BETTER_AUTH_SECRET') || !remaining.TURNSTILE_SECRET_KEY || !remaining.TURNSTILE_SITE_KEY) throw Error('Preview secrets not retained');
-          console.log('Preview signup enabled. Production configuration unchanged. Existing deployment may require redeploy.');
+          console.log('Preview signup disabled. Production configuration unchanged. Existing deployment may require redeploy.');
           NODE
