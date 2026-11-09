@@ -87,6 +87,7 @@
     if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
     if (!user) { ++passkeyListGeneration; clearRecoveryCodes(); }
     byId('recovery-codes-panel').hidden = !(user && config?.passkeyReady && config?.recoveryCodesReady);
+    byId('recovery-login-panel').hidden = !(!user && config?.recoveryCodesReady);
     changed(user);
   }
   async function post(route, body) {
@@ -155,7 +156,10 @@
       if (created.loggedIn && created.user?.username === created.username) {
         form.reset();
         showUser(created.user);
-        message('Your account is ready. You are signed in as ' + created.username + '.');
+        if (config?.recoveryCodesReady) {
+          byId('recovery-codes-panel').scrollIntoView({ behavior: 'smooth' });
+          message('Your account is ready. Generate and save your eight emergency recovery codes below.');
+        } else message('Your account is ready. You are signed in as ' + created.username + '.');
         history.replaceState(null, '', '/account.html');
         return;
       }
@@ -164,6 +168,28 @@
       // could select a different existing account. Never present that as success.
       form.hidden = true;
       message('Account ' + created.username + ' created. You are not signed in. Open the login page, choose Log in with passkey, and confirm the displayed username is ' + created.username + '.');
+    });
+  });
+  byId('recovery-login-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, async () => {
+      if (!config?.recoveryCodesReady || !window.eloPhoneSignup?.isPhone() ||
+          !window.eloPasskey?.registerRecoveryPhone || !window.PublicKeyCredential)
+        throw new Error('Open EloScanner on your phone to recover your account.');
+      const username = byId('recovery-username').value.trim().toLowerCase();
+      const code = byId('recovery-code').value.trim();
+      message('Verifying emergency recovery code…');
+      const options = await post('passkey/recovery/options', { username, code });
+      byId('recovery-code').value = '';
+      message('Create a new phone passkey using your device screen lock…');
+      const credential = await window.eloPasskey.registerRecoveryPhone(options.publicKey);
+      const verified = await post('passkey/recovery/verify', {
+        attemptId: options.attemptId, challenge: options.challenge, credential
+      });
+      if (!verified.success) throw new Error('Recovery could not be completed.');
+      form.reset();
+      message('Your primary passkey has been replaced. All old sessions, passkeys and recovery codes are invalid. Sign in with your new passkey, then generate eight new recovery codes.');
     });
   });
   byId('login-form').addEventListener('submit', event => {
