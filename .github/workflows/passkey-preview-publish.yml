@@ -78,13 +78,19 @@ jobs:
               const cfg=await configResponse.json();
               const scriptResponse=await fetch(base+'/account.js?v=10-phone-signup-session-guard',{headers:{'Cache-Control':'no-cache'}});
               const script=await scriptResponse.text();
+              const page=await (await fetch(base+'/account.html?view=signup',{headers:{'Cache-Control':'no-cache'}})).text();
+              const qr=await (await fetch(base+'/phone-signup-qr.js?v=1',{headers:{'Cache-Control':'no-cache'}})).text();
               const start=script.indexOf("byId('registration-preview-form').addEventListener");
               const end=script.indexOf("byId('login-form').addEventListener",start);
               const signup=start>=0&&end>start?script.slice(start,end):'';
               if(configResponse.ok&&cfg.registrationOpen===true&&cfg.passkeyReady===true&&
                  !signup.includes('eloPasskey.signIn(')&&
-                 signup.includes('created.username !== username.toLowerCase()')){
-                console.log('Live preview registration open; account identity guard deployed.');
+                 signup.includes('created.username !== username.toLowerCase()') &&
+                 signup.includes('window.eloPhoneSignup?.isPhone()') &&
+                 page.includes('id="signup-phone-handoff"') &&
+                 page.includes('phone-signup-qr.js?v=1') &&
+                 qr.includes("const previewHost = 'feature-passkey-foundation-2.fairplaychess.pages.dev'")){
+                console.log('Live preview registration open; identity guard, desktop QR, and phone-only signup deployed.');
                 process.exit(0);
               }
               last='config HTTP '+configResponse.status+', registrationOpen='+cfg.registrationOpen+', passkeyReady='+cfg.passkeyReady+', new signup script='+(signup.includes('created.username !== username.toLowerCase()'));
