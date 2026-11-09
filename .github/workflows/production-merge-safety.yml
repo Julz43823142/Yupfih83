@@ -1,0 +1,57 @@
+name: Read-only production merge safety gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/production-merge-safety.yml'
+      - 'docs/PR79-81-INTEGRATION-MIGRATION-PLAN.md'
+
+permissions:
+  contents: read
+
+jobs:
+  check-production-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify production registration closed and Git auto-deploy disabled
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN;
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!account)throw Error('Read-only Cloudflare verification credentials unavailable');
+          const url='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(account)+'/pages/projects/fairplaychess';
+          const r=await fetch(url,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
+          if(!r.ok)throw Error('Cloudflare project inspection denied: HTTP '+r.status);
+          const body=await r.json();
+          if(body.success!==true||!body.result)throw Error('Cloudflare project inspection failed');
+          const p=body.result,prod=p.deployment_configs?.production||{},prev=p.deployment_configs?.preview||{};
+          const prodId=prod.d1_databases?.AUTH_DB?.id||prod.d1_databases?.AUTH_DB?.database_id;
+          const prevId=prev.d1_databases?.AUTH_DB?.id||prev.d1_databases?.AUTH_DB?.database_id;
+          if(p.production_branch!=='main'||prodId!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
+             prevId!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+            throw Error('Unexpected production branch or D1 bindings');
+          if(prod.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='false')
+            throw Error('Production registration flag not explicitly false');
+          if(p.source?.type==='github' && (p.source.config?.production_deployments_enabled!==false ||
+              p.source.config?.preview_deployment_setting!=='none'))
+            throw Error('Native Git deployment is enabled or cannot be proven disabled');
+          const base='https://eloscanner.com';
+          const cfg=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}}).then(r=>r.json());
+          if(cfg.registrationOpen!==false)throw Error('Public signup not proven closed');
+          const password=await fetch(base+'/api/auth/sign-up/email',{
+            method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
+            body:JSON.stringify({username:'merge_safety_probe',password:'invalid'})
+          });
+          const phone=await fetch(base+'/api/auth/passkey-signup/options',{
+            method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
+            body:JSON.stringify({username:'merge_safety_probe',turnstileToken:'invalid'})
+          });
+          if(password.status!==403||phone.status!==404)
+            throw Error('Live registration routes are not closed');
+          console.log('READ ONLY: production Git auto-deploy disabled; signup closed; D1 bindings isolated.');
+          NODE
