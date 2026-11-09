@@ -11,19 +11,21 @@ workflows deploys the application, migrates production D1, or changes secrets.
 - Extra passkey enrollment for passwordless accounts requires recent actual
   authentication by the primary credential. Legacy password holders may still
   use current-password verification during the migration.
-- No normal primary-key replacement endpoint is available. A safe replacement
-  flow needs a separate specification, threat model, tests and owner approval.
+- The owner approved eight one-time offline recovery codes. PR 81 implements
+  primary-phone transfer and lost-phone recovery as draft code, with one-time
+  WebAuthn challenges, transactional primary replacement, old-session/passkey
+  revocation and recovery-code invalidation. None is deployed or approved for
+  public registration.
 - A verified WebAuthn passkey does **not** prove the authenticator is physically
   a smartphone. User-agent checks, mobile UI and platform authenticator hints
   cannot offer that guarantee. The product must not claim cryptographic phone
   attestation or enable signup until the owner accepts the limitation.
-- If all primary-key copies are lost, the user may be unable to enroll another
-  credential, even if a secondary passkey still permits login. This is the
-  consequence of requiring the primary credential for enrollment. Do not
-  invent support-based account takeover or an insecure bypass.
+- If the primary passkey is lost, a user needs an unused offline recovery code.
+  Without a primary passkey or recovery code, account management cannot be
+  restored; secondary passkeys do not authorize primary replacement.
 
 ## Implementation scope
-- Migration `0010_primary_passkey.sql` must be applied to the *intended*
+- Migrations `0010_primary_passkey.sql` through `0013_phone_transfer.sql` must be applied to the *intended*
   D1 environment **after independent backup/recovery approval**, not implicitly
   by this PR. The migration backfills the oldest existing credential as primary,
   which does not prove a legacy credential was registered from a phone.
@@ -67,12 +69,14 @@ References:
   real user credentials. The default-off signup flag must stay false.
 
 ## Release sequence
-1. Review CI, branch compatibility and PRs. PR 80 is **stacked on unmerged PR 79**.
+1. Review CI, branch compatibility and PRs. PR 80 is stacked on unmerged PR 79;
+   PR 81 is stacked on unmerged PR 80.
 2. Obtain explicit permission before either merge, deployment or production D1 change.
 3. Verify recovery and Cloudflare policy; run real phone tests on an isolated
    HTTPS preview using a separate D1 binding.
-4. Approve/add the safe primary-phone transfer mechanism, or document an
-   explicit irreversible-loss policy. Do not activate signup until approved.
-5. After owner approval only, stage and apply `0010` to the chosen D1 and
+4. Verify PR 81's implemented transfer/recovery mechanisms, real phone
+   compatibility, credential freshness and atomic D1 behavior. Do not activate
+   signup until security review and owner approval.
+5. After owner approval only, stage and apply `0010`–`0013` to the chosen D1 and
    inspect triggers, backfill and readiness. Re-run smoke/abuse tests.
 6. A **separate owner approval** is needed to enable public registration.
