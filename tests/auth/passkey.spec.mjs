@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 const base = 'http://localhost:8788';
 
 test('same account migrates from password to passkey and logs in via WebAuthn', async ({ page }) => {
+  // Exercise phone enrollment UI with Chromium's genuine WebAuthn virtual authenticator.
+  await page.addInitScript(() => Object.defineProperty(navigator, 'userAgent', {
+    configurable: true, get: () => 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Mobile Chrome/131.0'
+  }));
   const client = await page.context().newCDPSession(page);
   await client.send('WebAuthn.enable');
   const { authenticatorId } = await client.send('WebAuthn.addVirtualAuthenticator', {
