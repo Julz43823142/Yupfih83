@@ -119,3 +119,32 @@ test('synthetic auth database backup restores passkey relationships and guards',
     await rm(dir,{recursive:true,force:true});
   }
 });
+
+test('secondary passkey removal requires fresh primary proof and cannot delete primary or another account key', async()=>{
+  const { handleAuth }=await import('../../lib/auth/gateway.mjs');
+  const db=database(),now=Date.now();
+  user(db,'owner');user(db,'other');
+  key(db,'phone','owner');key(db,'laptop','owner');key(db,'otherphone','other');
+  db.sqlite.prepare('INSERT INTO session(id,expiresAt,token,createdAt,updatedAt,userId) VALUES(?,?,?,?,?,?)')
+    .run('session-owner',new Date(now+3600000).toISOString(),'owner-token',date,date,'owner');
+  const env={AUTH_DB:db,BETTER_AUTH_SECRET:'synthetic-test-only-secret-with-over-32-characters',
+    BETTER_AUTH_URL:'https://eloscanner.com',PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com'};
+  const services={now:()=>now,createAuth:()=>({api:{getSession:async()=>({
+    user:{id:'owner',username:'owner'},session:{id:'session-owner'}
+  })}})};
+  const call=async passkeyId=>handleAuth({request:new Request('https://eloscanner.com/api/auth/passkey/remove-secondary',{
+    method:'POST',headers:{Origin:'https://eloscanner.com','CF-Connecting-IP':'192.0.2.88','Content-Type':'application/json'},
+    body:JSON.stringify({passkeyId})
+  }),env},services);
+  assert.equal((await call('laptop')).status,403,'session alone cannot delete a secondary key');
+  db.sqlite.prepare('INSERT INTO auth_primary_passkey_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .run('session-owner','owner',now-11*60*1000);
+  assert.equal((await call('laptop')).status,403,'expired primary proof cannot delete');
+  db.sqlite.prepare('UPDATE auth_primary_passkey_proof SET verifiedAt=?').run(now);
+  assert.equal((await call('phone')).status,409,'primary key cannot be deleted');
+  assert.equal((await call('otherphone')).status,409,'other account key cannot be deleted');
+  assert.equal((await call('laptop')).status,200,'secondary key can be removed');
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey WHERE id=?').get('laptop').n,0);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey WHERE id=?').get('phone').n,1);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey WHERE id=?').get('otherphone').n,1);
+});
