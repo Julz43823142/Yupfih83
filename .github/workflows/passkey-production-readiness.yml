@@ -47,6 +47,14 @@ jobs:
             hasTurnstileKeys:!!vars.TURNSTILE_SITE_KEY&&!!vars.TURNSTILE_SECRET_KEY
           };
           console.log(JSON.stringify(report,null,2));
+          const query=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
+            method:'POST',headers:{...headers,'Content-Type':'application/json'},
+            body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','d1_migrations') ORDER BY name"})
+          });
+          if(!query.ok)throw Error('Production D1 schema audit HTTP '+query.status);
+          const q=await query.json();
+          if(!q.success)throw Error('Production D1 schema audit failed');
+          console.log('Production D1 passkey tables present: '+JSON.stringify((q.result||[]).flatMap(x=>(x.results||[]).map(y=>y.name))));
           if(!report.productionAuthDatabaseExpected || !report.previewAuthDatabaseIsolated)throw Error('Unexpected D1 target; no changes permitted');
           if(report.productionSignupEnabled)throw Error('Production signup is already enabled: STOP');
           NODE
