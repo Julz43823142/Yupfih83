@@ -71,9 +71,10 @@ test('real browser WebAuthn: signup, download-ready codes, lost-phone replacemen
       const replay=await api('passkey/recovery/verify',payload);
       const oldCode=await api('passkey/recovery/options',{username:'recovery_browser',code:codes.body.codes?.[1]});
       return {signup:verified.status,codes:codes.status,codeCount:codes.body.codes?.length,
-        recovery:recovery.status,recovered:recovered.status,replay:replay.status,oldCode:oldCode.status};
+        recovery:recovery.status,recovered:recovered.status,replay:replay.status,oldCode:oldCode.status,
+        recoveryError:recovery.status===200?null:recovery.body?.message};
     });
-    expect(result).toEqual({signup:201,codes:200,codeCount:8,recovery:200,recovered:200,replay:403,oldCode:403});
+    expect(result).toEqual({signup:201,codes:200,codeCount:8,recovery:200,recovered:200,replay:403,oldCode:403,recoveryError:null});
     expect(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n).toBe(1);
     expect(db.sqlite.prepare('SELECT COUNT(*) n FROM session').get().n).toBe(0);
     expect(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n).toBe(0);
