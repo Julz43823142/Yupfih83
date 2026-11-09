@@ -107,9 +107,9 @@ test('account UI contains one-time code controls and does not automatically requ
 
 test('public signup stays closed when recovery or transfer migrations are missing',async()=>{
   const {handleAuth}=await import('../../lib/auth/gateway.mjs');
-  for(const missing of ['auth_recovery_code','auth_primary_phone_transfer_attempt']){
+  for(const missing of ['auth_recovery_code','auth_primary_phone_transfer_attempt','auth_primary_transfer_gate_valid']){
     const db=database();
-    db.sqlite.exec('DROP TABLE '+missing);
+    db.sqlite.exec((missing.endsWith('_valid')?'DROP TRIGGER ':'DROP TABLE ')+missing);
     const env={AUTH_DB:db,BETTER_AUTH_SECRET:secret,BETTER_AUTH_URL:'https://eloscanner.com',
       PASSKEY_LOGIN_ENABLED:'true',PASSKEY_RP_ID:'eloscanner.com',
       PUBLIC_SIGNUP_ENABLED:'true',TURNSTILE_SITE_KEY:'test',TURNSTILE_SECRET_KEY:'test'};
