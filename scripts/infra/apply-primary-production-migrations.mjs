@@ -136,13 +136,15 @@ const missing=await read('SELECT COUNT(*) AS n FROM "passkey" p WHERE NOT EXISTS
 const invalid=await read('SELECT COUNT(*) AS n FROM "auth_primary_passkey" m LEFT JOIN "passkey" p ON p."id"=m."passkeyId" AND p."userId"=m."userId" WHERE p."id" IS NULL');
 if(Number(missing[0]?.n)!==0||Number(invalid[0]?.n)!==0)
   throw Error('Invalid primary mapping after migration');
-const integrity=await read('PRAGMA integrity_check');
-if(integrity[0]?.integrity_check!=='ok')throw Error('D1 integrity check failed');
-const fks=await read('PRAGMA foreign_key_check');
-if(fks.length)throw Error('D1 foreign keys failed');
+// D1's HTTP /query endpoint can reject SQLite PRAGMA integrity_check
+// with HTTP 400. Never turn a post-migration diagnostic into a reason
+// to rerun non-idempotent production schema files.
+const orphanAfter=await read('SELECT COUNT(*) AS n FROM "passkey" p LEFT JOIN "user" u ON p."userId"=u."id" WHERE u."id" IS NULL');
+if(Number(orphanAfter[0]?.n)!==0)
+  throw Error('Orphan passkey found after migration');
 const post=await pages();assertProduction(post);
 if(post.source?.config?.production_deployments_enabled!==false||
   post.source?.config?.preview_deployment_setting!=='none')
   throw Error('Native deployments enabled after migration');
-console.log('SUCCESS: production 0010–0013 complete; accounts/passkeys unchanged; integrity verified; signup CLOSED.');
+console.log('SUCCESS: production 0010–0013 complete; accounts/passkeys unchanged; mapping and ownership verified; signup CLOSED.');
 console.log('Recovery bookmark (retain for protected rollback planning): '+bookmark.bookmark);
