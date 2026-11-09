@@ -46,3 +46,20 @@ test('secondary passkey proof cannot authorize transfer',async()=>{
   assert.equal(await startPhoneTransfer(db,secret,{userId:'owner',sessionId:'session',sourceDigest:source},now),null);
   assert.throws(()=>db.sqlite.prepare('UPDATE auth_primary_passkey SET passkeyId=? WHERE userId=?').run('secondary','owner'),/cannot be reassigned/);
 });
+
+test('failed phone transfer preserves old primary and all sessions and codes',async()=>{
+  const now=Date.now(),db=setup(now);
+  await rotateRecoveryCodes(db,secret,'owner',now);
+  db.sqlite.prepare('INSERT INTO auth_primary_passkey_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)').run('session','owner',now);
+  const a=await startPhoneTransfer(db,secret,{userId:'owner',sessionId:'session',sourceDigest:source},now);
+  const duplicate={...info(),credential:{...info().credential,id:'credential-primary'}};
+  assert.equal(await completePhoneTransfer(db,secret,{
+    attemptId:a.id,challenge:a.challenge,sourceDigest:source,sessionId:'session',
+    registrationInfo:duplicate,credential:{response:{}}
+  },now+100),false);
+  assert.equal(db.sqlite.prepare('SELECT passkeyId FROM auth_primary_passkey').get().passkeyId,'primary');
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM passkey').get().n,2);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM session').get().n,1);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_recovery_code').get().n,8);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM auth_primary_transfer_gate').get().n,0);
+});
