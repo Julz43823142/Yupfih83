@@ -21,7 +21,8 @@ test('real browser WebAuthn: signup, download-ready codes, lost-phone replacemen
       const headers=new Headers(req.headers);headers.set('CF-Connecting-IP','127.0.0.1');
       const response=await handleAuth({env,request:new Request(origin+req.url,{
         method:req.method,headers,...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})
-      })},{fetch:async()=>Response.json({success:true,hostname:'localhost',action:'signup'})});
+      })},{fetch:async()=>Response.json({success:true,hostname:'localhost',action:'signup'}),
+        onError:error=>console.error('SYNTHETIC RECOVERY TEST ERROR:',error?.message)});
       res.statusCode=response.status;
       for(const [key,value] of response.headers)if(key.toLowerCase()!=='set-cookie')res.setHeader(key,value);
       for(const cookie of response.headers.getSetCookie())res.appendHeader('Set-Cookie',cookie);
