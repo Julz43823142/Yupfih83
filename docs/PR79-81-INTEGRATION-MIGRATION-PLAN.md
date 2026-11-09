@@ -1,5 +1,12 @@
 # PR 79–81 integration and production D1 migration plan
 
+## Protected D1 credential required for next live step
+- Create a Cloudflare API token scoped to the **HBAN account** with **D1 Write** permission (which also permits the required D1 reads), without changing the existing Pages token.
+- Add its value as the GitHub **production environment** secret `CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN`. Never send it in chat.
+- The read-only production D1 audit authenticates Pages with the existing Pages token and D1 with the separate D1 token.
+- The disposable Time Travel rehearsal creates, tests restoration of, and deletes **only** a new EU-jurisdiction database containing synthetic data. It must pass before any production migrations.
+- The protected workflows cannot run successfully until this secret exists. Public signup remains disabled; D1 production writes and site publication remain forbidden until recovery proof and whole-chain migration safety are confirmed.
+
 ## Live D1 audit outcome — 2026-11-09
 - PR 83 was merged to main with all PR checks green, including synthetic 0010–0013 SQLite migration and independent SQLite backup/restore rehearsal.
 - Protected automatic read-only production audit run 42659548917 failed with HTTP 401. No D1 queries, migration statements or restore operations were executed.
