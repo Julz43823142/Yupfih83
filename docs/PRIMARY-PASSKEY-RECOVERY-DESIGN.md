@@ -1,6 +1,6 @@
 # Primary-phone passkey replacement and lost-device recovery — decision-ready design
 
-Status: PROPOSAL ONLY. No recovery bypass has been deployed. Signup stays closed.
+Status: design implemented in draft PR 81, NOT deployed. Signup stays closed.
 
 ## Security invariants
 1. The primary credential cannot be removed by the ordinary delete API.
@@ -36,8 +36,8 @@ login, but cannot replace the primary. A user who loses all copies of their
 primary credential cannot fully manage the account. Document this clearly
 before signup; do not advertise recoverability.
 
-**Option B2: high-entropy offline recovery codes, created only after a primary
-assertion.** Generate multiple random one-time codes on-device/server with
+**Option B2 (OWNER APPROVED): high-entropy offline recovery codes, created only after a primary
+assertion or immediately following verified primary signup.** Generate multiple random one-time codes on-device/server with
 at least 128 bits of entropy per code, show only once, store only salted
 keyed hashes server-side, and use a narrowly scoped recovery flow with strict
 rate limits, anti-replay, fresh verified WebAuthn registration, account
@@ -63,6 +63,7 @@ primary-phone requirement.
 ## Implementation state
 - Primary mapping and delete guards exist in PR 80.
 - Secondary key management requires a recent primary assertion.
-- Neither A nor B is implemented. Implement them in reviewed PRs with
-  synthetic D1 and browser WebAuthn tests, without weakening the existing
-  immutable-primary trigger outside the special transfer transaction.
+- Both A and B2 have draft implementations in PR 81, with transaction-scoped
+  authorization gates and unit plus virtual WebAuthn browser tests. They are
+  not deployed; production D1 migration and real-device security verification
+  remain launch blockers.
