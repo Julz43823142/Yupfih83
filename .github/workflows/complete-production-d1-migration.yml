@@ -1,0 +1,56 @@
+name: Apply complete primary, recovery and phone-transfer D1 schema (signup CLOSED)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/complete-production-d1-migration.yml'
+      - 'scripts/infra/apply-primary-production-migrations.mjs'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type APPLY_0010_0013_WITH_SIGNUP_CLOSED only after Cloudflare D1 restore rehearsal and review'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: eloscanner-production-auth-schema
+  cancel-in-progress: false
+
+jobs:
+  syntax-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: node --check scripts/infra/apply-primary-production-migrations.mjs
+  migrate-production:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'APPLY_0010_0013_WITH_SIGNUP_CLOSED'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Confirm closed signup, isolated D1, fresh real restore, bookmark, migrations and integrity
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PRODUCTION_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          MIGRATION_CONFIRMATION: ${{ inputs.confirm }}
+        run: node scripts/infra/apply-primary-production-migrations.mjs
