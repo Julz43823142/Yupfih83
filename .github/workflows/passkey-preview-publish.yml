@@ -54,7 +54,7 @@ jobs:
           const project=payload.result;
           const target='feature/passkey-foundation-20261108';
           if(project.production_branch===target)throw Error('Refusing production branch deployment');
-          if(project.deployment_configs?.preview?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='true')throw Error('Preview signup not enabled');
+          if(project.deployment_configs?.preview?.env_vars?.PUBLIC_SIGNUP_ENABLED?.value!=='false')throw Error('Preview signup must remain disabled');
           const db=project.deployment_configs?.preview?.d1_databases?.AUTH_DB;
           if((db?.id||db?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')throw Error('Preview database binding is not isolated');
           console.log('Target is isolated feature-branch preview; preview D1 binding verified.');
@@ -83,14 +83,14 @@ jobs:
               const start=script.indexOf("byId('registration-preview-form').addEventListener");
               const end=script.indexOf("byId('login-form').addEventListener",start);
               const signup=start>=0&&end>start?script.slice(start,end):'';
-              if(configResponse.ok&&cfg.registrationOpen===true&&cfg.passkeyReady===true&&
+              if(configResponse.ok&&cfg.registrationOpen===false&&cfg.passkeyReady===true&&
                  !signup.includes('eloPasskey.signIn(')&&
                  signup.includes('created.username !== username.toLowerCase()') &&
                  signup.includes('window.eloPhoneSignup?.isPhone()') &&
                  page.includes('id="signup-phone-handoff"') &&
                  page.includes('phone-signup-qr.js?v=1') &&
                  qr.includes("const previewHost = 'feature-passkey-foundation-2.fairplaychess.pages.dev'")){
-                console.log('Live preview registration open; identity guard, desktop QR, and phone-only signup deployed.');
+                console.log('Live preview registration DISABLED; passkey login retained and preview isolated.');
                 process.exit(0);
               }
               last='config HTTP '+configResponse.status+', registrationOpen='+cfg.registrationOpen+', passkeyReady='+cfg.passkeyReady+', new signup script='+(signup.includes('created.username !== username.toLowerCase()'));
