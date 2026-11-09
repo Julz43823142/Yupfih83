@@ -16,6 +16,8 @@ No production D1 migration or public recovery redemption endpoint is enabled.
   or server logging of code values.
 - Synthetic database tests for entropy, storage, rotation, single-use and
   denial without primary proof.
+- Account settings UI for one-time display, copy, download and dismissal;
+  hidden until D1 schema readiness is reported by the config endpoint.
 
 ## Not yet implemented — launch blockers
 1. Recovery-code **redemption must NOT be exposed yet**. Build a short-lived
@@ -24,10 +26,11 @@ No production D1 migration or public recovery redemption endpoint is enabled.
    credential, revokes all other sessions and invalidates remaining codes.
    The current primary-immutability triggers deliberately prevent replacement;
    no bypass has been added.
-2. Finish mobile-first registration UX: show/download/copy codes once after
-   verified primary signup; clearly warn that skipping storage risks permanent
-   account-management loss. Do not force code re-entry.
-3. Build a primary-authenticated recovery-code regeneration UI.
+2. Integrate the existing one-time download/copy settings UI into the
+   post-signup onboarding experience. Currently new users must first sign in
+   using their primary passkey before generating codes; no codes are silently
+   created at signup. Do not force code re-entry.
+3. Verify the settings UI with real devices and browser automation.
 4. Ensure migration 0011 is applied **only after explicit production approval**,
    and that recovery UX is not advertised before redemption is secure.
 5. Verify real-phone/QR flows, Cloudflare edge policy and D1 recovery rehearsal.
