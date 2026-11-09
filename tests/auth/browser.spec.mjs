@@ -129,6 +129,17 @@ test('desktop signup displays a scannable phone QR instead of offering Windows P
   await expect(page.locator('#signup-phone-link')).toHaveAttribute('href',
     'https://feature-passkey-foundation-2.fairplaychess.pages.dev/account.html?view=signup');
   await expect(page.locator('#account-status')).toContainText('Registration on this computer is disabled.');
+  let optionRequests = 0;
+  await page.route('**/api/auth/passkey-signup/options', route => {
+    optionRequests++;
+    return route.abort();
+  });
+  // Even a synthetic submit of the hidden form cannot request WebAuthn on PC.
+  await page.locator('#registration-preview-form').evaluate(form => {
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  await expect(page.locator('#account-status')).toContainText('Create your account on your phone.');
+  expect(optionRequests).toBe(0);
 });
 
 test('phone signup keeps the form accessible instead of showing desktop QR handoff', async ({ browser }) => {
