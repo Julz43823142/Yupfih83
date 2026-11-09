@@ -4,10 +4,67 @@
   let config, token = '', widgetId, turnstileLoading;
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
   function changed(user) { window.dispatchEvent(new CustomEvent('elo-account-changed', { detail: { user } })); }
+  let passkeyListGeneration = 0;
+  async function refreshPasskeyCount() {
+    const generation = ++passkeyListGeneration;
+    const count = byId('passkey-count');
+    if (!count || !config?.passkeyReady || !window.eloPasskey) return;
+    count.textContent = 'Checking registered passkeys…';
+    try {
+      const keys = await window.eloPasskey.list();
+      if (generation !== passkeyListGeneration || byId('passkey-profile-panel').hidden) return;
+      if (!Array.isArray(keys)) throw new Error('Unable to read passkeys.');
+      count.textContent = keys.length === 0 ? 'No passkeys registered yet.' :
+        keys.length === 1 ? '1 passkey registered. Add a second passkey as a backup.' :
+        keys.length + ' passkeys registered (maximum 5).';
+      byId('passkey-enrollment-form').querySelector('button').disabled = keys.length >= 5;
+    } catch {
+      if (generation === passkeyListGeneration && !byId('passkey-profile-panel').hidden) count.textContent = 'Passkey list unavailable. Try refreshing the page.';
+    }
+  }
+  let accountPasswordEnabled = null;
+  async function refreshPasswordStatus() {
+    if (!config?.passkeyReady || byId('passkey-profile-panel').hidden) return;
+    try {
+      const response = await fetch('/api/auth/passkey/password-status', {
+        credentials: 'same-origin', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('Account security status unavailable.');
+      const state = await response.json();
+      accountPasswordEnabled = state.passwordEnabled;
+      byId('passwordless-migration-panel').hidden = false;
+      byId('remove-password-form').hidden = !state.passwordEnabled;
+      byId('passwordless-active').hidden = state.passwordEnabled;
+      byId('password-form').hidden = !state.passwordEnabled;
+      byId('delete-form').hidden = !state.passwordEnabled;
+      byId('delete-passkey-account-form').hidden = state.passwordEnabled;
+      byId('passkey-confirm-password').required = state.passwordEnabled;
+      byId('passkey-confirm-password').closest('form').querySelector('label').hidden = !state.passwordEnabled;
+      const readiness = byId('passwordless-readiness');
+      if (!state.passwordEnabled) {
+        readiness.textContent = 'Passkey-only account. Your previous password can no longer sign you in.';
+      } else if (!state.backupReady) {
+        readiness.textContent = 'Add at least one backed-up passkey or two distinct passkeys before disabling your password.';
+      } else if (!state.recentPasskeyLogin) {
+        readiness.textContent = 'Passkey ready. Sign out and sign back in with your passkey before removing your password.';
+      } else {
+        readiness.textContent = 'Passkey login verified on this session. You can now remove your password after confirming it below.';
+      }
+      const desktop = !window.eloPhoneAccount?.isPhone();
+      byId('passkey-enrollment-form').hidden = desktop;
+      byId('passkey-phone-enroll-handoff').hidden = !desktop;
+      if (desktop) window.eloPhoneAccount?.render(byId('passkey-phone-enroll-qr'));
+    } catch {
+      accountPasswordEnabled = null;
+      byId('passwordless-migration-panel').hidden = true;
+      // Fail closed: never offer password removal when its safety status is unavailable.
+    }
+  }
   function showUser(user) {
     byId('registration-panel').hidden = true;
     byId('login-panel').hidden = !!user;
     byId('profile-panel').hidden = !user;
+    byId('passkey-profile-panel').hidden = !(user && config?.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
     if (user) {
       byId('profile-username').textContent = user.username;
       byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
@@ -15,6 +72,9 @@
       byId('profile-created').textContent = `Member since ${new Date(user.createdAt).toLocaleDateString()}`;
     }
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }
+    if (user && !byId('passkey-profile-panel').hidden) void refreshPasskeyCount();
+    if (user && !byId('passkey-profile-panel').hidden) void refreshPasswordStatus();
+    if (!user) ++passkeyListGeneration;
     changed(user);
   }
   async function post(route, body) {
@@ -64,16 +124,34 @@
   byId('registration-preview-form').addEventListener('submit', event => {
     event.preventDefault(); const form=event.currentTarget;
     busy(form, async()=>{
-      const username=byId('signup-username').value.trim();
-      const password=byId('signup-password').value;
-      if(password!==byId('signup-confirm').value) throw new Error('Passwords do not match.');
-      if(!config?.registrationOpen) throw new Error('Registration is temporarily unavailable.');
-      if(!signupToken) throw new Error('Complete the security check first.');
-      const result=await post('sign-up/email',{username,password,turnstileToken:signupToken});
-      form.reset(); signupToken='';
-      if(signupWidgetId!==undefined)window.turnstile.reset(signupWidgetId);
-      showUser(result.user); message('Account created successfully.');
-      location.href='/profile/'+encodeURIComponent(result.user.username);
+      if (!window.eloPhoneSignup?.isPhone()) throw new Error('Create your account on your phone. Scan the QR code shown on this page.');
+      const username = byId('signup-username').value.trim();
+      if (!config?.registrationOpen || !config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential)
+        throw new Error('Phone-passkey registration is not available yet.');
+      if (!signupToken) throw new Error('Complete the security check first.');
+      message('Preparing your phone passkey…');
+      const options = await post('passkey-signup/options', { username, turnstileToken: signupToken });
+      signupToken = '';
+      if (signupWidgetId !== undefined) window.turnstile.reset(signupWidgetId);
+      message('Confirm the passkey using your phone’s Face ID, fingerprint, or phone screen lock…');
+      const credential = await window.eloPasskey.registerPhone(options.publicKey);
+      message('Verifying your new passkey…');
+      const created = await post('passkey-signup/verify', {
+        attemptId: options.attemptId, challenge: options.publicKey.challenge, credential
+      });
+      if (!created.success || created.username !== username.toLowerCase()) throw new Error('Registration response did not match the requested username. Do not sign in; contact support.');
+      if (created.loggedIn && created.user?.username === created.username) {
+        form.reset();
+        showUser(created.user);
+        message('Your account is ready. You are signed in as ' + created.username + '.');
+        history.replaceState(null, '', '/account.html');
+        return;
+      }
+      form.reset();
+      // Registration intentionally does not sign in: a generic passkey prompt
+      // could select a different existing account. Never present that as success.
+      form.hidden = true;
+      message('Account ' + created.username + ' created. You are not signed in. Open the login page, choose Log in with passkey, and confirm the displayed username is ' + created.username + '.');
     });
   });
   byId('login-form').addEventListener('submit', event => {
@@ -88,6 +166,55 @@
         if (error.code === 'CHALLENGE_REQUIRED') await challenge();
         throw error;
       } finally { token = ''; if (widgetId !== undefined && window.turnstile) window.turnstile.reset(widgetId); }
+    });
+  });
+  byId('passkey-login').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (!config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential) throw new Error('Passkey sign-in is not available.');
+    message('Confirm the passkey on your device…');
+    const result = await window.eloPasskey.signIn();
+    if (!result?.user) throw new Error('Passkey sign-in did not complete.');
+    showUser(result.user);
+    message('You are logged in with your passkey.');
+    history.replaceState(null, '', '/account.html');
+  }));
+  byId('passkey-enrollment-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, async () => {
+      if (!config?.passkeyReady || !window.eloPasskey || !window.PublicKeyCredential) throw new Error('Passkey enrollment is not available.');
+      if (accountPasswordEnabled !== false) {
+        await post('passkey/step-up', { currentPassword: byId('passkey-confirm-password').value });
+        byId('passkey-confirm-password').value = '';
+      }
+      message('Confirm the new passkey on your device…');
+      await window.eloPasskey.enroll();
+      form.reset();
+      message('Your passkey is registered. Test a passkey login before removing any old sign-in method.');
+      await refreshPasskeyCount();
+      await refreshPasswordStatus();
+    });
+  });
+  byId('remove-password-form').addEventListener('submit', event => {
+    event.preventDefault(); const form = event.currentTarget;
+    if (!confirm('Remove your password permanently? Only your verified passkeys will be able to sign in.')) return;
+    busy(form, async () => {
+      if (!byId('remove-password-understood').checked) throw new Error('Confirm that you have tested passkey sign-in.');
+      await post('passkey/remove-password', {
+        currentPassword: byId('remove-password-confirm').value,
+        confirm: 'REMOVE_PASSWORD'
+      });
+      form.reset();
+      message('Password removed. Your username and account remain unchanged. Sign in using your passkey.');
+      await refreshPasswordStatus();
+    });
+  });
+  byId('delete-passkey-account-form').addEventListener('submit', event => {
+    event.preventDefault(); const form = event.currentTarget;
+    if (!confirm('Permanently delete your passkey-only account and its login credentials?')) return;
+    busy(form, async () => {
+      if (!byId('passkey-delete-understood').checked) throw new Error('Confirm permanent deletion.');
+      await post('passkey/delete-account', { confirm: 'DELETE_MY_ACCOUNT' });
+      form.reset(); showUser(null); message('Your account has been deleted.');
     });
   });
   byId('password-form').addEventListener('submit', event => {
@@ -110,7 +237,31 @@
     if (!response.ok) throw new Error('Account services are not available yet.');
     if (!(response.headers.get('content-type') || '').toLowerCase().includes('application/json')) throw new Error('Account API is not responding correctly. Check the Cloudflare Pages Functions deployment.');
     config = await response.json();
-    if (new URLSearchParams(location.search).get('view') === 'signup') { byId('registration-panel').hidden = false; byId('signup-submit').disabled = !config.registrationOpen; message(config.registrationOpen ? '' : 'Registration is currently unavailable.'); if(config.registrationOpen) await signupChallenge(); return; }
+    byId('passkey-login').hidden = !(config.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
+    if (new URLSearchParams(location.search).get('view') === 'signup') {
+      byId('registration-panel').hidden = false;
+      byId('signup-submit').disabled = !config.registrationOpen;
+      if (!config.registrationOpen) { message('Registration is currently unavailable.'); return; }
+      const current = await fetch('/api/auth/get-session', { credentials: 'same-origin', cache: 'no-store' });
+      const existing = current.ok ? (await current.json()).user : null;
+      if (existing?.username) {
+        byId('registration-preview-form').hidden = true;
+        message('You are already signed in as ' + existing.username + '. Open your account and log out before creating another account.');
+        return;
+      }
+      if (!window.eloPhoneSignup?.isPhone()) {
+        byId('registration-preview-form').hidden = true;
+        const handoff = byId('signup-phone-handoff');
+        handoff.hidden = false;
+        if (!window.eloPhoneSignup?.renderQr(byId('signup-phone-qr')))
+          throw new Error('Phone signup QR code unavailable for this domain.');
+        message('Scan the QR code with your phone to create an account. Registration on this computer is disabled.');
+        return;
+      }
+      message('');
+      await signupChallenge();
+      return;
+    }
     const session = await (window.eloAccountSession || fetch('/api/auth/get-session', { cache: 'no-store' }).then(async r => ({ available: r.ok, ...(r.ok ? await r.json() : {}) })));
     showUser(session.user || null);
     message(config.loginConfigured && session.available ? '' : 'Account services are not available yet. Registration remains closed.');

@@ -1,6 +1,7 @@
-// Lightweight health/config endpoint: do not initialize Better Auth, Argon2 or D1.
+// Lightweight config endpoint: check D1 schema without initializing Better Auth or Argon2.
+import { passkeyConfigured, passkeyStorageReady } from '../../../lib/auth/passkey-policy.mjs';
 // This endpoint is public and must never expose secrets or database contents.
-export const onRequestGet = ({ request, env }) => {
+export const onRequestGet = async ({ request, env }) => {
   const url = new URL(request.url);
   const base = env.BETTER_AUTH_URL || 'https://eloscanner.com';
   const origin = request.headers.get('Origin');
@@ -11,13 +12,29 @@ export const onRequestGet = ({ request, env }) => {
     'Referrer-Policy': 'no-referrer',
     'Cross-Origin-Resource-Policy': 'same-origin'
   };
-  if (url.origin !== base || (origin && origin !== base) || request.headers.get('Sec-Fetch-Site') === 'cross-site') {
-    return Response.json({ message: 'Request not allowed.' }, { status: 403, headers });
+  // Keep the origin policy unchanged. Report only a coarse rejection reason
+  // so an isolated Pages preview can diagnose environment/hostname mismatches
+  // without exposing secrets, tokens, or request headers.
+  const denialCode = url.origin !== base ? 'URL_ORIGIN_MISMATCH'
+    : origin && origin !== base ? 'HEADER_ORIGIN_MISMATCH'
+    : request.headers.get('Sec-Fetch-Site') === 'cross-site' ? 'CROSS_SITE_REQUEST'
+    : null;
+  if (denialCode) {
+    return Response.json({ message: 'Request not allowed.', code: denialCode }, { status: 403, headers });
   }
   const configured = !!env.AUTH_DB && typeof env.BETTER_AUTH_SECRET === 'string' && env.BETTER_AUTH_SECRET.length >= 32;
+  const passkeyReady = configured && passkeyConfigured(env) && await passkeyStorageReady(env.AUTH_DB);
+  let registrationOpen = false;
+  if (passkeyReady && env.PUBLIC_SIGNUP_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY) {
+    try {
+      const row = await env.AUTH_DB.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='auth_passkey_signup_attempt'").first();
+      registrationOpen = Number(row?.count) === 1;
+    } catch { registrationOpen = false; }
+  }
   return Response.json({
-    registrationOpen: configured && env.PUBLIC_SIGNUP_ENABLED === 'true' && !!env.TURNSTILE_SECRET_KEY && !!env.TURNSTILE_SITE_KEY,
+    registrationOpen,
     loginConfigured: configured,
+    passkeyReady,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
 };

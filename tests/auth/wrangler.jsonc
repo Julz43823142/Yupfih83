@@ -15,6 +15,8 @@
   }],
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:8788",
-    "BETTER_AUTH_SECRET": "LOCAL-TEST-ONLY-never-use-in-production-1234567890"
+    "BETTER_AUTH_SECRET": "LOCAL-TEST-ONLY-never-use-in-production-1234567890",
+    "PASSKEY_LOGIN_ENABLED": "true",
+    "PASSKEY_RP_ID": "localhost"
   }
 }

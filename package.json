@@ -2,6 +2,7 @@
   "private": true,
   "description": "Cloudflare Pages Functions dependencies for EloScanner",
   "dependencies": {
+    "@better-auth/passkey": "1.7.17",
     "@noble/hashes": "2.4.0",
     "better-auth": "1.7.17",
     "glin-profanity": "4.0.1",

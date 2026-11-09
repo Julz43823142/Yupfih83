@@ -1,0 +1,60 @@
+name: Audit production passkey readiness without changes
+
+on:
+  push:
+    branches:
+      - feature/passkey-foundation-20261108
+    paths:
+      - .github/workflows/passkey-production-readiness.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read Cloudflare Pages production bindings (no mutations)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN, id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Cloudflare audit credentials not configured');
+          const headers={Authorization:'Bearer '+token,Accept:'application/json'};
+          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const res=await fetch(api+'/pages/projects/fairplaychess',{headers});
+          if(!res.ok)throw Error('Pages read-only audit HTTP '+res.status);
+          const payload=await res.json();
+          if(!payload.success)throw Error('Pages audit failed');
+          const p=payload.result, prod=p.deployment_configs?.production||{}, prev=p.deployment_configs?.preview||{};
+          const vars=prod.env_vars||{};
+          const previewDb=prev.d1_databases?.AUTH_DB?.id||prev.d1_databases?.AUTH_DB?.database_id;
+          const prodDb=prod.d1_databases?.AUTH_DB?.id||prod.d1_databases?.AUTH_DB?.database_id;
+          const report={
+            productionBranch:p.production_branch,
+            productionAuthDatabasePresent:!!prodDb,
+            productionAuthDatabaseExpected:prodDb==='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf',
+            previewAuthDatabaseIsolated:previewDb==='e1d84922-0f74-414f-8fe5-2c3ac48f7884'&&prodDb!==previewDb,
+            productionAuthURL:vars.BETTER_AUTH_URL?.type==='plain_text'?vars.BETTER_AUTH_URL.value:'[secret or unset]',
+            productionPasskeyRPID:vars.PASSKEY_RP_ID?.type==='plain_text'?vars.PASSKEY_RP_ID.value:'[secret or unset]',
+            productionPasskeyEnabled:vars.PASSKEY_LOGIN_ENABLED?.value==='true',
+            productionSignupEnabled:vars.PUBLIC_SIGNUP_ENABLED?.value==='true',
+            hasBetterAuthSecret:!!vars.BETTER_AUTH_SECRET,
+            hasTurnstileKeys:!!vars.TURNSTILE_SITE_KEY&&!!vars.TURNSTILE_SECRET_KEY
+          };
+          console.log(JSON.stringify(report,null,2));
+          const query=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
+            method:'POST',headers:{...headers,'Content-Type':'application/json'},
+            body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','d1_migrations') ORDER BY name"})
+          });
+          if(!query.ok)throw Error('Production D1 schema audit HTTP '+query.status);
+          const q=await query.json();
+          if(!q.success)throw Error('Production D1 schema audit failed');
+          console.log('Production D1 passkey tables present: '+JSON.stringify((q.result||[]).flatMap(x=>(x.results||[]).map(y=>y.name))));
+          if(!report.productionAuthDatabaseExpected || !report.previewAuthDatabaseIsolated)throw Error('Unexpected D1 target; no changes permitted');
+          if(report.productionSignupEnabled)throw Error('Production signup is already enabled: STOP');
+          NODE

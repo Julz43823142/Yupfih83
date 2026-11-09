@@ -1,0 +1,109 @@
+name: Publish passkey login on EloScanner production (signup stays CLOSED)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/passkey-production-publish.yml
+      - lib/auth/**
+      - functions/api/auth/**
+      - migrations/auth/**
+      - account.js
+      - account.html
+      - phone-account-qr.js
+      - phone-signup-qr.js
+      - scripts/passkey-client.mjs
+      - tests/auth/**
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eloscanner-production-passkey-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Require all account regression tests
+        run: npm run test:auth
+      - name: Build site and browser passkey client
+        run: npm run build
+      - name: Refuse wrong production target or open registration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Cloudflare credentials missing');
+          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+          const response=await fetch(api+'/pages/projects/fairplaychess',{headers});
+          if(!response.ok)throw Error('Cannot audit Cloudflare production project');
+          const payload=await response.json();
+          if(!payload.success)throw Error('Project audit failed');
+          const project=payload.result;
+          const prod=project.deployment_configs?.production, preview=project.deployment_configs?.preview;
+          if(project.production_branch!=='main')throw Error('Production branch mismatch');
+          const prodDB=prod?.d1_databases?.AUTH_DB,previewDB=preview?.d1_databases?.AUTH_DB;
+          if((prodDB?.id||prodDB?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
+             (previewDB?.id||previewDB?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
+             throw Error('Production/preview AUTH_DB binding mismatch');
+          const vars=prod.env_vars||{};
+          if(vars.PUBLIC_SIGNUP_ENABLED?.value!=='false'||vars.PASSKEY_LOGIN_ENABLED?.value!=='true'||
+             vars.PASSKEY_RP_ID?.value!=='eloscanner.com'||!vars.BETTER_AUTH_SECRET)
+            throw Error('Production auth config or closed-registration safety guard failed');
+          console.log('Production database isolated; passkey login enabled; public registration disabled.');
+          NODE
+      - name: Deploy built Functions and site to production branch ONLY
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx wrangler pages deploy dist --project-name fairplaychess --branch main --commit-hash "$GITHUB_SHA"
+      - name: Verify live EloScanner passkey login and closed signup
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://eloscanner.com';
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          let reason='not reached';
+          for(let attempt=0;attempt<15;attempt++){
+            try{
+              const r=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}});
+              const cfg=await r.json();
+              const page=await (await fetch(base+'/account.html',{headers:{'Cache-Control':'no-cache'}})).text();
+              const signup=await fetch(base+'/api/auth/sign-up/email',{
+                method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
+                body:JSON.stringify({username:'no_public_password_registration',password:'not-used'})
+              });
+              const phoneSignup=await fetch(base+'/api/auth/passkey-signup/options',{
+                method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
+                body:JSON.stringify({username:'no_public_phone_registration',turnstileToken:'not-used'})
+              });
+              const configValid=r.ok && cfg.passkeyReady===true && cfg.loginConfigured===true &&
+                cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
+                page.includes('account.js?v=12-passwordless-migration');
+              if(configValid && signup.status===403 && phoneSignup.status===404) {
+                console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
+                process.exit(0);
+              }
+              reason='auth='+r.status+', passkeyReady='+cfg.passkeyReady+', registrationOpen='+cfg.registrationOpen+
+                ', page='+configValid+', passwordSignup='+signup.status+', passkeySignup='+phoneSignup.status;
+            }catch(error){reason=String(error);}
+            await sleep(4000);
+          }
+          throw Error('Production smoke failed: '+reason);
+          NODE

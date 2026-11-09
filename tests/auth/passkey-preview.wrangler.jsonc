@@ -1,0 +1,12 @@
+{
+  "name": "eloscanner-passkey-preview-migration",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "AUTH_DB",
+      "database_name": "eloscanner-auth-preview",
+      "database_id": "e1d84922-0f74-414f-8fe5-2c3ac48f7884",
+      "migrations_dir": "../../migrations/auth"
+    }
+  ]
+}

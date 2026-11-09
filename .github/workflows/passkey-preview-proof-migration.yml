@@ -1,0 +1,44 @@
+name: Add session-bound passkey proof storage to preview only
+
+on:
+  push:
+    branches: [feature/passkey-foundation-20261108]
+    paths: [.github/workflows/passkey-preview-proof-migration.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add isolated preview-only passkey proof table
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
+          if(!token||!id)throw Error('Credentials missing');
+          const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
+          const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+          const get=async url=>{const r=await fetch(url,{headers});if(!r.ok)throw Error('GET HTTP '+r.status);const j=await r.json();if(!j.success)throw Error('GET failed');return j.result;};
+          const before=await get(api+'/pages/projects/fairplaychess');
+          const db=before.deployment_configs?.preview?.d1_databases?.AUTH_DB;
+          const prod=before.deployment_configs?.production?.d1_databases?.AUTH_DB;
+          if((db?.id||db?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884' ||
+             (prod?.id||prod?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf')throw Error('D1 target mismatch');
+          const query=async sql=>{
+            const r=await fetch(api+'/d1/database/e1d84922-0f74-414f-8fe5-2c3ac48f7884/query',{method:'POST',headers,body:JSON.stringify({sql})});
+            if(!r.ok)throw Error('D1 query HTTP '+r.status);
+            const result=await r.json();if(!result.success)throw Error('D1 query failure');return result.result;
+          };
+          await query('CREATE TABLE IF NOT EXISTS "auth_passkey_login_proof" ("sessionId" TEXT NOT NULL PRIMARY KEY REFERENCES "session"("id") ON DELETE CASCADE, "userId" TEXT NOT NULL REFERENCES "user"("id") ON DELETE CASCADE, "verifiedAt" INTEGER NOT NULL)');
+          await query('CREATE INDEX IF NOT EXISTS "auth_passkey_login_proof_user" ON "auth_passkey_login_proof" ("userId","verifiedAt")');
+          const result=await query("SELECT name FROM sqlite_master WHERE type='table' AND name='auth_passkey_login_proof'");
+          if(result?.[0]?.results?.[0]?.name!=='auth_passkey_login_proof')throw Error('Proof table missing');
+          const after=await get(api+'/pages/projects/fairplaychess');
+          if(JSON.stringify(after.deployment_configs?.production)!==JSON.stringify(before.deployment_configs?.production))throw Error('Production config changed unexpectedly');
+          console.log('Preview passkey proof migration applied; production untouched.');
+          NODE
