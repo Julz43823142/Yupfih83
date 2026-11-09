@@ -2,6 +2,10 @@ name: Read-only production merge safety gate
 
 on:
   workflow_dispatch:
+  # Read-only Cloudflare + live signup audit after EVERY merge to main.
+  # No production deployment, signup flag changes or D1 writes.
+  push:
+    branches: [main]
   pull_request:
     paths:
       - '.github/workflows/production-merge-safety.yml'
