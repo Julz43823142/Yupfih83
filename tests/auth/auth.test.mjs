@@ -504,3 +504,43 @@ test('public config enables phone signup only with rollout, Turnstile and migrat
   assert.equal(foreign.status, 403);
   assert.equal(foreign.body.code, 'HEADER_ORIGIN_MISMATCH');
 });
+
+test('Sharkmeister password removal requires a session-bound passkey proof and preserves identity', async () => {
+  const env = envFor();
+  env.PASSKEY_LOGIN_ENABLED = 'true';
+  env.PASSKEY_RP_ID = 'eloscanner.com';
+  await provision(env, 'sharkmeister');
+  const login = await handleAuth({ request: req('sign-in/username', { username: 'sharkmeister', password }), env });
+  assert.equal(login.status, 200);
+  const c = cookie(login);
+  const session = await createAuth(env).api.getSession({ headers: new Headers({ Cookie: c }) });
+  assert.ok(session?.session?.id);
+  const id = session.user.id;
+  env.AUTH_DB.sqlite.prepare('INSERT INTO passkey(id,publicKey,userId,credentialID,counter,deviceType,backedUp) VALUES (?,?,?,?,?,?,?)')
+    .run('synced-key-1','fixture-public-key',id,'test-passkey-ID',0,'multiDevice',1);
+  const call = (route, body, cookies = c) => handleAuth({ request: req(route, body, cookies), env });
+  const status = await call('passkey/password-status');
+  assert.equal(status.status, 200);
+  assert.deepEqual(await status.json(), { passwordEnabled: true, passkeyCount: 1, backupReady: true, recentPasskeyLogin: false });
+  assert.equal((await call('passkey/remove-password', { currentPassword: password, confirm: 'REMOVE_PASSWORD' })).status, 403);
+  const otherLogin = await handleAuth({ request: req('sign-in/username', { username: 'sharkmeister', password }), env });
+  const otherCookie = cookie(otherLogin);
+  // The proof belongs to one authenticated session only, not merely a user ID.
+  env.AUTH_DB.sqlite.prepare('INSERT INTO auth_passkey_login_proof(sessionId,userId,verifiedAt) VALUES (?,?,?)')
+    .run(session.session.id, id, Date.now());
+  assert.equal((await call('passkey/remove-password', { currentPassword: password, confirm: 'REMOVE_PASSWORD' }, otherCookie)).status, 403);
+  assert.equal((await call('passkey/remove-password', { currentPassword: 'wrong-password', confirm: 'REMOVE_PASSWORD' })).status, 403);
+  assert.equal((await call('passkey/remove-password', { currentPassword: password, confirm: 'WRONG' })).status, 400);
+  const removed = await call('passkey/remove-password', { currentPassword: password, confirm: 'REMOVE_PASSWORD' });
+  assert.equal(removed.status, 200, await removed.clone().text());
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT id FROM "user" WHERE id=?').get(id).id, id, 'same account ID');
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT password FROM account WHERE userId=? AND providerId=?').get(id, 'credential').password, null);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS c FROM passkey WHERE userId=?').get(id).c, 1, 'passkey retained');
+  assert.equal((await call('passkey/password-status')).status, 200);
+  assert.equal((await call('passkey/password-status').then(r => r.json())).passwordEnabled, false);
+  assert.notEqual((await call('sign-in/username', { username: 'sharkmeister', password })).status, 200, 'old password no longer logs in');
+  const deleted = await call('passkey/delete-account', { confirm: 'DELETE_MY_ACCOUNT' });
+  assert.equal(deleted.status, 200, await deleted.clone().text());
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS c FROM "user" WHERE id=?').get(id).c, 0);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS c FROM passkey WHERE userId=?').get(id).c, 0);
+});
