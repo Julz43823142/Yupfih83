@@ -1,0 +1,1 @@
+Protected release verification retry after replacing last forest-only live check. Preserve registration and Cloudflare project settings.
