@@ -88,7 +88,7 @@ jobs:
           if(!token||!/^[a-f0-9]{32}$/i.test(account||''))throw Error('Protected production D1 credential unavailable');
           const url='https://api.cloudflare.com/client/v4/accounts/'+account+
             '/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query';
-          const sql="SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')";
+          const sql="SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger','index')";
           const r=await fetch(url,{method:'POST',headers:{
             Authorization:'Bearer '+token,'Content-Type':'application/json'
           },body:JSON.stringify({sql}),signal:AbortSignal.timeout(30000)});
@@ -98,7 +98,7 @@ jobs:
             j.result.some(x=>x.success===false))throw Error('Production D1 schema inspection failed');
           const found=new Set(j.result.flatMap(x=>x.results||[]).map(x=>x.name));
           const required=[
-            'auth_qr_login','auth_primary_passkey','auth_primary_passkey_proof',
+            'auth_qr_login','auth_qr_login_session_once_idx','auth_primary_passkey','auth_primary_passkey_proof',
             'auth_primary_passkey_assign','auth_primary_passkey_no_delete',
             'auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign',
             'auth_primary_passkey_no_mapping_delete','auth_primary_passkey_no_user_change',
@@ -137,7 +137,7 @@ jobs:
               });
               const configValid=r.ok && cfg.passkeyReady===true && cfg.qrLoginReady===true && cfg.loginConfigured===true &&
                 cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
-                page.includes('account.js?v=16-qr-login');
+                page.includes('account.js?v=17-qr-cancel');
               if(configValid && signup.status===403 && phoneSignup.status===404) {
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
