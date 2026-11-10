@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-126.txt'
+      - '.github/release-pawn-dash-127.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -44,15 +44,19 @@ jobs:
           const world=readFileSync('dist/pawn-world.js','utf8');
           const logic=readFileSync('dist/pawn-world-logic.mjs','utf8');
           const shop=readFileSync('dist/pawn-shop.mjs','utf8');
+          const art=readFileSync('dist/pawn-piece-art.mjs','utf8');
+          const sound=readFileSync('dist/pawn-sound.mjs','utf8');
           const page=readFileSync('dist/arcade.html','utf8');
           const bundle=readFileSync('dist/arcade-bundle.js','utf8');
           if(!world.includes('function drawPawn(')||!world.includes('function tree(')||
              !world.includes('pawn-world-logic.mjs')||!logic.includes('createPawnDashModel')||
-             !world.includes('pawn-shop.mjs')||!world.includes('function drawRiver(')||!shop.includes('PAWN_SHOP')||
+             !world.includes('pawn-shop.mjs')||!world.includes('function drawRiver(')||!shop.includes('PIECE_ORDER')||
+             !world.includes('pawn-piece-art.mjs')||!art.includes('paintChessPiece')||
+             !world.includes('pawn-sound.mjs')||!sound.includes('createPawnSound')||
              !world.includes('function playerSquare(')||!world.includes('function drawEnemy(')||
              !logic.includes('row>=750')||!logic.includes('row>=500')||!logic.includes('row>=100')||
-             !page.includes('20261110-world-shop5')||
-             !bundle.includes('20261110-world-shop5'))
+             !page.includes('20261111-chess-club6')||
+             !bundle.includes('20261111-chess-club6'))
             throw Error('Pawn Dash redesign missing from build');
           NODE
       - name: Verify production isolation and snapshot existing registration settings
@@ -100,25 +104,29 @@ jobs:
           for(let i=0;i<18;i++){
             try{
               const nonce=encodeURIComponent(process.env.GITHUB_SHA+'-'+i);
-              const [worldRes,pageRes,configRes,logicRes,shopRes]=await Promise.all([
+              const [worldRes,pageRes,configRes,logicRes,shopRes,artRes,soundRes]=await Promise.all([
                 fetch(base+'/pawn-world.js?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
                 fetch(base+'/arcade.html?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
                 fetch(base+'/api/auth/config?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
                 fetch(base+'/pawn-world-logic.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
-                fetch(base+'/pawn-shop.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}})
+                fetch(base+'/pawn-shop.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
+                fetch(base+'/pawn-piece-art.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
+                fetch(base+'/pawn-sound.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}})
               ]);
-              const [world,page,config,logic,shop]=await Promise.all([worldRes.text(),pageRes.text(),configRes.json(),logicRes.text(),shopRes.text()]);
+              const [world,page,config,logic,shop,art,sound]=await Promise.all([worldRes.text(),pageRes.text(),configRes.json(),logicRes.text(),shopRes.text(),artRes.text(),soundRes.text()]);
               const password=await fetch(base+'/api/auth/sign-up/email',{
                 method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
                 body:JSON.stringify({username:'production_release_probe',password:'invalid'})
               });
-              if(worldRes.ok&&pageRes.ok&&configRes.ok&&logicRes.ok&&shopRes.ok&&
+              if(worldRes.ok&&pageRes.ok&&configRes.ok&&logicRes.ok&&shopRes.ok&&artRes.ok&&soundRes.ok&&
+                 world.includes('pawn-piece-art.mjs')&&art.includes('paintChessPiece')&&
+                 world.includes('pawn-sound.mjs')&&sound.includes('createPawnSound')&&
                  world.includes('pawn-shop.mjs')&&world.includes('function drawRiver(')&&shop.includes('PAWN_SHOP')&&
                  world.includes('pawn-world-logic.mjs')&&logic.includes('createPawnDashModel')&&
                  world.includes('function playerSquare(')&&world.includes('function drawEnemy(')&&
                  logic.includes('row>=750')&&logic.includes('row>=500')&&logic.includes('row>=100')&&
                  world.includes('function drawPawn(')&&world.includes('function tree(')&&
-                 page.includes('20261110-world-shop5')&&
+                 page.includes('20261111-chess-club6')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
                 process.exit(0);
