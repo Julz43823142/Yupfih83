@@ -55,9 +55,13 @@ if (!live.ok || (await live.json()).registrationOpen !== false)
 const before = (await read('SELECT (SELECT COUNT(*) FROM "user") AS users, (SELECT COUNT(*) FROM "passkey") AS passkeys'))[0];
 const schema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx','auth_qr_login_session_once_idx')");
 const existing = new Set(schema.map(x => x.name));
-if (existing.has('auth_qr_login') || existing.has('auth_qr_login_expires_idx')) {
+if (existing.size > 0) {
   if (existing.size === 3) {
-    console.log('QR login schema already present; no writes needed.');
+    const columns = await read("SELECT name FROM pragma_table_info('auth_qr_login')");
+    const indexes = await read("SELECT name, \"unique\" AS isUnique FROM pragma_index_list('auth_qr_login') WHERE name='auth_qr_login_session_once_idx'");
+    if (!columns.some(x => x.name === 'approvedSessionId') || Number(indexes[0]?.isUnique) !== 1)
+      throw Error('Existing QR approval schema invalid; no writes');
+    console.log('Complete QR login schema already present and unique approval enforced; no writes needed.');
     process.exit(0);
   }
   throw Error('Partial QR schema found; review manually, do not retry');
@@ -69,8 +73,14 @@ const sql = readFileSync('migrations/auth/0015_qr_login.sql', 'utf8');
 if (!approvedQrSchema(sql))
   throw Error('Migration must contain only the approved QR table and index CREATE statements');
 await query(sql);
-const afterSchema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx')");
-if (afterSchema.length !== 3) throw Error('Incomplete QR schema; inspect manually');
+const afterSchema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx','auth_qr_login_session_once_idx')");
+const afterNames = new Set(afterSchema.map(x => x.name));
+if (afterNames.size !== 3 || !['auth_qr_login','auth_qr_login_expires_idx','auth_qr_login_session_once_idx'].every(name => afterNames.has(name)))
+  throw Error('Incomplete QR schema; inspect manually');
+const columns = await read("SELECT name FROM pragma_table_info('auth_qr_login')");
+const indexes = await read("SELECT name, \"unique\" AS isUnique FROM pragma_index_list('auth_qr_login') WHERE name='auth_qr_login_session_once_idx'");
+if (!columns.some(x => x.name === 'approvedSessionId') || Number(indexes[0]?.isUnique) !== 1)
+  throw Error('QR approval uniqueness not enforced; inspect manually');
 const after = (await read('SELECT (SELECT COUNT(*) FROM "user") AS users, (SELECT COUNT(*) FROM "passkey") AS passkeys'))[0];
 if (Number(before.users) !== Number(after.users) || Number(before.passkeys) !== Number(after.passkeys))
   throw Error('Account or passkey count changed unexpectedly');
