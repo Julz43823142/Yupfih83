@@ -1,3 +1,4 @@
+import {readBoundedText} from '../../lib/bounded-upstream.mjs';
 import {onRequestGet as getStats} from './opening-explorer.js';
 // Full CC0 opening names from lichess-org/chess-openings, cached at the edge.
 export async function onRequestGet({request,env,context}){
@@ -15,12 +16,12 @@ export async function onRequestGet({request,env,context}){
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
     try{
      const r=await fetch(source,{headers:{Accept:'text/plain'},signal:controller.signal});
-     if(r.ok){const body=await r.text();if(body.startsWith('eco\tname\tpgn'))return body}
+     if(r.ok){const body=await readBoundedText(r,1024*1024);if(body.startsWith('eco\tname\tpgn'))return body}
     }catch{}finally{clearTimeout(timer)}
    }
    throw Error('Opening catalogue unavailable');
   }));
-  const rows=files.flatMap(t=>t.trim().split(/\r?\n/).slice(1).map(line=>{const [eco,name,pgn]=line.split('\t');return {eco,name,pgn}}).filter(x=>x.name&&x.pgn));
+  const rows=files.flatMap(t=>t.trim().split(/\r?\n/).slice(1).map(line=>{const [eco,name,pgn]=line.split('\t');return {eco,name,pgn}}).filter(x=>/^[A-E][0-9]{2}$/.test(x.eco||'')&&typeof x.name==='string'&&x.name.length<=180&&typeof x.pgn==='string'&&x.pgn.length<=1200));
   if(rows.length<100)throw Error('Incomplete catalogue');
   const response=Response.json(rows,{headers:{'Cache-Control':'public, max-age=86400, s-maxage=604800'}});
   try{await cache.put(key,response.clone())}catch{}

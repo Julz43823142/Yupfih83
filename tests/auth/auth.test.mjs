@@ -544,3 +544,8 @@ test('Sharkmeister password removal requires a session-bound passkey proof and p
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS c FROM "user" WHERE id=?').get(id).c, 0);
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS c FROM passkey WHERE userId=?').get(id).c, 0);
 });
+
+test('HIBP password breach lookup refuses misleading short Content-Length for oversized bodies',async()=>{
+ const tooLarge=new Response('A'.repeat(300100),{headers:{'Content-Length':'10'}});
+ await assert.rejects(checkNewPassword('a long unlisted test password, for example', '',async()=>tooLarge),/size limit/);
+});
