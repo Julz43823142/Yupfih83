@@ -297,3 +297,17 @@ test('Pawn Dash sound mixer persists music, SFX and overall volumes',async({page
  await expect(page.getByRole('button',{name:'Music: Off'})).toBeVisible();
  expect(errors).toEqual([]);
 });
+
+test('Pawn Dash actually boots its canvas and never falls back to a timed chessboard',async({page})=>{
+ await stubScores(page);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/arcade.html?game=pawn-dash');
+ await expect(page.locator('.pawn-world-canvas')).toBeVisible({timeout:15000});
+ await expect(page.locator('#arcade-board')).toBeHidden();
+ await expect(page.locator('#arcade-time')).toHaveText('∞');
+ await expect(page.getByRole('button',{name:'Open game menu'})).toBeVisible();
+ await page.getByRole('button',{name:'Open game menu'}).click();
+ await page.getByRole('button',{name:'Open sound and music settings'}).click();
+ await expect(page.getByRole('slider',{name:'Music volume'})).toBeVisible();
+ expect(errors).toEqual([]);
+});

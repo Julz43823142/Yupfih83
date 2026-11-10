@@ -1,0 +1,1 @@
+Protected one-time Pawn Dash startup cache fix and endless mode release. Do not change authentication or D1 configuration.
