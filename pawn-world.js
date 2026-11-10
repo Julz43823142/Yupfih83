@@ -54,7 +54,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   wrap.append(name,out,input);audioPanel.append(wrap);
  }
  const audioBack=document.createElement('button');audioBack.type='button';audioBack.textContent='← Back to menu';audioPanel.append(audioBack);
- soundButton.onclick=()=>{sound.play('menu');audioPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true};
+ soundButton.onclick=()=>{sound.unlock();sound.play('menu');audioPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true};
  audioBack.onclick=()=>{sound.play('menu');audioPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
  const menuHelp=document.createElement('p');menuHelp.textContent='Tap to hop · Swipe to steer · Collect 1 coin at a time · Explore 30 skins · Esc pauses';
  overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel,audioPanel);
@@ -114,8 +114,8 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  shopButton.onclick=()=>{sound.play('menu');activeCategory=null;shopPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true;refreshShop()};
  shopCategoryBack.onclick=()=>{sound.play('menu');activeCategory=null;refreshShop()};
  shopBack.onclick=()=>{sound.play('menu');shopPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
- const setMenu=open=>{sound.play('menu');if(!open&&!audioPanel.hidden)audioBack.click();sound.setPaused(open);if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
- menuButton.onclick=()=>setMenu(overlay.hidden);resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
+ const setMenu=open=>{sound.play('menu');if(!open&&!audioPanel.hidden)audioBack.click();if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
+ menuButton.onclick=()=>{sound.unlock();setMenu(overlay.hidden)};resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
  const canvas=document.createElement('canvas');canvas.className='pawn-world-canvas';canvas.tabIndex=0;
  canvas.setAttribute('aria-label','Pawn Dash in a chess club: tap to hop on a giant chessboard, collect coins and cross blue water channels on stone bridges');
  const controls=document.createElement('div');controls.className='pawn-world-controls';controls.setAttribute('aria-label','Pawn Dash movement controls');
@@ -321,7 +321,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   }
  }
  const keys={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
- function keydown(e){if(dead)return;if(e.code==='Escape'){e.preventDefault();setMenu(overlay.hidden);return}if(!overlay.hidden||!keys[e.code])return;if(e.target?.matches('input,textarea'))return;e.preventDefault();move(...keys[e.code]);}
+ function keydown(e){if(dead)return;if(e.code==='Escape'){e.preventDefault();sound.unlock();setMenu(overlay.hidden);return}if(!overlay.hidden||!keys[e.code])return;if(e.target?.matches('input,textarea'))return;e.preventDefault();move(...keys[e.code]);}
  const dirs={left:[-1,0],right:[1,0],forward:[0,1],back:[0,-1]};
  // Pointerdown handles physical taps exactly once. Keyboard-generated clicks stay accessible.
  function controlPointer(e){
