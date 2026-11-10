@@ -24,6 +24,10 @@ test('desktop QR login uses phone passkey without invoking desktop WebAuthn', as
     await phone.locator('#passkey-confirm-password').fill('Local-test-only-orchard-57931!');
     await phone.getByRole('button', { name: 'Create passkey' }).click();
     await expect(phone.locator('#account-status')).toContainText('Your passkey is registered.', { timeout: 30000 });
+    // The dedicated production-style Pages config route must expose recovery
+    // and phone-transfer readiness in the actual account UI, not just JSON.
+    await expect(phone.locator('#recovery-codes-panel')).toBeVisible();
+    await expect(phone.locator('#phone-transfer-panel')).toBeVisible();
     await phone.locator('#sign-out').click();
     await expect(phone.locator('#login-panel')).toBeVisible();
 

@@ -1,5 +1,5 @@
 // Lightweight config endpoint: check D1 schema without initializing Better Auth or Argon2.
-import { passkeyConfigured, passkeyStorageReady } from '../../../lib/auth/passkey-policy.mjs';
+import { passkeyConfigured, passkeyStorageReady, primaryPasskeyStorageReady } from '../../../lib/auth/passkey-policy.mjs';
 // This endpoint is public and must never expose secrets or database contents.
 export const onRequestGet = async ({ request, env }) => {
   const url = new URL(request.url);
@@ -36,8 +36,21 @@ export const onRequestGet = async ({ request, env }) => {
       qrLoginReady = Number(row?.ready) === 2;
     } catch { qrLoginReady = false; }
   }
+  // Match the actual auth gateway: show recovery/transfer only when their
+  // primary-key guards and all four tables plus both triggers are installed.
+  // A partial migration must not advertise a usable recovery route.
+  const primaryReady = passkeyReady && await primaryPasskeyStorageReady(env.AUTH_DB);
+  let fullRecoveryReady = false;
+  if (primaryReady) {
+    try {
+      const row = await env.AUTH_DB.prepare(
+        "SELECT COUNT(*) AS count FROM sqlite_master WHERE (type='table' AND name IN ('auth_recovery_code','auth_recovery_attempt','auth_primary_transfer_gate','auth_primary_phone_transfer_attempt')) OR (type='trigger' AND name IN ('auth_primary_transfer_gate_valid','auth_primary_passkey_no_user_change'))"
+      ).first();
+      fullRecoveryReady = Number(row?.count) === 6;
+    } catch { fullRecoveryReady = false; }
+  }
   let registrationOpen = false;
-  if (passkeyReady && env.PUBLIC_SIGNUP_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY) {
+  if (fullRecoveryReady && env.PUBLIC_SIGNUP_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY) {
     try {
       const row = await env.AUTH_DB.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='auth_passkey_signup_attempt'").first();
       registrationOpen = Number(row?.count) === 1;
@@ -48,6 +61,8 @@ export const onRequestGet = async ({ request, env }) => {
     loginConfigured: configured,
     passkeyReady,
     qrLoginReady,
+    recoveryCodesReady: fullRecoveryReady,
+    phoneTransferReady: fullRecoveryReady,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
 };

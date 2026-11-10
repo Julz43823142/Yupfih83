@@ -145,13 +145,15 @@ jobs:
                 body:JSON.stringify({username:'no_public_phone_registration',turnstileToken:'not-used'})
               });
               const configValid=r.ok && cfg.passkeyReady===true && cfg.qrLoginReady===true && cfg.loginConfigured===true &&
-                cfg.registrationOpen===false && pageResponse.ok && phoneScript && qrScript;
+                cfg.registrationOpen===false && cfg.recoveryCodesReady===true && cfg.phoneTransferReady===true &&
+                pageResponse.ok && phoneScript && qrScript;
               if(configValid && signup.status===403 && phoneSignup.status===404) {
-                console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
+                console.log('LIVE PRODUCTION: passkey, QR login, recovery codes and phone transfer ready; both signup routes CLOSED; account UI published.');
                 process.exit(0);
               }
               reason='auth='+r.status+', loginConfigured='+cfg.loginConfigured+', passkeyReady='+cfg.passkeyReady+
-                ', qrLoginReady='+cfg.qrLoginReady+', registrationOpen='+cfg.registrationOpen+
+                ', qrLoginReady='+cfg.qrLoginReady+', recoveryCodesReady='+cfg.recoveryCodesReady+
+                ', phoneTransferReady='+cfg.phoneTransferReady+', registrationOpen='+cfg.registrationOpen+
                 ', pageHttp='+pageResponse.status+', phoneScript='+phoneScript+', qrScript='+qrScript+', passwordSignup='+signup.status+', passkeySignup='+phoneSignup.status;
             }catch(error){reason=String(error);}
             await sleep(4000);
