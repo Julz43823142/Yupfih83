@@ -69,3 +69,51 @@ test('Player landing tile is illuminated and mobile gestures are handled only on
  assert.doesNotMatch(js,/touchend.*move\(/);
  assert.doesNotMatch(js,/Math\.random\(/);
 });
+
+test('Pawn shop prices are premium and cosmetics are earned with finite coins',async()=>{
+ const {PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnSkin,pawnCoinAt}=await import('../../pawn-shop.mjs');
+ assert.equal(PAWN_SHOP[0].id,'ivory');
+ assert.equal(PAWN_SHOP[0].cost,0);
+ assert.deepEqual(PAWN_SHOP.filter(s=>s.kind!=='pawn').map(s=>s.kind),['knight','bishop','rook','queen','king']);
+ assert.deepEqual(PAWN_SHOP.filter(s=>s.kind!=='pawn').map(s=>s.cost),[2200,3500,5000,9000,14000]);
+ const clean=readPawnWallet('{"coins":-100,"owned":["queen","not-a-skin"],"selected":"not-a-skin"}');
+ assert.equal(clean.coins,0);
+ assert.deepEqual(clean.owned,['ivory','queen']);
+ assert.equal(clean.selected,'ivory');
+ assert.equal(readPawnWallet('not json').coins,0);
+ let wallet=readPawnWallet(null);
+ assert.equal(buyPawnSkin(wallet,'queen').ok,false);
+ wallet=earnPawnCoins(wallet,150);
+ const buy=buyPawnSkin(wallet,'emerald');
+ assert.equal(buy.ok,true);
+ assert.equal(buy.wallet.selected,'emerald');
+ assert.equal(buy.wallet.coins,0);
+ const equip=buyPawnSkin(buy.wallet,'ivory');
+ assert.equal(equip.wallet.coins,0);
+ assert.equal(equip.wallet.selected,'ivory');
+ assert.equal(earnPawnCoins(wallet,-10).coins,150);
+ assert.ok(PAWN_SHOP.every(x=>x.cost>=0));
+ const model=createPawnDashModel('coins');
+ let count=0;
+ for(let row=0;row<150;row++)for(let x=0;x<9;x++){
+  if(!pawnCoinAt(model,row,x))continue;
+  count++;
+  assert.equal(model.lane(row)!=='river',true);
+  assert.equal(row%4,2);
+ }
+ assert.ok(count>=20);
+});
+
+test('World renders continuous water, edge scenery, shop and smaller grounded skin',()=>{
+ const js=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ assert.match(js,/function drawRiver\(/);
+ assert.match(js,/function drawCoin\(/);
+ assert.match(js,/pawnCoinAt\(model,nr,nx\)/);
+ assert.match(js,/collected\.add\(/);
+ assert.match(js,/persistWallet\(\)/);
+ assert.match(js,/readPawnWallet\(/);
+ assert.match(js,/buyPawnSkin\(/);
+ assert.match(js,/function playerSquare\(/);
+ assert.doesNotMatch(js,/strokePolygon\(q,'#fff8de'/);
+ assert.match(js,/if\(type==='river'\)drawRiver\(row,time\)/);
+});
