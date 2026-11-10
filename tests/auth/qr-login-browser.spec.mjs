@@ -65,3 +65,30 @@ test('desktop QR login uses phone passkey without invoking desktop WebAuthn', as
     await desktopContext.close();
   }
 });
+
+test('cancel button revokes the QR request on the server', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto(base + '/account.html');
+    await expect(page.locator('#qr-login-start')).toBeVisible();
+    const started = page.waitForResponse(r => r.url().endsWith('/api/auth/qr-login/start') && r.status() === 200);
+    await page.locator('#qr-login-start').click();
+    const qr = await (await started).json();
+    await expect(page.locator('#qr-login-desktop')).toBeVisible();
+    const cancelled = page.waitForResponse(r => r.url().endsWith('/api/auth/qr-login/cancel'));
+    await page.locator('#qr-login-cancel').click();
+    expect((await cancelled).status()).toBe(200);
+    await expect(page.locator('#account-status')).toContainText('cancelled on the server');
+    await expect(page.locator('#qr-login-desktop')).toBeHidden();
+    const finished = await context.request.post(base + '/api/auth/qr-login/finish', {
+      headers: { Origin: base }, data: { id: qr.id, secret: qr.secret }
+    });
+    expect(finished.status()).toBe(410);
+    const session = await context.request.get(base + '/api/auth/get-session');
+    const result = await session.json();
+    expect(result?.user).toBeFalsy();
+  } finally {
+    await context.close();
+  }
+});
