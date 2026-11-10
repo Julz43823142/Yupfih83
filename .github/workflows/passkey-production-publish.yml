@@ -124,7 +124,9 @@ jobs:
           let reason='not reached';
           for(let attempt=0;attempt<15;attempt++){
             try{
-              const r=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}});
+              const r=await fetch(base+'/api/auth/config?deploy='+encodeURIComponent(process.env.GITHUB_SHA)+'&check='+attempt,{
+                headers:{'Cache-Control':'no-store','Pragma':'no-cache'}
+              });
               const cfg=await r.json();
               // Query-string cache busting prevents stale HTML at the edge
               // from producing a false-negative after a successful deploy.
@@ -148,7 +150,8 @@ jobs:
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
               }
-              reason='auth='+r.status+', passkeyReady='+cfg.passkeyReady+', registrationOpen='+cfg.registrationOpen+
+              reason='auth='+r.status+', loginConfigured='+cfg.loginConfigured+', passkeyReady='+cfg.passkeyReady+
+                ', qrLoginReady='+cfg.qrLoginReady+', registrationOpen='+cfg.registrationOpen+
                 ', pageHttp='+pageResponse.status+', phoneScript='+phoneScript+', qrScript='+qrScript+', passwordSignup='+signup.status+', passkeySignup='+phoneSignup.status;
             }catch(error){reason=String(error);}
             await sleep(4000);
