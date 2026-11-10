@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Apply only additive QR login schema to protected production D1
         env:
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_PRODUCTION_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN }}
