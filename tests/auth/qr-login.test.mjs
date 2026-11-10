@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { database } from './fixture.mjs';
 import { createAuth } from '../../lib/auth/config.mjs';
 import { handleAuth } from '../../lib/auth/gateway.mjs';
+import { onRequestGet as pagesConfig } from '../../functions/api/auth/config.js';
 
 const base = 'https://eloscanner.com';
 const envFor = () => ({
@@ -23,6 +24,26 @@ const req = (route, data, cookie = '', origin = base) => new Request(base + '/ap
 const call = (env, route, data, cookie = '', origin = base, services = {}) =>
   handleAuth({ request: req(route, data, cookie, origin), env }, services);
 const cookies = response => response.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
+
+
+test('dedicated production Pages config route reports QR readiness and fails closed without unique index', async () => {
+  const env = envFor();
+  const getConfig = async () => {
+    const response = await pagesConfig({ request: req('config'), env });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store, private');
+    return response.json();
+  };
+  const ready = await getConfig();
+  assert.equal(ready.loginConfigured, true);
+  assert.equal(ready.passkeyReady, true);
+  assert.equal(ready.qrLoginReady, true);
+  assert.equal(ready.registrationOpen, false);
+  env.AUTH_DB.sqlite.exec('DROP INDEX auth_qr_login_session_once_idx');
+  assert.equal((await getConfig()).qrLoginReady, false);
+  env.AUTH_DB.sqlite.exec('DROP TABLE auth_qr_login');
+  assert.equal((await getConfig()).qrLoginReady, false);
+});
 
 test('QR login is unavailable without schema and public registration remains closed', async () => {
   const env = envFor();
