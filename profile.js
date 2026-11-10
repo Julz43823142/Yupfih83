@@ -10,6 +10,21 @@
  const social=async(route,data)=>{const r=await fetch('/api/social/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j};
  const addText=(parent,text,tag='p')=>{const n=document.createElement(tag);n.textContent=text;parent.append(n);return n};
  const addLink=(parent,text,url)=>{const a=document.createElement('a');a.textContent=text;a.href=url;parent.append(a);return a};
+
+ const recordsCatalog=[['knight-maze','Knight Maze','minigames'],['endgame-survivor','Endgame Survivor','minigames'],['guess-the-elo','Guess the Elo','minigames'],['chess-memory','Chess Memory','minigames'],['missing-piece','Missing Piece','minigames'],['safe-square-rush','Safe Square Rush','minigames'],['falling-board','Falling Board','minigames'],['queen-chase','Queen Chase','minigames'],['chess-block-party','Chess Block Party','minigames'],['pawn-dash','Pawn Dash','minigames'],['sprint','Puzzle Sprint','puzzles'],['survival','Puzzle Survival','puzzles']];
+ const populateRecords=async(target,username)=>{
+  const data=await get('/api/profile-records/'+encodeURIComponent(username)),records=new Map((data.records||[]).map(x=>[x.mode,x]));
+  const list=document.createElement('div');list.className='profile-record-list';
+  for(const [mode,label,category] of recordsCatalog){
+   const r=records.get(mode),row=document.createElement('div');row.className='profile-record-row';
+   const link=addLink(row,label,'/puzzle-top100.html?category='+category+'&mode='+mode);link.className='profile-record-name';
+   const value=document.createElement('span');value.className='profile-record-score';value.textContent=r?r.score.toLocaleString()+' points · #'+r.rank:'No linked score';
+   row.append(value);list.append(row);
+  }
+  target.append(list);
+  const count=records.size,card=el('records-link');card.querySelector('strong').textContent=String(count);card.querySelector('small').textContent='Linked personal bests';
+  if(!count)addText(target,'Only scores submitted while signed in are linked to your account.').className='profile-record-note';
+ };
  const populateGames=(target,data)=>{
   if(!data.games?.length){addText(target,'No saved online games yet.','div');return}
   for(const item of data.games){const row=document.createElement('p');row.className='profile-game-row';addLink(row,(item.white||'White')+' vs '+(item.black||'Black'),'/analysis.html?online='+encodeURIComponent(item.id));row.append(document.createTextNode(' · '+(item.result||'—')+' · 3+0 Unrated · '+item.moves+' moves'));target.append(row)}
@@ -19,11 +34,11 @@
   const display=data.username[0].toUpperCase()+data.username.slice(1),base='/profile/'+encodeURIComponent(data.username);
   document.title=(section?sections[section]+' · ':'')+display+' · EloScanner';
   el('profile-name').textContent=display;el('profile-avatar').textContent=display.slice(0,2).toUpperCase();
-  if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').after(badge)}
+  if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').parentElement.append(badge)}
   const date=new Date(data.joinedAt);el('profile-joined').textContent='Joined '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}));
   for(const [id,slug] of Object.entries({'profile-friends':'friend-list','chess-rating-link':'chess-rating','puzzle-rating-link':'puzzle-rating','records-link':'personal-records','history-link':'game-history','records-panel-link':'personal-records'}))el(id).href=base+'/'+slug;
   el('profile-content').hidden=false;status.textContent='';
-  try{const presence=await get('/api/social/status?username='+encodeURIComponent(data.username));const span=document.createElement('span');span.textContent=presence.online?' ● Online':' ○ Offline';span.style.color=presence.online?'#4fe0a0':'#aab7c0';el('profile-name').after(span)}catch{}
+  try{const presence=await get('/api/social/status?username='+encodeURIComponent(data.username));const span=document.createElement('span');span.textContent=presence.online?' ● Online':' ○ Offline';span.style.color=presence.online?'#4fe0a0':'#aab7c0';el('profile-name').parentElement.append(span)}catch{}
   const session=await (window.eloAccountSession||get('/api/auth/get-session').catch(()=>null));
   const me=session?.user?.username?.toLowerCase()===data.username.toLowerCase();
   if(me){
@@ -58,9 +73,10 @@
     const friends=await get('/api/social/public-friends?username='+encodeURIComponent(data.username));
     if(!friends.friends?.length)addText(detail,'No friends yet.');else for(const item of friends.friends){const p=document.createElement('p');addLink(p,item.username,'/profile/'+encodeURIComponent(item.username));p.append(item.online?' · Online':' · Offline');detail.append(p)}
    }else if(section==='chessrating')addText(detail,'3+0 online games are currently unrated. No Elo rating is assigned.');
-   else addText(detail,section==='personalrecords'?'No linked records yet.':'No rating recorded yet.');
+   else if(section==='personalrecords')await populateRecords(detail,data.username);else addText(detail,'No rating recorded yet.');
   }else{
    try{const history=await get('/api/social/history?username='+encodeURIComponent(data.username)+'&page=0');const panel=el('profile-content').querySelector('.profile-grid .profile-panel .profile-empty');if(panel){panel.replaceChildren();populateGames(panel,{games:(history.games||[]).slice(0,3)});if(history.total>3)addLink(panel,'View all '+history.total+' games',base+'/game-history')}}catch{}
+   try{const panel=el('profile-content').querySelector('.profile-grid .profile-panel:last-child .profile-empty');if(panel){panel.replaceChildren();await populateRecords(panel,data.username)}}catch(error){const panel=el('profile-content').querySelector('.profile-grid .profile-panel:last-child .profile-empty');if(panel)panel.textContent='Records temporarily unavailable.'}
   }
  }catch(error){status.textContent=error.message||'Profile temporarily unavailable.'}
 })();
