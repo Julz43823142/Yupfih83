@@ -46,7 +46,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://localhost:8788/api/auth/config > /dev/null || { cat /tmp/eloscanner-prod-preflight.log; exit 1; }
-          npx playwright test tests/auth/browser.spec.mjs tests/auth/passkey.spec.mjs tests/auth/passkey-signup.spec.mjs tests/auth/recovery-browser.spec.mjs tests/auth/phone-transfer-browser.spec.mjs
+          npx playwright test tests/auth/browser.spec.mjs tests/auth/passkey.spec.mjs tests/auth/passkey-signup.spec.mjs tests/auth/recovery-browser.spec.mjs tests/auth/phone-transfer-browser.spec.mjs tests/auth/qr-login-browser.spec.mjs
       - name: Refuse wrong production target or open registration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
             j.result.some(x=>x.success===false))throw Error('Production D1 schema inspection failed');
           const found=new Set(j.result.flatMap(x=>x.results||[]).map(x=>x.name));
           const required=[
-            'auth_primary_passkey','auth_primary_passkey_proof',
+            'auth_qr_login','auth_primary_passkey','auth_primary_passkey_proof',
             'auth_primary_passkey_assign','auth_primary_passkey_no_delete',
             'auth_primary_passkey_no_id_change','auth_primary_passkey_no_reassign',
             'auth_primary_passkey_no_mapping_delete','auth_primary_passkey_no_user_change',
@@ -135,9 +135,9 @@ jobs:
                 method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
                 body:JSON.stringify({username:'no_public_phone_registration',turnstileToken:'not-used'})
               });
-              const configValid=r.ok && cfg.passkeyReady===true && cfg.loginConfigured===true &&
+              const configValid=r.ok && cfg.passkeyReady===true && cfg.qrLoginReady===true && cfg.loginConfigured===true &&
                 cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
-                page.includes('account.js?v=15-phone-transfer');
+                page.includes('account.js?v=16-qr-login');
               if(configValid && signup.status===403 && phoneSignup.status===404) {
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
