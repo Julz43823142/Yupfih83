@@ -58,3 +58,13 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .account-section-title+.account-card{margin-top:10px}
 .account-card>p:not(.account-note){max-width:64ch}
 @media(max-width:600px){.account-card{padding:20px 17px}}
+
+.account-settings-group{border:1px solid #315d77;border-radius:15px;background:#0e2335;margin:18px 0;padding:0 14px}
+.account-settings-group>summary{list-style:none;cursor:pointer;padding:19px 10px;font-weight:800;font-size:18px;color:#d8f6ff;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.account-settings-group>summary::-webkit-details-marker{display:none}
+.account-settings-group>summary:after{content:'+';font-weight:800;font-size:24px;color:#7fe0f2}
+.account-settings-group[open]>summary:after{content:'−'}
+.account-settings-group>summary:focus-visible{outline:2px solid #7fe0f2;outline-offset:1px;border-radius:8px}
+.account-settings-group>.account-section-intro{font-size:13px;color:#a5c5d6;margin:0 10px 12px}
+.account-settings-group .account-card{margin:10px 0 16px;padding:22px}
+@media(max-width:600px){.account-settings-group{padding:0 9px}.account-settings-group .account-card{padding:18px 13px}}
