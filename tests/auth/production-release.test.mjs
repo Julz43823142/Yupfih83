@@ -29,3 +29,21 @@ test('production publish tests actual local passkeys, recovery and transfer befo
   assert.match(publish,/vars\.PUBLIC_SIGNUP_ENABLED\?\.value!=='false'/);
   assert.match(publish,/project\.source\?\.config\?\.production_deployments_enabled!==false/);
 });
+
+test('online game history is loaded by the active analysis script',()=>{
+ const html=readFileSync('analysis.html','utf8');
+ const active=readFileSync('analysis-stockfish-fixed.js','utf8');
+ assert.match(html,/analysis-stockfish-fixed\.js\?v=20261110-online-history/);
+ assert.match(active,/\/api\/social\/game\?id=/);
+ assert.match(active,/sanMoves=moves/);
+});
+test('personal records only use account-linked score entries',()=>{
+ const endpoint=readFileSync('functions/api/profile-records/[username].js','utf8');
+ assert.match(endpoint,/account_id=\?/);
+ assert.match(endpoint,/source_type='account'/);
+ assert.match(endpoint,/ROW_NUMBER\(\) OVER/);
+ assert.doesNotMatch(endpoint,/WHERE nickname=\?/);
+});
+test('public registration is still closed in production publish',()=>{
+ assert.match(publish,/PUBLIC_SIGNUP_ENABLED/);
+});

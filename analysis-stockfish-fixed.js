@@ -1097,3 +1097,24 @@ if(linkedPuzzleFen&&linkedPuzzleFen.length<=130){
   $('import-status').textContent='The linked puzzle position could not be loaded.';
  }
 }
+
+/* Replay a completed EloScanner match opened from public game history. */
+const onlineGameId=new URLSearchParams(location.search).get('online');
+if(onlineGameId&&/^[a-f0-9]{32}$/.test(onlineGameId)){
+ (async()=>{
+  const status=$('import-status');
+  try{
+   const response=await fetch('/api/social/game?id='+encodeURIComponent(onlineGameId),{cache:'no-store',credentials:'same-origin'});
+   const data=await response.json();
+   if(!response.ok||!Array.isArray(data.moves)||data.moves.length>500)throw Error(data.error||'Game unavailable');
+   const replay=new Chess(),states=[replay.fen()],moves=[];
+   for(const san of data.moves){if(typeof san!=='string'||san.length>16)throw Error('Invalid saved move');const move=replay.move(san);if(!move)throw Error('Invalid saved game');moves.push(move.san);states.push(replay.fen())}
+   if(!moves.length)throw Error('No saved moves');
+   history=states;sanMoves=moves;cursor=states.length-1;selected=null;arrows=[];blueSquares.clear();reviewResults=[];reviewEvaluations=[];positionClocks=[];
+   importedPlayers={white:data.white||'White',black:data.black||'Black'};playerMeta={white:{name:importedPlayers.white,elo:null},black:{name:importedPlayers.black,elo:null}};
+   document.title=importedPlayers.white+' vs '+importedPlayers.black+' | Analysis | EloScanner';
+   render();requestAnalysis();renderReviewPlaceholder();syncReviewAction();
+   status.textContent='Saved online game · '+importedPlayers.white+' vs '+importedPlayers.black+' · '+moves.length+' moves loaded. Use Back and Next to replay.';
+  }catch(error){status.textContent='Could not load match: '+(error.message||'Unknown error')}
+ })();
+}

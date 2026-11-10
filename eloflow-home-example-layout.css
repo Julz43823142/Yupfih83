@@ -37,3 +37,10 @@ main>section.hero>aside.hero-tool-links,main>section.hero>aside.hero-puzzle-rank
  main>section.hero>div.hero-content .search-box input,main>section.hero>div.hero-content .search-box button{width:100%!important;max-width:100%!important;flex:1 1 100%!important}
 }
 main>section.results{position:relative!important;clear:both!important;box-sizing:border-box!important;min-width:0!important;max-width:100%!important;overflow-x:clip!important}
+
+/* EloFlow: ensure asynchronous player portraits never stretch on iPads. */
+@media(min-width:700px) and (max-width:1199px){
+ main>section.hero>section.sample-section .sample-button{display:grid!important;grid-template-columns:52px minmax(0,1fr)!important;align-items:center!important;overflow:hidden!important}
+ main>section.hero>section.sample-section .sample-avatar,main>section.hero>section.sample-section .sample-avatar img{width:52px!important;height:52px!important;min-width:0!important;min-height:0!important;max-width:52px!important;max-height:52px!important;object-fit:cover!important;border-radius:50%!important;overflow:hidden!important}
+ main>section.hero>section.sample-section .sample-player-name,main>section.hero>section.sample-section .sample-player-handle{min-width:0!important;overflow-wrap:anywhere}
+}

@@ -11,3 +11,20 @@
 .elo-profile a.profile-heading-link,.elo-profile a.profile-heading-link:visited,.elo-profile .profile-game-row a,.elo-profile .profile-game-row a:visited,.elo-profile a[href*='game-history'],.elo-profile a[href*='game-history']:visited{color:#fff!important;text-decoration:underline;text-underline-offset:3px}
 
 .profile-admin-badge{display:inline-flex;align-items:center;border:1px solid #5b8acb;border-radius:999px;padding:3px 11px;margin:5px 0 8px;background:rgba(52,113,194,.14);color:#a9ceff;font-size:.78rem;font-weight:750;letter-spacing:.03em}
+
+/* A distinct gap between online presence and the admin role. */
+.elo-profile .profile-hero>div:nth-child(2){display:flex;align-items:center;flex-wrap:wrap;column-gap:16px;row-gap:6px;min-width:0}
+.elo-profile .profile-hero>div:nth-child(2)>.profile-kicker,.elo-profile .profile-hero>div:nth-child(2)>#profile-joined,.elo-profile .profile-hero>div:nth-child(2)>#profile-friends{flex:0 0 100%}
+.profile-admin-badge{margin:0 8px 0 0!important}
+.profile-record-list{display:grid;gap:8px;text-align:left}
+.profile-record-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border-radius:9px;border:1px solid #31566a;background:#112e40}
+.profile-record-name{color:#c7f3ff;font-weight:700;text-decoration:none}
+.profile-record-score{color:#a3e6d4;font-weight:650;white-space:nowrap}
+.profile-record-note{color:#acc8d9;font-size:13px}
+@media(max-width:500px){.profile-record-row{flex-direction:column;align-items:flex-start;gap:4px}.profile-record-score{white-space:normal}}
+
+/* Inline role and presence alongside the name, rather than below other metadata. */
+.elo-profile .profile-hero>div:nth-child(2){display:block!important}
+.elo-profile .profile-hero h1{display:inline-block;vertical-align:middle;margin-right:12px}
+.elo-profile .profile-admin-badge{vertical-align:middle;margin-left:14px!important;margin-right:0!important}
+@media(max-width:680px){.elo-profile .profile-hero h1{display:block;margin-right:0}.elo-profile .profile-admin-badge{margin-left:14px!important}}

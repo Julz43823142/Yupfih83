@@ -8,7 +8,7 @@
 <link rel="icon" href="/favicon-horse.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css?v=20261104-dark">
 <link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
-<link rel="stylesheet" href="/account.css?v=4-qr-approval">
+<link rel="stylesheet" href="/account.css?v=5-profile-groups">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
 <script src="/passkey-client.js?v=1" defer></script>
@@ -81,7 +81,8 @@
   </section>
   <section id="profile-panel" hidden>
     <div class="account-card account-identity"><span id="account-avatar" class="account-avatar" aria-hidden="true"></span><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
-    <div id="passkey-profile-panel" class="account-card" hidden><h2>Passkeys</h2><p>Use your phone, computer or security key to log in without a password. Existing users must confirm their current password once to attach a passkey to their account.</p><div id="passkey-phone-enroll-handoff" hidden><p>To add a phone passkey without Windows Hello, open this account on your phone and sign in as the same user. Scan with your phone's camera:</p><div id="passkey-phone-enroll-qr" class="phone-signup-qr"></div><a id="passkey-phone-enroll-link" class="account-link" href="/account.html">Open this account on your phone</a><p class="account-note">This QR contains only the website address. It does not sign in or transfer a session.</p></div><form id="passkey-enrollment-form"><label for="passkey-confirm-password">Confirm your current password</label><input id="passkey-confirm-password" type="password" autocomplete="current-password" maxlength="128" required><button type="submit" class="account-primary">Create passkey</button></form><p id="passkey-count" class="account-note" role="status" aria-live="polite">Checking registered passkeys…</p><p class="account-note">Register a second passkey or security key as a backup. Losing your only passkey can make your account inaccessible once passwords are disabled.</p><p class="account-note">Use your device screen lock, fingerprint or face recognition. On supported browsers, you can also use your phone by scanning a QR code.</p></div>
+    <details class="account-settings-group" open><summary>Passkeys &amp; account recovery</summary><p class="account-section-intro">Passkeys, backup codes and phone transfers.</p>
+    <div id="passkey-profile-panel" class="account-card" hidden><h2>Passkeys</h2><p>Sign in with your phone, computer or security key. You may need to confirm your password to add a passkey.</p><div id="passkey-phone-enroll-handoff" hidden><p>To add a phone passkey without Windows Hello, open this account on your phone and sign in as the same user. Scan with your phone's camera:</p><div id="passkey-phone-enroll-qr" class="phone-signup-qr"></div><a id="passkey-phone-enroll-link" class="account-link" href="/account.html">Open this account on your phone</a><p class="account-note">This QR contains only the website address. It does not sign in or transfer a session.</p></div><form id="passkey-enrollment-form"><label for="passkey-confirm-password">Confirm your current password</label><input id="passkey-confirm-password" type="password" autocomplete="current-password" maxlength="128" required><button type="submit" class="account-primary">Create passkey</button></form><p id="passkey-count" class="account-note" role="status" aria-live="polite">Checking registered passkeys…</p><p class="account-note">Add a backup passkey before disabling passwords. Use your device screen lock, fingerprint or face recognition.</p></div>
     <div id="phone-transfer-panel" class="account-card" hidden>
       <h2>Replace primary phone</h2>
       <p>While your old primary passkey still works, sign in using that passkey, then register a new primary passkey on your new phone. This revokes all old passkeys, sessions and recovery codes.</p>
@@ -102,6 +103,8 @@
       </div>
       <p id="recovery-codes-notice" class="account-note" role="status" aria-live="polite"></p>
     </div>
+    </details>
+    <details class="account-settings-group"><summary>Password &amp; security</summary><p class="account-section-intro">Change passwords or use a passkey only.</p>
     <div id="passwordless-migration-panel" class="account-card" hidden>
       <h2>Switch to passkey only</h2>
       <p id="passwordless-readiness" class="account-note">Checking your passkeys…</p>
@@ -124,11 +127,14 @@
       </form>
       <p class="account-note">Changing your password signs out your other sessions.</p>
     </div>
+    </details>
+    <details class="account-settings-group"><summary>Devices &amp; account</summary><p class="account-section-intro">Manage sessions or delete your account.</p>
     <div class="account-card"><h2>Signed-in devices</h2><p>Using a shared device or worried about an old session? Sign out everywhere, including this device.</p><button id="sign-out-all" class="account-secondary" type="button">Log out on all devices</button></div>
     <div class="account-card"><h2>Delete account</h2><p>This permanently deletes your account and its login sessions. It cannot be undone. Separately submitted public leaderboard entries are not linked to this account.</p>
       <form id="delete-form"><label for="delete-password">Confirm your current password</label><input id="delete-password" name="password" type="password" autocomplete="current-password" maxlength="128" required><button class="account-danger" type="submit">Delete my account</button></form>
       <form id="delete-passkey-account-form" hidden><p>To delete a passwordless account, sign out and sign in with a passkey, then return here within two minutes.</p><label class="account-check"><input id="passkey-delete-understood" type="checkbox" required> I understand this permanently deletes my EloScanner account.</label><button class="account-danger" type="submit">Delete passkey-only account</button></form>
     </div>
+    </details>
   </section>
 </main>
 </body></html>
