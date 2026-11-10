@@ -46,3 +46,14 @@
 @media (min-width:900px){
  body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-board-column{margin-top:-28px!important}
 }
+
+/* EloFlow: make available desktop side-column space useful for controls. */
+@media(min-width:900px){
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel,
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column{font-size:15px!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel button,
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-column button{min-height:42px!important;padding:10px 13px!important;font-size:14px!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel label,
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-engine-header label{font-size:14px!important;line-height:1.5!important}
+ body.elo-unified-chess main.tool-page .analysis-three-column>.analysis-controls-panel{padding:14px!important}
+}

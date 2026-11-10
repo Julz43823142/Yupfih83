@@ -1,4 +1,4 @@
-import {GAME_CATALOG} from '../../arcade-rules.mjs';
+import {GAME_CATALOG} from '../../../arcade-rules.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function onRequestGet({params,env}){
  const username=params.username;
