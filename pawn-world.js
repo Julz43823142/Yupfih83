@@ -409,7 +409,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  size();raf=requestAnimationFrame(frame);
  return {
   destroy(){
-   dead=true;cancelAnimationFrame(raf);
+   dead=true;cancelAnimationFrame(raf);sound.destroy();
    window.removeEventListener('keydown',keydown);window.removeEventListener('resize',size);
    document.removeEventListener('visibilitychange',visibilityChanged);
    controls.removeEventListener('click',controlClick);
