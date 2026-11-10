@@ -22,7 +22,7 @@ const instructions={
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Cross an endless chessboard kingdom as an ivory pawn. Dodge crimson pawns, avoid broken bridge squares, and move with arrows, WASD, swipes or touch controls.'
+ 'pawn-dash':'Hop across a chess-themed kingdom. Your landing square glows gold. Dodge pawns, knights, rooks, bishops and queens, cross rivers on stone bridges, and reach Challenger at 100, Master at 500 and Grandmaster at 750 squares.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -260,11 +260,11 @@ function setupLevel(){
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
   status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
-  status('Cross the chess kingdom! Tap to hop forward, swipe to steer, dodge red pawns and use the stone bridges.');
+  status('Your gold-outlined square is your position. Tap or use arrows to hop; dodge chess pieces and cross rivers on stone bridges.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261110-crossing3').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261110-crossy-chess4').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
-   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A red pawn caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
+   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
  }
 }
