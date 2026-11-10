@@ -22,7 +22,7 @@ const instructions={
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Hop across the original isometric Pawn Kingdom, dodge moving chess pieces, and survive as many lanes as possible. Use arrows, WASD or touch controls.'
+ 'pawn-dash':'Cross an endless chessboard kingdom as an ivory pawn. Dodge crimson pawns, avoid broken bridge squares, and move with arrows, WASD, swipes or touch controls.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -262,7 +262,7 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Hop across the Pawn Kingdom! Use arrows, WASD, swipe or directional buttons.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261110-world2').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
