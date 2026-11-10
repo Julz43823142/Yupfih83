@@ -59,10 +59,10 @@ test('Player landing tile is illuminated and mobile gestures are handled only on
  const js=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
  assert.match(js,/createPawnDashModel\(seed\)/);
  assert.match(js,/function playerSquare\(/);
- assert.match(js,/playerSquare\(\)/);
+ assert.match(js,/playerSquare\(now\)/);
  assert.match(js,/function drawPawn\(/);
  assert.match(js,/function drawEnemy\(/);
- assert.match(js,/function tree\(/);
+ assert.match(js,/function clubDecoration\(/);
  assert.match(js,/controls\.addEventListener\('pointerdown',controlPointer\)/);
  assert.match(js,/root\.addEventListener\('dblclick',preventZoom/);
  assert.match(js,/canvas\.addEventListener\('pointerup',gestureEnd/);
@@ -74,8 +74,9 @@ test('Pawn shop prices are premium and cosmetics are earned with finite coins',a
  const {PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnSkin,pawnCoinAt}=await import('../../pawn-shop.mjs');
  assert.equal(PAWN_SHOP[0].id,'ivory');
  assert.equal(PAWN_SHOP[0].cost,0);
- assert.deepEqual(PAWN_SHOP.filter(s=>s.kind!=='pawn').map(s=>s.kind),['knight','bishop','rook','queen','king']);
- assert.deepEqual(PAWN_SHOP.filter(s=>s.kind!=='pawn').map(s=>s.cost),[2200,3500,5000,9000,14000]);
+ assert.deepEqual([...new Set(PAWN_SHOP.map(s=>s.kind))],['pawn','bishop','knight','rook','queen','king']);
+ assert.deepEqual(['pawn','bishop','knight','rook','queen','king'].map(kind=>PAWN_SHOP.filter(s=>s.kind===kind).length),[5,5,5,5,5,5]);
+ assert.deepEqual(['bishop','knight','rook','queen','king'].map(kind=>PAWN_SHOP.find(s=>s.kind===kind).cost),[3500,2200,5000,9000,14000]);
  const clean=readPawnWallet('{"coins":-100,"owned":["queen","not-a-skin"],"selected":"not-a-skin"}');
  assert.equal(clean.coins,0);
  assert.deepEqual(clean.owned,['ivory','queen']);
@@ -116,4 +117,26 @@ test('World renders continuous water, edge scenery, shop and smaller grounded sk
  assert.match(js,/function playerSquare\(/);
  assert.doesNotMatch(js,/strokePolygon\(q,'#fff8de'/);
  assert.match(js,/if\(type==='river'\)drawRiver\(row,time\)/);
+});
+
+test('Chess club has six five-skin categories, previews, one-coin pickup and synced landing shadow',async()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const art=readFileSync(new URL('../../pawn-piece-art.mjs',import.meta.url),'utf8');
+ const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
+ assert.match(world,/PIECE_ORDER/);
+ assert.match(world,/shopCategories/);
+ assert.match(world,/function previewSkin\(/);
+ assert.match(world,/paintChessPiece\(/);
+ assert.match(world,/function clubDecoration\(/);
+ assert.doesNotMatch(world,/function tree\(/);
+ assert.match(world,/earnPawnCoins\(wallet,1\)/);
+ assert.match(world,/hop\.from\.x\+\(hop\.to\.x-hop\.from\.x\)\*p/);
+ assert.match(world,/sound\.play\('step'\)/);
+ assert.match(world,/sound\.play\('coin'\)/);
+ assert.match(world,/sound\.play\(reason\)/);
+ assert.match(world,/sound\.play\('menu'\)/);
+ assert.match(art,/export function paintChessPiece/);
+ assert.match(audio,/createPawnSound/);
+ for(const kind of ['step','coin','water','hit','menu','buy','equip'])
+  assert.match(audio,new RegExp("kind==='"+kind+"'"));
 });

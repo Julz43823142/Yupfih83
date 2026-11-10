@@ -247,3 +247,15 @@ body.pawn-dash-active{overscroll-behavior:none}
  .pawn-shop-item{padding:9px}
  .pawn-world-overlay .pawn-shop-item button{min-width:84px}
 }
+
+/* Chess club shop: browse chess pieces first, then inspect five skins with live canvas preview. */
+.pawn-shop-categories[hidden],.pawn-shop-preview[hidden],.pawn-shop-items[hidden],.pawn-shop-panel button[hidden]{display:none!important}
+.pawn-shop-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+.pawn-world-overlay .pawn-shop-category{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:10px!important;min-height:68px;border:1px solid #b9a47b!important;border-radius:12px;background:#314f5e;color:#fff4d5;font-size:14px;text-align:left}
+.pawn-shop-category-symbol{font-family:Georgia,serif;font-size:35px;line-height:1;color:#f3d8a1}
+.pawn-shop-preview{display:block;width:min(260px,100%);height:auto;align-self:center;border:2px solid #bb9a6a;border-radius:15px;background:#142c3b}
+.pawn-shop-swatch{display:block!important;flex:0 0 22px;width:22px;height:22px;border:2px solid #e7d5b0;border-radius:50%}
+.pawn-shop-item{cursor:pointer}
+.pawn-shop-item:focus-within,.pawn-shop-category:focus-visible{outline:2px solid #ffde95;outline-offset:2px}
+.pawn-world-overlay .pawn-shop-panel>button{min-height:42px}
+@media(max-width:410px){.pawn-shop-categories{gap:7px}.pawn-world-overlay .pawn-shop-category{min-height:61px;font-size:12px;gap:5px}.pawn-shop-category-symbol{font-size:29px}}

@@ -22,7 +22,7 @@ const instructions={
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Hop across a charming chess kingdom, cross flowing rivers on stone bridges and collect golden coins. Open Menu → Shop to unlock pawn skins and playable chess-piece costumes. Reach Challenger at 100, Master at 500 and Grandmaster at 750 squares.'
+ 'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across water channels, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -260,9 +260,9 @@ function setupLevel(){
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
   status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
-  status('Tap to hop, swipe to steer, collect coins and cross on stone bridges. Open Menu → Shop for cosmetic chess skins.');
+  status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261110-world-shop5').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261111-chess-club6').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});

@@ -136,9 +136,10 @@ test('Pawn Dash mobile-style double taps move twice without zooming the game sur
  await expect(page.locator('.pawn-world-controls button')).toHaveCount(4);
  expect(errors).toEqual([]);
 });
-test('Pawn Kingdom local cosmetic shop unlocks, equips and persists skins',async({page})=>{
+test('Pawn Kingdom chess-piece categories show five skins with preview and persist one purchase',async({page})=>{
  await stubScores(page);
  await page.setViewportSize({width:390,height:844});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{
   if(location.pathname.endsWith('/arcade.html')&&!localStorage.getItem('eloscanner-pawn-shop-v1'))
    localStorage.setItem('eloscanner-pawn-shop-v1',JSON.stringify({coins:150,owned:['ivory'],selected:'ivory'}));
@@ -147,21 +148,33 @@ test('Pawn Kingdom local cosmetic shop unlocks, equips and persists skins',async
  await expect(page.locator('.pawn-world-canvas')).toBeVisible();
  await page.getByRole('button',{name:'Open game menu'}).click();
  await page.getByRole('button',{name:'Shop & skins'}).click();
- await expect(page.getByRole('heading',{name:'Chess piece shop'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Choose a chess piece'})).toBeVisible();
+ const categories=page.locator('.pawn-shop-categories button');
+ await expect(categories).toHaveCount(6);
+ await expect(categories.nth(0)).toContainText('Pawn');
+ await expect(categories.nth(1)).toContainText('Bishop');
+ await expect(categories.nth(2)).toContainText('Knight');
+ await expect(categories.nth(3)).toContainText('Rook');
+ await expect(categories.nth(4)).toContainText('Queen');
+ await expect(categories.nth(5)).toContainText('King');
+ await categories.nth(0).click();
+ await expect(page.locator('.pawn-shop-preview')).toBeVisible();
+ await expect(page.locator('.pawn-shop-item')).toHaveCount(5);
  await expect(page.locator('.pawn-shop-balance')).toContainText('150');
  await page.getByRole('button',{name:'Unlock Emerald Pawn'}).click();
  await expect(page.locator('.pawn-shop-balance')).toContainText('0');
- await expect(page.getByText('Equipped',{exact:true}).first()).toBeVisible();
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('eloscanner-pawn-shop-v1')));
- expect(saved.selected).toBe('emerald');
- expect(saved.coins).toBe(0);
- expect(saved.owned).toContain('emerald');
+ expect(saved.selected).toBe('emerald');expect(saved.coins).toBe(0);
  await page.reload();
  await page.getByRole('button',{name:'Open game menu'}).click();
  await page.getByRole('button',{name:'Shop & skins'}).click();
- await expect(page.locator('.pawn-shop-balance')).toContainText('0');
+ await page.locator('.pawn-shop-categories button').nth(0).click();
  await expect(page.getByRole('button',{name:'Equip Ivory Pawn'})).toBeVisible();
+ await page.getByRole('button',{name:'All pieces'}).click();
+ await page.locator('.pawn-shop-categories button').nth(4).click();
+ await expect(page.locator('.pawn-shop-item')).toHaveCount(5);
  await expect(page.getByRole('button',{name:'Unlock Ivory Queen'})).toBeDisabled();
+ expect(errors).toEqual([]);
 });
 test('Chess Memory palette has draggable SVGs and mobile board stays inside viewport',async({page})=>{
  await stubScores(page);
