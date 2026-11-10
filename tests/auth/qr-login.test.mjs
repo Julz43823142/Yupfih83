@@ -45,6 +45,45 @@ test('dedicated production Pages config route reports QR readiness and fails clo
   assert.equal((await getConfig()).qrLoginReady, false);
 });
 
+
+test('production Pages config exposes recovery and transfer only with complete protected schema', async () => {
+  const env = envFor();
+  const read = async () => {
+    const response = await pagesConfig({ request: req('config'), env });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const ready = await read();
+  assert.equal(ready.recoveryCodesReady, true);
+  assert.equal(ready.phoneTransferReady, true);
+  assert.equal(ready.registrationOpen, false);
+
+  // Feature indicators must agree with the actual gateway, including when
+  // an operator explicitly enables future phone signup on a test database.
+  const gateway = await (await call(env, 'config')).json();
+  assert.equal(ready.recoveryCodesReady, gateway.recoveryCodesReady);
+  assert.equal(ready.phoneTransferReady, gateway.phoneTransferReady);
+
+  env.PUBLIC_SIGNUP_ENABLED = 'true';
+  env.TURNSTILE_SECRET_KEY = 'local-test-secret';
+  env.TURNSTILE_SITE_KEY = 'local-test-site';
+  const signupReady = await read();
+  assert.equal(signupReady.registrationOpen, true);
+  assert.equal(signupReady.registrationOpen, (await (await call(env, 'config')).json()).registrationOpen);
+
+  env.AUTH_DB.sqlite.exec('DROP TRIGGER auth_primary_transfer_gate_valid');
+  const partial = await read();
+  assert.equal(partial.passkeyReady, true);
+  assert.equal(partial.qrLoginReady, true);
+  assert.equal(partial.recoveryCodesReady, false);
+  assert.equal(partial.phoneTransferReady, false);
+  assert.equal(partial.registrationOpen, false);
+  const gatewayPartial = await (await call(env, 'config')).json();
+  assert.equal(partial.recoveryCodesReady, gatewayPartial.recoveryCodesReady);
+  assert.equal(partial.phoneTransferReady, gatewayPartial.phoneTransferReady);
+  assert.equal(partial.registrationOpen, gatewayPartial.registrationOpen);
+});
+
 test('QR login is unavailable without schema and public registration remains closed', async () => {
   const env = envFor();
   assert.equal((await call(env, 'config')).status, 200);
