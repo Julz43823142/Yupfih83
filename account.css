@@ -50,3 +50,11 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .qr-approval-view #qr-phone-code{display:block;margin:16px auto;font-size:clamp(24px,7vw,34px)}
 
 .qr-approval-view .account-shell > section:not(#qr-login-phone){display:none!important}
+
+/* Readable, separate account settings groups without changing existing forms. */
+.account-section-title{border-left:3px solid #55b5d1;padding:3px 0 3px 16px;margin:30px 0 12px}
+.account-section-title h2{margin:0 0 5px;color:#c8f2ff;font-size:19px}
+.account-section-title p{margin:0;color:#a9c7d8;font-size:13px;line-height:1.5}
+.account-section-title+.account-card{margin-top:10px}
+.account-card>p:not(.account-note){max-width:64ch}
+@media(max-width:600px){.account-card{padding:20px 17px}}

@@ -22,12 +22,12 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const roll=n=>{let x=(hash^Math.imul(n+19,2654435761))>>>0;x^=x>>>16;x=Math.imul(x,2246822507);x^=x>>>13;x=Math.imul(x,3266489909);x^=x>>>16;return x/4294967296};
  const lane=row=>row<=1||row%6===0?'grass':row%7===0?'river':row%5===0?'castle':'road';
  const size=()=>{const rect=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2);width=rect.width||640;height=rect.height||630;canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0)};
- const cellSize=()=>Math.min(width/9.9,height/10.7);
- const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile*.72]};
+ const cellSize=()=>Math.min(width/10.3,height/10.7);
+ const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile]};
  function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fill()}
  // Rectangular ground tiles: columns and rows are axis-aligned, never diamonds.
  function tile(x,row,type){
-  const [px,py]=project(x,row),w=width/10.3,h=cellSize()*.72;
+  const [px,py]=project(x,row),w=cellSize(),h=cellSize();
   const left=px-w*.5,top=py-h*.5;
   ctx.fillStyle='#12253d';ctx.fillRect(left+1,top+4,w-2,h-1);
   const base=type==='grass'?(row+x)%2?'#3d996c':'#46aa78':type==='castle'?'#77659c':type==='river'?'#2f8fba':(row+x)%2?'#4b6286':'#536b90';
@@ -53,7 +53,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.fillStyle='#203b55';ctx.fillRect(width*.025,wallY,width*.14,height*.22);ctx.fillRect(width*.82,wallY,width*.15,height*.22);
   for(const x of [width*.05,width*.13,width*.85,width*.94]){ctx.fillRect(x,wallY-height*.08,width*.027,height*.105);ctx.fillStyle='#aec5ce';ctx.fillRect(x+width*.007,wallY-height*.06,width*.012,height*.023);ctx.fillStyle='#203b55'}
   // Two tree-lined shoulders track the rows and advance with the camera.
-  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/(cellSize()*.72)) +3;
+  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/cellSize()) +3;
   for(let row=low;row<=high;row+=2){
    for(const side of [-1,1]){
     if(roll(row*13+side*199)<.27)continue;
@@ -90,8 +90,12 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function frame(now){if(dead)return;if(!overlay.hidden){origin+=16;raf=requestAnimationFrame(frame);return}const t=(now-origin)/1000;camera+=(Math.max(0,player.row-4)-camera)*.13;
   ctx.clearRect(0,0,width,height);const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#12243d');sky.addColorStop(1,'#224969');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
   scenery(t);
-  ctx.fillStyle='#b3dafa';ctx.font='bold 17px system-ui';ctx.textAlign='right';ctx.fillText('PAWN KINGDOM',width-18,28);ctx.font='13px system-ui';ctx.fillText('LANES '+highest+'  ·  KEEP HOPPING',width-18,49);
-  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/(cellSize()*.72)*.75)+4;
+  // Opaque compact HUD avoids unreadable text over the scenery.
+  const hudLeft=Math.max(8,width-250);ctx.fillStyle='#091e32ee';ctx.fillRect(hudLeft,9,width-hudLeft-8,76);
+  ctx.textAlign='right';ctx.fillStyle='#f3fbff';ctx.font='bold 17px system-ui';ctx.fillText('PAWN KINGDOM',width-18,30);
+  ctx.font='bold 15px system-ui';ctx.fillText('LANES '+highest,width-18,51);
+  ctx.font='12px system-ui';ctx.fillText('KEEP HOPPING · DODGE PIECES',width-18,70);
+  const low=Math.max(0,Math.floor(camera)-3),high=Math.floor(camera)+Math.ceil(height/cellSize()*.75)+4;
   for(let row=high;row>=low;row--){const type=lane(row);for(let x=0;x<9;x++){tile(x,row,type);if(type==='grass'&&roll(row*25+x*4)>.91)piece(x,row,'♜','#65cd98',.43);if(type==='river'&&roll(row*4+x)>.64){const [px,py]=project(x,row);ctx.fillStyle='#122b51';ctx.beginPath();ctx.arc(px,py,cellSize()*.13,0,Math.PI*2);ctx.fill();}}}
   for(let row=high;row>=low;row--){const type=lane(row);if(type==='road'||type==='castle')for(let k=0;k<(type==='castle'?1:2);k++){const x=hazard(row*3+k,t);if(x>=-.2&&x<=8.2)piece(x,row,k?'♞':'♜',k?'#ed8da9':'#f4b973',.85)}}
   if(now<invincibleUntil){ctx.globalAlpha=.48+.45*Math.abs(Math.sin(now/100));}

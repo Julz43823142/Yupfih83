@@ -11,3 +11,5 @@
 .elo-board-toolbar .elo-toolbar-sound input:focus-visible+.puzzle-switch-track{outline:2px solid #78eaff;outline-offset:3px}
 .elo-board-toolbar [hidden]{display:none!important}
 @media(max-width:500px){.elo-board-toolbar{gap:6px;padding:8px}.elo-board-toolbar button{font-size:12px!important;padding:8px 10px!important}}
+
+@media(min-width:761px){.elo-board-toolbar{gap:12px;padding:15px 16px}.elo-board-toolbar button{font-size:15px!important;min-height:45px;padding:11px 16px!important}}
