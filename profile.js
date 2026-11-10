@@ -26,7 +26,13 @@
   try{const presence=await get('/api/social/status?username='+encodeURIComponent(data.username));const span=document.createElement('span');span.textContent=presence.online?' ● Online':' ○ Offline';span.style.color=presence.online?'#4fe0a0':'#aab7c0';el('profile-name').after(span)}catch{}
   const session=await (window.eloAccountSession||get('/api/auth/get-session').catch(()=>null));
   const me=session?.user?.username?.toLowerCase()===data.username.toLowerCase();
-  if(me)el('profile-edit').hidden=false;
+  if(me){
+   el('profile-edit').hidden=false;
+   if(data.role==='admin'){
+    const dashboard=document.createElement('a');dashboard.href='/admin.html';dashboard.className='profile-edit';dashboard.textContent='Admin dashboard';
+    el('profile-edit').after(dashboard);
+   }
+  }
   else{
    const actions=document.createElement('div');actions.className='online-profile-actions';
    addLink(actions,'Challenge to 3+0','/online.html?challenge='+encodeURIComponent(data.username));
