@@ -160,7 +160,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function drawEnemy(x,row,kind,scale=1){
   if(kind==='pawn'){drawPawn(x,row,true,scale);return}
   const [px,gy]=project(x,row),u=cellSize()*scale,py=gy+u*.22;
-  const dark='#343d51',base='#647289',light='#aebfd0',trim='#e9b870';
+  const dark='#57354b',base='#c66674',light='#ffd3c9',trim='#ffdc8b';
   ctx.save();
   ctx.fillStyle='#142e3f65';ctx.beginPath();ctx.ellipse(px,gy+u*.22,u*.30,u*.105,0,0,Math.PI*2);ctx.fill();
   pawnBase(px,py,u,dark,base,light);
@@ -275,15 +275,15 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   }
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
   const w=Math.min(204,width*.51),left=width-w-12;
-  round(left,12,w,79,13,'#0c253be8');
-  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,69);
+  round(left,12,w,103,13,'#0c253be8');
+  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,93);
   ctx.textAlign='right';ctx.fillStyle='#ffe3ae';ctx.font='bold 13px system-ui';
   ctx.fillText('PAWN KINGDOM',width-24,37);
   ctx.fillStyle='#fff9e9';ctx.font='bold 23px system-ui';
   ctx.fillText(''+highest+'  SQUARES',width-24,68);
   const tier=difficulty(highest),badge=tier===0?'ROOKIE':tier===1?'CHALLENGER':tier===2?'MASTER':'GRANDMASTER';
-  ctx.textAlign='left';ctx.font='bold 12px system-ui';ctx.fillStyle='#fff8df';
-  ctx.fillText('♟ '+String.fromCharCode(97+player.x)+(player.row+1)+'  ·  '+badge,16,height*.07);
+  ctx.textAlign='right';ctx.font='bold 12px system-ui';ctx.fillStyle='#fff0c5';
+  ctx.fillText('♟ '+String.fromCharCode(97+player.x)+(player.row+1)+'  ·  '+badge,width-24,91);
   if(collision(player.x,player.row,time)&&now>=invincibleUntil)hit();
   if(!dead)raf=requestAnimationFrame(frame);
  }
