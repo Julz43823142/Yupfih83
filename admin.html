@@ -7,10 +7,10 @@
 <link rel="stylesheet" href="/style.css?v=20261104-dark">
 <link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
-<link rel="stylesheet" href="/admin.css?v=1">
+<link rel="stylesheet" href="/admin.css?v=2-leaderboards">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<script src="/admin.js?v=1" defer></script>
+<script src="/admin.js?v=2-leaderboards" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -23,7 +23,20 @@
 <form id="admin-search-form" role="search"><label for="admin-search">Find a member</label><div class="admin-search-row"><input id="admin-search" autocomplete="off" maxlength="24" placeholder="Username" pattern="[A-Za-z0-9_]*"><button type="submit">Search</button></div></form>
 <div id="admin-list" class="admin-list" aria-live="polite"></div>
 <div class="admin-pagination"><button id="admin-prev" type="button" disabled>← Previous</button><span id="admin-page"></span><button id="admin-next" type="button" disabled>Next →</button></div>
-<p class="admin-note">This first release is read-only. Suspension, account deletion and leaderboard moderation are not enabled.</p>
+<section class="admin-moderation" aria-labelledby="moderation-title">
+<h2 id="moderation-title">Leaderboard moderation</h2>
+<p>Remove individual scores from the public rankings, including nickname-only entries without accounts. This does not delete an account or ban a nickname.</p>
+<form id="admin-leaderboard-form" role="search">
+<label for="admin-board">Leaderboard</label>
+<select id="admin-board"><option value="puzzle">Puzzle</option><option value="maze">Knight Maze</option></select>
+<label for="admin-score-search">Search nickname</label>
+<div class="admin-search-row"><input id="admin-score-search" autocomplete="off" maxlength="24" placeholder="Nickname"><button type="submit">Search scores</button></div>
+</form>
+<p id="admin-scores-status" role="status" aria-live="polite"></p>
+<div id="admin-scores-list" class="admin-list"></div>
+<div class="admin-pagination"><button id="admin-scores-prev" type="button" disabled>← Previous</button><span id="admin-scores-page"></span><button id="admin-scores-next" type="button" disabled>Next →</button></div>
+</section>
+<p class="admin-note">Account suspensions and account deletion are not enabled. Removed scores remain excluded from public rankings.</p>
 </section>
 </main>
 </body>
