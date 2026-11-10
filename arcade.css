@@ -133,3 +133,31 @@ body.pawn-dash-active{overflow:hidden}
 
 /* Leave the game-world HUD readable on narrow tablets and phones. */
 @media(max-width:520px){.pawn-world-menu-button{padding:10px 13px;font-size:14px}.pawn-world-immersive .pawn-world-controls button{min-width:48px}}
+
+/* Pawn Dash v2 — gesture-safe, larger mobile controls and quieter HUD. */
+.pawn-world-immersive,.pawn-world-immersive *{-webkit-tap-highlight-color:transparent}
+.pawn-world-immersive .pawn-world-canvas,
+.pawn-world-immersive .pawn-world-controls,
+.pawn-world-immersive .pawn-world-controls button{
+ touch-action:none!important;user-select:none!important;-webkit-user-select:none!important;
+ -webkit-touch-callout:none;
+}
+.pawn-world-immersive .pawn-world-controls{
+ bottom:max(18px,env(safe-area-inset-bottom));
+ gap:8px;padding:10px 12px;
+ border:1px solid #d7c18b99;background:#0c253dde;
+ box-shadow:0 8px 25px #03111e99;
+}
+.pawn-world-immersive .pawn-world-controls button{
+ min-width:64px;min-height:66px;
+ border:1px solid #c7dca6;
+ background:linear-gradient(165deg,#325a63,#15394d);
+ color:#fff0bd;border-radius:12px;font-weight:850;
+ font-size:26px;line-height:1;appearance:none;-webkit-appearance:none;
+}
+.pawn-world-immersive .pawn-world-controls button:active{background:#447b77;transform:translateY(1px)}
+@media(max-width:520px){
+ .pawn-world-immersive .pawn-world-controls{left:50%;width:max-content;max-width:calc(100vw - 24px);gap:6px;padding:8px}
+ .pawn-world-immersive .pawn-world-controls button{min-width:clamp(55px,17vw,70px);min-height:62px;padding:6px}
+ .pawn-world-menu-button{top:max(11px,env(safe-area-inset-top));left:10px}
+}
