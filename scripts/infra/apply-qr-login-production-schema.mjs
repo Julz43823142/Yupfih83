@@ -53,10 +53,10 @@ if (!live.ok || (await live.json()).registrationOpen !== false)
   throw Error('Live registration is not confirmed closed');
 
 const before = (await read('SELECT (SELECT COUNT(*) FROM "user") AS users, (SELECT COUNT(*) FROM "passkey") AS passkeys'))[0];
-const schema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx')");
+const schema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx','auth_qr_login_session_once_idx')");
 const existing = new Set(schema.map(x => x.name));
 if (existing.has('auth_qr_login') || existing.has('auth_qr_login_expires_idx')) {
-  if (existing.size === 2) {
+  if (existing.size === 3) {
     console.log('QR login schema already present; no writes needed.');
     process.exit(0);
   }
@@ -70,7 +70,7 @@ if (!approvedQrSchema(sql))
   throw Error('Migration must contain only the approved QR table and index CREATE statements');
 await query(sql);
 const afterSchema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx')");
-if (afterSchema.length !== 2) throw Error('Incomplete QR schema; inspect manually');
+if (afterSchema.length !== 3) throw Error('Incomplete QR schema; inspect manually');
 const after = (await read('SELECT (SELECT COUNT(*) FROM "user") AS users, (SELECT COUNT(*) FROM "passkey") AS passkeys'))[0];
 if (Number(before.users) !== Number(after.users) || Number(before.passkeys) !== Number(after.passkeys))
   throw Error('Account or passkey count changed unexpectedly');
