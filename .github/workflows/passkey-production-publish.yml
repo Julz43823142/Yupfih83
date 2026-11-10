@@ -126,7 +126,14 @@ jobs:
             try{
               const r=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}});
               const cfg=await r.json();
-              const page=await (await fetch(base+'/account.html',{headers:{'Cache-Control':'no-cache'}})).text();
+              // Query-string cache busting prevents stale HTML at the edge
+              // from producing a false-negative after a successful deploy.
+              const pageResponse=await fetch(base+'/account.html?deploy='+encodeURIComponent(process.env.GITHUB_SHA)+'&check='+attempt,{
+                headers:{'Cache-Control':'no-store','Pragma':'no-cache'}
+              });
+              const page=await pageResponse.text();
+              const phoneScript=page.includes('phone-account-qr.js?v=1');
+              const qrScript=page.includes('account.js?v=17-qr-cancel');
               const signup=await fetch(base+'/api/auth/sign-up/email',{
                 method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
                 body:JSON.stringify({username:'no_public_password_registration',password:'not-used'})
@@ -136,14 +143,13 @@ jobs:
                 body:JSON.stringify({username:'no_public_phone_registration',turnstileToken:'not-used'})
               });
               const configValid=r.ok && cfg.passkeyReady===true && cfg.qrLoginReady===true && cfg.loginConfigured===true &&
-                cfg.registrationOpen===false && page.includes('phone-account-qr.js?v=1') &&
-                page.includes('account.js?v=17-qr-cancel');
+                cfg.registrationOpen===false && pageResponse.ok && phoneScript && qrScript;
               if(configValid && signup.status===403 && phoneSignup.status===404) {
                 console.log('LIVE PRODUCTION: passkey login ready; both password and phone signup CLOSED; account migration UI published.');
                 process.exit(0);
               }
               reason='auth='+r.status+', passkeyReady='+cfg.passkeyReady+', registrationOpen='+cfg.registrationOpen+
-                ', page='+configValid+', passwordSignup='+signup.status+', passkeySignup='+phoneSignup.status;
+                ', pageHttp='+pageResponse.status+', phoneScript='+phoneScript+', qrScript='+qrScript+', passwordSignup='+signup.status+', passkeySignup='+phoneSignup.status;
             }catch(error){reason=String(error);}
             await sleep(4000);
           }
