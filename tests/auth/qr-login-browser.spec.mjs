@@ -49,6 +49,11 @@ test('desktop QR login uses phone passkey without invoking desktop WebAuthn', as
     phone.on('dialog', dialog => dialog.accept());
     await phone.goto(qr.phoneUrl.replace('https://eloscanner.com', base));
     await expect(phone.locator('#qr-login-phone')).toBeVisible();
+    await expect(phone.locator('html')).toHaveClass(/qr-approval-view/);
+    await expect(phone.locator('#login-panel')).toBeHidden();
+    await expect(phone.locator('#profile-panel')).toBeHidden();
+    await expect(phone.locator('.account-heading')).toBeHidden();
+    await expect(phone.getByRole('button', { name: 'Log in', exact: true })).toBeHidden();
     await expect(phone.locator('#qr-phone-code')).toHaveText(qr.code);
     await phone.locator('#qr-phone-approve').click();
     await expect(phone.locator('#qr-phone-status')).toContainText('Computer approved.', { timeout: 30000 });
