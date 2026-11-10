@@ -1,6 +1,6 @@
 import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
-import {consumeGameStart} from '../../lib/game-capacity.js';
+import {consumeGameStart,allowGameStartSource} from '../../lib/game-capacity.js';
 import {isReservedIdentity} from '../../lib/identity.mjs';
 import {checkProfanity} from 'glin-profanity';
 import {IDs} from '../../arcade-rules.mjs';
@@ -46,7 +46,7 @@ export async function onRequestPost({request,env}){
  if(!['start','submit'].includes(action))return json({error:'Invalid action.'},400);
  try{
   if(action==='start'){
-   if(!await consumeGameStart(db,'arcade'))return json({error:'Arcade games are temporarily at capacity.'},429);
+   if(!(await allowGameStartSource(env,request,'arcade'))||!await consumeGameStart(db,'arcade'))return json({error:'Arcade games are temporarily at capacity.'},429);
    await ready(db);
    const now=Date.now();
    if(now-lastCleanup>3600000){
