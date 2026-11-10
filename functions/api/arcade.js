@@ -4,6 +4,7 @@ import {consumeGameStart} from '../../lib/game-capacity.js';
 import {isReservedIdentity} from '../../lib/identity.mjs';
 import {checkProfanity} from 'glin-profanity';
 import {IDs} from '../../arcade-rules.mjs';
+import {ensureModerationTable} from '../../lib/leaderboard-moderation.mjs';
 
 // Arcade scores are currently PROVISIONAL. A server-created session and
 // bounded rate/score caps are not a cryptographic proof of gameplay.
@@ -19,12 +20,13 @@ async function ready(db){
   await db.prepare('CREATE INDEX IF NOT EXISTS arcade_runs_created ON arcade_runs(started_at)').run();
   await db.prepare('CREATE TABLE IF NOT EXISTS arcade_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS arcade_score_rank ON arcade_score_entries(mode,score DESC,created_at ASC,id ASC)').run();
+  await ensureModerationTable(db);
  })().catch(error=>{schemas.delete(db);throw error});
  schemas.set(db,p);return p;
 }
 const maxScore={'endgame-survivor':1000,'guess-the-elo':250000,'chess-memory':100000,'missing-piece':1000,'safe-square-rush':2500,'falling-board':5000,'queen-chase':5000,'chess-block-party':2500,'pawn-dash':5000};
 async function rankings(db,mode){
- const r=await db.prepare("SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM arcade_score_entries WHERE mode=? ORDER BY score DESC,created_at ASC,id ASC LIMIT 100").bind(mode).all();
+ const r=await db.prepare("SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM arcade_score_entries WHERE mode=? AND NOT EXISTS (SELECT 1 FROM leaderboard_removed_scores removed WHERE removed.board='arcade' AND removed.entry_id=arcade_score_entries.id) ORDER BY score DESC,created_at ASC,id ASC LIMIT 100").bind(mode).all();
  return (r.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry);
 }
 export async function onRequestGet({request,env}){
