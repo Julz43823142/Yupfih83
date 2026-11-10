@@ -1,6 +1,6 @@
 import {createAuth} from '../../lib/auth/config.mjs';
 import {readJsonPayload} from '../../lib/server-request-guard.js';
-import {consumeGameStart} from '../../lib/game-capacity.js';
+import {consumeGameStart,allowGameStartSource} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
 import {isReservedIdentity} from '../../lib/identity.mjs';
 import {ensureModerationTable} from '../../lib/leaderboard-moderation.mjs';
@@ -121,7 +121,7 @@ export async function onRequestPost({request,env}){
  if(action==='start'){
   const mode=String(data?.mode||'');if(!['sprint3','sprint5','survival'].includes(mode))return json({error:'Invalid game mode.'},400);
   try{
-   if(!await consumeGameStart(db,'puzzle'))return json({error:'New games are temporarily at capacity. Please try again later.'},429);
+   if(!(await allowGameStartSource(env,request,'puzzle'))||!await consumeGameStart(db,'puzzle'))return json({error:'New games are temporarily at capacity. Please try again later.'},429);
    await dbReady(db);const now=Date.now();await cleanExpiredRuns(db,now);
    const id=crypto.randomUUID();await db.prepare('INSERT INTO puzzle_verified_runs(id,mode,started_at,score) VALUES(?,?,?,0)').bind(id,mode,now).run();return json({session:id});
   }
