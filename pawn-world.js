@@ -19,7 +19,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const hint=document.createElement('p');hint.className='pawn-world-hint';hint.textContent='Tap to hop · Swipe to steer · Avoid red pawns · Cross on stone bridges';
  root.append(canvas,controls,hint,menuButton,overlay);host.append(root);document.body.classList.add('pawn-dash-active');
  const ctx=canvas.getContext('2d');let width=640,height=630,raf=0,dead=false,player={x:4,row:0},camera=0,highest=0,lastMove=0,invincibleUntil=0,origin=performance.now(),pointer=null,pausedAt=0,hop=null;
- const model=createPawnDashModel(seed);const {random:roll,lane,collision,enemyCount,enemyX,isBridge}=model;
+ const model=createPawnDashModel(seed);const {random:roll,lane,collision,enemyCount,enemyX,enemyKind,difficulty,isBridge}=model;
  const size=()=>{
   const rect=canvas.getBoundingClientRect();
   const scale=Math.min(window.devicePixelRatio||1,(navigator.hardwareConcurrency||8)<=4?1.5:2);
@@ -27,15 +27,15 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   ctx.setTransform(scale,0,0,scale,0,0);
  };
- const cellSize=()=>Math.min(width/10.7,height/9.25,112);
+ const cellSize=()=>Math.min(width/9.45,height/9.2,104);
  // Project the squares onto one consistent oblique chessboard plane.
  // One step up always equals the exact opposite edge of the next row.
  const project=(x,row)=>{
   const u=cellSize(),distance=row-camera;
-  return [width*.50+(x-4)*u+distance*u*.16,height*.69-distance*u*.79];
+  return [width*.50+(x-4)*u,height*.69-distance*u*.83];
  };
  const quad=(x,row)=>{
-  const [px,py]=project(x,row),u=cellSize(),v=u*.16,d=u*.79;
+  const [px,py]=project(x,row),u=cellSize(),v=0,d=u*.83;
   return [[px-u*.5+v*.5,py-d*.5],[px+u*.5+v*.5,py-d*.5],
           [px+u*.5-v*.5,py+d*.5],[px-u*.5-v*.5,py+d*.5]];
  };
@@ -67,56 +67,59 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.fillStyle='#214c47';ctx.fillRect(0,height*.82,width,height*.18);
  }
  function tile(x,row,type,time){
-  const points=quad(x,row),u=cellSize(),dark=(x+row)%2===0;
-  const pal={
-   meadow:dark?['#568d79','#79b193']:['#83b998','#aed3a9'],
-   road:dark?['#455b70','#60788b']:['#677d91','#849aab'],
-   court:dark?['#716580','#867990']:['#887e9b','#a89fba'],
-   river:dark?['#23718d','#3489a6']:['#307f9a','#419cb8']
-  }[type];
-  const edge=points.slice(2).map(([px,py])=>[px,py+u*.14]);
-  polygon([points[3],points[2],edge[0],edge[1]],type==='meadow'?'#3d6654':'#203a53');
-  polygon(points,pal[0]);
-  const cx=(points[0][0]+points[2][0])/2,cy=(points[0][1]+points[2][1])/2;
-  ctx.save();ctx.translate(cx,cy);
-  ctx.fillStyle=pal[1];
-  polygon([[-u*.41,-u*.29],[u*.44,-u*.29],[u*.39,u*.26],[-u*.44,u*.26]],pal[1]);
-  ctx.restore();
-  strokePolygon(points,'#163b4755',1.2);
-  if(type==='meadow'){
-   // Tiny embossed crown marks read as decoration, never as obstacles.
-   if(roll(row*101+x*17)>.72){
-    ctx.fillStyle='#d8eab65c';ctx.beginPath();ctx.arc(cx,cy,u*.09,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#285b4a77';ctx.fillRect(cx-u*.016,cy-u*.12,u*.032,u*.19);
-   }
-  }
-  if(type==='road'||type==='court'){
-   ctx.strokeStyle=type==='court'?'#e8c98a8c':'#d3e2da55';
-   ctx.lineWidth=Math.max(1,u*.018);
-   ctx.beginPath();ctx.moveTo(points[0][0]+u*.14,points[0][1]+u*.12);
-   ctx.lineTo(points[1][0]-u*.14,points[1][1]+u*.12);ctx.stroke();
+  const q=quad(x,row),u=cellSize(),cx=project(x,row)[0],cy=project(x,row)[1];
+  // One quiet, continuous world: grass, slate paths, sandstone courtyards and blue water.
+  const dark=(x+row)%2===0;
+  const base=type==='meadow'?(dark?'#80b68c':'#8ec29a'):
+             type==='road'?(dark?'#6d7877':'#788481'):
+             type==='court'?(dark?'#ac9c7d':'#b9a98b'):
+             (dark?'#408ba2':'#4695ad');
+  const border=type==='meadow'?'#609678':type==='road'?'#566765':
+               type==='court'?'#8d826b':'#26718c';
+  // Block sides give weight without creating false extra squares.
+  polygon([q[3],q[2],[q[2][0],q[2][1]+u*.125],[q[3][0],q[3][1]+u*.125]],border);
+  polygon(q,base);
+  ctx.lineWidth=Math.max(1,u*.027);
+  strokePolygon(q,border,ctx.lineWidth);
+  if(type==='road'){
+   // A complete road stripe: each cell shares one horizontal lane surface.
+   ctx.fillStyle='#d9d4bd4b';
+   ctx.fillRect(cx-u*.48,cy-u*.035,u*.96,u*.07);
+   if(x===0||x===8){ctx.fillStyle='#e4d5b574';ctx.fillRect(cx+(x===0?-u*.44:u*.39),cy-u*.32,u*.055,u*.65)}
+  }else if(type==='court'){
+   // Carved square joints and a small royal emblem; no purple squares.
+   ctx.strokeStyle='#eee1c084';ctx.lineWidth=Math.max(1,u*.016);
+   ctx.strokeRect(cx-u*.31,cy-u*.28,u*.62,u*.54);
    if(x===4&&row%2===0){
-    round(cx-u*.12,cy-u*.025,u*.24,u*.05,u*.016,'#f8e1a78e');
+    ctx.fillStyle='#e8d7a2';ctx.beginPath();ctx.arc(cx,cy,u*.08,0,Math.PI*2);ctx.fill();
    }
-  }
-  if(type==='river'){
-   if(isBridge(row,x)){
-    // A thick, clearly walkable stone bridge replaces random invisible water gaps.
-    polygon([[cx-u*.39,cy-u*.28],[cx+u*.39,cy-u*.28],
-             [cx+u*.37,cy+u*.30],[cx-u*.37,cy+u*.30]],'#d6c4a0');
-    ctx.strokeStyle='#f7e8c7';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(cx-u*.32,cy-u*.12);ctx.lineTo(cx+u*.31,cy-u*.12);ctx.stroke();
-    ctx.strokeStyle='#8b8274';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(cx-u*.32,cy+u*.13);ctx.lineTo(cx+u*.32,cy+u*.13);ctx.stroke();
-   }else{
-    ctx.strokeStyle='#9cdef080';ctx.lineWidth=Math.max(1.5,u*.025);
-    const wave=Math.sin(time*1.4+x*2+row)*u*.027;
-    ctx.beginPath();ctx.moveTo(cx-u*.29,cy-u*.06+wave);
-    ctx.quadraticCurveTo(cx,cy-u*.14+wave,cx+u*.29,cy-u*.06+wave);ctx.stroke();
-    // Waves mark deadly water: only cream bridge stones are safe.
-    ctx.fillStyle='#153c5777';ctx.beginPath();ctx.arc(cx,cy+u*.11,u*.055,0,Math.PI*2);ctx.fill();
+  }else if(type==='meadow'){
+   if(roll(row*101+x*17)>.78){
+    ctx.fillStyle='#add5a68b';ctx.beginPath();ctx.ellipse(cx-u*.23,cy+u*.10,u*.12,u*.035,-.2,0,Math.PI*2);ctx.fill();
    }
+  }else if(isBridge(row,x)){
+   // Exactly three adjoining sandstone bridge squares, safe to cross.
+   polygon([[cx-u*.48,cy-u*.37],[cx+u*.48,cy-u*.37],[cx+u*.48,cy+u*.36],[cx-u*.48,cy+u*.36]],'#d9c39a');
+   ctx.strokeStyle='#a69374';ctx.lineWidth=Math.max(1,u*.03);
+   ctx.strokeRect(cx-u*.45,cy-u*.34,u*.9,u*.68);
+   ctx.beginPath();ctx.moveTo(cx-u*.42,cy);ctx.lineTo(cx+u*.42,cy);ctx.stroke();
+  }else{
+   const wave=Math.sin(time*1.7+row*.38+x*.9)*u*.03;
+   ctx.strokeStyle='#b5e7e5b1';ctx.lineWidth=Math.max(1.5,u*.025);
+   ctx.beginPath();ctx.moveTo(cx-u*.32,cy+wave);ctx.quadraticCurveTo(cx,cy-u*.08+wave,cx+u*.32,cy+wave);ctx.stroke();
   }
+ }
+ // Strong, persistent position cue: the marked square is the player's collision square.
+ // During a hop the moving piece can briefly be between two squares, but its landing
+ // square stays illuminated. This makes precise navigation readable on phone screens.
+ function playerSquare(){
+  const q=quad(player.x,player.row),u=cellSize(),[px,py]=project(player.x,player.row);
+  ctx.save();
+  ctx.fillStyle='#fff2b056';polygon(q,'#ffed9e58');
+  strokePolygon(q,'#fff8de',Math.max(3,u*.08));
+  ctx.strokeStyle='#b87e3e';ctx.lineWidth=Math.max(1.5,u*.035);
+  ctx.beginPath();ctx.ellipse(px,py+u*.14,u*.31,u*.16,0,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
  }
  function tree(x,row){
   const [px,py]=project(x,row),u=cellSize(),v=roll(row*17+(x<0?97:131));
@@ -129,33 +132,66 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.strokeStyle='#a1d6a67a';ctx.lineWidth=Math.max(1,u*.023);
   ctx.beginPath();ctx.moveTo(px-s*.21,py-s*1.04);ctx.lineTo(px,py-s*1.61);ctx.stroke();
  }
+ function pawnBase(px,py,u,dark,base,light){
+  // All pieces stand on the same simple plinth, leaving plenty of free square visible.
+  round(px-u*.24,py+u*.06,u*.48,u*.11,u*.025,dark);
+  round(px-u*.205,py+u*.055,u*.41,u*.07,u*.025,base);
+  polygon([[px-u*.17,py+u*.045],[px+u*.17,py+u*.045],
+           [px+u*.105,py-u*.35],[px-u*.105,py-u*.35]],dark);
+  const g=ctx.createLinearGradient(px-u*.2,0,px+u*.2,0);
+  g.addColorStop(0,base);g.addColorStop(.45,light);g.addColorStop(1,base);
+  polygon([[px-u*.145,py+u*.02],[px+u*.145,py+u*.02],
+           [px+u*.087,py-u*.33],[px-u*.087,py-u*.33]],g);
+  round(px-u*.15,py-u*.385,u*.30,u*.075,u*.025,dark);
+ }
  function drawPawn(x,row,enemy=false,scale=1,ghost=false,jump=0){
-  const [px,groundY]=project(x,row);
-  const u=cellSize()*scale,py=groundY+u*.18-jump*u*.27;
-  ctx.save();if(ghost)ctx.globalAlpha=.42+.42*Math.abs(Math.sin(performance.now()/125));
-  ctx.fillStyle='#102a3d77';ctx.beginPath();ctx.ellipse(px,groundY+u*.24,u*.45*(1-jump*.23),u*.14,0,0,Math.PI*2);ctx.fill();
-  const dark=enemy?'#612e48':'#806039',base=enemy?'#ad4e70':'#ebd7a5',mid=enemy?'#dd7694':'#fff1cc',high=enemy?'#ffc4c9':'#fffdf0';
-  // Chunky sculpted pawn: thick plinth, tapering collar and large spherical head.
-  round(px-u*.34,py+u*.045,u*.68,u*.18,u*.055,dark);
-  round(px-u*.30,py+u*.04,u*.60,u*.11,u*.035,base);
-  polygon([[px-u*.235,py+u*.045],[px+u*.235,py+u*.045],
-           [px+u*.135,py-u*.42],[px-u*.135,py-u*.42]],dark);
-  const light=ctx.createLinearGradient(px-u*.3,0,px+u*.3,0);
-  light.addColorStop(0,base);light.addColorStop(.45,mid);light.addColorStop(1,base);
-  polygon([[px-u*.2,py+u*.005],[px+u*.2,py+u*.005],
-           [px+u*.105,py-u*.38],[px-u*.105,py-u*.38]],light);
-  round(px-u*.20,py-u*.46,u*.40,u*.12,u*.05,dark);
-  round(px-u*.165,py-u*.46,u*.33,u*.08,u*.04,base);
-  ctx.fillStyle=dark;ctx.beginPath();ctx.arc(px,py-u*.66,u*.26,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=mid;ctx.beginPath();ctx.arc(px,py-u*.685,u*.23,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=high;ctx.beginPath();ctx.ellipse(px-u*.075,py-u*.765,u*.085,u*.057,-.5,0,Math.PI*2);ctx.fill();
-  if(!enemy){
-   ctx.fillStyle='#d0a75b';ctx.fillRect(px-u*.135,py-u*.46,u*.27,u*.035);
-   ctx.strokeStyle='#fffbddaa';ctx.lineWidth=Math.max(1.5,u*.02);
-   ctx.beginPath();ctx.moveTo(px-u*.115,py-u*.32);ctx.lineTo(px-u*.165,py-u*.05);ctx.stroke();
-  }else{
-   ctx.fillStyle='#ffe1d8';ctx.beginPath();ctx.arc(px-u*.065,py-u*.655,u*.03,0,Math.PI*2);ctx.fill();
-   ctx.beginPath();ctx.arc(px+u*.065,py-u*.655,u*.03,0,Math.PI*2);ctx.fill();
+  const [px,gy]=project(x,row),u=cellSize()*scale,py=gy+u*.23-jump*u*.34;
+  ctx.save();
+  if(ghost)ctx.globalAlpha=.48+.38*Math.abs(Math.sin(performance.now()/125));
+  ctx.fillStyle='#183b365c';ctx.beginPath();ctx.ellipse(px,gy+u*.20,u*.26,u*.10,0,0,Math.PI*2);ctx.fill();
+  const dark=enemy?'#653a44':'#7d633f',base=enemy?'#bb646c':'#e9d4a6',light=enemy?'#f2a1a3':'#fff6dc';
+  pawnBase(px,py,u,dark,base,light);
+  ctx.fillStyle=dark;ctx.beginPath();ctx.arc(px,py-u*.52,u*.19,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=light;ctx.beginPath();ctx.arc(px,py-u*.54,u*.167,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fffdf0';ctx.beginPath();ctx.ellipse(px-u*.06,py-u*.61,u*.055,u*.028,-.5,0,Math.PI*2);ctx.fill();
+  if(!enemy){ctx.fillStyle='#c7a663';ctx.fillRect(px-u*.1,py-u*.38,u*.20,u*.028)}
+  ctx.restore();
+ }
+ function drawEnemy(x,row,kind,scale=1){
+  if(kind==='pawn'){drawPawn(x,row,true,scale);return}
+  const [px,gy]=project(x,row),u=cellSize()*scale,py=gy+u*.22;
+  const dark='#57354b',base='#c66674',light='#ffd3c9',trim='#ffdc8b';
+  ctx.save();
+  ctx.fillStyle='#142e3f65';ctx.beginPath();ctx.ellipse(px,gy+u*.22,u*.30,u*.105,0,0,Math.PI*2);ctx.fill();
+  pawnBase(px,py,u,dark,base,light);
+  if(kind==='rook'){
+   round(px-u*.20,py-u*.64,u*.4,u*.29,u*.017,dark);
+   round(px-u*.17,py-u*.60,u*.34,u*.19,u*.014,base);
+   for(let k=0;k<3;k++)round(px-u*.21+k*u*.145,py-u*.72,u*.12,u*.14,u*.015,light);
+   round(px-u*.22,py-u*.52,u*.44,u*.05,u*.015,trim);
+  }else if(kind==='knight'){
+   polygon([[px-u*.19,py-u*.34],[px-u*.11,py-u*.62],[px-u*.25,py-u*.73],
+    [px-u*.08,py-u*.92],[px+u*.09,py-u*.88],[px+u*.24,py-u*.52],
+    [px+u*.12,py-u*.36]],dark);
+   polygon([[px-u*.14,py-u*.45],[px-u*.06,py-u*.64],[px-u*.18,py-u*.73],
+    [px-u*.07,py-u*.84],[px+u*.055,py-u*.83],[px+u*.17,py-u*.48]],light);
+   ctx.fillStyle=dark;ctx.beginPath();ctx.arc(px-u*.085,py-u*.75,u*.027,0,Math.PI*2);ctx.fill();
+  }else if(kind==='bishop'){
+   polygon([[px-u*.17,py-u*.42],[px-u*.13,py-u*.73],[px,py-u*.93],
+    [px+u*.13,py-u*.73],[px+u*.17,py-u*.42]],dark);
+   polygon([[px-u*.13,py-u*.45],[px-u*.10,py-u*.7],[px,py-u*.86],
+    [px+u*.10,py-u*.7],[px+u*.13,py-u*.45]],light);
+   ctx.strokeStyle=trim;ctx.lineWidth=Math.max(2,u*.032);
+   ctx.beginPath();ctx.moveTo(px+u*.085,py-u*.78);ctx.lineTo(px-u*.075,py-u*.55);ctx.stroke();
+  }else{ // queen, introduced after the first milestone
+   polygon([[px-u*.18,py-u*.43],[px-u*.25,py-u*.84],[px-u*.12,py-u*.69],
+    [px,py-u*.96],[px+u*.12,py-u*.69],[px+u*.25,py-u*.84],
+    [px+u*.18,py-u*.43]],dark);
+   polygon([[px-u*.15,py-u*.48],[px-u*.19,py-u*.77],[px-u*.10,py-u*.64],
+    [px,py-u*.86],[px+u*.10,py-u*.64],[px+u*.19,py-u*.77],
+    [px+u*.15,py-u*.48]],light);
+   round(px-u*.21,py-u*.49,u*.42,u*.07,u*.018,trim);
+   ctx.fillStyle=trim;ctx.beginPath();ctx.arc(px,py-u*.9,u*.055,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
  }
@@ -171,7 +207,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   const nx=Math.max(0,Math.min(8,player.x+dx)),nr=Math.max(0,player.row+dy);
   if(nx===player.x&&nr===player.row)return;
   lastMove=now;hop={from:{...player},to:{x:nx,row:nr},since:now};player={x:nx,row:nr};
-  if(nr>highest){const gained=nr-highest;highest=nr;onScore(gained);if(nr%10===0)onStatus('Milestone! '+nr+' squares crossed.')}
+  if(nr>highest){const gained=nr-highest;highest=nr;onScore(gained);if([100,500,750].includes(nr))onStatus('New level: '+(nr===100?'CHALLENGER':nr===500?'MASTER':'GRANDMASTER')+'! More chess pieces approach.')}
   if(collision(nx,nr,(now-origin)/1000))hit();
  }
  const keys={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
@@ -212,6 +248,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
    const type=lane(row);
    for(let x=0;x<9;x++)tile(x,row,type,time);
   }
+  playerSquare();
   for(let row=high;row>=low;row--){
    if(row%2===0){
     if(roll(row*13+199)>.16)tree(-1.1,row);
@@ -221,7 +258,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
    if(type==='road'||type==='court'){
     for(let k=0;k<enemyCount(row);k++){
      const x=enemyX(row,k,time);
-     if(x>=-.65&&x<=8.65)drawPawn(x,row,true,type==='court'?1.08:1.02);
+     if(x>=-.65&&x<=8.65)drawEnemy(x,row,enemyKind(row,k),.92);
     }
    }
    if(row===player.row){
@@ -233,17 +270,20 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
      jump=Math.sin(progress*Math.PI);
      if(progress>=1)hop=null;
     }
-    drawPawn(x,r,false,1.31,now<invincibleUntil,jump);
+    drawPawn(x,r,false,.97,now<invincibleUntil,jump);
    }
   }
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
   const w=Math.min(204,width*.51),left=width-w-12;
-  round(left,12,w,79,13,'#0c253be8');
-  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,69);
+  round(left,12,w,103,13,'#0c253be8');
+  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,93);
   ctx.textAlign='right';ctx.fillStyle='#ffe3ae';ctx.font='bold 13px system-ui';
   ctx.fillText('PAWN KINGDOM',width-24,37);
   ctx.fillStyle='#fff9e9';ctx.font='bold 23px system-ui';
   ctx.fillText(''+highest+'  SQUARES',width-24,68);
+  const tier=difficulty(highest),badge=tier===0?'ROOKIE':tier===1?'CHALLENGER':tier===2?'MASTER':'GRANDMASTER';
+  ctx.textAlign='right';ctx.font='bold 12px system-ui';ctx.fillStyle='#fff0c5';
+  ctx.fillText('♟ '+String.fromCharCode(97+player.x)+(player.row+1)+'  ·  '+badge,width-24,91);
   if(collision(player.x,player.row,time)&&now>=invincibleUntil)hit();
   if(!dead)raf=requestAnimationFrame(frame);
  }

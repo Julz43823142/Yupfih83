@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-124.txt'
+      - '.github/release-pawn-dash-125.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -47,8 +47,10 @@ jobs:
           const bundle=readFileSync('dist/arcade-bundle.js','utf8');
           if(!world.includes('function drawPawn(')||!world.includes('function tree(')||
              !world.includes('pawn-world-logic.mjs')||!logic.includes('createPawnDashModel')||
-             !page.includes('20261110-crossing3')||
-             !bundle.includes('20261110-crossing3'))
+             !world.includes('function playerSquare(')||!world.includes('function drawEnemy(')||
+             !logic.includes('row>=750')||!logic.includes('row>=500')||!logic.includes('row>=100')||
+             !page.includes('20261110-crossy-chess4')||
+             !bundle.includes('20261110-crossy-chess4'))
             throw Error('Pawn Dash redesign missing from build');
           NODE
       - name: Verify production isolation and snapshot existing registration settings
@@ -109,8 +111,10 @@ jobs:
               });
               if(worldRes.ok&&pageRes.ok&&configRes.ok&&logicRes.ok&&
                  world.includes('pawn-world-logic.mjs')&&logic.includes('createPawnDashModel')&&
+                 world.includes('function playerSquare(')&&world.includes('function drawEnemy(')&&
+                 logic.includes('row>=750')&&logic.includes('row>=500')&&logic.includes('row>=100')&&
                  world.includes('function drawPawn(')&&world.includes('function tree(')&&
-                 page.includes('20261110-crossing3')&&
+                 page.includes('20261110-crossy-chess4')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
                 process.exit(0);
