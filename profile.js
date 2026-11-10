@@ -34,11 +34,11 @@
   const display=data.username[0].toUpperCase()+data.username.slice(1),base='/profile/'+encodeURIComponent(data.username);
   document.title=(section?sections[section]+' · ':'')+display+' · EloScanner';
   el('profile-name').textContent=display;el('profile-avatar').textContent=display.slice(0,2).toUpperCase();
-  if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').parentElement.append(badge)}
+  if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').after(badge)}
   const date=new Date(data.joinedAt);el('profile-joined').textContent='Joined '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}));
   for(const [id,slug] of Object.entries({'profile-friends':'friend-list','chess-rating-link':'chess-rating','puzzle-rating-link':'puzzle-rating','records-link':'personal-records','history-link':'game-history','records-panel-link':'personal-records'}))el(id).href=base+'/'+slug;
   el('profile-content').hidden=false;status.textContent='';
-  try{const presence=await get('/api/social/status?username='+encodeURIComponent(data.username));const span=document.createElement('span');span.textContent=presence.online?' ● Online':' ○ Offline';span.style.color=presence.online?'#4fe0a0':'#aab7c0';el('profile-name').parentElement.append(span)}catch{}
+  try{const presence=await get('/api/social/status?username='+encodeURIComponent(data.username));const span=document.createElement('span');span.textContent=presence.online?' ● Online':' ○ Offline';span.style.color=presence.online?'#4fe0a0':'#aab7c0';el('profile-name').after(span)}catch{}
   const session=await (window.eloAccountSession||get('/api/auth/get-session').catch(()=>null));
   const me=session?.user?.username?.toLowerCase()===data.username.toLowerCase();
   if(me){
