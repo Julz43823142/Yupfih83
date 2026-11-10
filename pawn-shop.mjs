@@ -1,16 +1,19 @@
-// Local-only cosmetic collection: no money, no account charges, no gameplay advantage.
-// Values are untrusted browser preferences; never use these for a server leaderboard reward.
-export const PAWN_SHOP=Object.freeze([
- {id:'ivory',name:'Ivory Pawn',kind:'pawn',cost:0,color:'#eee1ba',accent:'#fffaf0'},
- {id:'emerald',name:'Emerald Pawn',kind:'pawn',cost:150,color:'#48ba91',accent:'#c7f8d9'},
- {id:'midnight',name:'Midnight Pawn',kind:'pawn',cost:400,color:'#5b7295',accent:'#b7d3f0'},
- {id:'royal',name:'Royal Gold Pawn',kind:'pawn',cost:900,color:'#d7a94b',accent:'#fff0b6'},
- {id:'knight',name:'Ivory Knight',kind:'knight',cost:2200,color:'#f1d7aa',accent:'#fffaf0'},
- {id:'bishop',name:'Ivory Bishop',kind:'bishop',cost:3500,color:'#f1d7aa',accent:'#fffaf0'},
- {id:'rook',name:'Ivory Rook',kind:'rook',cost:5000,color:'#f1d7aa',accent:'#fffaf0'},
- {id:'queen',name:'Ivory Queen',kind:'queen',cost:9000,color:'#f1d7aa',accent:'#fffaf0'},
- {id:'king',name:'Ivory King',kind:'king',cost:14000,color:'#f1d7aa',accent:'#fffaf0'}
-]);
+// Chess club cosmetic catalog. Local-only virtual coins, no payment or gameplay advantage.
+export const PIECE_ORDER=Object.freeze(['pawn','bishop','knight','rook','queen','king']);
+export const PIECE_LABELS=Object.freeze({pawn:'Pawn',bishop:'Bishop',knight:'Knight',rook:'Rook',queen:'Queen',king:'King'});
+const styles=[
+ {id:'ivory',label:'Ivory',color:'#e8d6b4',accent:'#fff9e8',trim:'#b6986b'},
+ {id:'emerald',label:'Emerald',color:'#3fae8a',accent:'#a6f3d1',trim:'#e9ce7a'},
+ {id:'midnight',label:'Midnight',color:'#475d8a',accent:'#a5bde8',trim:'#e0b873'},
+ {id:'royal',label:'Royal Gold',color:'#c99a42',accent:'#ffebaa',trim:'#fff6d5'},
+ {id:'obsidian',label:'Obsidian',color:'#343444',accent:'#9895b4',trim:'#f1bc7b'}
+];
+const prices={pawn:[0,150,400,900,1500],bishop:[3500,4100,4700,5400,6200],knight:[2200,2800,3400,4100,4900],rook:[5000,5700,6500,7400,8400],queen:[9000,10000,11200,12500,14000],king:[14000,15500,17200,19000,21000]};
+export const PAWN_SHOP=Object.freeze(PIECE_ORDER.flatMap(kind=>styles.map((style,index)=>Object.freeze({
+ id:kind==='pawn'&&index<4?style.id:kind!=='pawn'&&index===0?kind:kind+'-'+style.id,
+ name:style.label+' '+PIECE_LABELS[kind],kind,cost:prices[kind][index],
+ color:style.color,accent:style.accent,trim:style.trim
+}))));
 const DEFAULT=()=>({coins:0,owned:['ivory'],selected:'ivory'});
 const bounded=n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000?n:0;
 export function readPawnWallet(raw){
@@ -33,7 +36,6 @@ export function buyPawnSkin(wallet,id){
  return {wallet:{coins:wallet.coins-item.cost,owned:[...wallet.owned,id],selected:id},ok:true,reason:'Unlocked'};
 }
 export const pawnCoinAt=(model,row,x)=>{
- // Only safe meadow and stone-road squares; deterministic by run seed.
  if(row<3||row%4!==2||model.lane(row)==='river')return false;
  return x===Math.floor(model.random(row*167+41)*9);
 };
