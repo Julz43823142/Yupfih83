@@ -3,6 +3,7 @@ import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
 import {isReservedIdentity} from '../../lib/identity.mjs';
+import {ensureModerationTable} from '../../lib/leaderboard-moderation.mjs';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY'};
 const json=(value,status=200)=>Response.json(value,{status,headers});
@@ -37,6 +38,7 @@ async function ready(db){
  // Append-only scores: retain legacy rows without deleting the original table.
  await db.prepare("CREATE TABLE IF NOT EXISTS knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS knight_maze_entries_rank ON knight_maze_score_entries(score DESC,created_at ASC)").run();
+ await ensureModerationTable(db);
  await db.prepare("INSERT OR IGNORE INTO knight_maze_score_entries(nickname,score,created_at,source_type,account_id,legacy_key) SELECT nickname,score,created_at,source_type,account_id,'legacy:'||lower(nickname) FROM knight_maze_scores").run();
  })().catch(error=>{schemas.delete(db);throw error});
  schemas.set(db,schemaPromise);
@@ -58,8 +60,8 @@ const futureLevels=(id,nextLevel)=>[1,2,3].map(offset=>maze(nextLevel+offset-1,i
 const publicRun=(r)=>({id:r.id,level:r.level,score:r.score,position:r.position,goal:r.goal,blocked:JSON.parse(r.blocked),endsAt:r.started_at+duration,finished:!!r.finished});
 async function ranking(db,limit,unique=false){
  const sql=unique
-  ? "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT nickname,score,source_type,account_id,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
-  : "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM knight_maze_score_entries ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
+  ? "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT nickname,score,source_type,account_id,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM knight_maze_score_entries WHERE NOT EXISTS (SELECT 1 FROM leaderboard_removed_scores removed WHERE removed.board='maze' AND removed.entry_id=knight_maze_score_entries.id)) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?"
+  : "SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM knight_maze_score_entries WHERE NOT EXISTS (SELECT 1 FROM leaderboard_removed_scores removed WHERE removed.board='maze' AND removed.entry_id=knight_maze_score_entries.id) ORDER BY score DESC,created_at ASC,id ASC LIMIT ?";
  const result=await db.prepare(sql).bind(limit).all();
  return (result.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry);
 }
