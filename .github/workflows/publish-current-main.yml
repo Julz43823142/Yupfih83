@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-128.txt'
+      - '.github/release-pawn-dash-129.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -125,7 +125,7 @@ jobs:
                  world.includes('pawn-world-logic.mjs')&&logic.includes('createPawnDashModel')&&
                  world.includes('function playerSquare(')&&world.includes('function drawEnemy(')&&
                  logic.includes('row>=750')&&logic.includes('row>=500')&&logic.includes('row>=100')&&
-                 world.includes('function drawPawn(')&&world.includes('function tree(')&&
+                 world.includes('function drawPawn(')&&world.includes('function clubDecoration(')&&
                  page.includes('20261111-chess-club6')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
