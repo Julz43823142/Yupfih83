@@ -1,3 +1,4 @@
+import {PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnSkin,pawnCoinAt} from './pawn-shop.mjs';
 import {createPawnDashModel} from './pawn-world-logic.mjs';
 // Original EloScanner Pawn Dash: a chess-themed, perspective crossing game.
 // No game sprites, levels or assets from third-party titles are used.
@@ -7,16 +8,50 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const overlay=document.createElement('div');overlay.className='pawn-world-overlay';overlay.hidden=true;
  const menuTitle=document.createElement('h2');menuTitle.textContent='Pawn Kingdom';
  const resume=document.createElement('button');resume.type='button';resume.textContent='Resume game';
+ const shopButton=document.createElement('button');shopButton.type='button';shopButton.textContent='♛ Shop & skins';
+ const shopPanel=document.createElement('section');shopPanel.className='pawn-shop-panel';shopPanel.hidden=true;
+ const shopHeading=document.createElement('h3');shopHeading.textContent='Chess piece shop';
+ const shopBalance=document.createElement('p');shopBalance.className='pawn-shop-balance';
+ const shopItems=document.createElement('div');shopItems.className='pawn-shop-items';
+ const shopBack=document.createElement('button');shopBack.type='button';shopBack.textContent='← Back to menu';
+ const shopHelp=document.createElement('p');shopHelp.textContent='Collect golden coins while crossing. Cosmetic skins only · saved on this device.';
+ shopPanel.append(shopHeading,shopBalance,shopHelp,shopItems,shopBack);
  const exit=document.createElement('button');exit.type='button';exit.textContent='Exit to minigames';
- const menuHelp=document.createElement('p');menuHelp.textContent='Tap the board to hop forward · Swipe or use arrow buttons to steer · Cross rivers on cream-coloured bridges · Esc pauses';
- overlay.append(menuTitle,resume,exit,menuHelp);
- const setMenu=open=>{if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
+ const menuHelp=document.createElement('p');menuHelp.textContent='Tap to hop · Swipe to steer · Collect coins · Shop for cosmetic chess pieces · Escape to pause';
+ overlay.append(menuTitle,resume,shopButton,exit,menuHelp,shopPanel);
+ let wallet;
+ try{wallet=readPawnWallet(localStorage.getItem('eloscanner-pawn-shop-v1'))}catch{wallet=readPawnWallet(null)}
+ const persistWallet=()=>{try{localStorage.setItem('eloscanner-pawn-shop-v1',JSON.stringify(wallet))}catch{}};
+ const selectedSkin=()=>PAWN_SHOP.find(s=>s.id===wallet.selected)||PAWN_SHOP[0];
+ const collected=new Set();
+ function refreshShop(){
+  shopBalance.textContent='🪙 '+wallet.coins.toLocaleString('en-US')+' coins';
+  shopItems.replaceChildren();
+  for(const item of PAWN_SHOP){
+   const row=document.createElement('div');row.className='pawn-shop-item';
+   const copy=document.createElement('span');
+   const heading=document.createElement('strong');heading.textContent=item.name;
+   const price=document.createElement('small');
+   const owned=wallet.owned.includes(item.id);
+   price.textContent=wallet.selected===item.id?'Equipped':owned?'Unlocked':item.cost.toLocaleString('en-US')+' coins';
+   copy.append(heading,price);
+   const button=document.createElement('button');button.type='button';
+   button.textContent=wallet.selected===item.id?'Equipped':owned?'Equip':'Unlock';
+   button.disabled=wallet.selected===item.id||(!owned&&wallet.coins<item.cost);
+   button.setAttribute('aria-label',(owned?'Equip ':'Unlock ')+item.name);
+   button.onclick=()=>{const result=buyPawnSkin(wallet,item.id);if(result.ok){wallet=result.wallet;persistWallet();refreshShop()}};
+   row.append(copy,button);shopItems.append(row);
+  }
+ }
+ shopButton.onclick=()=>{shopPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;exit.hidden=true;menuHelp.hidden=true;refreshShop()};
+ shopBack.onclick=()=>{shopPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
+ const setMenu=open=>{if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
  menuButton.onclick=()=>setMenu(overlay.hidden);resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
  const canvas=document.createElement('canvas');canvas.className='pawn-world-canvas';canvas.tabIndex=0;
  canvas.setAttribute('aria-label','Pawn Dash: tap to hop forward, swipe to steer your ivory chess pawn across squares; avoid red pawns and cross the river on stone bridges');
  const controls=document.createElement('div');controls.className='pawn-world-controls';controls.setAttribute('aria-label','Pawn Dash movement controls');
  controls.innerHTML='<button type="button" data-direction="left" aria-label="Move left">◀</button><button type="button" data-direction="forward" aria-label="Move forward">▲</button><button type="button" data-direction="back" aria-label="Move backward">▼</button><button type="button" data-direction="right" aria-label="Move right">▶</button>';
- const hint=document.createElement('p');hint.className='pawn-world-hint';hint.textContent='Tap to hop · Swipe to steer · Avoid red pawns · Cross on stone bridges';
+ const hint=document.createElement('p');hint.className='pawn-world-hint';hint.textContent='Tap to hop · Collect coins · Unlock chess skins in Menu → Shop';
  root.append(canvas,controls,hint,menuButton,overlay);host.append(root);document.body.classList.add('pawn-dash-active');
  const ctx=canvas.getContext('2d');let width=640,height=630,raf=0,dead=false,player={x:4,row:0},camera=0,highest=0,lastMove=0,invincibleUntil=0,origin=performance.now(),pointer=null,pausedAt=0,hop=null;
  const model=createPawnDashModel(seed);const {random:roll,lane,collision,enemyCount,enemyX,enemyKind,difficulty,isBridge}=model;
@@ -27,7 +62,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   ctx.setTransform(scale,0,0,scale,0,0);
  };
- const cellSize=()=>Math.min(width/9.45,height/9.2,104);
+ const cellSize=()=>Math.min(width/8.9,height/8.8,112);
  // Project the squares onto one consistent oblique chessboard plane.
  // One step up always equals the exact opposite edge of the next row.
  const project=(x,row)=>{
@@ -109,16 +144,56 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
    ctx.beginPath();ctx.moveTo(cx-u*.32,cy+wave);ctx.quadraticCurveTo(cx,cy-u*.08+wave,cx+u*.32,cy+wave);ctx.stroke();
   }
  }
+
+ function drawRiver(row,time){
+  const u=cellSize(),cy=project(4,row)[1],h=u*.83,left=project(0,row)[0]-u*.5,right=project(8,row)[0]+u*.5;
+  // One unbroken river, not nine blue checkerboard squares.
+  const water=ctx.createLinearGradient(0,cy-h*.5,0,cy+h*.5);
+  water.addColorStop(0,'#1f6d88');water.addColorStop(.42,'#2f9db6');water.addColorStop(1,'#1b6889');
+  ctx.fillStyle='#164c61';ctx.fillRect(left,cy-h*.5-4,right-left,h+8);
+  ctx.fillStyle=water;ctx.fillRect(left,cy-h*.48,right-left,h*.96);
+  ctx.save();ctx.beginPath();ctx.rect(left,cy-h*.48,right-left,h*.96);ctx.clip();
+  const drift=(time*18)%u;
+  for(let i=0;i<16;i++){
+   const wx=left+(i-1)*u*.7+drift,wy=cy-h*.33+((i*29+row*13)%8)/8*h*.62;
+   ctx.strokeStyle=i%3===0?'#d5fbf6a8':'#a3e1e08c';
+   ctx.lineWidth=i%3===0?3:1.8;
+   ctx.beginPath();ctx.moveTo(wx,wy);ctx.quadraticCurveTo(wx+u*.18,wy-u*.06,wx+u*.35,wy);ctx.stroke();
+  }
+  for(let i=0;i<10;i++){
+   const x=left+((i*109+row*23)%(right-left)),y=cy-h*.35+((i*37+row*19)%70)/100*h;
+   ctx.fillStyle='#efffe13d';ctx.beginPath();ctx.arc(x,y,Math.max(1.3,u*.025),0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+  // Stone bridges sit on top of the continuous water, aligned with the collision grid.
+  for(let x=0;x<9;x++)if(isBridge(row,x)){
+   const [cx,py]=project(x,row),w=u*.99,hh=h*.78;
+   ctx.fillStyle='#746b5a';ctx.fillRect(cx-w*.5,py-hh*.46+u*.09,w,hh);
+   ctx.fillStyle=(x+row)%2?'#d8c5a1':'#e8d6b2';ctx.fillRect(cx-w*.5,py-hh*.52,w,hh*.91);
+   ctx.strokeStyle='#ad9472';ctx.lineWidth=Math.max(1,u*.02);ctx.strokeRect(cx-w*.49,py-hh*.51,w*.98,hh*.88);
+   ctx.fillStyle='#fff5d24d';ctx.fillRect(cx-w*.48,py-hh*.45,w*.96,hh*.11);
+  }
+  ctx.fillStyle='#add0ba';ctx.fillRect(left,cy-h*.52,right-left,Math.max(3,u*.05));
+  ctx.fillStyle='#1c5165';ctx.fillRect(left,cy+h*.45,right-left,Math.max(3,u*.05));
+ }
+ function drawCoin(x,row,time){
+  const [px,py]=project(x,row),u=cellSize(),bob=Math.sin(time*4+row)*u*.05,r=u*.15;
+  ctx.fillStyle='#153a3990';ctx.beginPath();ctx.ellipse(px,py+u*.18,r*1.1,r*.38,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#956020';ctx.beginPath();ctx.arc(px,py-u*.26+bob,r*1.12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffdf67';ctx.beginPath();ctx.arc(px,py-u*.28+bob,r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#fff5bc';ctx.lineWidth=Math.max(1.5,u*.025);ctx.beginPath();ctx.arc(px,py-u*.28+bob,r*.68,0,Math.PI*2);ctx.stroke();
+  ctx.font='bold '+Math.round(u*.18)+'px system-ui';ctx.textAlign='center';ctx.fillStyle='#9a6519';ctx.fillText('♟',px,py-u*.21+bob);
+ }
  // Strong, persistent position cue: the marked square is the player's collision square.
  // During a hop the moving piece can briefly be between two squares, but its landing
  // square stays illuminated. This makes precise navigation readable on phone screens.
  function playerSquare(){
-  const q=quad(player.x,player.row),u=cellSize(),[px,py]=project(player.x,player.row);
+  // Small ground shadow and a soft ring — no bright outlined tile.
+  const [px,py]=project(player.x,player.row),u=cellSize();
   ctx.save();
-  ctx.fillStyle='#fff2b056';polygon(q,'#ffed9e58');
-  strokePolygon(q,'#fff8de',Math.max(3,u*.08));
-  ctx.strokeStyle='#b87e3e';ctx.lineWidth=Math.max(1.5,u*.035);
-  ctx.beginPath();ctx.ellipse(px,py+u*.14,u*.31,u*.16,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#163e3f66';ctx.beginPath();ctx.ellipse(px,py+u*.18,u*.29,u*.12,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#fff4cb9c';ctx.lineWidth=Math.max(1.5,u*.025);
+  ctx.beginPath();ctx.ellipse(px,py+u*.18,u*.32,u*.135,0,0,Math.PI*2);ctx.stroke();
   ctx.restore();
  }
  function tree(x,row){
@@ -149,7 +224,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.save();
   if(ghost)ctx.globalAlpha=.48+.38*Math.abs(Math.sin(performance.now()/125));
   ctx.fillStyle='#183b365c';ctx.beginPath();ctx.ellipse(px,gy+u*.20,u*.26,u*.10,0,0,Math.PI*2);ctx.fill();
-  const dark=enemy?'#653a44':'#7d633f',base=enemy?'#bb646c':'#e9d4a6',light=enemy?'#f2a1a3':'#fff6dc';
+  const skin=selectedSkin(),dark=enemy?'#653a44':'#72583f',base=enemy?'#bb646c':skin.color,light=enemy?'#f2a1a3':skin.accent;
   pawnBase(px,py,u,dark,base,light);
   ctx.fillStyle=dark;ctx.beginPath();ctx.arc(px,py-u*.52,u*.19,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=light;ctx.beginPath();ctx.arc(px,py-u*.54,u*.167,0,Math.PI*2);ctx.fill();
@@ -157,10 +232,10 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(!enemy){ctx.fillStyle='#c7a663';ctx.fillRect(px-u*.1,py-u*.38,u*.20,u*.028)}
   ctx.restore();
  }
- function drawEnemy(x,row,kind,scale=1){
-  if(kind==='pawn'){drawPawn(x,row,true,scale);return}
+ function drawEnemy(x,row,kind,scale=1,isPlayer=false){
+  if(kind==='pawn'){drawPawn(x,row,!isPlayer,scale);return}
   const [px,gy]=project(x,row),u=cellSize()*scale,py=gy+u*.22;
-  const dark='#57354b',base='#c66674',light='#ffd3c9',trim='#ffdc8b';
+  const skin=selectedSkin(),dark=isPlayer?'#66563f':'#57354b',base=isPlayer?skin.color:'#c66674',light=isPlayer?skin.accent:'#ffd3c9',trim=isPlayer?'#e5c16c':'#ffdc8b';
   ctx.save();
   ctx.fillStyle='#142e3f65';ctx.beginPath();ctx.ellipse(px,gy+u*.22,u*.30,u*.105,0,0,Math.PI*2);ctx.fill();
   pawnBase(px,py,u,dark,base,light);
@@ -183,6 +258,10 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
     [px+u*.10,py-u*.7],[px+u*.13,py-u*.45]],light);
    ctx.strokeStyle=trim;ctx.lineWidth=Math.max(2,u*.032);
    ctx.beginPath();ctx.moveTo(px+u*.085,py-u*.78);ctx.lineTo(px-u*.075,py-u*.55);ctx.stroke();
+  }else if(kind==='king'){
+   round(px-u*.17,py-u*.65,u*.34,u*.26,u*.02,light);
+   ctx.strokeStyle=trim;ctx.lineWidth=Math.max(3,u*.055);
+   ctx.beginPath();ctx.moveTo(px,py-u*.94);ctx.lineTo(px,py-u*.65);ctx.moveTo(px-u*.13,py-u*.83);ctx.lineTo(px+u*.13,py-u*.83);ctx.stroke();
   }else{ // queen, introduced after the first milestone
    polygon([[px-u*.18,py-u*.43],[px-u*.25,py-u*.84],[px-u*.12,py-u*.69],
     [px,py-u*.96],[px+u*.12,py-u*.69],[px+u*.25,py-u*.84],
@@ -209,6 +288,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   lastMove=now;hop={from:{...player},to:{x:nx,row:nr},since:now};player={x:nx,row:nr};
   if(nr>highest){const gained=nr-highest;highest=nr;onScore(gained);if([100,500,750].includes(nr))onStatus('New level: '+(nr===100?'CHALLENGER':nr===500?'MASTER':'GRANDMASTER')+'! More chess pieces approach.')}
   if(collision(nx,nr,(now-origin)/1000))hit();
+  else if(pawnCoinAt(model,nr,nx)&&!collected.has(nr+':'+nx)){
+   collected.add(nr+':'+nx);wallet=earnPawnCoins(wallet,10);persistWallet();onStatus('🪙 +10 coins · '+wallet.coins+' saved on this device');
+  }
  }
  const keys={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
  function keydown(e){if(dead)return;if(e.code==='Escape'){e.preventDefault();setMenu(overlay.hidden);return}if(!overlay.hidden||!keys[e.code])return;if(e.target?.matches('input,textarea'))return;e.preventDefault();move(...keys[e.code]);}
@@ -246,15 +328,18 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   const high=Math.max(10,Math.ceil(camera+height*.76/(u*.79))+3);
   for(let row=high;row>=low;row--){
    const type=lane(row);
-   for(let x=0;x<9;x++)tile(x,row,type,time);
+   if(type==='river')drawRiver(row,time);
+   else for(let x=0;x<9;x++)tile(x,row,type,time);
   }
   playerSquare();
   for(let row=high;row>=low;row--){
    if(row%2===0){
-    if(roll(row*13+199)>.16)tree(-1.1,row);
-    if(roll(row*13+397)>.16)tree(9.1,row);
+    tree(-.9,row);tree(8.9,row);
+    if(roll(row*3+49)>.4)tree(-1.75,row);
+    if(roll(row*3+103)>.4)tree(9.75,row);
    }
    const type=lane(row);
+   for(let x=0;x<9;x++)if(pawnCoinAt(model,row,x)&&!collected.has(row+':'+x))drawCoin(x,row,time);
    if(type==='road'||type==='court'){
     for(let k=0;k<enemyCount(row);k++){
      const x=enemyX(row,k,time);
@@ -270,7 +355,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
      jump=Math.sin(progress*Math.PI);
      if(progress>=1)hop=null;
     }
-    drawPawn(x,r,false,.97,now<invincibleUntil,jump);
+    const skin=selectedSkin();
+    if(skin.kind==='pawn')drawPawn(x,r,false,.97,now<invincibleUntil,jump);
+    else{ctx.save();if(now<invincibleUntil)ctx.globalAlpha=.45+.4*Math.abs(Math.sin(now/125));drawEnemy(x,r,skin.kind,.95,true);ctx.restore();}
    }
   }
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
@@ -283,7 +370,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.fillText(''+highest+'  SQUARES',width-24,68);
   const tier=difficulty(highest),badge=tier===0?'ROOKIE':tier===1?'CHALLENGER':tier===2?'MASTER':'GRANDMASTER';
   ctx.textAlign='right';ctx.font='bold 12px system-ui';ctx.fillStyle='#fff0c5';
-  ctx.fillText('♟ '+String.fromCharCode(97+player.x)+(player.row+1)+'  ·  '+badge,width-24,91);
+  ctx.fillText('🪙 '+wallet.coins+'  ·  '+badge,width-24,91);
   if(collision(player.x,player.row,time)&&now>=invincibleUntil)hit();
   if(!dead)raf=requestAnimationFrame(frame);
  }
