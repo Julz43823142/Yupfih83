@@ -22,7 +22,7 @@ const instructions={
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across water channels, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Sound effects included.'
+ 'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across water channels, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -262,10 +262,10 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261111-chessboard-audio7').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261111-startup8').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
-  }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
+  }).catch(error=>{board.hidden=false;console.error('Pawn Dash world startup failed:',error);status('Pawn Dash could not start: '+(error?.message||'Unknown error')+'. Please refresh and retry.')});
  }
 }
 function drawRoad(){
@@ -558,7 +558,7 @@ function tick(){
   status('Rebuild the position! Choose a piece and place it on its original square.');
   paint();
  }
- if(mode!=='endgame-survivor'&&now>=state.endsAt)finish();
+ if(mode!=='endgame-survivor'&&mode!=='pawn-dash'&&now>=state.endsAt)finish();
 }
 function checkEndgame(){
  if(!state.chess.isGameOver())return false;
@@ -630,7 +630,7 @@ async function start(){
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
  $('arcade-finish').hidden=false;
- $('arcade-time').textContent=mode==='endgame-survivor'?'∞':'3:00';
+ $('arcade-time').textContent=(mode==='endgame-survivor'||mode==='pawn-dash')?'∞':'3:00';
  setupLevel();paint();
  clockTimer=setInterval(tick,100);
  tick();
@@ -649,7 +649,7 @@ function finish(){
  $('arcade-submit-panel').hidden=false;
  $('arcade-submit').disabled=state.score<1;
  $('arcade-submit-status').textContent=state.score<1?'Score at least one point to enter the Top 100.':'';
- if(mode!=='endgame-survivor')$('arcade-time').textContent=clockLabel(timeLeft());
+ if(mode!=='endgame-survivor'&&mode!=='pawn-dash')$('arcade-time').textContent=clockLabel(timeLeft());
  status('Run finished with '+state.score+' points. Review your moves and mistakes below.');reviewStep=Math.max(0,runReview.length-1);displayReview();
  paint();
 }
