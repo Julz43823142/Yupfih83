@@ -272,10 +272,32 @@
     byId('qr-login-code').textContent = '';
     byId('qr-login-status').textContent = '';
   }
-  byId('qr-login-cancel').addEventListener('click', () => { cancelQr(); message('QR login cancelled.'); });
+  async function revokeQr(active) {
+    if (!active) return;
+    // Wait for an in-flight redemption before revoking: a successful response
+    // may have already installed the desktop session cookie.
+    if (active.pendingFinish) {
+      try {
+        const redeemed = await active.pendingFinish;
+        if (redeemed?.success) {
+          await post('sign-out', {});
+          return;
+        }
+      } catch { /* A failed redemption does not prevent cancellation. */ }
+    }
+    await post('qr-login/cancel', { id: active.id, secret: active.secret });
+  }
+  byId('qr-login-cancel').addEventListener('click', event => busy(event.currentTarget, async () => {
+    const active = qrActive;
+    cancelQr();
+    await revokeQr(active);
+    message('QR login cancelled on the server.');
+  }));
   byId('qr-login-start').addEventListener('click', event => busy(event.currentTarget, async () => {
     if (isPhone() || !config?.qrLoginReady) throw new Error('QR login is unavailable on this device.');
+    const previous = qrActive;
     cancelQr();
+    if (previous) await revokeQr(previous);
     const attempt = await post('qr-login/start', {});
     if (!/^[a-f0-9-]{36}$/.test(attempt.id) ||
         !/^[A-Za-z0-9_-]{43}$/.test(attempt.secret) ||
@@ -294,7 +316,9 @@
         while (!active.cancelled && Date.now() < attempt.expiresAt) {
           await new Promise(resolve => setTimeout(resolve, 2500));
           if (active.cancelled) return;
-          const result = await post('qr-login/finish', { id: active.id, secret: active.secret });
+          active.pendingFinish = post('qr-login/finish', { id: active.id, secret: active.secret });
+          const result = await active.pendingFinish;
+          active.pendingFinish = null;
           if (active.cancelled) return;
           if (result.status === 'pending') continue;
           if (!result.success || !result.user?.username) throw new Error('QR login could not be completed.');
