@@ -10,7 +10,8 @@ import { IDs as arcadeModes } from '../../arcade-rules.mjs';
 async function seed(db) {
   await db.prepare("CREATE TABLE puzzle_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,hour INTEGER,mode TEXT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT,legacy_key TEXT)").run();
   await db.prepare("CREATE TABLE arcade_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,mode TEXT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT)").run();
-  await db.prepare("CREATE TABLE knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT,legacy_key TEXT)").run();
+  await db.prepare("CREATE TABLE knight_maze_scores (nickname TEXT PRIMARY KEY COLLATE NOCASE,score INTEGER NOT NULL,created_at INTEGER NOT NULL,source_type TEXT NOT NULL DEFAULT 'nickname',account_id TEXT)").run();
+  await db.prepare("CREATE TABLE knight_maze_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT,legacy_key TEXT UNIQUE)").run();
   await db.prepare("INSERT INTO puzzle_score_entries(hour,mode,nickname,score,created_at,source_type) VALUES(1,'sprint5','Guest',20,1,'nickname'),(1,'sprint5','Guest',30,2,'nickname'),(1,'sprint3','Verified',35,3,'account')").run();
   await db.prepare("INSERT INTO knight_maze_score_entries(nickname,score,created_at,source_type) VALUES('Guest',20,1,'nickname'),('Guest',30,2,'nickname'),('Verified',35,3,'account')").run();
   await db.prepare("INSERT INTO arcade_score_entries(mode,nickname,score,created_at,source_type) VALUES('guess-the-elo','Guest',20,1,'nickname'),('guess-the-elo','Guest',30,2,'nickname'),('pawn-dash','Verified',35,3,'account')").run();
