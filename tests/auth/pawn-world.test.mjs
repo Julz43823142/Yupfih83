@@ -140,3 +140,20 @@ test('Chess club has six five-skin categories, previews, one-coin pickup and syn
  for(const kind of ['step','coin','water','hit','menu','buy','equip'])
   assert.match(audio,new RegExp("kind==='"+kind+"'"));
 });
+
+test('Black-and-white board, original music and independent volume sliders',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
+ assert.match(world,/const base=dark\?'#262d39':'#f3ecdc'/);
+ assert.match(world,/for\(let x=-10;x<=18;x\+\+\)/);
+ assert.match(world,/pawn-audio-panel/);
+ assert.match(world,/pawn-audio-slider/);
+ assert.match(world,/eloscanner-pawn-audio-v1/);
+ assert.match(world,/sound\.setVolume\(kind,audioSettings\[kind\]\)/);
+ assert.match(audio,/function startMusic\(/);
+ assert.match(audio,/function splash\(/);
+ assert.match(audio,/createBuffer\(1,length,a\.sampleRate\)/);
+ assert.match(audio,/setMusicOn\(v\)/);
+ assert.match(audio,/setVolume\(kind,value\)/);
+ assert.match(audio,/clearInterval\(timer\)/);
+});
