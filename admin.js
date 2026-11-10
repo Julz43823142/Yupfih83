@@ -52,19 +52,22 @@
   el('admin-next').addEventListener('click', () => { if ((page + 1) * 25 < total) { page++; load(); } });
 
   // Score actions use server-issued IDs, never nickname-based deletion.
-  let scorePage = 0, scoreTotal = 0, scoreBoard = 'puzzle', scoreSearch = '';
+  let scorePage = 0, scoreTotal = 0, scoreBoard = 'puzzle:sprint', scoreSearch = '';
   const scoreStatus = el('admin-scores-status');
   const scoreMessage = value => { scoreStatus.textContent = value; };
   async function loadScores() {
     scoreMessage('Loading scores…');
     el('admin-scores-prev').disabled = el('admin-scores-next').disabled = true;
+    const requestedBoard = scoreBoard;
     try {
-      const [board, mode] = scoreBoard.split(':');
+      const [board, mode] = requestedBoard.split(':');
       const params = new URLSearchParams({ board, search: scoreSearch, page: String(scorePage) });
       if (mode) params.set('mode', mode);
       const response = await fetch('/api/admin/leaderboard?' + params, { credentials: 'same-origin', cache: 'no-store' });
       if (!response.ok) throw new Error(response.status === 429 ? 'Too many requests. Try again shortly.' : 'Could not load leaderboard scores.');
-      const data = await response.json(); scoreTotal = data.total;
+      const data = await response.json();
+      if (scoreBoard !== requestedBoard) return;
+      scoreTotal = data.total;
       const list = el('admin-scores-list'); list.replaceChildren();
       if (!data.entries.length) {
         const empty = document.createElement('p'); empty.textContent = 'No scores found.'; list.append(empty);
@@ -79,13 +82,14 @@
         identity.append(meta);
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'admin-remove-score'; remove.textContent = 'Remove score';
         remove.addEventListener('click', async () => {
-          if (!confirm('Remove the score of ' + entry.nickname + ' (' + entry.score + ' points) from ' + scoreBoard + '? This removes this score from all public rankings.')) return;
+          const boardLabel = el('admin-board').selectedOptions[0].textContent;
+          if (!confirm('Remove the score of ' + entry.nickname + ' (' + entry.score + ' points) from ' + boardLabel + '? This removes this score from all public rankings.')) return;
           remove.disabled = true;
           try {
             const response = await fetch('/api/admin/leaderboard', {
               method: 'POST', credentials: 'same-origin', cache: 'no-store',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ board: scoreBoard.split(':')[0], id: entry.id, confirm: 'REMOVE' })
+              body: JSON.stringify({ board, mode: mode || '', id: entry.id, confirm: 'REMOVE' })
             });
             if (!response.ok) throw new Error(response.status === 429 ? 'Too many requests. Try again shortly.' : 'Could not remove the score.');
             scoreMessage('Score removed from public rankings.');
@@ -100,9 +104,16 @@
       scoreMessage('');
     } catch (error) { scoreMessage(error.message); }
   }
+  function selectScores() {
+    scorePage = 0;
+    scoreBoard = el('admin-board').value;
+    scoreSearch = el('admin-score-search').value.trim();
+    loadScores();
+  }
   el('admin-leaderboard-form').addEventListener('submit', event => {
-    event.preventDefault(); scorePage = 0; scoreBoard = el('admin-board').value; scoreSearch = el('admin-score-search').value.trim(); loadScores();
+    event.preventDefault(); selectScores();
   });
+  el('admin-board').addEventListener('change', selectScores);
   el('admin-scores-prev').addEventListener('click', () => { if (scorePage > 0) { scorePage--; loadScores(); } });
   el('admin-scores-next').addEventListener('click', () => { if ((scorePage + 1) * 25 < scoreTotal) { scorePage++; loadScores(); } });
   init();

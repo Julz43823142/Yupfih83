@@ -1,6 +1,5 @@
 import { requireAdmin, adminHeaders, adminReply } from '../../../lib/auth/admin-access.mjs';
-import { boards, ensureModerationTable, findScores, removeScore } from '../../../lib/leaderboard-moderation.mjs';
-import { IDs as arcadeModes } from '../../../arcade-rules.mjs';
+import { boards, modeAllowed, ensureModerationTable, findScores, removeScore } from '../../../lib/leaderboard-moderation.mjs';
 const reply = (data,status=200) => Response.json(data,{status,headers:adminHeaders});
 function select(request) {
   const url = new URL(request.url),board = url.searchParams.get('board');
@@ -13,7 +12,7 @@ export async function onRequestGet({request,env}) {
   const {url,board}=select(request);
   if(!boards[board])return adminReply('Invalid leaderboard.',400);
   const mode=url.searchParams.get('mode')||'';
-  if(board==='arcade'&&!arcadeModes.has(mode))return adminReply('Invalid game.',400);
+  if(!modeAllowed(board,mode))return adminReply('Invalid leaderboard mode.',400);
   const search=(url.searchParams.get('search')||'').trim();
   const rawPage=url.searchParams.get('page')||'0';
   if(search.length>24 || (search&&!/^[A-Za-z0-9 _-]+$/.test(search)) ||
@@ -41,11 +40,11 @@ export async function onRequestPost({request,env}) {
     data=JSON.parse(raw);
   }catch{return adminReply('Invalid request.',400)}
   if(!data||typeof data!=='object'||Array.isArray(data) ||
-    !boards[data.board]||!Number.isSafeInteger(data.id)||data.id<1 ||
+    !boards[data.board]||!modeAllowed(data.board,data.mode||'')||!Number.isSafeInteger(data.id)||data.id<1 ||
     typeof data.confirm!=='string'||data.confirm!=='REMOVE')return adminReply('Invalid removal request.',400);
   try{
     await ensureModerationTable(env.SUS_DB);
-    const removed=await removeScore(env.SUS_DB,data.board,data.id);
+    const removed=await removeScore(env.SUS_DB,data.board,data.id,data.mode||'');
     if(!removed)return adminReply('Score not found.',404);
     return reply({ok:true});
   }catch{return adminReply('Score moderation unavailable.',503)}

@@ -20,17 +20,18 @@ async function seed(db) {
 test('score moderation hides exact anonymous entry but retains other nickname and account entries', async () => {
   const db = database(); await seed(db);
   for (const board of ['puzzle','maze']) {
-    assert.equal((await findScores(db,board,'guest')).total,2);
-    assert.equal(await removeScore(db,board,1),true);
-    assert.equal(await removeScore(db,board,1),true);
-    assert.equal((await findScores(db,board,'guest')).total,1);
-    assert.equal((await findScores(db,board,'verified')).total,1);
-    assert.equal(await removeScore(db,board,999),false);
+    const mode = board === 'puzzle' ? 'sprint' : '';
+    assert.equal((await findScores(db,board,'guest',0,mode)).total,2);
+    assert.equal(await removeScore(db,board,1,mode),true);
+    assert.equal(await removeScore(db,board,1,mode),true);
+    assert.equal((await findScores(db,board,'guest',0,mode)).total,1);
+    assert.equal((await findScores(db,board,'verified',0,mode)).total,1);
+    assert.equal(await removeScore(db,board,999,mode),false);
   }
 });
 test('public puzzle rankings exclude removed scores in standard and unique views', async () => {
   const db=database(); await seed(db);
-  await removeScore(db,'puzzle',2);
+  await removeScore(db,'puzzle',2,'sprint');
   const env={SUS_DB:db};
   for(const unique of ['', '&filter=unique']){
     const response=await puzzleGet({request:new Request('https://eloscanner.com/api/puzzle-leaderboard?mode=sprint5&limit=100'+unique),env});
@@ -55,8 +56,8 @@ test('public knight maze rankings exclude removed scores in standard and unique 
 test('invalid boards and unsafe IDs never delete a score',async()=>{
   const db=database();await seed(db);
   assert.equal(await removeScore(db,'unknown',1),false);
-  for(const id of [0,-1,1.5,NaN,Infinity,'1'])assert.equal(await removeScore(db,'puzzle',id),false);
-  assert.equal((await findScores(db,'puzzle','')).total,3);
+  for(const id of [0,-1,1.5,NaN,Infinity,'1'])assert.equal(await removeScore(db,'puzzle',id,'sprint'),false);
+  assert.equal((await findScores(db,'puzzle','',0,'sprint')).total,3);
 });
 
 test('all nine active arcade rankings support individual nickname and account removals', async () => {
@@ -64,7 +65,7 @@ test('all nine active arcade rankings support individual nickname and account re
   const db=database(); await seed(db);
   assert.equal((await findScores(db,'arcade','Guest',0,'guess-the-elo')).total,2);
   assert.equal((await findScores(db,'arcade','Verified',0,'pawn-dash')).total,1);
-  assert.equal(await removeScore(db,'arcade',2),true);
+  assert.equal(await removeScore(db,'arcade',2,'guess-the-elo'),true);
   assert.equal((await findScores(db,'arcade','Guest',0,'guess-the-elo')).total,1);
   for (const uniqueMode of arcadeModes) {
     const response=await arcadeGet({request:new Request('https://eloscanner.com/api/arcade?mode='+uniqueMode),env:{SUS_DB:db}});
@@ -73,12 +74,36 @@ test('all nine active arcade rankings support individual nickname and account re
     assert.ok(!entries.some(row=>row.nickname==='Guest'&&row.score===30),uniqueMode);
     if(uniqueMode==='guess-the-elo') assert.ok(entries.some(row=>row.nickname==='Guest'&&row.score===20));
   }
-  assert.equal(await removeScore(db,'arcade',3),true);
+  assert.equal(await removeScore(db,'arcade',3,'pawn-dash'),true);
   const response=await arcadeGet({request:new Request('https://eloscanner.com/api/arcade?mode=pawn-dash'),env:{SUS_DB:db}});
   assert.deepEqual((await response.json()).entries,[]);
 });
 test('nickname filters never interpret SQL wildcard characters as a broad delete',async()=>{
   const db=database();await seed(db);
-  assert.equal((await findScores(db,'puzzle','%')).total,0);
-  assert.equal((await findScores(db,'puzzle','_')).total,0);
+  assert.equal((await findScores(db,'puzzle','%',0,'sprint')).total,0);
+  assert.equal((await findScores(db,'puzzle','_',0,'sprint')).total,0);
+});
+
+test('admin Puzzle Sprint and Survival follow exactly the public leaderboard split',async()=>{
+  const db=database(); await seed(db);
+  await db.prepare("INSERT INTO puzzle_score_entries(hour,mode,nickname,score,created_at,source_type) VALUES(1,'survival','Survivor',90,4,'nickname')").run();
+  assert.equal((await findScores(db,'puzzle','',0,'sprint')).total,3);
+  assert.equal((await findScores(db,'puzzle','',0,'survival')).total,1);
+  assert.equal((await findScores(db,'puzzle','survivor',0,'sprint')).total,0);
+  assert.equal((await findScores(db,'puzzle','guest',0,'survival')).total,0);
+  assert.equal(await removeScore(db,'puzzle',4,'sprint'),false);
+  assert.equal(await removeScore(db,'puzzle',1,'survival'),false);
+  assert.equal(await removeScore(db,'puzzle',4,'survival'),true);
+  assert.equal((await findScores(db,'puzzle','',0,'survival')).total,0);
+  assert.equal((await findScores(db,'puzzle','',0,'sprint')).total,3);
+  for(const mode of ['', 'sprint3','sprint5','arcade']) {
+    await assert.rejects(findScores(db,'puzzle','',0,mode),/Unsupported leaderboard mode/);
+    assert.equal(await removeScore(db,'puzzle',1,mode),false);
+  }
+});
+test('arcade score removal cannot cross a selected game',async()=>{
+  const db=database(); await seed(db);
+  assert.equal(await removeScore(db,'arcade',1,'pawn-dash'),false);
+  assert.equal(await removeScore(db,'arcade',1,'guess-the-elo'),true);
+  assert.equal((await findScores(db,'arcade','Guest',0,'guess-the-elo')).total,1);
 });

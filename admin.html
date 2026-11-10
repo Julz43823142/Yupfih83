@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/admin.css?v=2-leaderboards">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-<script src="/admin.js?v=2-leaderboards" defer></script>
+<script src="/admin.js?v=3-exact-leaderboards" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -28,7 +28,7 @@
 <p>Remove individual scores from the public rankings, including nickname-only entries without accounts. This does not delete an account or ban a nickname.</p>
 <form id="admin-leaderboard-form" role="search">
 <label for="admin-board">Leaderboard</label>
-<select id="admin-board"><option value="puzzle">Puzzle</option><option value="maze">Knight Maze</option><option value="arcade:endgame-survivor">Endgame Survivor</option><option value="arcade:guess-the-elo">Guess the Elo</option><option value="arcade:chess-memory">Chess Memory</option><option value="arcade:missing-piece">Missing Piece</option><option value="arcade:safe-square-rush">Safe Square Rush</option><option value="arcade:falling-board">Falling Board</option><option value="arcade:queen-chase">Queen Chase</option><option value="arcade:chess-block-party">Chess Block Party</option><option value="arcade:pawn-dash">Pawn Dash</option></select>
+<select id="admin-board"><option value="puzzle:sprint">Puzzle Sprint (3 &amp; 5 minutes)</option><option value="puzzle:survival">Puzzle Survival</option><option value="maze">Knight Maze</option><option value="arcade:endgame-survivor">Endgame Survivor</option><option value="arcade:guess-the-elo">Guess the Elo</option><option value="arcade:chess-memory">Chess Memory</option><option value="arcade:missing-piece">Missing Piece</option><option value="arcade:safe-square-rush">Safe Square Rush</option><option value="arcade:falling-board">Falling Board</option><option value="arcade:queen-chase">Queen Chase</option><option value="arcade:chess-block-party">Chess Block Party</option><option value="arcade:pawn-dash">Pawn Dash</option></select>
 <label for="admin-score-search">Search nickname</label>
 <div class="admin-search-row"><input id="admin-score-search" autocomplete="off" maxlength="24" placeholder="Nickname"><button type="submit">Search scores</button></div>
 </form>
