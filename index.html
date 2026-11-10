@@ -236,8 +236,9 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
 <script>
 (()=>{
  const title=document.getElementById('hero-puzzle-title'),list=document.getElementById('hero-puzzle-list'),more=document.getElementById('hero-puzzle-more');
- let lastMode='';
+ let lastMode='',lastSuccess=false,loading=false;
  async function update(){
+  if(document.hidden||loading)return;
   // Switch the displayed leaderboard every UTC hour. Scores remain separate,
   // and the existing hourly scoring windows are unchanged.
   const boards=[
@@ -248,19 +249,22 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
    ['queen-chase','Queen Chase'],['chess-block-party','Chess Block Party'],['pawn-dash','Pawn Dash']
   ];
   const hour=Math.floor(Date.now()/3600000),[mode,label]=boards[((hour%boards.length)+boards.length)%boards.length];
-  if(mode===lastMode)return;lastMode=mode;
+  if(mode===lastMode&&lastSuccess)return;lastMode=mode;loading=true;
   title.textContent=label+' · Top 10';
   more.href='/puzzle-top100.html?mode='+mode;
   list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
   try{
-   const r=await fetch('/api/puzzle-leaderboard?mode='+mode+'&limit=10',{cache:'no-store'}),data=await r.json();
-   if(!r.ok)throw Error('Unavailable');
-   list.replaceChildren();
+   const url=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode;
+   const r=await fetch(url,{cache:'no-store'}),data=await r.json();
+   if(!r.ok||!Array.isArray(data.entries))throw Error('Unavailable');
+   lastSuccess=true;list.replaceChildren();
    if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
    for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
-  }catch{list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
+  }catch{lastSuccess=false;list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
+  finally{loading=false}
  }
- update();setInterval(update,30000);
+ update();setInterval(update,60000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)void update()});
 })();
 </script>
 <link rel="stylesheet" href="/eloflow-home-example-layout.css?v=20261110-ipad-avatar">

@@ -1044,3 +1044,6 @@ a.sus-top100-button {display:inline-flex;align-items:center;text-decoration:none
 /* Keep the dark canvas visible behind long pages and mobile overscroll. */
 html,body{min-height:100%;background-color:#010817!important}
 html{min-height:100vh}
+
+/* Respect reduced-motion preferences without changing game rules or clocks. */
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}

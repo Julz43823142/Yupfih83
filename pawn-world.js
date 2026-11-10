@@ -21,7 +21,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  let hash=2166136261;for(const c of String(seed))hash=Math.imul(hash^c.charCodeAt(0),16777619)>>>0;
  const roll=n=>{let x=(hash^Math.imul(n+19,2654435761))>>>0;x^=x>>>16;x=Math.imul(x,2246822507);x^=x>>>13;x=Math.imul(x,3266489909);x^=x>>>16;return x/4294967296};
  const lane=row=>row<=1||row%6===0?'grass':row%7===0?'river':row%5===0?'castle':'road';
- const size=()=>{const rect=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2);width=rect.width||640;height=rect.height||630;canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0)};
+ const size=()=>{const rect=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,(navigator.hardwareConcurrency||8)<=4?1.5:2);width=rect.width||640;height=rect.height||630;canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0)};
  const cellSize=()=>Math.min(width/10.3,height/10.7);
  const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile]};
  function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fill()}
@@ -102,6 +102,23 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   piece(player.x,player.row,'♟','#f7df78',1.05);ctx.globalAlpha=1;
   if(collision(t))hit();raf=requestAnimationFrame(frame);
  }
+ let hiddenAt=0,pausedForVisibility=false;
+ function visibilityChanged(){
+  if(dead)return;
+  if(document.hidden){
+   if(hiddenAt)return;
+   hiddenAt=performance.now();pausedForVisibility=overlay.hidden;
+   if(pausedForVisibility)onPauseChange(true);
+   cancelAnimationFrame(raf);raf=0;
+  }else if(hiddenAt){
+   const elapsed=performance.now()-hiddenAt;
+   origin+=elapsed;invincibleUntil+=elapsed;hiddenAt=0;
+   if(pausedForVisibility)onPauseChange(false);
+   pausedForVisibility=false;
+   raf=requestAnimationFrame(frame);
+  }
+ }
+ document.addEventListener('visibilitychange',visibilityChanged);
  window.addEventListener('keydown',keydown);controls.addEventListener('click',click);canvas.addEventListener('touchstart',touchstart,{passive:true});canvas.addEventListener('touchend',touchend,{passive:true});window.addEventListener('resize',size);size();raf=requestAnimationFrame(frame);
- return {destroy(){dead=true;cancelAnimationFrame(raf);window.removeEventListener('keydown',keydown);window.removeEventListener('resize',size);root.remove();document.body.classList.remove('pawn-dash-active')},getProgress:()=>highest};
+ return {destroy(){dead=true;cancelAnimationFrame(raf);window.removeEventListener('keydown',keydown);window.removeEventListener('resize',size);document.removeEventListener('visibilitychange',visibilityChanged);root.remove();document.body.classList.remove('pawn-dash-active')},getProgress:()=>highest};
 }

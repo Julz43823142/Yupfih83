@@ -47,3 +47,18 @@ test('personal records only use account-linked score entries',()=>{
 test('public registration is still closed in production publish',()=>{
  assert.match(publish,/PUBLIC_SIGNUP_ENABLED/);
 });
+
+test('homepage Top 10 uses the correct leaderboard endpoint for each game category',()=>{
+ const home=readFileSync('index.html','utf8');
+ assert.match(home,/mode==='knight-maze'\?'\/api\/knight-maze\?limit=10'/);
+ assert.match(home,/mode==='sprint'\|\|mode==='survival'/);
+ assert.match(home,/\/api\/arcade\?mode='/);
+ assert.match(home,/document\.hidden\|\|loading/);
+});
+test('Pawn Dash suspends expensive animation in background tabs',()=>{
+ const pawn=readFileSync('pawn-world.js','utf8');
+ assert.match(pawn,/visibilitychange/);
+ assert.match(pawn,/cancelAnimationFrame\(raf\)/);
+ assert.match(pawn,/onPauseChange\(true\)/);
+ assert.match(pawn,/document\.removeEventListener\('visibilitychange'/);
+});
