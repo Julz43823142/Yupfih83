@@ -12,6 +12,12 @@ test('production publish smoke checks current account assets',()=>{
     assert.ok(account.includes(asset),'Production smoke expects an outdated asset: '+asset);
 });
 
+test('production live smoke requires recovery and phone-transfer readiness',()=>{
+  assert.match(publish,/cfg\\.recoveryCodesReady===true/);
+  assert.match(publish,/cfg\\.phoneTransferReady===true/);
+  assert.match(publish,/cfg\\.registrationOpen===false/);
+});
+
 test('production publish tests actual local passkeys, recovery and transfer before deployment',()=>{
   assert.match(publish,/LOCAL_PASSKEY_TEST=true npm run dev:auth/);
   for(const name of ['passkey.spec.mjs','passkey-signup.spec.mjs',
