@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-131.txt'
+      - '.github/release-pawn-dash-132.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -55,8 +55,8 @@ jobs:
              !world.includes('pawn-sound.mjs')||!sound.includes('createPawnSound')||!sound.includes('startMusic')||!world.includes('pawn-audio-slider')||
              !world.includes('function playerSquare(')||!world.includes('function drawEnemy(')||
              !logic.includes('row>=750')||!logic.includes('row>=500')||!logic.includes('row>=100')||
-             !page.includes('20261111-startup8')||
-             !bundle.includes('20261111-startup8'))
+             !page.includes('20261111-syntaxfix9')||
+             !bundle.includes('20261111-syntaxfix9'))
             throw Error('Pawn Dash redesign missing from build');
           NODE
       - name: Verify production isolation and snapshot existing registration settings
@@ -126,7 +126,7 @@ jobs:
                  world.includes('function playerSquare(')&&world.includes('function drawEnemy(')&&
                  logic.includes('row>=750')&&logic.includes('row>=500')&&logic.includes('row>=100')&&
                  world.includes('function drawPawn(')&&world.includes('function scenery(')&&
-                 page.includes('20261111-startup8')&&
+                 page.includes('20261111-syntaxfix9')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
                 process.exit(0);
