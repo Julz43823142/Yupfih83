@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Admin · EloScanner</title><link rel="icon" href="/favicon-horse.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css?v=20261104-dark">
+<link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
+<link rel="stylesheet" href="/account.css?v=2-mobile-menu">
+<link rel="stylesheet" href="/admin.css?v=1">
+<script src="/elo-global-menu.js?v=4-current" defer></script>
+<script src="/account-nav.js?v=4-capitalized" defer></script>
+<script src="/admin.js?v=1" defer></script>
+</head>
+<body>
+<header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
+<main class="admin-shell">
+<a href="/account.html" class="admin-back">← Account</a>
+<div class="admin-heading"><span class="admin-eyebrow">ELOSCANNER</span><h1>Admin dashboard</h1><p>Member directory and role overview. Only administrators can access member data.</p></div>
+<p id="admin-status" role="status" aria-live="polite">Checking administrator access…</p>
+<section id="admin-panel" hidden>
+<div class="admin-summary"><div><span>Registered members</span><strong id="admin-total">—</strong></div><div><span>Roles</span><strong>Admin / Member</strong></div></div>
+<form id="admin-search-form" role="search"><label for="admin-search">Find a member</label><div class="admin-search-row"><input id="admin-search" autocomplete="off" maxlength="24" placeholder="Username" pattern="[A-Za-z0-9_]*"><button type="submit">Search</button></div></form>
+<div id="admin-list" class="admin-list" aria-live="polite"></div>
+<div class="admin-pagination"><button id="admin-prev" type="button" disabled>← Previous</button><span id="admin-page"></span><button id="admin-next" type="button" disabled>Next →</button></div>
+<p class="admin-note">This first release is read-only. Suspension, account deletion and leaderboard moderation are not enabled.</p>
+</section>
+</main>
+</body>
+</html>
