@@ -13,9 +13,9 @@ test('production publish smoke checks current account assets',()=>{
 });
 
 test('production live smoke requires recovery and phone-transfer readiness',()=>{
-  assert.match(publish,/cfg\\.recoveryCodesReady===true/);
-  assert.match(publish,/cfg\\.phoneTransferReady===true/);
-  assert.match(publish,/cfg\\.registrationOpen===false/);
+  assert.match(publish,/cfg\.recoveryCodesReady===true/);
+  assert.match(publish,/cfg\.phoneTransferReady===true/);
+  assert.match(publish,/cfg\.registrationOpen===false/);
 });
 
 test('production publish tests actual local passkeys, recovery and transfer before deployment',()=>{
