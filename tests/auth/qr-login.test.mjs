@@ -66,6 +66,10 @@ test('QR login needs fresh phone passkey, explicit approval, correct desktop sec
   const approved = await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie);
   assert.equal(approved.status, 200, await approved.clone().text());
   assert.equal((await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie)).status, 409);
+  const direct = await createAuth(env).api.completeVerifiedQrLogin({
+    body: { userId: session.user.id }, headers: new Headers({ Origin: base }), asResponse: true
+  });
+  assert.equal(direct.status, 200, 'Direct verified QR session: ' + await direct.clone().text());
   const finished = await call(env, 'qr-login/finish', { id: qr.id, secret: qr.secret });
   assert.equal(finished.status, 200, await finished.clone().text());
   assert.equal((await finished.clone().json()).user.id, session.user.id);
@@ -77,7 +81,7 @@ test('QR login needs fresh phone passkey, explicit approval, correct desktop sec
   const desktopId = (await auth.api.getSession({ headers: new Headers({ Cookie: desktopCookie }) })).session.id;
   assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_passkey_login_proof WHERE sessionId=?').get(desktopId).n, 0);
   assert.equal((await call(env, 'qr-login/finish', { id: qr.id, secret: qr.secret })).status, 410);
-  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM session WHERE userId=?').get(session.user.id).n, 2);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM session WHERE userId=?').get(session.user.id).n, 3);
 });
 
 test('expired QR requests cannot be approved or redeemed', async () => {
