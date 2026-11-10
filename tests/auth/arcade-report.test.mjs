@@ -8,8 +8,8 @@ test('all arcade and Knight Maze rankings validate real entries before accepting
  const db=database(),original=globalThis.fetch;
  db.sqlite.exec("CREATE TABLE arcade_score_entries(id INTEGER PRIMARY KEY,mode TEXT,nickname TEXT,score INTEGER)");
  db.sqlite.exec("CREATE TABLE knight_maze_score_entries(id INTEGER PRIMARY KEY,nickname TEXT,score INTEGER)");
- db.sqlite.prepare("INSERT INTO arcade_score_entries VALUES(?,?,?)").run('endgame-survivor','sharkmeister',5);
- db.sqlite.prepare("INSERT INTO knight_maze_score_entries VALUES(?,?)").run('sharkmeister',7);
+ db.sqlite.prepare("INSERT INTO arcade_score_entries(mode,nickname,score) VALUES(?,?,?)").run('endgame-survivor','sharkmeister',5);
+ db.sqlite.prepare("INSERT INTO knight_maze_score_entries(nickname,score) VALUES(?,?)").run('sharkmeister',7);
  const sent=[];globalThis.fetch=async(_url,opts)=>{sent.push(JSON.parse(opts.body));return new Response('OK')};
  const env={SUS_DB:db,AUTH_DB:database(),BETTER_AUTH_SECRET:secret,REPORT_SECRET:'test-only-secret'};
  try{
