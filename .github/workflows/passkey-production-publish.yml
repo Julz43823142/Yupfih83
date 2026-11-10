@@ -135,7 +135,7 @@ jobs:
               });
               const page=await pageResponse.text();
               const phoneScript=page.includes('phone-account-qr.js?v=1');
-              const qrScript=page.includes('account.js?v=17-qr-cancel');
+              const qrScript=page.includes('account.js?v=18-qr-approval');
               const signup=await fetch(base+'/api/auth/sign-up/email',{
                 method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
                 body:JSON.stringify({username:'no_public_password_registration',password:'not-used'})
