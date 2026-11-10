@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-127.txt'
+      - '.github/release-pawn-dash-128.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -48,7 +48,7 @@ jobs:
           const sound=readFileSync('dist/pawn-sound.mjs','utf8');
           const page=readFileSync('dist/arcade.html','utf8');
           const bundle=readFileSync('dist/arcade-bundle.js','utf8');
-          if(!world.includes('function drawPawn(')||!world.includes('function tree(')||
+          if(!world.includes('function drawPawn(')||!world.includes('function clubDecoration(')||
              !world.includes('pawn-world-logic.mjs')||!logic.includes('createPawnDashModel')||
              !world.includes('pawn-shop.mjs')||!world.includes('function drawRiver(')||!shop.includes('PIECE_ORDER')||
              !world.includes('pawn-piece-art.mjs')||!art.includes('paintChessPiece')||
