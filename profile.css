@@ -22,3 +22,9 @@
 .profile-record-score{color:#a3e6d4;font-weight:650;white-space:nowrap}
 .profile-record-note{color:#acc8d9;font-size:13px}
 @media(max-width:500px){.profile-record-row{flex-direction:column;align-items:flex-start;gap:4px}.profile-record-score{white-space:normal}}
+
+/* Inline role and presence alongside the name, rather than below other metadata. */
+.elo-profile .profile-hero>div:nth-child(2){display:block!important}
+.elo-profile .profile-hero h1{display:inline-block;vertical-align:middle;margin-right:12px}
+.elo-profile .profile-admin-badge{vertical-align:middle;margin-left:14px!important;margin-right:0!important}
+@media(max-width:680px){.elo-profile .profile-hero h1{display:block;margin-right:0}.elo-profile .profile-admin-badge{margin-left:14px!important}}
