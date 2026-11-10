@@ -9,3 +9,5 @@
 .profile-game-row a,.profile-game-row a:visited{color:#fff;text-decoration:none}.profile-game-row a:hover{text-decoration:underline}
 
 .elo-profile a.profile-heading-link,.elo-profile a.profile-heading-link:visited,.elo-profile .profile-game-row a,.elo-profile .profile-game-row a:visited,.elo-profile a[href*='game-history'],.elo-profile a[href*='game-history']:visited{color:#fff!important;text-decoration:underline;text-underline-offset:3px}
+
+.profile-admin-badge{display:inline-flex;align-items:center;border:1px solid #5b8acb;border-radius:999px;padding:3px 11px;margin:5px 0 8px;background:rgba(52,113,194,.14);color:#a9ceff;font-size:.78rem;font-weight:750;letter-spacing:.03em}
