@@ -30,6 +30,9 @@ test('QR login is unavailable without schema and public registration remains clo
   assert.equal((await (await call(env, 'config')).json()).qrLoginReady, true);
   assert.equal((await (await call(env, 'config')).json()).registrationOpen, false);
   assert.equal((await call(env, 'sign-up/email', {})).status, 403);
+  env.AUTH_DB.sqlite.exec('DROP INDEX auth_qr_login_session_once_idx');
+  assert.equal((await (await call(env, 'config')).json()).qrLoginReady, false);
+  assert.equal((await call(env, 'qr-login/start', {})).status, 503);
   env.AUTH_DB.sqlite.exec('DROP TABLE auth_qr_login');
   assert.equal((await (await call(env, 'config')).json()).qrLoginReady, false);
   assert.equal((await call(env, 'qr-login/start', {})).status, 503);
