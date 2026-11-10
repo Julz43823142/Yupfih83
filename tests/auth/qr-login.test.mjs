@@ -69,7 +69,7 @@ test('QR login needs fresh phone passkey, explicit approval, correct desktop sec
     .bind(session.session.id, session.user.id, now + 1000).run();
   const approved = await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie, base, { now: () => now + 1001 });
   assert.equal(approved.status, 200, await approved.clone().text());
-  assert.equal((await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie)).status, 409);
+  assert.equal((await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie)).status, 403);
   const finished = await call(env, 'qr-login/finish', { id: qr.id, secret: qr.secret });
   assert.equal(finished.status, 200, await finished.clone().text());
   assert.equal((await finished.clone().json()).user.id, session.user.id);
