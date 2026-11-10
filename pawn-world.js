@@ -341,9 +341,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   playerSquare(now);
   for(let row=high;row>=low;row--){
    if(row%2===0){
-    tree(-.9,row);tree(8.9,row);
-    if(roll(row*3+49)>.4)tree(-1.75,row);
-    if(roll(row*3+103)>.4)tree(9.75,row);
+    clubDecoration(-.9,row);clubDecoration(8.9,row);
    }
    const type=lane(row);
    for(let x=0;x<9;x++)if(pawnCoinAt(model,row,x)&&!collected.has(row+':'+x))drawCoin(x,row,time);
