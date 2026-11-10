@@ -6,7 +6,7 @@ export function createPawnDashModel(seed){
   let x=(hash^Math.imul(n+19,2654435761))>>>0;
   x^=x>>>16;x=Math.imul(x,2246822507);x^=x>>>13;
   x=Math.imul(x,3266489909);x^=x>>>16;
-  return x/4294967296;
+  return (x>>>0)/4294967296;
  };
  const lane=row=>{
   if(row<=1||row%6===0)return 'meadow';
