@@ -48,3 +48,5 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .qr-approval-view #qr-login-phone:not([hidden]){display:block}
 .qr-approval-view #qr-login-phone{text-align:center}
 .qr-approval-view #qr-phone-code{display:block;margin:16px auto;font-size:clamp(24px,7vw,34px)}
+
+.qr-approval-view .account-shell > section:not(#qr-login-phone){display:none!important}
