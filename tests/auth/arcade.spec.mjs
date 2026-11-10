@@ -274,3 +274,26 @@ test('Endgame Survivor highlights the newest opponent reply with an arrow',async
  await expect(page.locator('#arcade-board .arcade-marks polygon')).toHaveCount(1);
  await expect(page.locator('#arcade-status')).toContainText(/Stockfish played|position ended|Checkmate/i);
 });
+
+test('Pawn Dash sound mixer persists music, SFX and overall volumes',async({page})=>{
+ await stubScores(page);
+ await page.setViewportSize({width:390,height:844});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/arcade.html?game=pawn-dash');
+ await page.getByRole('button',{name:'Open game menu'}).click();
+ await page.getByRole('button',{name:'Open sound and music settings'}).click();
+ await expect(page.getByRole('heading',{name:'Sound & music'})).toBeVisible();
+ await page.getByRole('slider',{name:'Music volume'}).fill('55');
+ await page.getByRole('slider',{name:'Sound effects volume'}).fill('25');
+ await page.getByRole('slider',{name:'Overall volume'}).fill('80');
+ await page.getByRole('button',{name:'Music: On'}).click();
+ const settings=await page.evaluate(()=>JSON.parse(localStorage.getItem('eloscanner-pawn-audio-v1')));
+ expect(settings).toMatchObject({music:.55,effects:.25,master:.8,musicOn:false});
+ await page.reload();
+ await page.getByRole('button',{name:'Open game menu'}).click();
+ await page.getByRole('button',{name:'Open sound and music settings'}).click();
+ await expect(page.getByRole('slider',{name:'Music volume'})).toHaveValue('55');
+ await expect(page.getByRole('slider',{name:'Sound effects volume'})).toHaveValue('25');
+ await expect(page.getByRole('button',{name:'Music: Off'})).toBeVisible();
+ expect(errors).toEqual([]);
+});
