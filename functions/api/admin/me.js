@@ -4,10 +4,10 @@ import { createAuth } from '../../../lib/auth/config.mjs';
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 export async function onRequestGet({ request, env }) {
   if (!env.AUTH_DB || !env.BETTER_AUTH_SECRET) return Response.json({ message: 'Unavailable.' }, { status: 503, headers });
-  const url = new URL(request.url);
-  const base = env.BETTER_AUTH_URL || 'https://eloscanner.com';
-  const origin = request.headers.get('Origin');
-  if (url.origin !== base || (origin && origin !== base) || request.headers.get('Sec-Fetch-Site') === 'cross-site')
+  // GET is read-only; the session cookie is the authorization boundary.
+  // Cloudflare's configured auth base URL may differ from the request origin
+  // (e.g. www/canonical redirects), so do not reject valid same-site GETs.
+  if (request.headers.get('Sec-Fetch-Site') === 'cross-site')
     return Response.json({ message: 'Forbidden.' }, { status: 403, headers });
   try {
     const session = await createAuth(env).api.getSession({ headers: request.headers });
