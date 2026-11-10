@@ -34,3 +34,17 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .qr-login-image svg{display:block;max-width:100%;height:auto;border:8px solid #fff;border-radius:8px}
 .qr-login-code{font:700 22px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.12em;color:#b9eff5}
 #qr-login-phone .account-primary{width:100%}
+
+/* A scanned QR link is a dedicated approval screen, not the account dashboard. */
+.qr-approval-view .account-heading,
+.qr-approval-view .account-back,
+.qr-approval-view #registration-panel,
+.qr-approval-view #login-panel,
+.qr-approval-view #profile-panel,
+.qr-approval-view #passkey-profile-panel,
+.qr-approval-view #recovery-login-panel,
+.qr-approval-view #passwordless-migration-panel {display:none!important}
+.qr-approval-view .account-shell{max-width:560px;margin-inline:auto}
+.qr-approval-view #qr-login-phone:not([hidden]){display:block}
+.qr-approval-view #qr-login-phone{text-align:center}
+.qr-approval-view #qr-phone-code{display:block;margin:16px auto;font-size:clamp(24px,7vw,34px)}
