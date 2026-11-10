@@ -1,5 +1,6 @@
 import { requireAdmin, adminHeaders, adminReply } from '../../../lib/auth/admin-access.mjs';
 import { boards, ensureModerationTable, findScores, removeScore } from '../../../lib/leaderboard-moderation.mjs';
+import { IDs as arcadeModes } from '../../../arcade-rules.mjs';
 const reply = (data,status=200) => Response.json(data,{status,headers:adminHeaders});
 function select(request) {
   const url = new URL(request.url),board = url.searchParams.get('board');
@@ -11,6 +12,8 @@ export async function onRequestGet({request,env}) {
   if(!env.SUS_DB)return adminReply('Leaderboard database unavailable.',503);
   const {url,board}=select(request);
   if(!boards[board])return adminReply('Invalid leaderboard.',400);
+  const mode=url.searchParams.get('mode')||'';
+  if(board==='arcade'&&!arcadeModes.has(mode))return adminReply('Invalid game.',400);
   const search=(url.searchParams.get('search')||'').trim();
   const rawPage=url.searchParams.get('page')||'0';
   if(search.length>24 || (search&&!/^[A-Za-z0-9 _-]+$/.test(search)) ||
@@ -19,7 +22,7 @@ export async function onRequestGet({request,env}) {
   if(page>1000)return adminReply('Invalid page.',400);
   try{
     await ensureModerationTable(env.SUS_DB);
-    return reply(await findScores(env.SUS_DB,board,search,page));
+    return reply(await findScores(env.SUS_DB,board,search,page,mode));
   }catch{return adminReply('Leaderboard lookup unavailable.',503)}
 }
 export async function onRequestPost({request,env}) {
