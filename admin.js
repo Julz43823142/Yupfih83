@@ -59,7 +59,9 @@
     scoreMessage('Loading scores…');
     el('admin-scores-prev').disabled = el('admin-scores-next').disabled = true;
     try {
-      const params = new URLSearchParams({ board: scoreBoard, search: scoreSearch, page: String(scorePage) });
+      const [board, mode] = scoreBoard.split(':');
+      const params = new URLSearchParams({ board, search: scoreSearch, page: String(scorePage) });
+      if (mode) params.set('mode', mode);
       const response = await fetch('/api/admin/leaderboard?' + params, { credentials: 'same-origin', cache: 'no-store' });
       if (!response.ok) throw new Error(response.status === 429 ? 'Too many requests. Try again shortly.' : 'Could not load leaderboard scores.');
       const data = await response.json(); scoreTotal = data.total;
@@ -83,7 +85,7 @@
             const response = await fetch('/api/admin/leaderboard', {
               method: 'POST', credentials: 'same-origin', cache: 'no-store',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ board: scoreBoard, id: entry.id, confirm: 'REMOVE' })
+              body: JSON.stringify({ board: scoreBoard.split(':')[0], id: entry.id, confirm: 'REMOVE' })
             });
             if (!response.ok) throw new Error(response.status === 429 ? 'Too many requests. Try again shortly.' : 'Could not remove the score.');
             scoreMessage('Score removed from public rankings.');
