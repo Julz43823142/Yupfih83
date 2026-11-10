@@ -140,7 +140,7 @@ test('Pawn Kingdom local cosmetic shop unlocks, equips and persists skins',async
  await stubScores(page);
  await page.setViewportSize({width:390,height:844});
  await page.addInitScript(()=>{
-  if(location.pathname.endsWith('/arcade.html'))
+  if(location.pathname.endsWith('/arcade.html')&&!localStorage.getItem('eloscanner-pawn-shop-v1'))
    localStorage.setItem('eloscanner-pawn-shop-v1',JSON.stringify({coins:150,owned:['ivory'],selected:'ivory'}));
  });
  await page.goto(base+'/arcade.html?game=pawn-dash');
