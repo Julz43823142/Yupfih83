@@ -24,6 +24,18 @@ export const onRequestGet = async ({ request, env }) => {
   }
   const configured = !!env.AUTH_DB && typeof env.BETTER_AUTH_SECRET === 'string' && env.BETTER_AUTH_SECRET.length >= 32;
   const passkeyReady = configured && passkeyConfigured(env) && await passkeyStorageReady(env.AUTH_DB);
+  // This dedicated Pages route shadows the gateway's /config route in production.
+  // Keep its QR readiness contract aligned with the gateway: fail closed unless
+  // both the challenge table and the atomic single-approval index exist.
+  let qrLoginReady = false;
+  if (passkeyReady) {
+    try {
+      const row = await env.AUTH_DB.prepare(
+        "SELECT COUNT(*) AS ready FROM sqlite_master WHERE (type='table' AND name='auth_qr_login') OR (type='index' AND name='auth_qr_login_session_once_idx' AND tbl_name='auth_qr_login')"
+      ).first();
+      qrLoginReady = Number(row?.ready) === 2;
+    } catch { qrLoginReady = false; }
+  }
   let registrationOpen = false;
   if (passkeyReady && env.PUBLIC_SIGNUP_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY) {
     try {
@@ -35,6 +47,7 @@ export const onRequestGet = async ({ request, env }) => {
     registrationOpen,
     loginConfigured: configured,
     passkeyReady,
+    qrLoginReady,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null
   }, { headers });
 };
