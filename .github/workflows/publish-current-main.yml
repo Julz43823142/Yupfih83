@@ -1,5 +1,9 @@
-name: Publish current main to EloScanner production (manual, preserve signup)
+name: Publish current main to EloScanner production (protected release)
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/release-pawn-dash-123.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -16,7 +20,7 @@ concurrency:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' && inputs.confirm == 'DEPLOY_MAIN'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.confirm == 'DEPLOY_MAIN')
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 20
