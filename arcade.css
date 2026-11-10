@@ -259,3 +259,15 @@ body.pawn-dash-active{overscroll-behavior:none}
 .pawn-shop-item:focus-within,.pawn-shop-category:focus-visible{outline:2px solid #ffde95;outline-offset:2px}
 .pawn-world-overlay .pawn-shop-panel>button{min-height:42px}
 @media(max-width:410px){.pawn-shop-categories{gap:7px}.pawn-world-overlay .pawn-shop-category{min-height:61px;font-size:12px;gap:5px}.pawn-shop-category-symbol{font-size:29px}}
+
+/* Accessible compact sound mixer, separate from the cosmetics shop. */
+.pawn-audio-panel[hidden]{display:none!important}
+.pawn-world-overlay:has(.pawn-audio-panel:not([hidden])){padding:16px;overflow-y:auto;justify-content:flex-start}
+.pawn-audio-panel{display:flex;flex-direction:column;gap:13px;width:min(460px,100%);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;padding:20px 18px;border:1px solid #d8c38d;border-radius:19px;background:#152e40f5;box-shadow:0 20px 55px #07121aaa;touch-action:pan-y}
+.pawn-audio-panel h3{font-size:clamp(23px,5vw,30px);color:#ffe4a3;margin:0 0 6px;text-align:center}
+.pawn-audio-slider{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center;color:#fff3d5;font-size:15px;font-weight:650}
+.pawn-audio-slider output{font-variant-numeric:tabular-nums;color:#f7d18b}
+.pawn-audio-slider input[type=range]{grid-column:1/-1;width:100%;height:35px;accent-color:#f1c67a;cursor:pointer;touch-action:pan-x}
+.pawn-world-overlay .pawn-audio-panel button{min-height:44px;background:#2b5262;border:1px solid #b6a37e;border-radius:10px;color:#fff0d0;font-weight:700}
+.pawn-world-overlay .pawn-audio-panel button[aria-pressed=true]{background:#39675d;border-color:#cce6bd}
+@media(max-width:410px){.pawn-audio-panel{padding:14px 12px;gap:10px}}

@@ -24,10 +24,40 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const shopHelp=document.createElement('p');shopHelp.textContent='Collect golden coins while crossing. Cosmetic skins only · saved on this device.';
  shopPanel.append(shopHeading,shopBalance,shopHelp,shopCategories,shopCategoryBack,shopPreview,shopItems,shopBack);
  const exit=document.createElement('button');exit.type='button';exit.textContent='Exit to minigames';
- const soundButton=document.createElement('button');soundButton.type='button';soundButton.textContent='♫ Sound: on';soundButton.setAttribute('aria-label','Toggle Pawn Dash sound');
- soundButton.onclick=()=>{sound.setMuted(!sound.muted);soundButton.textContent=sound.muted?'♫ Sound: off':'♫ Sound: on';if(!sound.muted)sound.play('menu')};
+ const soundButton=document.createElement('button');soundButton.type='button';soundButton.textContent='♫ Sound & music';soundButton.setAttribute('aria-label','Open sound and music settings');
+ const audioPanel=document.createElement('section');audioPanel.className='pawn-audio-panel';audioPanel.hidden=true;
+ const audioHeading=document.createElement('h3');audioHeading.textContent='Sound & music';audioPanel.append(audioHeading);
+ const audioKey='eloscanner-pawn-audio-v1';
+ let audioSettings={master:.75,music:.32,effects:.75,musicOn:true,muted:false};
+ try{const v=JSON.parse(localStorage.getItem(audioKey));if(v&&typeof v==='object')for(const k of Object.keys(audioSettings))if(k in v)audioSettings[k]=v[k]}catch{}
+ const saveAudio=()=>{try{localStorage.setItem(audioKey,JSON.stringify(audioSettings))}catch{}};
+ for(const kind of ['master','music','effects']){
+  const v=Number(audioSettings[kind]);audioSettings[kind]=Number.isFinite(v)?Math.max(0,Math.min(1,v)):.5;
+  sound.setVolume(kind,audioSettings[kind]);
+ }
+ sound.setMusicOn(audioSettings.musicOn!==false);sound.setMuted(audioSettings.muted===true);
+ const addToggle=(label,key,callback)=>{
+  const button=document.createElement('button');button.type='button';button.className='pawn-audio-toggle';
+  const refresh=()=>{button.textContent=label+': '+(audioSettings[key]?'On':'Off');button.setAttribute('aria-pressed',String(!!audioSettings[key]))};
+  button.onclick=()=>{audioSettings[key]=!audioSettings[key];callback(audioSettings[key]);saveAudio();refresh();sound.play('menu')};
+  refresh();audioPanel.append(button);
+ };
+ addToggle('Music','musicOn',v=>sound.setMusicOn(v));
+ addToggle('Mute all','muted',v=>sound.setMuted(v));
+ for(const [kind,label] of [['master','Overall volume'],['music','Music volume'],['effects','Sound effects volume']]){
+  const wrap=document.createElement('label');wrap.className='pawn-audio-slider';
+  const name=document.createElement('span');name.textContent=label;
+  const out=document.createElement('output');out.textContent=Math.round(audioSettings[kind]*100)+'%';
+  const input=document.createElement('input');input.type='range';input.min='0';input.max='100';input.step='1';
+  input.value=String(Math.round(audioSettings[kind]*100));input.setAttribute('aria-label',label);
+  input.oninput=()=>{audioSettings[kind]=Number(input.value)/100;sound.setVolume(kind,audioSettings[kind]);out.textContent=input.value+'%';saveAudio()};
+  wrap.append(name,out,input);audioPanel.append(wrap);
+ }
+ const audioBack=document.createElement('button');audioBack.type='button';audioBack.textContent='← Back to menu';audioPanel.append(audioBack);
+ soundButton.onclick=()=>{sound.unlock();sound.play('menu');audioPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true};
+ audioBack.onclick=()=>{sound.play('menu');audioPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
  const menuHelp=document.createElement('p');menuHelp.textContent='Tap to hop · Swipe to steer · Collect 1 coin at a time · Explore 30 skins · Esc pauses';
- overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel);
+ overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel,audioPanel);
  let wallet;
  try{wallet=readPawnWallet(localStorage.getItem('eloscanner-pawn-shop-v1'))}catch{wallet=readPawnWallet(null)}
  const persistWallet=()=>{try{localStorage.setItem('eloscanner-pawn-shop-v1',JSON.stringify(wallet))}catch{}};
@@ -84,8 +114,8 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  shopButton.onclick=()=>{sound.play('menu');activeCategory=null;shopPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true;refreshShop()};
  shopCategoryBack.onclick=()=>{sound.play('menu');activeCategory=null;refreshShop()};
  shopBack.onclick=()=>{sound.play('menu');shopPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
- const setMenu=open=>{sound.play('menu');if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
- menuButton.onclick=()=>setMenu(overlay.hidden);resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
+ const setMenu=open=>{sound.play('menu');if(!open&&!audioPanel.hidden)audioBack.click();if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
+ menuButton.onclick=()=>{sound.unlock();setMenu(overlay.hidden)};resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
  const canvas=document.createElement('canvas');canvas.className='pawn-world-canvas';canvas.tabIndex=0;
  canvas.setAttribute('aria-label','Pawn Dash in a chess club: tap to hop on a giant chessboard, collect coins and cross blue water channels on stone bridges');
  const controls=document.createElement('div');controls.className='pawn-world-controls';controls.setAttribute('aria-label','Pawn Dash movement controls');
@@ -119,31 +149,22 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function strokePolygon(points,color,line=1){ctx.strokeStyle=color;ctx.lineWidth=line;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.stroke()}
  function round(x,y,w,h,r,fill){ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
  function scenery(){
-  // Chess-club hall, with oak parquet, dark timber walls, trophies and warm lamps.
-  const wall=ctx.createLinearGradient(0,0,0,height);
-  wall.addColorStop(0,'#17283a');wall.addColorStop(.5,'#30495a');wall.addColorStop(1,'#6e5543');
-  ctx.fillStyle=wall;ctx.fillRect(0,0,width,height);
-  const u=cellSize(),boardLeft=project(0,0)[0]-u*.5,boardRight=project(8,0)[0]+u*.5;
-  ctx.fillStyle='#6c4b37';ctx.fillRect(0,height*.58,width,height*.42);
-  for(let y=height*.6;y<height;y+=Math.max(12,u*.3)){
-   ctx.strokeStyle='#ad7a513d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke();
+  // The game takes place on a continuous giant black-and-white chessboard.
+  const u=cellSize(),step=u*.83,left=project(0,0)[0]-u*.5;
+  ctx.fillStyle='#111821';ctx.fillRect(0,0,width,height);
+  for(let row=Math.floor(camera-height/step-5);row<=Math.ceil(camera+height/step+5);row++){
+   const py=project(0,row)[1]-step*.5;
+   if(py>height||py+step<0)continue;
+   for(let x=-10;x<=18;x++){
+    const px=left+x*u;if(px>width||px+u<0)continue;
+    const dark=(x+row)%2===0;
+    ctx.fillStyle=dark?'#262d39':'#f3ecdc';ctx.fillRect(px,py,u+.5,step+.5);
+    ctx.fillStyle=dark?'#ffffff0d':'#ffffff40';ctx.fillRect(px+u*.04,py+step*.06,u*.92,step*.07);
+    ctx.strokeStyle=dark?'#11182466':'#6e665526';ctx.lineWidth=1;ctx.strokeRect(px+.5,py+.5,u-1,step-1);
+   }
   }
-  for(const side of [0,1]){
-   const cx=side===0?Math.max(0,boardLeft*.5):Math.min(width,(boardRight+width)*.5);
-   // Portraits, chess club insignia and wall sconces in the side margins.
-   ctx.fillStyle='#c09a64';ctx.fillRect(cx-u*.39,height*.16,u*.78,u*.95);
-   ctx.fillStyle='#172d3a';ctx.fillRect(cx-u*.33,height*.20,u*.66,u*.87);
-   ctx.textAlign='center';ctx.fillStyle='#e7d4aa';ctx.font='bold '+Math.max(20,u*.43)+'px Georgia,serif';
-   ctx.fillText(side?'♚':'♔',cx,height*.2+u*.53);
-   const lamp=ctx.createRadialGradient(cx,height*.11,1,cx,height*.11,u*.9);
-   lamp.addColorStop(0,'#ffe5aa5a');lamp.addColorStop(1,'#ffe5aa00');
-   ctx.fillStyle=lamp;ctx.fillRect(cx-u,height*.11-u,u*2,u*2);
-   ctx.fillStyle='#e8c17e';ctx.beginPath();ctx.arc(cx,height*.11,u*.1,0,Math.PI*2);ctx.fill();
-  }
-  // Solid carved oak rails frame the board without creating dead-looking forest gaps.
-  for(const x of [boardLeft-u*.17,boardRight+u*.08]){
-   ctx.fillStyle='#3c2926';ctx.fillRect(x,0,u*.12,height);
-   ctx.fillStyle='#b78a5d';ctx.fillRect(x+u*.025,0,u*.035,height);
+  for(const edge of [left,left+9*u]){
+   ctx.fillStyle='#d5b576';ctx.fillRect(edge-2,0,4,height);
   }
  }
  function tile(x,row,type,time){
@@ -292,7 +313,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(dead||!overlay.hidden||now-lastMove<68)return;
   const nx=Math.max(0,Math.min(8,player.x+dx)),nr=Math.max(0,player.row+dy);
   if(nx===player.x&&nr===player.row)return;
-  lastMove=now;sound.play('step');hop={from:{...player},to:{x:nx,row:nr},since:now};player={x:nx,row:nr};
+  sound.unlock();lastMove=now;sound.play('step');hop={from:{...player},to:{x:nx,row:nr},since:now};player={x:nx,row:nr};
   if(nr>highest){const gained=nr-highest;highest=nr;onScore(gained);if([100,500,750].includes(nr))onStatus('New level: '+(nr===100?'CHALLENGER':nr===500?'MASTER':'GRANDMASTER')+'! More chess pieces approach.')}
   if(collision(nx,nr,(now-origin)/1000))hit(lane(nr)==='river'?'water':'hit');
   else if(pawnCoinAt(model,nr,nx)&&!collected.has(nr+':'+nx)){
@@ -300,7 +321,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   }
  }
  const keys={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
- function keydown(e){if(dead)return;if(e.code==='Escape'){e.preventDefault();setMenu(overlay.hidden);return}if(!overlay.hidden||!keys[e.code])return;if(e.target?.matches('input,textarea'))return;e.preventDefault();move(...keys[e.code]);}
+ function keydown(e){if(dead)return;if(e.code==='Escape'){e.preventDefault();sound.unlock();setMenu(overlay.hidden);return}if(!overlay.hidden||!keys[e.code])return;if(e.target?.matches('input,textarea'))return;e.preventDefault();move(...keys[e.code]);}
  const dirs={left:[-1,0],right:[1,0],forward:[0,1],back:[0,-1]};
  // Pointerdown handles physical taps exactly once. Keyboard-generated clicks stay accessible.
  function controlPointer(e){
@@ -313,6 +334,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  }
  function gestureStart(e){
   if(!e.isPrimary||!overlay.hidden)return;
+  sound.unlock();
   e.preventDefault();pointer={id:e.pointerId,x:e.clientX,y:e.clientY};
   try{canvas.setPointerCapture(e.pointerId)}catch{}
  }
@@ -420,4 +442,8 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   },
   getProgress:()=>highest
  };
-}
+}   // Strong ivory-and-charcoal checkerboard on every land lane.
+   const dark=(x+row)%2===0;
+   const base=dark?'#262d39':'#f3ecdc';
+   const border=dark?'#161d29':'#c8bca8';
+

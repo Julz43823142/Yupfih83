@@ -262,7 +262,7 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261111-chess-club6').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261111-chessboard-audio7').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
