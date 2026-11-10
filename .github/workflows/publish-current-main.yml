@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/release-pawn-dash-123.txt'
+      - '.github/release-pawn-dash-124.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -42,11 +42,13 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';
           const world=readFileSync('dist/pawn-world.js','utf8');
+          const logic=readFileSync('dist/pawn-world-logic.mjs','utf8');
           const page=readFileSync('dist/arcade.html','utf8');
           const bundle=readFileSync('dist/arcade-bundle.js','utf8');
           if(!world.includes('function drawPawn(')||!world.includes('function tree(')||
-             !page.includes('20261110-pawn-world-redesign-2')||
-             !bundle.includes('20261110-world2'))
+             !world.includes('pawn-world-logic.mjs')||!logic.includes('createPawnDashModel')||
+             !page.includes('20261110-crossing3')||
+             !bundle.includes('20261110-crossing3'))
             throw Error('Pawn Dash redesign missing from build');
           NODE
       - name: Verify production isolation and snapshot existing registration settings
@@ -94,19 +96,21 @@ jobs:
           for(let i=0;i<18;i++){
             try{
               const nonce=encodeURIComponent(process.env.GITHUB_SHA+'-'+i);
-              const [worldRes,pageRes,configRes]=await Promise.all([
+              const [worldRes,pageRes,configRes,logicRes]=await Promise.all([
                 fetch(base+'/pawn-world.js?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
                 fetch(base+'/arcade.html?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
-                fetch(base+'/api/auth/config?release='+nonce,{headers:{'Cache-Control':'no-store'}})
+                fetch(base+'/api/auth/config?release='+nonce,{headers:{'Cache-Control':'no-store'}}),
+                fetch(base+'/pawn-world-logic.mjs?release='+nonce,{headers:{'Cache-Control':'no-store'}})
               ]);
-              const [world,page,config]=await Promise.all([worldRes.text(),pageRes.text(),configRes.json()]);
+              const [world,page,config,logic]=await Promise.all([worldRes.text(),pageRes.text(),configRes.json(),logicRes.text()]);
               const password=await fetch(base+'/api/auth/sign-up/email',{
                 method:'POST',headers:{Origin:base,'Content-Type':'application/json'},
                 body:JSON.stringify({username:'production_release_probe',password:'invalid'})
               });
-              if(worldRes.ok&&pageRes.ok&&configRes.ok&&
+              if(worldRes.ok&&pageRes.ok&&configRes.ok&&logicRes.ok&&
+                 world.includes('pawn-world-logic.mjs')&&logic.includes('createPawnDashModel')&&
                  world.includes('function drawPawn(')&&world.includes('function tree(')&&
-                 page.includes('20261110-pawn-world-redesign-2')&&
+                 page.includes('20261110-crossing3')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
                 process.exit(0);

@@ -260,11 +260,11 @@ function setupLevel(){
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
   status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
-  status('Hop across the Pawn Kingdom! Use arrows, WASD, swipe or directional buttons.');
+  status('Cross the chess kingdom! Tap to hop forward, swipe to steer, dodge red pawns and use the stone bridges.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261110-world2').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261110-crossing3').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
-   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A moving chess piece caught you.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
+   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('A red pawn caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(()=>{board.hidden=false;status('Pawn Dash world could not load. Please refresh and retry.')});
  }
 }

@@ -110,6 +110,32 @@ test('Pawn Dash starts instantly, fills the viewport and supports Escape pause',
  await page.keyboard.press('ArrowUp');
  await expect(page.locator('#arcade-score')).toHaveText('1');
 });
+test('Pawn Dash mobile-style double taps move twice without zooming the game surface',async({page})=>{
+ await stubScores(page);
+ await page.setViewportSize({width:390,height:844});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(base+'/arcade.html?game=pawn-dash');
+ const canvas=page.locator('.pawn-world-canvas');
+ await expect(canvas).toBeVisible();
+ await expect(canvas).toHaveCSS('touch-action','none');
+ const forward=page.locator('.pawn-world-controls [data-direction="forward"]');
+ await expect(forward).toHaveCSS('touch-action','none');
+ const tap=async()=>{
+  await canvas.evaluate(el=>{
+   for(const type of ['pointerdown','pointerup']){
+    el.dispatchEvent(new PointerEvent(type,{
+     bubbles:true,cancelable:true,isPrimary:true,pointerId:7,pointerType:'touch',
+     clientX:195,clientY:410
+    }));
+   }
+  });
+ };
+ await tap();await expect(page.locator('#arcade-score')).toHaveText('1');
+ await page.waitForTimeout(110);
+ await tap();await expect(page.locator('#arcade-score')).toHaveText('2');
+ await expect(page.locator('.pawn-world-controls button')).toHaveCount(4);
+ expect(errors).toEqual([]);
+});
 test('Chess Memory palette has draggable SVGs and mobile board stays inside viewport',async({page})=>{
  await stubScores(page);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));

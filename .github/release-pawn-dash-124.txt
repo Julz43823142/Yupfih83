@@ -1,0 +1,1 @@
+One-time protected Pawn Dash crossing redesign production release: publish after PR 124 is merged, keep D1 binding and public passkey registration unchanged.
