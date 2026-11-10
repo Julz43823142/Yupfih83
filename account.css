@@ -27,3 +27,10 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 #recovery-codes-output button{margin:4px 6px 4px 0}
 #recovery-login-panel{margin:18px 0}
 #recovery-login-panel summary{cursor:pointer;font-weight:700}
+
+/* One-time cross-device login. The code is readable from a few feet away. */
+.qr-login-box{margin-top:16px;padding:18px;border:1px solid #3b536b;border-radius:12px;background:#0b1927;text-align:center}
+.qr-login-image{display:flex;justify-content:center;margin:16px auto}
+.qr-login-image svg{display:block;max-width:100%;height:auto;border:8px solid #fff;border-radius:8px}
+.qr-login-code{font:700 22px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.12em;color:#b9eff5}
+#qr-login-phone .account-primary{width:100%}
