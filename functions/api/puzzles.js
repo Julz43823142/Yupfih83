@@ -1,3 +1,4 @@
+import {readBoundedJSON} from '../../lib/bounded-upstream.mjs';
 // Rate-limit-aware public puzzle pool for EloScanner (Cloudflare Pages).
 // Share cached puzzles across visitors instead of requesting Lichess on every move.
 const reply=(data,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
@@ -6,7 +7,12 @@ async function init(db){
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_pool_rating ON puzzle_pool(rating)").run();
 }
 function shape(json){
- if(!json?.puzzle||typeof json?.game?.pgn!=="string"||!Array.isArray(json.puzzle.solution)||!json.puzzle.solution.length)return null;
+ if(!json?.puzzle||typeof json?.game?.pgn!=='string'||json.game.pgn.length>12000||
+   !Array.isArray(json.puzzle.solution)||!json.puzzle.solution.length||json.puzzle.solution.length>24||
+   !json.puzzle.solution.every(move=>typeof move==='string'&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move))||
+   typeof json.puzzle.id!=='string'||!/^[A-Za-z0-9]{5,32}$/.test(json.puzzle.id)||
+   !Number.isSafeInteger(json.puzzle.initialPly)||json.puzzle.initialPly<0||json.puzzle.initialPly>500||
+   !Number.isFinite(json.puzzle.rating)||json.puzzle.rating<0||json.puzzle.rating>4000)return null;
  return {game:{pgn:json.game.pgn},puzzle:{
   id:String(json.puzzle.id||""),initialPly:Number(json.puzzle.initialPly||0),
   fen:typeof json.puzzle.fen==="string"?json.puzzle.fen:null,
@@ -48,9 +54,9 @@ export async function onRequestGet({request,env}){
  const cacheRequest=new Request(cacheFamily+"-"+cacheSlot);
  if(daily&&cache){try{const hit=await cache.match(cacheRequest);if(hit)return hit}catch{}}
  try{
-  const upstream=await fetch(endpoint.toString(),{headers:{"Accept":"application/json","User-Agent":"EloScanner/1.0"}});
+  const upstream=await fetch(endpoint.toString(),{headers:{"Accept":"application/json","User-Agent":"EloScanner/1.0"},signal:AbortSignal.timeout(7500)});
   if(!upstream.ok)throw Error("HTTP "+upstream.status);
-  const data=shape(await upstream.json());
+  const data=shape(await readBoundedJSON(upstream,128*1024));
   if(!data)throw Error("Puzzle format unavailable");
   if(db){
    try{

@@ -1,3 +1,4 @@
+import {readBoundedText} from '../../lib/bounded-upstream.mjs';
 // EloScanner's read-only proxy for the Lichess Opening Explorer.
 // Cache responses at the edge; handle both JSON and newline-delimited JSON.
 export async function onRequestGet({request,context,env}) {
@@ -30,7 +31,7 @@ export async function onRequestGet({request,context,env}) {
    if(upstream.status===401||upstream.status===403)throw Object.assign(new Error('Lichess token rejected'),{status:upstream.status});
    if(upstream.status===429)throw Object.assign(new Error('Lichess request limit reached'),{status:429});
    if(!upstream.ok)throw Object.assign(new Error('Lichess HTTP '+upstream.status),{status:upstream.status});
-   const raw=await upstream.text();let result;
+   const raw=await readBoundedText(upstream,512*1024);let result;
    try{result=JSON.parse(raw)}catch{
     for(const line of raw.split(/\r?\n/).reverse()){
      try{const candidate=JSON.parse(line);if(Array.isArray(candidate.moves)){result=candidate;break}}catch{}

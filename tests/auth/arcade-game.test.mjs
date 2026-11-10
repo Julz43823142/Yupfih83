@@ -75,3 +75,15 @@ test('Guess the Elo excludes already-viewed Chess.com games and never repeats it
   assert.equal(r.status,503);assert.match((await r.json()).error,/No new rated game/);
  }finally{globalThis.fetch=previous}
 });
+
+test('oversized upstream JSON or NDJSON cannot exhaust Guess the Elo worker',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>new Response('x'.repeat(8*1024*1024+1),{headers:{'Content-Type':'application/json'}});
+ try{
+  const response=await onRequestGet({request:new Request(url)});
+  assert.equal(response.status,200);
+  const game=await response.json();
+  assert.equal(game.id,'PpwPOZMq');
+  assert.equal(game.archived,true);
+ }finally{globalThis.fetch=original}
+});

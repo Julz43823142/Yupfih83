@@ -1,3 +1,4 @@
+import {readBoundedText,readBoundedJSON} from '../../lib/bounded-upstream.mjs';
 // Public, finished Lichess games only. Ratings are actual player ratings,
 // not estimates or invented demonstration targets.
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -22,14 +23,14 @@ async function lichessFallback({request}){
   if(!Array.isArray(games)||!games.length){
    const channelsResponse=await fetch(api+'/api/tv/channels',{headers:{Accept:'application/json'},signal:timeout()});
    if(!channelsResponse.ok)return fail(excluded);
-   const channels=await channelsResponse.json();
+   const channels=await readBoundedJSON(channelsResponse,128*1024);
    const ids=['rapid','classical','blitz','bullet','ultraBullet'].map(k=>channels?.[k]?.user?.id).filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{2,30}$/.test(id));
    games=[];
    // One bounded upstream history request, never an unbounded stream.
    for(const username of ids.slice(0,3)){
     const response=await fetch(api+'/api/games/user/'+encodeURIComponent(username)+'?max=8&finished=true&moves=true&sort=dateDesc',{headers:{Accept:'application/x-ndjson'},signal:timeout()});
     if(!response.ok)continue;
-    const body=(await response.text()).slice(0,130000);
+    const body=await readBoundedText(response,256*1024);
     for(const line of body.split('\n')){
      if(!line.trim())continue;
      let g;try{g=JSON.parse(line)}catch{continue}
@@ -71,7 +72,7 @@ export async function onRequestGet({request}){
      headers:{Accept:'application/json'},signal:AbortSignal.timeout(3200)
     });
     if(archivesResponse.ok){
-     const archives=await archivesResponse.json();
+     const archives=await readBoundedJSON(archivesResponse,256*1024);
      const available=(Array.isArray(archives.archives)?archives.archives:[])
       .map(link=>String(link).match(/\/games\/(\d{4})\/(\d{2})$/)?.slice(1,3).join('/'))
       .filter(Boolean).slice(-18);
@@ -86,7 +87,7 @@ export async function onRequestGet({request}){
     const endpoint='https://api.chess.com/pub/player/'+player+'/games/'+monthKey;
     const result=await fetch(endpoint,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(4500)});
     if(!result.ok)continue;
-    const games=await result.json();
+    const games=await readBoundedJSON(result,8*1024*1024);
     eligible=(Array.isArray(games.games)?games.games:[]).filter(g=>
      g.rated===true&&g.rules==='chess'&&['rapid','blitz','bullet'].includes(g.time_class)&&
      /^https:\/\/www\.chess\.com\/game\/(?:live|daily)\/[0-9]+$/.test(g.url||'')&&
