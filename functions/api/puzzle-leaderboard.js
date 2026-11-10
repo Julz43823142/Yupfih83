@@ -3,6 +3,7 @@ import {readJsonPayload} from '../../lib/server-request-guard.js';
 import {consumeGameStart} from '../../lib/game-capacity.js';
 import {checkProfanity} from 'glin-profanity';
 import {isReservedIdentity} from '../../lib/identity.mjs';
+import {ensureModerationTable} from '../../lib/leaderboard-moderation.mjs';
 // Hourly community rankings. Only voluntary nicknames and scores are stored.
 // No IP addresses, Chess.com usernames, cookies, or player reports in D1.
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","X-Frame-Options":"DENY"};
@@ -22,6 +23,7 @@ async function dbReady(db){
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_hourly_rank ON puzzle_hourly_scores(hour,mode,score DESC,created_at ASC)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_score_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, hour INTEGER NOT NULL, mode TEXT NOT NULL, nickname TEXT NOT NULL, score INTEGER NOT NULL, created_at INTEGER NOT NULL, source_type TEXT NOT NULL, account_id TEXT, legacy_key TEXT UNIQUE)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS puzzle_entries_rank ON puzzle_score_entries(mode,score DESC,created_at ASC)").run();
+ await ensureModerationTable(db);
  await db.prepare("INSERT OR IGNORE INTO puzzle_score_entries(hour,mode,nickname,score,created_at,source_type,account_id,legacy_key) SELECT hour,mode,nickname,score,created_at,source_type,account_id,'legacy:'||hour||':'||mode||':'||lower(nickname) FROM puzzle_hourly_scores").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_runs (id TEXT PRIMARY KEY,mode TEXT NOT NULL,started_at INTEGER NOT NULL,score INTEGER NOT NULL DEFAULT 0,submitted INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS puzzle_verified_solves (run_id TEXT NOT NULL,puzzle_id TEXT NOT NULL,PRIMARY KEY(run_id,puzzle_id))").run();
@@ -102,7 +104,7 @@ export async function onRequestGet({request,env}){
   const sprint=mode==="sprint";
   const where=sprint?"mode IN ('sprint3','sprint5')":"mode=?";
   const unique=url.searchParams.get('filter')==='unique';
-  const base=`SELECT nickname,score,source_type,account_id,created_at,id FROM puzzle_score_entries WHERE ${where} AND lower(nickname) NOT IN ('tttt','tttttttt')`;
+  const base=`SELECT nickname,score,source_type,account_id,created_at,id FROM puzzle_score_entries WHERE ${where} AND lower(nickname) NOT IN ('tttt','tttttttt') AND NOT EXISTS (SELECT 1 FROM leaderboard_removed_scores removed WHERE removed.board='puzzle' AND removed.entry_id=puzzle_score_entries.id)`;
   const sql=unique
    ? `SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (SELECT *,ROW_NUMBER() OVER (PARTITION BY CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 'account:'||account_id ELSE 'nickname:'||lower(nickname) END ORDER BY score DESC,created_at ASC,id ASC) AS position FROM (${base})) WHERE position=1 ORDER BY score DESC,created_at ASC LIMIT ?`
    : `SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM (${base}) ORDER BY score DESC,created_at ASC,id ASC LIMIT ?`;
