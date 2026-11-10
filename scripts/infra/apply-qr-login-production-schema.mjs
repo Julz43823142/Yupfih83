@@ -67,10 +67,10 @@ console.log('Pre-migration recovery bookmark: ' + bookmark.bookmark);
 const sql = readFileSync('migrations/auth/0015_qr_login.sql', 'utf8');
 // Inspect complete statements, not isolated keywords: ON DELETE CASCADE
 // is a valid foreign-key clause in this strictly additive CREATE TABLE.
-const statements = sql.replace(/^\\s*--[^\\n]*/gm, '').split(';').map(x => x.trim()).filter(Boolean);
+const statements = sql.replace(/^\s*--[^\n]*/gm, '').split(';').map(x => x.trim()).filter(Boolean);
 if (statements.length !== 2 ||
-    !/^CREATE TABLE IF NOT EXISTS auth_qr_login\\s*\\(/i.test(statements[0]) ||
-    !/^CREATE INDEX IF NOT EXISTS auth_qr_login_expires_idx\\s+ON\\s+auth_qr_login\\s*\\(/i.test(statements[1]))
+    !/^CREATE TABLE IF NOT EXISTS auth_qr_login\s*\(/i.test(statements[0]) ||
+    !/^CREATE INDEX IF NOT EXISTS auth_qr_login_expires_idx\s+ON\s+auth_qr_login\s*\(/i.test(statements[1]))
   throw Error('Migration must contain only the approved QR table and index CREATE statements');
 await query(sql);
 const afterSchema = await read("SELECT name FROM sqlite_master WHERE type IN ('table','index') AND name IN ('auth_qr_login','auth_qr_login_expires_idx')");
