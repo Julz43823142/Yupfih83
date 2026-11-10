@@ -157,3 +157,12 @@ test('Black-and-white board, original music and independent volume sliders',()=>
  assert.match(audio,/setVolume\(kind,value\)/);
  assert.match(audio,/clearInterval\(timer\)/);
 });
+
+test('Pawn Dash shipped JavaScript modules parse cleanly before deployment',async()=>{
+ const {spawnSync}=await import('node:child_process');
+ for(const file of ['pawn-world.js','pawn-sound.mjs','pawn-piece-art.mjs','pawn-shop.mjs','pawn-world-logic.mjs']){
+  const path=new URL('../../'+file,import.meta.url);
+  const result=spawnSync(process.execPath,['--check',path.pathname],{encoding:'utf8'});
+  assert.equal(result.status,0,file+' has invalid JavaScript: '+result.stderr);
+ }
+});

@@ -1,0 +1,1 @@
+Protected one-time Pawn Dash syntax repair; do not change D1 or auth configuration.

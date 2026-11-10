@@ -169,14 +169,10 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  }
  function tile(x,row,type,time){
   const q=quad(x,row),u=cellSize(),cx=project(x,row)[0],cy=project(x,row)[1];
-  // One quiet, continuous world: grass, slate paths, sandstone courtyards and blue water.
+  // All solid ground uses ivory and charcoal chessboard squares.
   const dark=(x+row)%2===0;
-  const base=type==='meadow'?(dark?'#c4b18b':'#efe0b9'):
-             type==='road'?(dark?'#5e6c69':'#7c8982'):
-             type==='court'?(dark?'#bba780':'#ead6ad'):
-             (dark?'#408ba2':'#4695ad');
-  const border=type==='meadow'?'#a18d6b':type==='road'?'#465955':
-               type==='court'?'#a08b66':'#26718c';
+  const base=dark?'#262d39':'#f3ecdc';
+  const border=dark?'#161d29':'#c8bca8';
   // Block sides give weight without creating false extra squares.
   polygon([q[3],q[2],[q[2][0],q[2][1]+u*.125],[q[3][0],q[3][1]+u*.125]],border);
   polygon(q,base);
@@ -442,8 +438,4 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   },
   getProgress:()=>highest
  };
-}   // Strong ivory-and-charcoal checkerboard on every land lane.
-   const dark=(x+row)%2===0;
-   const base=dark?'#262d39':'#f3ecdc';
-   const border=dark?'#161d29':'#c8bca8';
-
+}
