@@ -115,5 +115,5 @@ test('World renders continuous water, edge scenery, shop and smaller grounded sk
  assert.match(js,/buyPawnSkin\(/);
  assert.match(js,/function playerSquare\(/);
  assert.doesNotMatch(js,/strokePolygon\(q,'#fff8de'/);
- assert.doesNotMatch(js,/for\(let x=0;x<9;x\+\+\)tile\(x,row,type,time\);\s*\}/);
+ assert.match(js,/if\(type==='river'\)drawRiver\(row,time\)/);
 });
