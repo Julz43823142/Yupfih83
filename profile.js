@@ -19,6 +19,7 @@
   const display=data.username[0].toUpperCase()+data.username.slice(1),base='/profile/'+encodeURIComponent(data.username);
   document.title=(section?sections[section]+' · ':'')+display+' · EloScanner';
   el('profile-name').textContent=display;el('profile-avatar').textContent=display.slice(0,2).toUpperCase();
+  if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').after(badge)}
   const date=new Date(data.joinedAt);el('profile-joined').textContent='Joined '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}));
   for(const [id,slug] of Object.entries({'profile-friends':'friend-list','chess-rating-link':'chess-rating','puzzle-rating-link':'puzzle-rating','records-link':'personal-records','history-link':'game-history','records-panel-link':'personal-records'}))el(id).href=base+'/'+slug;
   el('profile-content').hidden=false;status.textContent='';
