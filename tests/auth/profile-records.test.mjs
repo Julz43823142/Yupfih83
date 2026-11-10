@@ -13,10 +13,10 @@ function seed(){
   CREATE TABLE knight_maze_score_entries(id INTEGER PRIMARY KEY,mode TEXT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT);
   CREATE TABLE puzzle_score_entries(id INTEGER PRIMARY KEY,hour INTEGER,mode TEXT,nickname TEXT,score INTEGER,created_at INTEGER,source_type TEXT,account_id TEXT);
  `);
- return {env:{AUTH_DB:auth,SUS_DB:scores}, db:scores};
+ return {env:{AUTH_DB:auth,SUS_DB:scores,BETTER_AUTH_SECRET:'synthetic-profile-test-secret-1234567890'}, db:scores};
 }
 async function get(env,username){
- const response=await onRequestGet({params:{username},env});
+ const response=await onRequestGet({request:new Request('https://eloscanner.com/api/profile-records/'+encodeURIComponent(username),{headers:{'CF-Connecting-IP':'192.0.2.20'}}),params:{username},env});
  return {status:response.status,body:await response.json()};
 }
 test('personal bests use authenticated account IDs, never a matching anonymous nickname',async()=>{

@@ -1,12 +1,16 @@
+import {rateLimit} from '../../../lib/online/security.mjs';
 import {GAME_CATALOG} from '../../../arcade-rules.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 // A public profile only displays scores already tied to an authenticated account ID.
 // Never infer score ownership from matching nicknames.
-export async function onRequestGet({params,env}){
+export async function onRequestGet({request,params,env}){
  const username=params.username;
  if(typeof username!=='string'||!/^[A-Za-z0-9_]{3,24}$/.test(username))return json({error:'Not found'},404);
- if(!env.AUTH_DB||!env.SUS_DB)return json({error:'Records unavailable'},503);
+ if(!env.AUTH_DB||!env.SUS_DB||typeof env.BETTER_AUTH_SECRET!=='string'||env.BETTER_AUTH_SECRET.length<32)return json({error:'Records unavailable'},503);
  try{
+  // Profile ranks use multiple database reads: bound anonymous traffic at the edge.
+  if(!await rateLimit(env,request,'public-profile-records',30,60000))
+   return Response.json({error:'Too many requests.'},{status:429,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Retry-After':'60'}});
   const account=await env.AUTH_DB.prepare('SELECT id FROM "user" WHERE lower(username)=lower(?) LIMIT 1').bind(username).first();
   if(!account)return json({error:'Not found'},404);
   const records=[];
