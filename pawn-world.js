@@ -23,7 +23,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const lane=row=>row<=1||row%6===0?'grass':row%7===0?'river':row%5===0?'castle':'road';
  const size=()=>{const rect=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,(navigator.hardwareConcurrency||8)<=4?1.5:2);width=rect.width||640;height=rect.height||630;canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0)};
  const cellSize=()=>Math.min(width/10.3,height/10.7);
- const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*(width/10.3),height*.74-dy*tile]};
+ const project=(x,row)=>{const tile=cellSize(),dy=row-camera;return [width*.50+(x-4)*tile,height*.74-dy*tile]};
  function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fill()}
  // Rectangular ground tiles: columns and rows are axis-aligned, never diamonds.
  function tile(x,row,type){
