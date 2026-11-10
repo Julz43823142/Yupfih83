@@ -465,12 +465,15 @@
     byId('passkey-login').hidden ||= !isPhone();
     byId('qr-login-start').hidden = isPhone() || !config.qrLoginReady || typeof window.qrcode !== 'function';
     const qrParam = new URLSearchParams(location.search).get('qr');
-    if (qrParam && isPhone()) {
+    if (qrParam) {
+      if (!isPhone()) throw new Error('Open this QR approval link on your phone.');
       if (!/^[a-f0-9-]{36}$/.test(qrParam) || !config.qrLoginReady)
         throw new Error('This computer login QR link is invalid or unavailable.');
       byId('qr-login-phone').hidden = false;
       byId('qr-phone-code').textContent = qrParam.slice(0, 8).toUpperCase();
       byId('qr-phone-status').textContent = 'Verify your passkey and approve only if this code matches the computer.';
+      message('');
+      return;
     }
     if (new URLSearchParams(location.search).get('view') === 'signup') {
       byId('registration-panel').hidden = false;
