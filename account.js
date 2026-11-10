@@ -235,6 +235,109 @@
     message('You are logged in with your passkey.');
     history.replaceState(null, '', '/account.html');
   }));
+  // The QR contains a request ID only. The one-time desktop claim secret is
+  // kept in this tab and never sent to the phone or put in a URL.
+  let qrActive = null;
+  const isPhone = () => !!window.eloPhoneSignup?.isPhone();
+  function drawLoginQr(element, url) {
+    if (typeof window.qrcode !== 'function') throw new Error('QR generator unavailable.');
+    const qr = window.qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    const count = qr.getModuleCount(), quiet = 4, size = count + quiet * 2;
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    svg.setAttribute('width', '260');
+    svg.setAttribute('height', '260');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Scan this QR code with your phone to approve computer login');
+    const bg = document.createElementNS(ns, 'rect');
+    bg.setAttribute('width', size); bg.setAttribute('height', size);
+    bg.setAttribute('fill', '#ffffff'); svg.append(bg);
+    const cells = [];
+    for (let y = 0; y < count; y++) for (let x = 0; x < count; x++) {
+      if (qr.isDark(y, x)) cells.push('M' + (x + quiet) + ' ' + (y + quiet) + 'h1v1h-1z');
+    }
+    const dark = document.createElementNS(ns, 'path');
+    dark.setAttribute('d', cells.join(''));
+    dark.setAttribute('fill', '#101820'); svg.append(dark);
+    element.replaceChildren(svg);
+  }
+  function cancelQr() {
+    if (qrActive) qrActive.cancelled = true;
+    qrActive = null;
+    byId('qr-login-desktop').hidden = true;
+    byId('qr-login-image').replaceChildren();
+    byId('qr-login-code').textContent = '';
+    byId('qr-login-status').textContent = '';
+  }
+  byId('qr-login-cancel').addEventListener('click', () => { cancelQr(); message('QR login cancelled.'); });
+  byId('qr-login-start').addEventListener('click', event => busy(event.currentTarget, async () => {
+    if (isPhone() || !config?.qrLoginReady) throw new Error('QR login is unavailable on this device.');
+    cancelQr();
+    const attempt = await post('qr-login/start', {});
+    if (!/^[a-f0-9-]{36}$/.test(attempt.id) ||
+        !/^[A-Za-z0-9_-]{43}$/.test(attempt.secret) ||
+        !/^[A-F0-9]{8}$/.test(attempt.code) ||
+        new URL(attempt.phoneUrl).origin !== location.origin)
+      throw new Error('QR login server response is invalid.');
+    const active = { id: attempt.id, secret: attempt.secret, cancelled: false };
+    qrActive = active;
+    drawLoginQr(byId('qr-login-image'), attempt.phoneUrl);
+    byId('qr-login-code').textContent = attempt.code;
+    byId('qr-login-desktop').hidden = false;
+    byId('qr-login-status').textContent = 'Waiting for approval on your phone (2 minutes)…';
+    message('Scan the QR code using your phone camera.');
+    void (async () => {
+      try {
+        while (!active.cancelled && Date.now() < attempt.expiresAt) {
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          if (active.cancelled) return;
+          const result = await post('qr-login/finish', { id: active.id, secret: active.secret });
+          if (active.cancelled) return;
+          if (result.status === 'pending') continue;
+          if (!result.success || !result.user?.username) throw new Error('QR login could not be completed.');
+          cancelQr();
+          showUser(result.user);
+          message('You are logged in using your phone passkey.');
+          history.replaceState(null, '', '/account.html');
+          return;
+        }
+        if (!active.cancelled) throw new Error('QR code expired. Request a new QR code.');
+      } catch (error) {
+        if (active.cancelled) return;
+        cancelQr();
+        message(error.message || 'QR login failed. Please try again.', true);
+      }
+    })();
+  }));
+  byId('qr-phone-approve').addEventListener('click', event => busy(event.currentTarget, async () => {
+    const id = new URLSearchParams(location.search).get('qr') || '';
+    if (!isPhone() || !/^[a-f0-9-]{36}$/.test(id) ||
+        !config?.qrLoginReady || !window.eloPasskey || !window.PublicKeyCredential)
+      throw new Error('Open a valid QR link on your phone with passkey support.');
+    const label = byId('qr-phone-status');
+    label.textContent = 'Confirm your phone passkey…';
+    // Always require a fresh WebAuthn login for this specific approval.
+    // A pre-existing session cookie is never enough.
+    const result = await window.eloPasskey.signIn();
+    if (!result?.user?.username) throw new Error('Phone passkey verification failed.');
+    showUser(result.user);
+    const code = id.slice(0, 8).toUpperCase();
+    label.textContent = 'Passkey verified for ' + result.user.username + '.';
+    if (!confirm('Approve logging in as ' + result.user.username +
+      ' on the computer showing code ' + code + '? Only approve if you see this code on your own computer.')) {
+      label.textContent = 'Computer login not approved.';
+      return;
+    }
+    const approved = await post('qr-login/approve', { id });
+    if (!approved.success || approved.username !== result.user.username)
+      throw new Error('Computer approval did not complete.');
+    label.textContent = 'Computer approved. You can return to your computer.';
+    byId('qr-phone-approve').hidden = true;
+    history.replaceState(null, '', '/account.html');
+  }));
   byId('passkey-enrollment-form').addEventListener('submit', event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -335,6 +438,16 @@
     if (!(response.headers.get('content-type') || '').toLowerCase().includes('application/json')) throw new Error('Account API is not responding correctly. Check the Cloudflare Pages Functions deployment.');
     config = await response.json();
     byId('passkey-login').hidden = !(config.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
+    byId('passkey-login').hidden ||= !isPhone();
+    byId('qr-login-start').hidden = isPhone() || !config.qrLoginReady || typeof window.qrcode !== 'function';
+    const qrParam = new URLSearchParams(location.search).get('qr');
+    if (qrParam && isPhone()) {
+      if (!/^[a-f0-9-]{36}$/.test(qrParam) || !config.qrLoginReady)
+        throw new Error('This computer login QR link is invalid or unavailable.');
+      byId('qr-login-phone').hidden = false;
+      byId('qr-phone-code').textContent = qrParam.slice(0, 8).toUpperCase();
+      byId('qr-phone-status').textContent = 'Verify your passkey and approve only if this code matches the computer.';
+    }
     if (new URLSearchParams(location.search).get('view') === 'signup') {
       byId('registration-panel').hidden = false;
       byId('signup-submit').disabled = !config.registrationOpen;
