@@ -33,11 +33,13 @@ jobs:
       - name: Strictly verify production is ready and registration is still closed
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_D1_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_D1_WRITE_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node --input-type=module <<'NODE'
           const token=process.env.CLOUDFLARE_API_TOKEN,id=process.env.CLOUDFLARE_ACCOUNT_ID;
-          if(!token||!id)throw Error('Cloudflare credentials missing');
+          const d1Token=process.env.CLOUDFLARE_D1_API_TOKEN;
+          if(!token||!d1Token||!id)throw Error('Cloudflare credentials missing');
           const api='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(id);
           const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
           const r=await fetch(api+'/pages/projects/fairplaychess',{headers});
@@ -51,8 +53,8 @@ jobs:
           if(vars.PUBLIC_SIGNUP_ENABLED?.value!=='false'||vars.PASSKEY_LOGIN_ENABLED?.value!=='true'||vars.PASSKEY_RP_ID?.value!=='eloscanner.com')
             throw Error('Unexpected production signup/passkey flags; abort');
           const q=await fetch(api+'/d1/database/82e07afa-79eb-47e5-aa77-5bac6fb5bbdf/query',{
-            method:'POST',headers,body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof')"})});
-          if(!q.ok)throw Error('Cannot check production D1');
+            method:'POST',headers:{...headers,Authorization:'Bearer '+d1Token},body:JSON.stringify({sql:"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof')"})});
+          if(!q.ok)throw Error('Cannot check production D1 (HTTP '+q.status+'); verify D1 token permissions and account');
           const tables=new Set((await q.json()).result?.[0]?.results?.map(x=>x.name));
           for(const name of ['passkey','auth_passkey_stepup','auth_passkey_signup_attempt','auth_passkey_login_proof'])
             if(!tables.has(name))throw Error('Missing '+name);
