@@ -61,9 +61,10 @@ test('QR login needs fresh phone passkey, explicit approval, correct desktop sec
   assert.equal((await call(env, 'qr-login/finish', { id: qr.id, secret: 'a'.repeat(43) })).status, 410);
   assert.equal((await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie, 'https://evil.example')).status, 403);
   const now = Date.now();
+  // The phone proof must be issued AFTER the desktop QR was created.
   await env.AUTH_DB.prepare('INSERT INTO auth_passkey_login_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
-    .bind(session.session.id, session.user.id, now).run();
-  const approved = await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie);
+    .bind(session.session.id, session.user.id, now + 1000).run();
+  const approved = await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie, base, { now: () => now + 1001 });
   assert.equal(approved.status, 200, await approved.clone().text());
   assert.equal((await call(env, 'qr-login/approve', { id: qr.id }, phoneCookie)).status, 409);
   const finished = await call(env, 'qr-login/finish', { id: qr.id, secret: qr.secret });
@@ -87,4 +88,71 @@ test('expired QR requests cannot be approved or redeemed', async () => {
   const qr = await start.json();
   const expired = await call(env, 'qr-login/finish', { id: qr.id, secret: qr.secret }, '', base, { now: () => now + 120001 });
   assert.equal(expired.status, 410);
+});
+
+test('fresh passkey proof cannot approve an older QR or two concurrent QR requests', async () => {
+  const env = envFor();
+  const auth = createAuth(env, { provision: true });
+  const created = await auth.api.signUpEmail({
+    body: { email: 'qr-once@accounts.invalid', name: 'qr_once', username: 'qr_once',
+      password: 'Unique!qr!test!password!1234' }, asResponse: true
+  });
+  const cookie = cookies(created);
+  const session = await auth.api.getSession({ headers: new Headers({ Cookie: cookie }) });
+  const start = 1730000000000;
+  const early = await (await call(env, 'qr-login/start', {}, '', base, { now: () => start })).json();
+  await env.AUTH_DB.prepare('INSERT INTO auth_passkey_login_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .bind(session.session.id, session.user.id, start - 1).run();
+  assert.equal((await call(env, 'qr-login/approve', { id: early.id }, cookie, base,
+    { now: () => start + 1000 })).status, 403, 'a proof from before the QR is invalid');
+
+  await env.AUTH_DB.prepare('UPDATE auth_passkey_login_proof SET verifiedAt=? WHERE sessionId=?')
+    .bind(start + 1000, session.session.id).run();
+  const a = await (await call(env, 'qr-login/start', {}, '', base, { now: () => start + 1001 })).json();
+  const b = await (await call(env, 'qr-login/start', {}, '', base, { now: () => start + 1001 })).json();
+  assert.equal((await call(env, 'qr-login/approve', { id: a.id }, cookie, base,
+    { now: () => start + 1002 })).status, 403, 'proof must follow each QR request');
+  const earlierApproved = await call(env, 'qr-login/approve', { id: early.id }, cookie, base,
+    { now: () => start + 1002 });
+  assert.equal(earlierApproved.status, 200, await earlierApproved.clone().text());
+
+  await env.AUTH_DB.prepare('UPDATE auth_passkey_login_proof SET verifiedAt=? WHERE sessionId=?')
+    .bind(start + 2000, session.session.id).run();
+  const two = await Promise.all([a, b].map(qr => call(env, 'qr-login/approve', { id: qr.id }, cookie, base,
+    { now: () => start + 2001 })));
+  assert.ok(two.every(result => result.status !== 200), 'a passkey session is single-use even if proof is refreshed');
+  assert.equal(env.AUTH_DB.sqlite.prepare(
+    'SELECT COUNT(*) AS n FROM auth_qr_login WHERE approvedSessionId=?').get(session.session.id).n, 1);
+});
+
+test('desktop cancellation invalidates both pending and approved QR requests', async () => {
+  const env = envFor();
+  const pending = await (await call(env, 'qr-login/start', {})).json();
+  assert.equal((await call(env, 'qr-login/cancel', { id: pending.id, secret: 'z'.repeat(43) })).status, 410);
+  assert.equal((await call(env, 'qr-login/cancel', { id: pending.id, secret: pending.secret })).status, 200);
+  assert.equal((await call(env, 'qr-login/finish', { id: pending.id, secret: pending.secret })).status, 410);
+  assert.equal((await call(env, 'qr-login/cancel', { id: pending.id, secret: pending.secret })).status, 410);
+  assert.equal((await call(env, 'qr-login/cancel', { id: pending.id, secret: pending.secret }, '',
+    'https://evil.example')).status, 403);
+
+  const auth = createAuth(env, { provision: true });
+  const created = await auth.api.signUpEmail({
+    body: { email: 'qr-cancel@accounts.invalid', name: 'qr_cancel', username: 'qr_cancel',
+      password: 'Unique!qr!test!password!1234' }, asResponse: true
+  });
+  const cookie = cookies(created);
+  const session = await auth.api.getSession({ headers: new Headers({ Cookie: cookie }) });
+  const baseTime = Date.now();
+  const approvedQr = await (await call(env, 'qr-login/start', {}, '', base,
+    { now: () => baseTime })).json();
+  await env.AUTH_DB.prepare('INSERT INTO auth_passkey_login_proof(sessionId,userId,verifiedAt) VALUES(?,?,?)')
+    .bind(session.session.id, session.user.id, baseTime + 1000).run();
+  assert.equal((await call(env, 'qr-login/approve', { id: approvedQr.id }, cookie, base,
+    { now: () => baseTime + 1001 })).status, 200);
+  assert.equal((await call(env, 'qr-login/cancel',
+    { id: approvedQr.id, secret: approvedQr.secret })).status, 200);
+  assert.equal((await call(env, 'qr-login/finish',
+    { id: approvedQr.id, secret: approvedQr.secret })).status, 410);
+  assert.equal(env.AUTH_DB.sqlite.prepare('SELECT COUNT(*) AS n FROM session WHERE userId=?')
+    .get(session.user.id).n, 1, 'no desktop session was created');
 });
