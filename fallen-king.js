@@ -11,7 +11,7 @@ function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
 function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
 function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:p.x,y:p.y,facing:p.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior)save();}}
+function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior){save();collectCosmetic();}}}
 function talk(){if(paused||mapOpen)return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
@@ -143,6 +143,7 @@ function pawnBody(x,z,color){
 }
 function piece(x,z,type,color,aldric=false){
  const {base,rim,light}=pawnBody(x,z,color);
+ const ink=color==='white'?'#786d64':'#20252c';
  if(type==='P'){
   cylinder(x,1.0,z,.19,.19,.11,base,12);
   sphere(x,1.31,z,.30,base,12);
@@ -150,23 +151,23 @@ function piece(x,z,type,color,aldric=false){
  }
  if(type==='R'){
   // A squat stone keep: distinct dark masonry joints, arched front gate, battlements.
-  cylinder(x,.96,z,.405,.405,.27,'#29282b',12);
+  cylinder(x,.96,z,.405,.405,.27,ink,12);
   cylinder(x,.98,z,.36,.36,.22,'#746b66',12);
-  cylinder(x,1.18,z,.375,.365,.47,'#29282b',12);
+  cylinder(x,1.18,z,.375,.365,.47,ink,12);
   cylinder(x,1.20,z,.33,.30,.42,base,12);
-  cylinder(x,1.60,z,.46,.46,.15,'#29282b',12);
+  cylinder(x,1.60,z,.46,.46,.15,ink,12);
   cylinder(x,1.61,z,.43,.43,.12,'#8d8279',12);
-  cylinder(x,1.72,z,.37,.37,.14,'#29282b',12);
+  cylinder(x,1.72,z,.37,.37,.14,ink,12);
   cylinder(x,1.73,z,.33,.33,.12,light,12);
   for(let i=0;i<8;i++){
    const a=i*Math.PI/4;
-   box(x+Math.cos(a)*.35,1.825,z+Math.sin(a)*.35,.205,.29,.205,'#29282b');
+   box(x+Math.cos(a)*.35,1.825,z+Math.sin(a)*.35,.205,.29,.205,ink);
    box(x+Math.cos(a)*.35,1.85,z+Math.sin(a)*.35,.16,.23,.16,i%2?'#81716c':'#d4c7b4');
   }
   // Dark doorway and lintel face the camera, so it reads as a castle.
-  box(x,1.01,z+.393,.29,.43,.045,'#29282b');
+  box(x,1.01,z+.393,.29,.43,.045,ink);
   box(x,1.03,z+.422,.22,.38,.055,'#514e50');
-  sphere(x,1.37,z+.414,.145,'#29282b',8);
+  sphere(x,1.37,z+.414,.145,ink,8);
   sphere(x,1.37,z+.443,.11,'#514e50',8);
   box(x,1.58,z+.347,.43,.045,.065,'#655e5b');
   for(let row=0;row<3;row++)for(let side of [-1,1])
@@ -183,28 +184,28 @@ function piece(x,z,type,color,aldric=false){
  if(type==='N'){
   // A true horse profile, not a vertical stack of spheres.
   // Dark silhouette behind light planes gives the head visible 2.5D depth.
-  cylinder(x,.94,z,.395,.345,.34,'#29282b',12);
+  cylinder(x,.94,z,.367,.317,.31,ink,12);
   cylinder(x,.96,z,.35,.30,.30,'#4b4748',12);
-  box(x,1.15,z-.13,.60,.71,.50,'#29282b');
+  box(x,1.15,z-.13,.565,.68,.465,ink);
   box(x,1.18,z-.13,.55,.66,.45,'#4e4948');
-  box(x,1.23,z+.05,.50,.66,.49,'#29282b');
+  box(x,1.23,z+.05,.47,.635,.465,ink);
   box(x,1.25,z+.05,.45,.62,.44,base);
-  box(x,1.59,z+.12,.57,.52,.51,'#29282b');
+  box(x,1.59,z+.12,.54,.49,.48,ink);
   box(x,1.61,z+.12,.52,.48,.46,'#615850');
-  box(x,1.65,z+.32,.50,.42,.50,'#29282b');
+  box(x,1.65,z+.32,.47,.40,.47,ink);
   box(x,1.67,z+.32,.45,.38,.45,light);
   // Side cheek planes and a bold cheekbone define the direction of the head.
   box(x-.215,1.56,z+.42,.06,.24,.32,'#4b4341');
   box(x+.215,1.56,z+.42,.06,.24,.32,'#4b4341');
   // Projecting long muzzle with separate lower jaw and dark nose.
-  box(x,1.50,z+.57,.45,.31,.49,'#29282b');
+  box(x,1.50,z+.57,.42,.29,.46,ink);
   box(x,1.52,z+.57,.40,.27,.44,base);
-  box(x,1.39,z+.76,.42,.16,.25,'#29282b');
+  box(x,1.39,z+.76,.39,.145,.23,ink);
   box(x,1.41,z+.76,.37,.13,.21,'#73685e');
-  box(x,1.53,z+.81,.40,.15,.19,'#29282b');
+  box(x,1.53,z+.81,.38,.13,.17,ink);
   box(x,1.55,z+.81,.36,.11,.15,'#a99b88');
   for(const side of [-1,1]){
-   cone(x+side*.19,1.88,z+.08,.14,.36,'#29282b',9);
+   cone(x+side*.19,1.88,z+.08,.14,.36,ink,9);
    cone(x+side*.19,1.90,z+.08,.105,.29,'#b8a58b',9);
    cone(x+side*.19,1.96,z+.10,.055,.18,light,8);
    // Eye sockets with pale sclera, small pupils, no oversized cartoon stare.
@@ -216,8 +217,8 @@ function piece(x,z,type,color,aldric=false){
   for(let i=0;i<5;i++){
    box(x,1.23+i*.13,z-.37,.36,.095,.13,i%2?'#443f40':'#62534e');
   }
-  box(x,1.38,z+.53,.43,.045,.09,'#29282b');
-  box(x,1.56,z+.813,.35,.025,.035,'#29282b');
+  box(x,1.38,z+.53,.43,.045,.09,ink);
+  box(x,1.56,z+.813,.35,.025,.035,ink);
   box(x-.16,1.40,z+.77,.045,.17,.045,'#3b3535');
   box(x+.16,1.40,z+.77,.045,.17,.045,'#3b3535');
  }
@@ -237,35 +238,35 @@ function piece(x,z,type,color,aldric=false){
  }
  if(type==='K'){
   // Royal silhouette: wide shoulders, narrow neck, face and gold collar.
-  cylinder(x,.97,z,.43,.37,.40,'#29282b',16);
+  cylinder(x,.97,z,.407,.347,.37,ink,16);
   cylinder(x,.99,z,.39,.33,.36,base,16);
-  cylinder(x,1.30,z,.39,.49,.26,'#29282b',16);
+  cylinder(x,1.30,z,.36,.47,.235,ink,16);
   cylinder(x,1.32,z,.34,.45,.22,'#c2ad90',16);
-  cylinder(x,1.52,z,.46,.35,.19,'#29282b',16);
+  cylinder(x,1.52,z,.435,.325,.175,ink,16);
   cylinder(x,1.54,z,.42,.31,.16,'#806d5d',16);
-  sphere(x,1.83,z,.33,'#29282b',14);
+  sphere(x,1.83,z,.312,ink,14);
   sphere(x,1.83,z+.022,.29,base,14);
-  cylinder(x,1.55,z,.45,.45,.065,'#29282b',16);
+  cylinder(x,1.55,z,.45,.45,.065,ink,16);
   cylinder(x,1.58,z,.41,.41,.055,'#d2b78d',16);
   if(aldric){
    // Aldric is still crownless; his cloak and contrasting royal collar identify him.
-   cylinder(x,1.25,z,.49,.48,.16,'#29282b',16);
+   cylinder(x,1.25,z,.465,.455,.14,ink,16);
    cylinder(x,1.27,z,.45,.44,.12,'#8c664e',16);
-   box(x-.35,1.23,z+.15,.17,.60,.31,'#29282b');
+   box(x-.35,1.23,z+.15,.17,.60,.31,ink);
    box(x-.35,1.25,z+.17,.13,.55,.27,'#795d53');
-   box(x+.35,1.23,z+.15,.17,.60,.31,'#29282b');
+   box(x+.35,1.23,z+.15,.17,.60,.31,ink);
    box(x+.35,1.25,z+.17,.13,.55,.27,'#795d53');
-   cylinder(x,1.62,z,.36,.34,.10,'#29282b',16);
+   cylinder(x,1.62,z,.36,.34,.10,ink,16);
    cylinder(x,1.64,z,.33,.31,.08,'#ead7aa',16);
    sphere(x,2.13,z,.115,'#e7d5b2',10);
   }else{
-   cylinder(x,2.01,z,.36,.35,.19,'#29282b',16);
+   cylinder(x,2.01,z,.36,.35,.19,ink,16);
    cylinder(x,2.03,z,.33,.32,.15,'#6c553c',16);
-   cylinder(x,2.15,z,.40,.39,.13,'#29282b',16);
+   cylinder(x,2.15,z,.40,.39,.13,ink,16);
    cylinder(x,2.17,z,.37,.36,.09,'#e6b75c',16);
    for(let i=0;i<6;i++){
     const a=i*Math.PI/3;
-    cone(x+Math.cos(a)*.32,2.19,z+Math.sin(a)*.32,.125,.36,'#29282b',8);
+    cone(x+Math.cos(a)*.32,2.19,z+Math.sin(a)*.32,.125,.36,ink,8);
     cone(x+Math.cos(a)*.32,2.21,z+Math.sin(a)*.32,.09,.30,i%2?'#f6d886':'#b98942',8);
    }
    sphere(x,2.52,z,.11,'#f9e6aa',9);
@@ -273,6 +274,90 @@ function piece(x,z,type,color,aldric=false){
  }
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
+const cosmeticCatalog={
+ hat:[['none','No hat'],['cap','Traveler cap'],['top','Top hat'],['wizard','Scholar hat'],['beret','Beret'],['crown','Golden circlet'],['hood','Hood'],['feather','Feathered hat'],['helmet','Knight helmet'],['chef','Chef hat'],['straw','Straw hat'],['pirate','Tricorn']],
+ face:[['none','Clean shaven'],['mustache','Mustache'],['handlebar','Handlebar mustache'],['beard','Full beard'],['goatee','Goatee'],['eyepatch','Eye patch'],['glasses','Glasses'],['monocle','Monocle'],['freckles','Freckles']],
+ cloak:[['none','No cloak'],['red','Crimson cape'],['blue','Royal blue cape'],['green','Forest cape'],['purple','Violet cape'],['black','Midnight cape'],['gold','Golden cape']],
+ trim:[['gold','Gold trim'],['silver','Silver trim'],['red','Red trim'],['blue','Blue trim'],['green','Green trim'],['purple','Purple trim']]
+};
+const cosmeticDefaults={hat:'none',face:'none',cloak:'none',trim:'gold'};
+const cosmeticKey='fallen-king-cosmetics-v1';
+let cosmetics={...cosmeticDefaults};
+const foundKey='fallen-king-found-cosmetics-v1';
+let foundCosmetics=new Set();
+function loadFound(){try{const saved=JSON.parse(localStorage.getItem(foundKey)||'[]');if(Array.isArray(saved))foundCosmetics=new Set(saved.filter(id=>typeof id==='string'));}catch{}}
+function collectCosmetic(){
+ if(interior||!world?.collectibles)return;
+ const item=world.collectibles.find(item=>item.x===player.x&&item.y===player.y);
+ if(!item||foundCosmetics.has(item.slot+':'+item.id))return;
+ foundCosmetics.add(item.slot+':'+item.id);staticReady=false;
+ try{localStorage.setItem(foundKey,JSON.stringify([...foundCosmetics]));}catch{}
+ const hint=document.getElementById('fallen-pickup-hint');hint.textContent='Found: '+item.name+' · Open Menu → Customize character';hint.hidden=false;
+}
+
+function loadCosmetics(){try{const saved=JSON.parse(localStorage.getItem(cosmeticKey)||'{}');for(const slot of Object.keys(cosmeticCatalog))if(cosmeticCatalog[slot].some(([id])=>id===saved[slot]))cosmetics[slot]=saved[slot];}catch{}}
+function saveCosmetics(){try{localStorage.setItem(cosmeticKey,JSON.stringify(cosmetics));}catch{}}
+function cosmeticGeometry(x,z){
+ const dark='#56463f',gold='#d9b36a',trim={gold:'#d9b36a',silver:'#b8c8d0',red:'#b75c58',blue:'#598aab',green:'#6c9b65',purple:'#a582b9'}[cosmetics.trim];
+ // Back cape is drawn behind the shoulders and remains visible around both sides.
+ if(cosmetics.cloak!=='none'){
+  const cloth={red:'#a94442',blue:'#416f9d',green:'#4e7954',purple:'#76558c',black:'#3c414d',gold:'#bb9147'}[cosmetics.cloak];
+  box(x,.50,z-.29,.76,.72,.18,dark);
+  box(x,.52,z-.32,.69,.68,.14,cloth);
+  for(const side of [-1,1])box(x+side*.34,.61,z+.04,.13,.56,.18,cloth);
+  box(x,.99,z+.03,.57,.075,.14,trim);
+ }
+ if(cosmetics.trim!=='gold'){
+  cylinder(x,.91,z,.255,.255,.075,trim,12);
+  box(x,.70,z+.36,.22,.055,.06,trim);
+ }
+ const h=cosmetics.hat;
+ if(h==='cap'||h==='beret'||h==='straw'){
+  const c=h==='straw'?'#c8a66c':h==='beret'?'#925b75':'#52798a';
+  cylinder(x,2.02,z,.31,.30,.14,dark,12);cylinder(x,2.045,z,.29,.28,.12,c,12);
+  box(x,2.02,z+.29,.64,.065,.24,c);
+ }else if(h==='top'){
+  cylinder(x,2.02,z,.34,.34,.09,dark,12);cylinder(x,2.09,z,.26,.26,.42,'#4c4d54',12);cylinder(x,2.48,z,.27,.27,.06,trim,12);
+ }else if(h==='wizard'||h==='feather'||h==='pirate'){
+  cylinder(x,2.02,z,.40,.40,.08,dark,12);
+  if(h==='wizard')cone(x,2.09,z,.29,.65,'#635785',12);
+  else if(h==='pirate'){box(x,2.12,z,.74,.30,.25,'#4b4c53');box(x,2.26,z,.48,.07,.12,trim);}
+  else{cylinder(x,2.09,z,.28,.28,.18,'#80604b',12);cone(x+.24,2.22,z,.06,.55,'#e3d6b1',8);}
+ }else if(h==='crown'){
+  cylinder(x,2.04,z,.34,.34,.11,dark,12);cylinder(x,2.07,z,.30,.30,.10,gold,12);
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;cone(x+Math.cos(a)*.27,2.12,z+Math.sin(a)*.27,.075,.23,gold,8);}
+ }else if(h==='hood'){sphere(x,1.88,z-.08,.37,'#53596b',12);box(x,1.91,z+.26,.42,.14,.09,dark);}
+ else if(h==='helmet'){cylinder(x,1.95,z,.35,.32,.23,'#8d969b',12);box(x,2.19,z,.09,.25,.47,trim);box(x,1.91,z+.36,.11,.24,.07,dark);}
+ else if(h==='chef'){cylinder(x,2.04,z,.29,.29,.16,'#f4e9d5',12);sphere(x,2.25,z,.34,'#f4e9d5',12);}
+ const f=cosmetics.face;
+ if(f==='mustache'||f==='handlebar'||f==='beard'||f==='goatee'){
+  const w=f==='handlebar'?.37:.26;
+  box(x,1.68,z+.316,w,.065,.08,dark);
+  if(f==='beard')box(x,1.51,z+.32,.35,.26,.12,dark);
+  if(f==='goatee')box(x,1.50,z+.32,.12,.23,.10,dark);
+  if(f==='handlebar')for(const side of [-1,1])sphere(x+side*.21,1.72,z+.34,.06,dark,8);
+ }else if(f==='eyepatch'){
+  box(x-.11,1.84,z+.305,.15,.15,.09,dark);box(x,1.94,z+.30,.43,.035,.07,dark);
+ }else if(f==='glasses'){
+  for(const side of [-1,1]){box(x+side*.11,1.84,z+.33,.18,.14,.06,dark);box(x+side*.11,1.85,z+.37,.12,.09,.03,'#b4c7c8');}
+  box(x,1.85,z+.35,.10,.03,.05,dark);
+ }else if(f==='monocle'){cylinder(x-.11,1.79,z+.32,.10,.10,.045,gold,10);box(x-.19,1.64,z+.34,.02,.22,.03,gold);}
+ else if(f==='freckles')for(const side of [-1,1])for(let i=0;i<3;i++)sphere(x+side*(.14+i*.025),1.70,z+.31,.017,'#a27967',6);
+}
+function setupWardrobe(){
+ const panel=document.getElementById('fallen-wardrobe'),grid=document.getElementById('fallen-wardrobe-grid');
+ grid.replaceChildren();
+ for(const [slot,items] of Object.entries(cosmeticCatalog)){
+  const field=document.createElement('label');field.textContent={hat:'Headwear',face:'Face and beard',cloak:'Capes',trim:'Clothing accents'}[slot];
+  const select=document.createElement('select');select.setAttribute('aria-label',field.textContent);
+  for(const [id,name] of items){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}
+  select.value=cosmetics[slot];select.addEventListener('change',()=>{cosmetics[slot]=select.value;saveCosmetics();});
+  field.append(select);grid.append(field);
+ }
+ document.getElementById('fallen-wardrobe-open').addEventListener('click',()=>{pause.hidden=true;panel.hidden=false;});
+ document.getElementById('fallen-wardrobe-back').addEventListener('click',()=>{panel.hidden=true;pause.hidden=false;});
+}
+
 const characterLooks={
  pip:{accent:'#cc8f4b',trim:'#f4cf83',face:'curious',outfit:'scarf'},
  baker:{accent:'#b75f4c',trim:'#fff1c9',face:'smile',outfit:'apron'},
@@ -306,7 +391,7 @@ function features(x,z,type,color,aldric=false,id=''){
  else if(look.outfit==='coat'){cylinder(x,.39,z,.30,.245,.50,look.accent,12);box(x,.52,z+.268,.06,.46,.08,look.trim);sphere(x,.62,z+.313,.043,look.trim,7);box(x+.18,.56,z+.20,.12,.34,.12,'#473b67');}
  else if(look.outfit==='satchel'){box(x+.26,.47,z+.13,.26,.40,.24,look.accent);box(x+.21,.84,z+.23,.09,.36,.08,look.trim);box(x-.13,1.74,z+.42,.19,.10,.05,'#574c4a');}
  else if(look.outfit==='vest'){cylinder(x,.43,z,.28,.25,.42,look.accent,12);box(x,.60,z+.264,.12,.34,.075,look.trim);sphere(x+.19,.96,z+.05,.11,'#78aa67',8);box(x-.16,.94,z+.14,.10,.12,.07,'#476f42');}
- else if(look.outfit==='regal'){cylinder(x,.50,z,.44,.41,.47,'#29282b',16);cylinder(x,.52,z,.40,.37,.43,look.accent,16);cylinder(x,.94,z,.36,.35,.10,look.trim,16);box(x,.69,z+.36,.24,.25,.08,'#e2c782');box(x-.31,.58,z+.16,.12,.66,.22,'#765348');box(x+.31,.58,z+.16,.12,.66,.22,'#765348');}
+ else if(look.outfit==='regal'){cylinder(x,.50,z,.417,.387,.45,pale?'#786d64':'#20252c',16);cylinder(x,.52,z,.40,.37,.43,look.accent,16);cylinder(x,.94,z,.36,.35,.10,look.trim,16);box(x,.69,z+.36,.24,.25,.08,'#e2c782');box(x-.31,.58,z+.16,.12,.66,.22,'#765348');box(x+.31,.58,z+.16,.12,.66,.22,'#765348');}
  else cylinder(x,.72,z,.24,.24,.07,look.trim,12);
  // Identity-specific accessories: hats, hair, facial hair and outerwear.
  if(id==='baker'){
@@ -409,6 +494,14 @@ if(!staticReady){
  }
  for(const h of world.houses||[])building(h);
  villageProps();
+ for(const item of world.collectibles||[]){
+  // Small gold-trimmed treasure cases: walkable, discoverable, and never obstacles.
+  if(foundCosmetics.has(item.slot+':'+item.id))continue;
+  const x=item.x+.5,z=item.y+.5;
+  box(x,.04,z,.38,.20,.31,'#6d4933');
+  box(x,.25,z,.40,.09,.34,'#d1ac65');
+  box(x,.12,z+.18,.09,.08,.035,'#f5dc8b');
+ }
  for(const s of world.showcase||[]){
   // Raised stone plinths make the display visible against the plaza.
   const sx=s.x+.5,sz=s.y+.5;
@@ -425,7 +518,7 @@ if(!staticReady){
  staticReady=true;vertices=[];
 }
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
-piece(visual.x+.5,visual.z+.5,'K','white',true);features(visual.x+.5,visual.z+.5,'K','white',true,'aldric');
+piece(visual.x+.5,visual.z+.5,'K','white',true);features(visual.x+.5,visual.z+.5,'K','white',true,'aldric');cosmeticGeometry(visual.x+.5,visual.z+.5);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
@@ -437,7 +530,7 @@ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
 }
 function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);requestAnimationFrame(frame);}
 function togglePause(force){if(!world)return;if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!document.getElementById('fallen-wardrobe').hidden){document.getElementById('fallen-wardrobe').hidden=true;pause.hidden=false;return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
 for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
@@ -488,6 +581,7 @@ function updateDoorHint(){
  const h=tile(tx,tz)==='D'?(world.houses||[]).find(h=>tx>=h.x&&tx<h.x+h.w&&tz>=h.y&&tz<h.y+h.h):null;
  hint.hidden=!h||mapOpen||paused||!!dialogue;
  if(h)hint.textContent=h.name==='The Bakery'?'E / Space · Enter the Bakery':'E / Space · Check '+h.name;
+ const pickup=document.getElementById('fallen-pickup-hint');if(pickup&&!pickup.hidden&&(!world.collectibles||!world.collectibles.some(item=>item.x===player.x&&item.y===player.y)))pickup.hidden=true;
 }
 document.getElementById('fallen-house-exit').addEventListener('click',leaveHouse);
 document.getElementById('fallen-menu-button').addEventListener('click',()=>togglePause(true));document.getElementById('fallen-continue').addEventListener('click',()=>togglePause(false));
@@ -499,7 +593,7 @@ function musicTick(){if(!musicOn||paused)return;try{audioCtx=audioCtx||new (wind
 document.getElementById('fallen-music-toggle').addEventListener('click',e=>{musicOn=!musicOn;e.currentTarget.textContent='Music: '+(musicOn?'On':'Off');e.currentTarget.setAttribute('aria-pressed',String(musicOn));if(musicOn){musicTick();musicTimer=setInterval(musicTick,420);}else{clearInterval(musicTimer);musicTimer=null;}});
 document.getElementById('fallen-save').addEventListener('click',save);document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};save();dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
-world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');
+world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
 player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;canvas.focus({preventScroll:true});requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();

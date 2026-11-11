@@ -49,5 +49,12 @@ export async function onRequestGet({request,env}) {
     {id:'courier',x:16,y:28,piece:'N',color:'white',name:'Courier Nox',lines:['I travel between villages.','These roads lead beyond the village, but that area is not ready yet.']},
     {id:'gardener',x:9,y:24,piece:'P',color:'black',name:'Gardener Moss',lines:['These flowers take patience.','Watch your step near the pond.']}
   ];
-  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:5},{headers:adminHeaders});
+  const collectibles=[
+    {x:24,y:28,slot:'hat',id:'top',name:'Top hat'},
+    {x:31,y:22,slot:'face',id:'eyepatch',name:'Eye patch'},
+    {x:21,y:25,slot:'cloak',id:'red',name:'Crimson cape'},
+    {x:35,y:21,slot:'hat',id:'wizard',name:'Scholar hat'},
+    {x:28,y:32,slot:'face',id:'beard',name:'Full beard'}
+  ];
+  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,collectibles,spawn:{x:26,y:29},version:5},{headers:adminHeaders});
 }
