@@ -252,6 +252,25 @@ function drawProps(g){
  function wall(x,z,w=1,h=1.8){const dungeon=scene==='cell'||scene==='sewer'||scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene==='prison';if(dungeon&&model('wall',x,0,z,w,h,.86))return;box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
  function rails(a,b,z){/* Genuine forged-iron bars, not Kenney's brown timber dungeon gates. */box((a+b)/2,1.98,z,b-a,.17,.19,'#303b40');box((a+b)/2,.14,z,b-a,.15,.19,'#27353a');for(let x=a+.20;x<b-.12;x+=.46){cylinder(x,.99,z,.052,.055,1.86,iron,10);sphere(x,1.95,z,.070,'#78878a',8);box(x,.20,z,.17,.10,.20,'#455257');}for(let x=a+.16;x<b;x+=1.85)box(x,1.03,z,.15,.11,.24,'#809195');}
  function bed(x,z){/* Narrow prison cot: low iron legs, a pale mattress, a pillow and faded blue blanket. */for(const dx of [-1.35,1.35])for(const dz of [-.63,.63])cylinder(x+dx,.20,z+dz,.065,.065,.39,'#46535a',8);box(x,.31,z,2.95,.10,1.48,'#566166');box(x,.42,z,2.83,.15,1.37,'#c4bea9');box(x-.94,.53,z,.70,.13,1.12,'#e2ddc9');box(x+.55,.52,z,1.54,.09,1.28,'#6d8294');box(x+.52,.58,z+.56,1.5,.06,.10,'#8e9da1');}
+ function royalBed(x,z){
+  // Recognisable upholstered royal four-poster bed: DetailPlus bed mesh plus carved posts and velvet drapery.
+  if(!model('bed',x,0,z,3.85,.82,2.22))bed(x,z);
+  for(const dx of [-1.76,1.76])for(const dz of [-1.06,1.06]){
+   cylinder(x+dx,.02,z+dz,.13,.14,2.64,'#73523c',10);
+   cylinder(x+dx,2.66,z+dz,.20,.20,.13,'#d9b677',10);
+   sphere(x+dx,2.86,z+dz,.15,'#d9b677',9);
+  }
+  for(const dz of [-1.06,1.06]){
+   box(x,2.53,z+dz,3.70,.14,.13,'#a17b52');
+   for(let i=0;i<7;i++)box(x-1.52+i*.50,2.38,z+dz,.18,.30,.07,i%2?'#8a435c':'#aa576d');
+  }
+  box(x-1.89,1.09,z,.18,1.89,2.25,'#7f3d56');
+  box(x-1.94,1.10,z,.07,1.81,1.93,'#ad6578');
+  for(const dz of [-.70,.70])sphere(x-1.79,1.25,z+dz,.085,'#e3c286',9);
+  box(x+.65,.72,z,1.88,.07,1.73,'#8d4c6a');
+  box(x+1.50,.81,z,0.14,.10,1.74,'#d3b483');
+  box(x-1.03,.75,z,.72,.15,1.60,'#e7ddca');
+ }
  function toilet(x,z){if(dp?.toilet?.(g,x,z))return;box(x,.36,z-.3,.9,.7,.65,'#aeb4ae');cylinder(x,.57,z+.18,.5,.5,.22,ivory,12);cylinder(x,.7,z+.18,.35,.35,.06,'#becbca',12);cylinder(x,.73,z+.18,.21,.21,.06,'#416477',12);box(x,.87,z-.53,.77,.14,.15,ivory);box(x+.33,.77,z-.59,.10,.18,.12,'#ad9f78');}
  function torch(x,z){box(x,.84,z,.22,.36,.2,wood);cone(x,1.16,z,.15,.38,'#e5a94d',8);sphere(x,1.34,z,.12,'#ffe0a0',8);}
  function banner(x,z,c=royal){box(x,1.85,z,.65,1.48,.07,c);box(x,2.60,z,.77,.10,.13,brass);box(x,1.05,z,.70,.12,.13,brass);box(x,2.05,z+.06,.16,.18,.08,brass);}
@@ -267,7 +286,12 @@ function drawProps(g){
   for(let x=2;x<18;x+=4)box(x,.05,6,.06,.10,9,'#beaa8a');
   if(kind!=='prison'){for(const x of [3,7,11,15]){box(x,1.25,.95,.88,2.5,.4,'#b5a48b');tapestry(x,1.19);}for(const x of [2,16]){cylinder(x,.83,6,.36,.36,1.66,'#d8c599',10);sphere(x,1.76,6,.34,'#e4d3ad',10);}for(let z=2;z<11;z+=3)banner(17.04,z+.5,royal);}
   if(['bedroom','approach','theft','confrontation','arrest'].includes(kind)){
-    box(9,.07,4,10,.12,5,'#9b7659');bed(9,5);
+    // Inlaid burgundy carpet with gold borders instead of an enormous untextured brown rectangle.
+    box(9,.025,5.4,10.2,.046,5.60,'#654452');
+    for(const z of [2.75,8.05])box(9,.052,z,10.1,.012,.09,'#dfb875');
+    for(const x of [4.1,13.9])box(x,.053,5.4,.085,.012,5.35,'#dfb875');
+    for(let i=0;i<9;i++){const x=5.5+i*.88;box(x,.06,3.2,.30,.014,.11,'#b48667');box(x,.06,7.7,.30,.014,.11,'#b48667');}
+    royalBed(9,5);
     box(3.8,1.0,3.2,1.4,2,.22,'#704751');box(3.8,1.03,3.36,1.2,1.6,.07,'#d4b26b');
     // The royal crown is kept on an obvious velvet-topped pedestal beside Oliver's bed.
     if(!model('table',13.8,0,5.1,1.70,1.03,1.33))box(13.8,.47,5.1,1.65,.94,1.25,wood);
