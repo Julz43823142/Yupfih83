@@ -245,7 +245,8 @@ function drawGround(g,x,z){
  g.box(x+.5,.005,z+.5,.96,.02,.96,scene==='sewer'?'#6c7977':'#94958c');
 }
 function drawProps(g){
- const {box,cylinder,cone,sphere,piece,features,recliningKing,tri}=g;
+ const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
+ const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'P','white',false);
  const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>!!dp?.draw?.(g,id,x,y,z,w,h,d,rot);
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
  const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
@@ -277,8 +278,15 @@ function drawProps(g){
  function tapestry(x,z){box(x,1.85,z,1.10,1.45,.09,'#784157');box(x,2.60,z,1.2,.10,.18,brass);for(let i=0;i<3;i++)box(x+(i-1)*.25,1.55,z+.065,.09,.58,.07,brass);}
  function pipe(x,z,length=3){cylinder(x,1.4,z,.24,.24,length,'#697e7a',10);cylinder(x,1.4,z,.28,.28,.12,'#b3a97e',10);}
  function arch(x,z){for(const dx of [-1.7,1.7]){box(x+dx,1.3,z,.37,2.6,.44,'#8a9991');box(x+dx,2.35,z,.49,.19,.52,'#a7ad9d');}box(x,2.68,z,3.8,.40,.5,'#6d7d7b');box(x,2.93,z,3.1,.12,.57,'#4a655f');}
- function king(x,z,prisoner=false){const type=prisoner?'P':'K';piece(x,z,type,'white',false);features(x,z,type,'white',false,'aldric');if(prisoner)box(x,.58,z+.3,.48,.42,.08,'#b8aa96');}
- function edwin(x,z,wearingCrown=false){piece(x,z,'P','black',false);/* Edwin remains a pawn with or without the stolen crown. */if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);}
+ function king(x,z){drawOliver(x,z);}
+ function edwin(x,z,wearingCrown=false){
+  piece(x,z,'P','black',false);
+  // Edward's burgundy heraldic sash and gold badge distinguish him from ordinary pawns.
+  box(x,.68,z+.305,.38,.54,.10,'#a44756');
+  box(x+.125,.80,z+.37,.09,.16,.04,'#e3bc72');
+  for(const dx of [-.105,.105])sphere(x+dx,1.38,z+.285,.048,'#f7cb8c',8);
+  if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);
+ }
  if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison'){
   const kind=steps[Math.min(chapter.step,steps.length-1)].scene;
   for(let x=0;x<18;x++){wall(x+.5,.5,1,2.9);wall(x+.5,11.5,1,1.2);if(x%3===0)box(x+.5,2.95,.62,.30,.25,1.3,'#c0ae87');}
@@ -304,7 +312,7 @@ function drawProps(g){
     box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
     for(const x of [2.5,16])torch(x,2.9);
     // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
-    if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}}else piece(8.9,7.0,'K','white',false);
+    if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}}else drawOliver(8.9,7.0);
     box(9.6,.88,5,.72,.10,1.26,'#8e5470');
     if(kind==='approach')edwin(15.1,8.7);
     if(kind==='theft'){edwin(13.0,7.4);dp?.crown?.(g,12.55,1.65,7.0,.88);}
@@ -314,7 +322,7 @@ function drawProps(g){
     box(9,.62,3.8,3.4,1.24,1.4,'#916b54');box(9,1.42,3.7,2,1.6,.47,'#a44b53');
     // Edwin wears the crown and royal disguise; Oliver remains unmistakably crownless.
     edwin(9,5.3,true);
-    piece(8.5,9,'P','white',false);features(8.5,9,'P','white',false,'aldric');box(8.5,.6,9.29,.52,.47,.11,'#a8a08d');
+    drawOliver(8.5,9);
     piece(5.2,7.5,'R','white',false);piece(12.8,7.5,'R','white',false);torch(3,3);torch(15,3);
     for(const x of [3.3,14.7]){tapestry(x,1.22);cylinder(x,.73,3.7,.42,.42,1.46,'#d2c2a0',12);}
   }else{
@@ -383,7 +391,7 @@ function drawProps(g){
   box(12.5,.67,14.30,3.13,.14,.58,'#828e8b');
   // Cool moonlight pool on the floor, carefully flat and separate from the warm candle.
   for(const [x,z] of [[12.4,12.6],[12.9,12.1],[11.8,12.9]])box(x,.013,z,.44,.012,.69,'#7c9c9f');
-  if(scene==='intro'){piece(12.5,9.4,'K','white',false);for(const x of [11.4,13.9])piece(x,7.0,'R','white',false);}
+  if(scene==='intro'){drawOliver(12.5,9.4);for(const x of [11.4,13.9])piece(x,7.0,'R','white',false);}
   // One readable torch and a small iron pail; never wooden crates or random gate props.
   box(15.3,.85,6.0,.25,.17,.22,'#68767a');torch(15.3,6.0);
   cylinder(8.25,.09,11.45,.24,.29,.43,'#5d6b71',10);
