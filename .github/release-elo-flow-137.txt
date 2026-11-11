@@ -1,0 +1,1 @@
+Protected release: Elo Flow larger boards, 3/5-minute Sprint rankings, gentler puzzles, opponent setup move, Guess Elo availability, Block Party move dots and Memory bar. Preserve production auth/D1.
