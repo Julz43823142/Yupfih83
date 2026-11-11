@@ -206,3 +206,15 @@ test('Mechanical Turk historical stage and mobile board-only framing',()=>{
  assert.match(world,/Secret chess player/);
  assert.match(css,/justify-content:center!important;align-items:center!important/);
 });
+
+test('Steam factory has full moving chess pieces, thick board rails, and pickup-only coins',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ assert.match(world,/Smokestacks release layered, drifting steam/);
+ assert.match(world,/Clip to the conveyor's exit gates/);
+ assert.match(world,/const kinds=\['pawn','rook','bishop','queen','knight','king'\]/);
+ assert.match(world,/paintChessPiece\(ctx,kinds\[i%kinds.length\]/);
+ assert.match(world,/edge-u\*\.64/);
+ assert.match(world,/runCoins\+\+/);
+ assert.match(world,/wallet=earnPawnCoins\(wallet,1\);runCoins\+\+;persistWallet\(\)/);
+ assert.match(world,/saved coins/);
+});
