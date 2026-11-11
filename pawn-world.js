@@ -59,6 +59,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  const menuHelp=document.createElement('p');menuHelp.textContent='Tap to hop · Swipe to steer · Collect 1 coin at a time · Explore 30 skins · Esc pauses';
  overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel,audioPanel);
  let wallet;
+ let runCoins=0; // Only physical coin pickups increase this run's earnings.
  try{wallet=readPawnWallet(localStorage.getItem('eloscanner-pawn-shop-v1'))}catch{wallet=readPawnWallet(null)}
  const persistWallet=()=>{try{localStorage.setItem('eloscanner-pawn-shop-v1',JSON.stringify(wallet))}catch{}};
  const selectedSkin=()=>PAWN_SHOP.find(s=>s.id===wallet.selected)||PAWN_SHOP[0];
@@ -74,7 +75,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   c.font='bold 15px system-ui';c.textAlign='center';c.fillStyle='#ffe3a2';c.fillText(item.name,130,205);
  }
  function refreshShop(){
-  shopBalance.textContent='🪙 '+wallet.coins.toLocaleString('en-US')+' coins';
+  shopBalance.textContent='🪙 '+wallet.coins.toLocaleString('en-US')+' saved coins · +'+runCoins+' this run';
   shopCategories.replaceChildren();shopItems.replaceChildren();
   const viewing=activeCategory!==null;
   shopCategories.hidden=viewing;shopCategoryBack.hidden=!viewing;shopPreview.hidden=!viewing;shopItems.hidden=!viewing;
@@ -412,7 +413,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(nr>highest){const gained=nr-highest;highest=nr;onScore(gained);if([100,500,750].includes(nr))onStatus('New level: '+(nr===100?'CHALLENGER':nr===500?'MASTER':'GRANDMASTER')+'! More chess pieces approach.')}
   if(collision(nx,nr,(now-origin)/1000))hit('hit');
   else if(pawnCoinAt(model,nr,nx)&&!collected.has(nr+':'+nx)){
-   collected.add(nr+':'+nx);wallet=earnPawnCoins(wallet,1);persistWallet();sound.play('coin');onStatus('🪙 +1 coin · '+wallet.coins+' saved on this device');
+   collected.add(nr+':'+nx);wallet=earnPawnCoins(wallet,1);runCoins++;persistWallet();sound.play('coin');onStatus('🪙 +1 coin · '+wallet.coins+' saved on this device');
   }
  }
  const keys={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
@@ -492,7 +493,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.fillText(''+highest+(compact?'':'  SQUARES'),width-offset,compact?47:68);
   const tier=difficulty(highest),badge=tier===0?'ROOKIE':tier===1?'CHALLENGER':tier===2?'MASTER':'GRANDMASTER';
   ctx.textAlign='right';ctx.font='bold '+(compact?9:12)+'px system-ui';ctx.fillStyle='#fff0c5';
-  ctx.fillText('🪙 '+wallet.coins+' · '+badge,width-offset,compact?64:91);
+  ctx.fillText('🪙 '+wallet.coins+' (+'+runCoins+')',width-offset,compact?64:91);
   if(collision(player.x,player.row,time)&&now>=invincibleUntil)hit('hit');
   if(!dead)raf=requestAnimationFrame(frame);
  }
