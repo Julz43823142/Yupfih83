@@ -106,3 +106,6 @@ html,body{width:100%;height:100%;overflow:hidden}
 #fallen-story-puzzle-continue:hover{background:#aa814c}
 #fallen-story-puzzle-continue:focus-visible{outline:3px solid #fff0b2;outline-offset:3px}
 #fallen-story-puzzle-name{font-size:clamp(27px,4vw,39px);letter-spacing:.12em}
+
+/* The map is not available until Oliver finds the map item in a later chapter. */
+#fallen-map-button[hidden]{display:none!important}
