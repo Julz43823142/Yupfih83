@@ -8,6 +8,8 @@ const root=resolve(import.meta.dirname,'../..');
 const source=readFileSync(resolve(root,'fallen-king-story.js'),'utf8');
 const engine=readFileSync(resolve(root,'fallen-king.js'),'utf8');
 const page=readFileSync(resolve(root,'fallen-king.html'),'utf8');
+const detail=readFileSync(resolve(root,'fallen-king-detailplus.js'),'utf8');
+const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8');
 
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
@@ -165,4 +167,46 @@ test('animated atmosphere receives the complete WebGL primitive API',()=>{
  new Function('window','document','localStorage','location','confirm',source)(next,doc,storage,{},()=>true);
  next.FallenKingStory.start(engineApi);
  assert.doesNotThrow(()=>next.FallenKingStory.drawEffects(calls,3));
+});
+
+test('DetailPlus bundles eight real CC0 GLB meshes with valid embedded buffers',()=>{
+ assert.match(assets,/Kenney CC0 1\.0/);
+ const win={};new Script(assets).runInNewContext({window:win});
+ const packed=win.FallenKingDetailPlusAssetData;
+ for(const id of ['gate','wall','floor','table','barrel','chest','bed','stones']){
+  assert.ok(packed[id]&&packed[id].length>1000,id+' must be an embedded mesh');
+  const raw=Buffer.from(packed[id],'base64');assert.equal(raw.toString('ascii',0,4),'glTF');
+  assert.equal(raw.readUInt32LE(4),2);assert.equal(raw.readUInt32LE(8),raw.length);
+ }
+ assert.doesNotThrow(()=>new Script(detail));
+});
+test('DetailPlus renders real mesh triangles, curved toilet and the same crown everywhere',()=>{
+ const win={};new Script(assets).runInNewContext({window:win});
+ const fakeCanvas=()=>({width:64,height:64,getContext(){return {drawImage(){},getImageData(){const data=new Uint8ClampedArray(64*64*4);data.fill(155);return {data};}};}});
+ const document={createElement:fakeCanvas};
+ const URL={createObjectURL(){return 'blob:fake';},revokeObjectURL(){}};
+ class Image{constructor(){this.width=64;this.height=64;}set src(_) {this.onload?.();}}
+ new Script(detail).runInNewContext({window:win,document,atob:txt=>Buffer.from(txt,'base64').toString('binary'),TextDecoder,Image,Blob,URL,console});
+ const dp=win.FallenKingDetailPlus,counts=dp.stats(),colors=[],points=[];
+ for(const id of ['gate','wall','floor','table','barrel','chest','bed','stones'])assert.ok(counts[id]>0,'mesh '+id+' must contain triangles');
+ const g={tri(a,b,c,color){points.push(...a,...b,...c);colors.push(color);},cylinder(){}};
+ for(const id of Object.keys(counts))assert.equal(dp.draw(g,id,3,0,3,1.5,2,1),true);
+ dp.crown(g,2,2,3,1);const firstColors=colors.slice(-172);
+ dp.crown(g,7,2,8,.8);assert.deepEqual(colors.slice(-172),firstColors,'crown materials must remain identical');
+ assert.ok(colors.includes('#8c263f'),'crown always has red velvet');
+ const count=colors.length;dp.toilet(g,11,7);assert.ok(colors.length>count+100,'toilet must use curved mesh surfaces');
+ assert.ok(points.every(Number.isFinite),'real GLB geometry must contain finite coordinates');
+});
+test('DetailPlus never applies outdoor grass or lilies to prison and sewer floors',()=>{
+ assert.match(engine,/window\.FallenKingStory\.drawGround\(\{box,tri\},x,z\)/);
+ assert.match(source,/function drawGround\(g,x,z\)/);
+ assert.match(source,/if\(scene==='sewer'&&tile==='w'\)/);
+ assert.doesNotMatch(source,/drawMicroDetail\(g,kind\);/);
+ assert.doesNotMatch(source,/drawMicroDetail\(g,'cell'\);/);
+ assert.doesNotMatch(source,/drawMicroDetail\(g,'sewer'\);/);
+ assert.match(source,/dp\?\.crown\?\.\(g,13\.8/);
+ assert.match(source,/dp\?\.crown\?\.\(g,12\.55/);
+ assert.match(source,/dp\?\.crown\?\.\(g,9,2\.45/);
+ assert.ok(page.indexOf('fallen-king-detailplus-assets.js')<page.indexOf('fallen-king-detailplus.js'));
+ assert.ok(page.indexOf('fallen-king-detailplus.js')<page.indexOf('fallen-king-story.js'));
 });
