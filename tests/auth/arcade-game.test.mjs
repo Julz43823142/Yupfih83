@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onRequestGet} from '../../functions/api/arcade-game.js';
-import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
 const url='https://eloscanner.com/api/arcade-game';
 test('Guess the Elo serves real-game metadata, exact player rating and source link without fabrication',async()=>{
  const original=globalThis.fetch,visited=[];
@@ -26,9 +25,9 @@ test('Guess the Elo serves real-game metadata, exact player rating and source li
   assert.ok(visited.some(link=>link.includes('/api/games/user/PublicChessPlayer')));
  }finally{globalThis.fetch=original}
 });
-test('Guess the Elo falls back to a verified archived real game when upstream fails',async()=>{
+test('Guess the Elo reports unavailable instead of repeating the same archived game',async()=>{
  const previous=globalThis.fetch;globalThis.fetch=async()=>new Response('Unavailable',{status:503});
- try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,200);const game=await r.json();assert.equal(game.id,'PpwPOZMq');assert.equal(game.archived,true);assert.ok([2100,2000].includes(game.elo));const chess=new Chess();for(const uci of game.moves)assert.ok(chess.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]}));assert.equal(chess.history().length,26)}
+ try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,503);const game=await r.json();assert.match(game.error,/No new real game/)}
  finally{globalThis.fetch=previous}
 });
 
@@ -52,7 +51,7 @@ test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original p
  }finally{globalThis.fetch=previous}
 });
 
-test('Guess the Elo excludes viewed Chess.com games and remains playable with authentic archived fallback',async()=>{
+test('Guess the Elo excludes viewed Chess.com games and refuses repeated fallback',async()=>{
  const previous=globalThis.fetch;
  const pgn='[Event "Rated"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
  globalThis.fetch=async input=>{
@@ -72,7 +71,7 @@ test('Guess the Elo excludes viewed Chess.com games and remains playable with au
  globalThis.fetch=async()=>new Response('unavailable',{status:503});
  try{
   const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});
-  assert.equal(r.status,200);const archived=await r.json();assert.equal(archived.id,'PpwPOZMq');assert.equal(archived.link,'https://lichess.org/PpwPOZMq');
+  assert.equal(r.status,503);const result=await r.json();assert.match(result.error,/No new real game/);
  }finally{globalThis.fetch=previous}
 });
 
@@ -81,9 +80,8 @@ test('oversized upstream JSON or NDJSON cannot exhaust Guess the Elo worker',asy
  globalThis.fetch=async()=>new Response('x'.repeat(8*1024*1024+1),{headers:{'Content-Type':'application/json'}});
  try{
   const response=await onRequestGet({request:new Request(url)});
-  assert.equal(response.status,200);
+  assert.equal(response.status,503);
   const game=await response.json();
-  assert.equal(game.id,'PpwPOZMq');
-  assert.equal(game.archived,true);
+  assert.match(game.error,/No new real game/);
  }finally{globalThis.fetch=original}
 });

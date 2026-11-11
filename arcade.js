@@ -7,6 +7,7 @@ const $=id=>document.getElementById(id);
 window.__eloArcadeLoaded=true;
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
 const mode=IDs.has(modeParam)?modeParam:'endgame-survivor';
+if(mode==='missing-piece'||mode==='queen-chase')location.replace('/minigames.html');
 const info=GAME_CATALOG.find(g=>g.id===mode);
 $('arcade-title').textContent=info.name;
 $('arcade-description').textContent=info.description;
@@ -21,7 +22,7 @@ const instructions={
  'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
- 'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
+ 'chess-block-party':'Reach the announced colour in at least two legal moves. Intermediate squares are safe; only running out of time costs a life.',
  'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across clockwork gaps, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
@@ -260,7 +261,7 @@ function setupLevel(){
   state.block=blockPartyLevel(state.seed,state.level);
   state.pieces={[state.block.pos]:{type:state.block.type,side:'player'}};
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
-  status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Use your '+letters[state.block.type]+'.');
+  status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! At least two moves required. Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
   status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
@@ -371,7 +372,7 @@ async function loadRealEloGame(run){
   const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(eloSeen.join(',')),{cache:'no-store',signal:run.eloAbort.signal});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
   if(state!==run||state.finished)return;
-  if(!Number.isInteger(data.elo)||!/^https:\/\/(?:lichess\.org\/[A-Za-z0-9]+|www\.chess\.com\/game\/(?:live|daily)\/[0-9]+)$/.test(data.link))throw Error('Invalid real game');
+  if(!Number.isInteger(data.elo)||!/^https:\/\/(?:lichess\.org\/[A-Za-z0-9]+|www\.chess\.com\/game\/(?:live|daily)\/[0-9]+)$/.test(data.link)||eloSeen.includes(String(data.id)))throw Error('No new real game available. Retry to load a different one.');
   const validate=new Chess(),moves=[];
   if(data.platform==='chesscom'&&typeof data.pgn==='string'){validate.loadPgn(data.pgn);moves.push(...validate.history({verbose:true}))}
   else for(const uci of data.moves||[]){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
@@ -393,7 +394,7 @@ async function loadRealEloGame(run){
   status('Review the real game. Then enter a rating from 100 to 4000.');
  }catch(error){
   if(state!==run||state.finished)return;state.phase='waiting';choices.hidden=false;
-  const retry=document.createElement('button');retry.textContent='Retry loading a real game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
+  const retry=document.createElement('button');retry.textContent='Try another real game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
   choices.replaceChildren(retry);status(error.message||'Could not load a real game.');
  }
 }
@@ -499,8 +500,10 @@ function play(f,t){
   paint();return true;
  }
  if(mode==='chess-block-party'){
-  if(state.block.palette[t]===state.block.target){score(1);status('Correct colour!');nextLevel();}
-  else{lose('Wrong colour!');if(!state.finished)nextLevel();}
+  const piece=state.pieces[f];delete state.pieces[f];state.pieces[t]=piece;state.block.pos=t;
+  state.block.movesMade=(state.block.movesMade||0)+1;
+  if(state.block.palette[t]===state.block.target&&state.block.movesMade>=2){score(1);status('Correct colour!');nextLevel();}
+  else status('Keep moving toward the announced colour. '+state.block.movesMade+' move(s) made.');
   paint();return true;
  }
  if(mode==='pawn-dash'){

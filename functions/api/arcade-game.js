@@ -7,9 +7,7 @@ const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Contro
 // Retain an authentic offline fallback when upstream requests are rate-limited.
 const archived={id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',whiteElo:2100,blackElo:2000,
  moves:['e2e4','c7c5','g1f3','b8c6','f1c4','e7e6','c2c3','b7b5','c4b3','c5c4','b3c2','a7a5','d2d4','c4d3','d1d3','g8f6','e4e5','f6d5','c1g5','d8c7','b1d2','h7h6','g5h4','c8a6','b2b3','d5f4']};
-const fail=excluded=>{ // An authentic archived game is preferable to a permanently broken minigame.
- // The same real game may recur when upstream archives are unavailable; never fabricate games.
-const side=Math.random()<.5?'white':'black';return reply({...archived,side,elo:side==='white'?archived.whiteElo:archived.blackElo,archived:true})};
+const fail=excluded=>reply({error:'No new real game is available right now. Please retry.'},503);
 const timeout=()=>AbortSignal.timeout(6500);
 const ratings=g=>[g?.players?.white?.rating,g?.players?.black?.rating];
 async function lichessFallback({request}){

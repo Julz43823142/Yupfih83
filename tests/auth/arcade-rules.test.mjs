@@ -26,7 +26,8 @@ test('block party always offers a legal move to the announced colour',()=>{
   const b=blockPartyLevel('regression-seed',n);
   const candidates=moves(b.type,b.pos);
   assert.ok(candidates.length>0);
-  assert.ok(candidates.some(i=>b.palette[i]===b.target),'no target for level '+n);
+  assert.ok(candidates.every(i=>b.palette[i]!==b.target),'target reachable in one move at level '+n);
+   assert.ok(candidates.some(i=>moves(b.type,i).some(dest=>b.palette[dest]===b.target)),'no two-move route at level '+n);
  }
 });
 
