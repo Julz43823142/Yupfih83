@@ -264,16 +264,14 @@ function drawGround(g,x,z){
  if(scene==='sewer'&&tile==='H'){g.box(x+.5,-.035,z+.5,1,.055,1,'#354447');return;}
  if(isPalace){g.box(x+.5,.006,z+.5,.94,.017,.94,(x+z)%4===0?'#b5a083':'#a8967c');return;}
  if(scene==='sewer'&&tile==='s'){
-  // Walkable wet flagstones. The surface water is shallow decoration, not a collision tile.
-  const stain=(x*11+z*7)%7,wet=stain!==0;
+  const stream=w.streamTiles?.[z*w.width+x]||0;
   if(!window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))
-    g.box(x+.5,.005,z+.5,.96,.02,.96,'#616c67');
-  if(wet)g.box(x+.5,.021,z+.5,.93,.012,.92,stain%3===0?'#385e62':stain%3===1?'#3e6267':'#476b69');
-  if((x*7+z*3)%9===0)g.box(x+.26,.031,z+.76,.40,.009,.10,'#58785d');
-  if((x*17+z*11)%139===0){
-   // A recessed iron maintenance grate sits flush with the walkable wet stones.
-   g.box(x+.5,.036,z+.5,.70,.02,.61,'#364c51');
-   for(let i=0;i<5;i++)g.box(x+.21+i*.15,.048,z+.5,.045,.015,.58,'#87948e');
+    g.box(x+.5,.005,z+.5,.96,.02,.96,'#596461');
+  if(stream)g.box(x+.5,.025,z+.5,1.005,.017,1.005,'#426871');
+  else if((x*7+z*3)%11===0)g.box(x+.5,.023,z+.5,.45,.009,.36,'#4c615d');
+  if((x*17+z*11)%139===0&&!stream){
+   g.box(x+.5,.032,z+.5,.70,.018,.61,'#364c51');
+   for(let i=0;i<5;i++)g.box(x+.21+i*.15,.047,z+.5,.045,.015,.58,'#87948e');
   }
   return;
  }
@@ -626,22 +624,21 @@ function drawEffects(g,t){
   return;
  }
  if(scene!=='sewer')return;
- // Animate ONLY the actual sewer water tiles. All wave vertices remain anchored;
- // phase changes continuously, and triangles never despawn, wrap or teleport.
- const waterWorld=engine.getWorld();
- for(let z=1;z<waterWorld.height-1;z++)for(let x=1;x<waterWorld.width-1;x++){
-  const tile=waterWorld.tiles[z][x];
-  if(tile!=='w'&&tile!=='s')continue;
-  // Fixed vertices with a periodic sine offset: never translate, disappear or teleport.
-  if(tile==='s'&&(x*11+z*7)%7===0)continue;
-  const stripes=tile==='w'?[.23,.50,.77]:[(x*13+z*5)%2===0?.34:.68];
-  for(const stripe of stripes){
-   const y=(u,d)=> (tile==='w'?.055:.039)+.010*Math.sin(u*.92-d*.43-t*1.25);
-   const z0=z+stripe,z1=z+stripe+.045,x0=x+.13,x1=x+.86;
-   if(tri){
-    tri([x0,y(x0,z0),z0],[x1,y(x1,z0),z0],[x1,y(x1,z1),z1],tile==='w'?'#6c9b9b':'#779b96');
-    tri([x0,y(x0,z0),z0],[x1,y(x1,z1),z1],[x0,y(x0,z1),z1],tile==='w'?'#6c9b9b':'#779b96');
-   }else box(x+.50,.04,z0+.022,.74,.008,.045,'#779b96');
+ // One continuous centre-line stream following all bends of sewerRoute.
+ const world=engine.getWorld(),stream=world.streamTiles;
+ if(!stream)return;
+ for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
+  const direction=stream[z*world.width+x];if(!direction)continue;
+  const vertical=direction>=3;
+  for(const shift of [.24,.55,.83]){
+   const phase=Math.sin((vertical?z:x)*.74-t*1.7+shift*5.7);
+   const y=.052+.011*phase,edge=.12+.10*(.5+.5*phase);
+   const px=x+.5,pz=z+.5;
+   const a=vertical?[px-edge,y,pz+shift-.5]:[px+shift-.5,y,pz-edge];
+   const b=vertical?[px+edge,y,pz+shift-.5]:[px+shift-.5,y,pz+edge];
+   const c=[b[0],y+.005,b[2]+(vertical?.025:0)];
+   if(tri)tri(a,b,c,'#719a9b');
+   else box(px,y,pz,vertical?edge*2:.02,.008,vertical?.02:edge*2,'#719a9b');
   }
  }
 
