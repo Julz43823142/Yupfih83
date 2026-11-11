@@ -60,10 +60,7 @@ function sewerWorld(){
   const neighbours=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
   if(neighbours.some(([xx,zz])=>w.tiles[zz]?.[xx]==='s')&&(x*7+z*11)%4===0)updateTile(w,x,z,'w');
  }
- // Each locked sluice blocks the complete five-tile cross-section, not just one square.
- for(const [z,x,id] of [[18,18,'sluice'],[26,32,'lantern']]){
-  for(let dx=-radius;dx<=radius;dx++)updateTile(w,x+dx,z,complete(id)?'s':'H');
- }
+ // Open corridors throughout: there are NO puzzles or blocked floodgates before the creature and the exit.
  w.spawn={x:6,y:25};w.music='sewer';return w;
 }
 function forestWorld(){
@@ -93,7 +90,7 @@ function forestWorld(){
 function villageWorld(){const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.map(n=>({...n,lines:[...n.lines]}))};for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');w.npcs=w.npcs.filter(n=>!(complete('pip')&&n.id==='pip')).map(n=>n.id==='pip'?{...n,lines:['Oliver, I believe you. Let us repair the bridge.']}:n);w.spawn={x:26,y:29};return w;}
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Explore the wider sewers and open the first iron sluice (E).':!complete('lantern')?'Follow the five-stone-wide tunnels to the second gate (E).':!complete('monster')?'Find the creature lost in the sewer maze (E).':!complete('exit')?'Find the exit and open the final lock (E).':'Escape the sewer into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('monster')?'Explore the flooded maze and speak to the strange creature (E).':!complete('exit')?'Find the sewer exit (E).':'Escape into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
@@ -128,7 +125,7 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
 function beforeMove(x,y){
  if(scene==='cell')return x===16&&y===10;
- if(scene==='sewer'){if(y===18&&x>=16&&x<=20&&!complete('sluice'))return true;if(y===26&&x>=30&&x<=34&&!complete('lantern'))return true;return x>=79&&y>=23&&y<=27;}
+ if(scene==='sewer')return x>=79&&y>=23&&y<=27;
  if(scene==='forest')return x>=34&&y>=7&&y<=10;
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
@@ -157,8 +154,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  }
  if(scene==='sewer'){
   if(near(p,3,25,3)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
-  if(near(p,18,20,3)&&!complete('sluice')){openPuzzle('sluice');return true;}
-  if(near(p,32,28,3)&&!complete('lantern')){openPuzzle('lantern');return true;}
+  // Floodgate checkpoints are removed entirely; this sewer is explored freely.
   if(near(p,49,38,3)&&!complete('monster')){
    if(!complete('monsterIntroduced')){chapter.flags.monsterIntroduced=true;persist();say('Sewer Creature','I have lived in these filthy drains for years. One strange puzzle has defeated me every night. Can you help me?');}
    else openPuzzle('monster');
@@ -245,13 +241,14 @@ function drawMicroDetail(g,kind){
 }
 // Scene-specific floor materials: never reuse village grass, flowers or pond lilies indoors.
 function backdrop(){if(scene==='cell')return [.004,.007,.012];if(scene==='sewer')return [.065,.10,.12];if(scene==='intro')return steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?[.065,.10,.12]:[.18,.14,.16];return null;}
-function sightOpaque(x,z){if(scene!=='cell')return false;const w=engine.getWorld();if(x<0||z<0||x>=w.width||z>=w.height)return true;
+function sightOpaque(x,z){if(scene!=='cell'&&scene!=='sewer')return false;const w=engine.getWorld();
+ if(scene==='sewer')return w.tiles[z]?.[x]==='H';if(x<0||z<0||x>=w.width||z>=w.height)return true;
  // Partition bars and the north gate block walking, but NOT the line of sight.
  if(z===5&&x>=1&&x<=23)return false;
  if((x===6||x===18)&&z>=9&&z<=10)return false; // Sight only through each narrow spy window.
  if(z===14&&x>=11&&x<=13)return false; // South-facing barred window.
  return w.tiles[z]?.[x]==='H';}
-function fieldOfView(){if(scene!=='cell'||!engine)return null;return {enabled:true,radius:13,isOpaque:sightOpaque};}
+function fieldOfView(){if(!engine)return null;if(scene==='sewer')return {enabled:true,radius:10,isOpaque:sightOpaque};if(scene==='cell')return {enabled:true,radius:13,isOpaque:sightOpaque};return null;}
 function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
@@ -458,19 +455,16 @@ function drawProps(g){
    }
   }
   for(const x of [3.55,4.0])cylinder(x,.06,25.5,.54,.54,.08,'#6c7978',14);
-  for(const [x,z] of [[9,25],[18,12],[25,10],[35,38],[55,13],[70,25],[40,44],[27,32]]){
-   box(x,.20,z,.51,.4,.51,'#515f5b');model('stones',x,.12,z,.64,.34,.54);
-   cylinder(x,.52,z,.07,.07,.47,'#a29b7c',9);
-   cone(x,1.04,z,.12,.25,'#d6a65b',8);sphere(x,1.21,z,.095,'#f5d492',8);
+  // Dirt, sediment and DetailPlus rubble in little wall recesses, away from the walkable strip.
+  for(const [x,z] of [[9,22],[19,7],[27,13],[35,35],[52,10],[67,28],[42,43],[24,35]]){
+   model('stones',x,.01,z,.75,.23,.62);
+   box(x,.01,z+.25,.52,.012,.18,'#344e43');
   }
-  // Gate wheels can be operated from the corridor with E; never trigger on walking.
-  for(const [x,z,opened] of [[18,18,complete('sluice')],[32,26,complete('lantern')]]){
-   box(x+2.2,.80,z+.44,.38,1.52,.34,wet);
-   cylinder(x+2.2,1.10,z+.68,.54,.54,.14,'#ad986d',12);
-   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(x+2.2+Math.cos(a)*.38,1.10+Math.sin(a)*.38,z+.78,.13,.13,.11,'#d5c085');}
-   // Gate bars span every one of the five corridor tiles.
-   if(!opened){for(let dx=-2;dx<=2;dx++){box(x+dx+.5,.85,z+.5,.08,1.67,.16,ironDark);sphere(x+dx+.5,1.72,z+.5,.085,'#889a96',8);}box(x+.5,1.72,z+.5,5.15,.15,.25,ironDark);}
+  for(const [x,z] of [[13,27],[23,8],[37,39],[54,16],[70,27]]){
+   model('barrel',x,.01,z,.44,.59,.44);
+   box(x+.17,.02,z-.20,.33,.025,.47,'#526559');
   }
+  // No large gold wheels and no lamps in this dark sewer.
   // The long-lost sewer creature has a distinct silhouette, luminous eyes and a ring of tendrils.
   model('stones',49.4,.15,38.4,1.50,1.38,1.29);model('stones',49.38,1.13,38.4,1.02,.82,.93);
   for(const x of [49.12,49.70]){sphere(x,1.43,38.84,.13,'#e6c178',10);sphere(x,1.44,38.96,.045,'#26353e',8);}
@@ -480,7 +474,7 @@ function drawProps(g){
   for(const x of [74.1,78.4]){model('wall',x,0,25.5,.82,2.55,.90);box(x,2.56,25.5,.87,.16,.93,'#a5aca2');}
   box(76.2,2.60,25.5,4.5,.28,.84,'#a5aaa1');
   box(76.2,.06,25.5,1.3,.11,1.0,complete('exit')?'#718c73':'#51646b');
-  for(const x of [69,73])model('barrel',x,0,27.75,.55,.67,.55);
+  for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
  }else if(scene==='forest'){
   const world=engine.getWorld();
   // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
