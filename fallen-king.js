@@ -571,7 +571,7 @@ if(!staticReady){
 }
 window.FallenKingStory?.drawFollowers({piece,features});
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
-if(!window.FallenKingStory?.isIntro()){piece(visual.x+.5,visual.z+.5,'K','white',true);features(visual.x+.5,visual.z+.5,'K','white',true,'aldric');if(window.FallenKingStory?.isPrisoner()){box(visual.x+.5,.56,visual.z+.57,.52,.68,.12,'#b9a894');box(visual.x+.5,.24,visual.z+.64,.62,.11,.13,'#837469');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
+if(!window.FallenKingStory?.isIntro()){const prisoner=window.FallenKingStory?.isPrisoner();const type=prisoner?'P':'K';piece(visual.x+.5,visual.z+.5,type,'white',!prisoner);features(visual.x+.5,visual.z+.5,type,'white',!prisoner,'aldric');if(prisoner){box(visual.x+.5,.60,visual.z+.30,.48,.43,.08,'#b8ab96');box(visual.x+.5,.35,visual.z+.38,.56,.10,.11,'#7c6e62');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
@@ -588,7 +588,7 @@ document.addEventListener('keydown',e=>{if(window.FallenKingStory?.blockedInput(
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
 for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
-document.querySelector('[data-action="talk"]').addEventListener('click',talk);
+document.querySelector('[data-action="talk"]').addEventListener('click',talk);dialog.addEventListener('click',()=>{if(!window.FallenKingStory?.blockedInput())talk();});
 
 const mapPanel=document.getElementById('fallen-map'),mapCanvas=document.getElementById('fallen-map-canvas');
 function drawMap(){
