@@ -268,7 +268,15 @@ function drawProps(g){
 function drawVillageProps(g){
  if(scene!=='village')return;
  const {box,cylinder,cone}=g,done=complete('bridge');
- // Wooden bridge across the eastern stream; timber and rope appear only after the repairs.
+ // Detailed riverside and bridgework: carved posts, reeds, stones and construction supplies.
+ const rocks=[[42,17],[43,22],[44,16],[49,17],[49,22]];
+ for(const [x,z] of rocks){box(x+.5,.12,z+.5,.49,.24,.45,'#828980');box(x+.64,.27,z+.55,.27,.06,.24,'#afb3a5');for(let i=0;i<3;i++)cone(x+.2+i*.2,.28,z+.9,.075,.46+i*.07,'#547d57',6);}
+ for(const x of [43,49])for(const z of [17.3,21.6]){box(x,.37,z,.57,.74,.48,'#aaa997');box(x,.80,z,.67,.13,.54,'#d0c8ab');box(x,1.06,z,.11,.41,.15,'#6e857d');}
+ for(let x=40;x<=44;x++)for(let z=17;z<=22;z++)if((x+z)%3===0){box(x+.5,.055,z+.5,.63,.11,.55,'#aea189');box(x+.5,.118,z+.5,.41,.024,.27,'#d0bea0');}
+ for(const [x,z] of [[41.7,18.2],[41.9,20.1]]){box(x,.13,z,1.3,.25,.32,'#916c4b');box(x,.35,z,1.3,.14,.32,'#bc9267');}
+ for(const [x,z] of [[40.8,17.3],[41.3,17.7]]){cylinder(x,.26,z,.28,.27,.53,'#8f8160',9);cylinder(x,.57,z,.31,.31,.08,'#b8a07a',9);}
+ for(const x of [42.5,49.3]){cylinder(x,.47,18,.17,.18,.94,'#705642',9);cone(x,.98,18,.20,.38,'#edb55c',8);sphere(x,1.21,18,.12,'#ffe2a5',8);}
+  // Wooden bridge across the eastern stream; timber and rope appear only after the repairs.
  for(const x of [44.5,48.5])for(const z of [18.7,20.3]){
   cylinder(x,.28,z,.20,.22,.55,'#695442',10);
   cone(x,.66,z,.18,.20,'#d0b47f',8);
@@ -277,7 +285,10 @@ function drawVillageProps(g){
   box(x,.10,z,1.1,.20,.24,'#83745b');
   box(x,.22,z,.86,.08,.29,'#bba27a');
  }
- if(done){
+ // Fasteners and rope brackets are visible even before bridge repair.
+ for(const z of [18.05,20.95])for(const x of [43.6,44,48.7,49.1]){box(x,.23,z,.21,.46,.21,'#75593e');box(x,.51,z,.25,.12,.25,'#ae8b62');}
+  if(done){
+  for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
    box(x+.3,.19,19.5,.40,.26,2.25,x%1<.45?'#b38c61':'#c19b70');
    box(x+.3,.32,19.5,.08,.03,2.0,'#e1c28e');
@@ -287,6 +298,8 @@ function drawVillageProps(g){
    for(const x of [44.1,45.2,46.3,47.4,48.5])cylinder(x,.47,z,.08,.08,.76,'#6f523b',8);
   }
  }else{
+  for(const x of [45.5,46.3,47]){box(x,.07,19.3+(x%2)*.5,.32,.12,.73,'#745f4e');box(x,.14,19.3+(x%2)*.5,.16,.07,.41,'#9c7f65');}
+  for(const x of [44.5,48.2]){box(x,.5,18.2,.06,.75,.10,'#bcab83');box(x,.5,20.8,.06,.75,.10,'#bcab83');}
   // Two ends of a collapsed bridge, with snapped boards projecting over the water.
   for(const x of [43.9,44.4,48.25,48.8]){const z=19.5;
    box(x,.20,z,.51,.24,1.95,'#8f6947');
@@ -296,6 +309,15 @@ function drawVillageProps(g){
  }
 }
 function drawEffects(g,t){
+ if(scene==='village'){
+  const {box,sphere}=g,drift=(t*.39)%1;
+  for(let x=45;x<48;x++)for(const z of [16.8,19.5,22.2]){
+   box(x+.2+drift*.5,.055,z,.42,.02,.055,'#b6d9bd');
+   box(x+.45-drift*.3,.06,z+.30,.26,.014,.04,'#8dbec0');
+  }
+  for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
+  return;
+ }
  if(scene!=='sewer')return;
  const {box,sphere}=g;
  // Water glints drift along both channels; distant drips and bubbles move each frame.
