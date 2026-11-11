@@ -86,6 +86,7 @@ function drawIntroImage(){const c=$('fallen-story-art').getContext('2d');c.fillS
 function renderIntroFrame(canvas){if(scene!=='intro'||$('fallen-story-intro').hidden)return;const c=$('fallen-story-art').getContext('2d');c.imageSmoothingEnabled=false;try{c.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,640,360);}catch{}}
 function isIntro(){return scene==='intro';}
 function isPrisoner(){return scene==='cell'||scene==='sewer'||scene==='forest';}
+function hasMap(){return !!chapter?.flags?.mapFound;}
 function musicTheme(){if(scene==='intro')return ['theft','approach'].includes(steps[Math.min(chapter.step,steps.length-1)].scene)?'theft':steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?'prison':'palace';return scene==='cell'?'prison':scene==='sewer'?'sewer':'willowmere';}
 // Temporary narrative checkpoint; final logic puzzles will be authored after all levels are finished.
 function openPuzzle(id){if(!Object.hasOwn(puzzles,id)||complete(id))return;activePuzzle=id;
@@ -98,7 +99,8 @@ function openPuzzle(id){if(!Object.hasOwn(puzzles,id)||complete(id))return;activ
 }
 function closePuzzle(){activePuzzle=null;$('fallen-story-puzzle').hidden=true;document.getElementById('fallen-canvas').focus({preventScroll:true});}
 function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.flags[id]=true;closePuzzle();
- if(scene==='sewer')setScene('sewer',engine.getPlayer());
+ if(id==='exit')setScene('forest',{x:3,y:10,facing:'right'});
+ else if(scene==='sewer')setScene('sewer',engine.getPlayer());
  else if(scene==='village')setScene('village',engine.getPlayer());
  else persist();
  const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer. It lets me pass.',exit:'The last gate opens. I can feel fresh woodland air.',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
@@ -112,33 +114,49 @@ function beforeMove(x,y){
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
-const coinSpots={cell:[[9,12]]};
+const coinSpots={cell:[[12,13]]};
 function afterMove(){const p=engine.getPlayer();if(scene==='village'&&!complete('pip')&&Math.abs(p.x-28)+Math.abs(p.y-21)<=2){chapter.flags.pip=true;setScene('village',p);say('Pip','You really are King Oliver? The villagers think you are joking.','I believe you. I will help you reach the eastern bridge!');}
  if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Pip','The road east is open! Our adventure has only begun.');}
  persist();updateObjective();}
 function near(p,x,y,r=2){return Math.abs(p.x-x)+Math.abs(p.y-y)<=r;}
 function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.getPlayer(),{x,y}=p;
  if(scene==='cell'){
-  if(near(p,16,10,2)){if(!complete('inspectedToilet')){chapter.flags.inspectedToilet=true;say('Oliver','A filthy old toilet. Wait... four levers are hidden beneath the porcelain.','The drain may lead below the castle. I should examine those levers.');}
+  if(near(p,16,10,2)){if(!complete('inspectedToilet')){chapter.flags.inspectedToilet=true;say('Oliver','An old toilet. A drain and a hidden mechanism: perhaps it leads below the castle.');}
    else if(!complete('cell'))openPuzzle('cell');
-   else{setScene('sewer',{x:3,y:6,facing:'right'});say('Oliver','I drop through the opened drain into a vast underground waterway. The castle is above me now.');}
+   else{setScene('sewer',{x:3,y:15,facing:'right'});say('Oliver','I have slid through the filthy pipe into the vast sewers. That explains the smell.');}
    persist();updateObjective();return true;}
-  if(near(p,9,7,2)){say('Oliver','A narrow iron cot. Thin straw, a worn blanket and not much warmth.');return true;}
-  if(near(p,12,12,2)&&y>=11){say('Oliver','Through the barred south window I can see the castle moat and pale moonlight. The drop is far too high.');return true;}
-  if(x<=8&&y>=6){say('Prisoner Mara','Please keep your voice down. The guard in the corridor is asleep.');return true;}
-  if(x>=17&&y>=6){say('Prisoner Tovin','I tried the gates. Solid iron. But there is water running under your cell.');return true;}
-  if(y<=7){say('Oliver','A sleeping guard lies in the northern corridor. The iron bars between us are locked.');return true;}
-  if(y<=4){say('Oliver','Iron bars, a locked gate and a torchlit corridor. Guards may return at any moment.');return true;}
-  if(!complete('coinFound')&&near(p,9,12,1)){chapter.flags.coinFound=true;chapter.coins=['one-hidden-coin'];$('fallen-story-hintcoins').textContent='Hint coins: 1';say('Oliver','One hint coin hidden beneath a loose stone. I should save it for later.');persist();return true;}
-  if(y>=11){say('Oliver','Cold stone beneath the southern window. The moat glimmers far below.');return true;}
-  say('Oliver','Wet stone, a rusty bucket and the smell of rain. There must be some way out.');return true;
+  if(near(p,12,13,2)&&y>=11){
+   if(!complete('coinFound')){chapter.flags.coinFound=true;chapter.coins=['one-hidden-coin'];$('fallen-story-hintcoins').textContent='Hint coins: 1';persist();say('Oliver','A glint on the south window ledge! One hint coin. I will save it for later.');}
+   else say('Oliver','Moonlight reflects off the castle moat. The window is far too high to climb through.');
+   return true;
+  }
+  if(near(p,9,7,2)){say('Oliver','Only a narrow iron cot and a worn blanket.');return true;}
+  if(y<=7&&near(p,12,5,4)){say('Oliver','I think he is asleep. I should keep my voice down.');return true;}
+  if(x<=8&&y>=6){say('Prisoner Mara','That guard snores every night. If you escape, do not forget us.');return true;}
+  if(x>=17&&y>=6){say('Prisoner Tovin','I can hear water running beneath your cell.');return true;}
+  say('Oliver','Cold stone. Iron bars. The way out must be hidden somewhere.');return true;
  }
  if(scene==='sewer'){
-  if(near(p,11,6,2)&&!complete('sluice')){openPuzzle('sluice');return true;}
-  if(near(p,23,6,2)&&!complete('lantern')){openPuzzle('lantern');return true;}
-  if(x>=27&&x<=33&&near(p,30,6,4)&&!complete('merrick')){openPuzzle('merrick');return true;}
-  if(x>=32&&y>=4&&y<=8){if(!complete('merrick'))say('Mysterious Bishop','Solve my riddle before you go.');else{setScene('village',{x:26,y:29,facing:'up'});say('Oliver','Fresh air. At last! Willowmere lies ahead.');}return true;}
-  say('Oliver','Water rushes through a stone channel. Rusted pipes, moss, and the echoes of the castle above.');return true;
+  if(near(p,2,15,2)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
+  if(near(p,10,12,2)&&!complete('sluice')){openPuzzle('sluice');return true;}
+  if(near(p,18,18,2)&&!complete('lantern')){openPuzzle('lantern');return true;}
+  if(near(p,27,22,2)&&!complete('monster')){
+   say('Sewer Creature','I have lived in these drains for years. There is a puzzle I cannot solve. Will you help me?');
+   openPuzzle('monster');return true;
+  }
+  if(near(p,44,17,2)){
+   if(!complete('monster')){say('Oliver','I cannot leave yet. The strange creature may know the way.');return true;}
+   if(!complete('exit')){openPuzzle('exit');return true;}
+   setScene('forest',{x:3,y:10,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
+  }
+  say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
+ }
+ if(scene==='forest'){
+  if(x>=31&&y>=7&&y<=11){
+   setScene('village',{x:26,y:29,facing:'up'});
+   say('Oliver','A village at last. Perhaps someone here will believe I am the king.');return true;
+  }
+  return false;
  }
  if(scene==='village'){
   if(near(p,28,21,2)&&!complete('pip')){chapter.flags.pip=true;setScene('village',p);say('Pip','I believe you, Oliver. We can repair the broken bridge together.');persist();updateObjective();return true;}
@@ -475,5 +493,5 @@ function drawEffects(g,t){
  }
 }
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
-window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
+window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
