@@ -177,7 +177,7 @@ test('Antique chess club board has no water visuals and piece art has distinctiv
  assert.match(world,/const eased=progress\*progress\*\(3-2\*progress\)/);
  for(const kind of ['pawn','bishop','knight','rook','queen','king'])
   assert.match(art,new RegExp("kind==='"+kind+"'"));
- assert.match(art,/horse profile/);
+ assert.match(art,/automaton horse/);
  assert.match(art,/Layered turned-wood foot/);
 });
 
