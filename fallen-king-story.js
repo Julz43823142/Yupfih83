@@ -350,6 +350,15 @@ function drawProps(g){
   for(let x=3;x<36;x+=6)torch(x,1.5);
   for(const x of [5,17,28])model('barrel',x,0,8.3,.54,.54,.54);
   for(const x of [8,20,31])model('stones',x,0,4.35,.64,.32,.48);
+  // DetailPlus placed stone rubble follows the canal banks without cluttering the walkway.
+  for(const [x,z] of [[5.1,3.85],[16.6,9.02],[27.8,4.0],[32.5,8.92]])model('stones',x,.01,z,.56,.30,.43);
+  // Brass-rimmed drainage channels and warm lamps distinguish the two mechanisms.
+  for(const x of [11.4,23.4]){
+   for(const z of [4.25,8.75]){box(x,.12,z,.82,.10,.19,'#9c9985');box(x,.17,z,.70,.035,.10,'#b8b2a0');}
+   cylinder(x,1.02,4.86,.23,.23,.13,'#bea16a',12);
+   cone(x,1.19,4.86,.13,.23,'#e0b56c',9);
+   sphere(x,1.39,4.86,.11,'#f4d695',9);
+  }
   piece(30.5,5.5,'B','black',false);features(30.5,5.5,'B','black',false,'scholar');
   box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');box(34,.70,6.5,.16,.92,1.2,'#a8af9e');
   for(const z of [4.4,8.5])box(33.2,.92,z,.45,1.76,.42,'#b0b3a3');
@@ -422,7 +431,7 @@ function drawEffects(g,t){
  if(scene==='village'){
   for(let x=45.15;x<47.85;x+=.38)for(const z of [17.25,19.5,21.8]){
    const w=flow(x,z),h=.05+.014*w;
-   box(x,h,z,.29,.012,.045,w>0?'#a7d4cc':'#77afb4');
+   box(x,h,z,.29,.012,.045,'#8fbfbd');
   }
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
   return;
@@ -439,7 +448,8 @@ function drawEffects(g,t){
     tri([x,a,z],[next,farNext,z+.16],[x,far,z+.16],'#57939a');
    }else box(x+.24,(a+b)/2,z,.46,.012,.16,'#57939a');
    const glint=.5+.5*Math.sin(x*1.35-t*1.25+z*.7);
-   if(glint>.48)box(x+.17,.060+.017*flow(x,z,2),z+.055,.14,.009,.020,'#94bdba');
+   // Ripples remain in place: varying height and width, never disappearing or wrapping.
+   box(x+.17,.061+.014*flow(x,z,2),z+.055,.05+glint*.12,.008,.018,'#94bdba');
   }
  }
  // Bubbles oscillate in place and do not wrap or pop into another location.
