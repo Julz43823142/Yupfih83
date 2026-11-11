@@ -16,15 +16,15 @@ function talk(){if(paused)return;if(dialogue){dialogue.i++;if(dialogue.i>=dialog
 const [dx,dz]=dirs[player.facing],npc=world.npcs.find(n=>n.x===player.x+dx&&n.y===player.y+dz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
-const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x*.87-q.z*.51;float sy=q.x*.31+q.z*.53-q.y*1.07;float depth=q.x*.38+q.z*.72+q.y*.12;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/42.,1.);float light=.64+.36*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
+const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x*.97-q.z*.17;float sy=q.x*.10+q.z*.87-q.y*.60;float depth=q.x*.10+q.z*.92+q.y*.22;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/42.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
 const frag='precision mediump float;varying vec3 col;void main(){gl_FragColor=vec4(pow(col,vec3(.88)),1.);}';
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
 const posLoc=gl.getAttribLocation(program,'p'),normLoc=gl.getAttribLocation(program,'n'),colorLoc=gl.getAttribLocation(program,'c'),camLoc=gl.getUniformLocation(program,'cam'),aspectLoc=gl.getUniformLocation(program,'aspect'),zoomLoc=gl.getUniformLocation(program,'zoom');
-const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
+const buffer=gl.createBuffer(),staticBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
 gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
-gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.56,.73,.76,1);
-let vertices=[];
+gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.48,.64,.43,1);
+let vertices=[],staticCount=0,staticReady=false;
 function rgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}
 function tri(a,b,c,color){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1,k=rgb(color);for(const p of [a,b,c])vertices.push(...p,n[0]/l,n[1]/l,n[2]/l,...k);}
 function quad(a,b,c,d,color){tri(a,b,c,color);tri(a,c,d,color);}
@@ -34,9 +34,9 @@ function sphere(x,y,z,r,color,detail=9){for(let j=0;j<detail;j++){const v0=-Math
 function cone(x,y,z,r,h,color,sides=9){cylinder(x,y,z,r,0,h,color,sides);}
 function roof(x,z,w,d,h,color){const e=.17,r=h+.94;quad([x-w/2-e,h,z-d/2-e],[x+w/2+e,h,z-d/2-e],[x+w/2+e,r,z],[x-w/2-e,r,z],color);quad([x-w/2-e,r,z],[x+w/2+e,r,z],[x+w/2+e,h,z+d/2+e],[x-w/2-e,h,z+d/2+e],color);tri([x-w/2-e,h,z-d/2-e],[x-w/2-e,r,z],[x-w/2-e,h,z+d/2+e],'#70505b');tri([x+w/2+e,h,z+d/2+e],[x+w/2+e,r,z],[x+w/2+e,h,z-d/2-e],'#70505b');}
 function building(h){const x=h.x+h.w/2,z=h.y+h.h/2,w=h.w-.15,d=h.h-.15,H=2.5;box(x,0,z,w,H,d,'#d9c9a6','#e7d6b2');roof(x,z,w,d,H,({red:'#a34f55',blue:'#456d8a',orange:'#b77445',purple:'#70537d',navy:'#4b586c'})[h.roof]||'#a44c52');const front=z+d/2+.012;box(x,.7,front,.92,1.38,.065,'#593c30');box(x-.95,1.48,front,.67,.72,.075,'#638b98');box(x+.95,1.48,front,.67,.72,.075,'#638b98');box(x-.95,1.48,front+.045,.07,.8,.09,'#dfcda2');box(x+.95,1.48,front+.045,.07,.8,.09,'#dfcda2');box(x,2.42,front+.04,1.25,.12,.11,'#8d7453');cylinder(x+.33,1.25,front+.08,.055,.055,.07,'#e7cb80',8);box(x+w/2-.8,H+.22,z-.4,.5,.85,.5,'#c4aa86');}
-function tree(x,z,t){const sway=Math.sin(t*1.1+x*1.7+z*.7)*.085; cylinder(x,0,z,.19,.15,1.65,'#755638');sphere(x+sway,.0+1.8,z,.85,'#316f48',7);sphere(x-.44+sway,1.6,z,.69,'#3e8953',7);sphere(x+.45+sway,1.77,z,.7,'#2e7b4d',7);sphere(x+sway,2.34,z,.66,'#46965b',7);}
+function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){const pale=color==='white',base=pale?'#eee3cc':'#35445a',rim=pale?'#b7a48b':'#1a2638',light=pale?'#fff6e3':'#63738d';cylinder(x,.08,z,.34,.31,.13,rim);cylinder(x,.2,z,.31,.23,.13,base);cylinder(x,.34,z,.2,.13,.49,base);cylinder(x,.83,z,.21,.24,.12,light);return {base,rim,light};}
-function piece(x,z,type,color,aldric=false,t=0){const bounce=Math.sin(t*5+x*3+z)*.025, y=bounce;const {base,rim,light}=pawnBody(x,z,color);
+function piece(x,z,type,color,aldric=false,t=0){const y=0;const {base,rim,light}=pawnBody(x,z,color);
 if(type==='P'){sphere(x,1.15+y,z,.30,base,11);sphere(x-.08,1.25+y,z,.10,light,7);}
 if(type==='R'){cylinder(x,.94+y,z,.32,.33,.56,base);cylinder(x,1.5+y,z,.42,.42,.13,rim);for(let i=0;i<6;i++){const a=i*Math.PI/3;box(x+Math.cos(a)*.3,1.68+y,z+Math.sin(a)*.3,.18,.25,.18,light);}}
 if(type==='B'){cylinder(x,.94+y,z,.22,.30,.42,base);sphere(x,1.47+y,z,.29,base,10);cone(x,1.59+y,z,.18,.42,light);sphere(x,2.02+y,z,.075,rim,7);}
@@ -45,20 +45,35 @@ if(type==='K'){cylinder(x,.92+y,z,.25,.32,.59,base);cylinder(x,1.51+y,z,.36,.35,
  cylinder(x,1.8+y,z,.27,.27,.08,rim);sphere(x,1.93+y,z,.22,base,9);
  }else{cylinder(x,1.82+y,z,.29,.3,.16,light);for(let i=0;i<5;i++){const a=i*Math.PI*2/5;sphere(x+Math.cos(a)*.25,2.08+y,z+Math.sin(a)*.25,.11,light,6);}}}
 }
-function ground(x,z,t){const kind=tile(x,z),n=hash(x,z);let col=kind==='p'?'#c7b79b':kind==='s'?'#c0b5a0':kind==='w'?'#3b8aa7':'#80a76a';if(kind==='f')col='#76a46b';if(kind==='g')col='#8cae75';box(x+.5,-.18,z+.5,1,.16,1,col);if(kind==='w'){for(let i=0;i<3;i++){const a=t*1.4+i+x;box(x+.3+i*.21,.015,z+.5+Math.sin(a)*.08,.16,.008,.03,'#a0d5d7');}}
-if(kind==='.'||kind==='f'||kind==='g'){for(let i=0;i<3;i++){const px=x+.16+hash(x,z,i)*.72,pz=z+.14+hash(z,x,i)*.7,s=Math.sin(t*1.7+x*3+z*2+i)*.065;cone(px+s,.01,pz,.035,.18+hash(x,z,i+8)*.15,i===0?'#679d57':'#4e8e50',4);}if(n<.10){sphere(x+.27,.12,z+.36,.065,'#f1d8a0',6);sphere(x+.38,.11,z+.42,.05,'#e5adc4',6);}}}
-function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,1.7),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-const aspect=w/Math.max(h,1),zoom=aspect<1?5.4:5.2;vertices=[];
-const rx=aspect*zoom/1.0,rz=zoom*2.1,range=Math.ceil(Math.max(rx,rz))+4;
-const minX=Math.max(0,Math.floor(cam.x-range)),maxX=Math.min(world.width,Math.ceil(cam.x+range)),minZ=Math.max(0,Math.floor(cam.z-range)),maxZ=Math.min(world.height,Math.ceil(cam.z+range));
-for(let z=minZ;z<maxZ;z++)for(let x=minX;x<maxX;x++){ground(x,z,t);if(tile(x,z)==='T')tree(x+.5,z+.5,t);if(tile(x,z)==='F'){cylinder(x+.5,0,z+.5,.4,.38,.65,'#9eafa6');cylinder(x+.5,.65,z+.5,.27,.22,.15,'#c6d9cb');sphere(x+.5,.78,z+.5,.18,'#67b2c6',9);}}
-for(const h of world.houses||[])if(h.x<maxX&&h.x+h.w>minX&&h.y<maxZ&&h.y+h.h>minZ)building(h);
-for(const n of world.npcs){if(n.x<minX||n.x>maxX||n.y<minZ||n.y>maxZ)continue;const sway=Math.sin(t*.65+n.x*2)*.07;piece(n.x+.5+sway,n.y+.5,n.piece,n.color,false,t);}
-piece(visual.x+.5,visual.z+.5,'K','white',true,t);
-gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
-gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.DYNAMIC_DRAW);gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
+function ground(x,z){const kind=tile(x,z),n=hash(x,z);let col=kind==='p'?'#c7b79b':kind==='s'?'#c0b5a0':kind==='w'?'#3b8aa7':'#80a76a';if(kind==='f')col='#76a46b';if(kind==='g')col='#8cae75';box(x+.5,-.18,z+.5,1,.16,1,col);if(kind==='w'){for(let i=0;i<3;i++)box(x+.2+i*.23,.015,z+.5,.16,.008,.04,'#a0d5d7');}
+if(kind==='.'||kind==='f'||kind==='g'){if(n<.38){const px=x+.16+hash(x,z,1)*.72,pz=z+.14+hash(z,x,2)*.7;cone(px,.01,pz,.055,.14,'#5b9652',4);}if(n<.10){sphere(x+.27,.12,z+.36,.065,'#f1d8a0',6);sphere(x+.38,.11,z+.42,.05,'#e5adc4',6);}}}
+function draw(t){if(!world)return;const dpr=.72,w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+const aspect=w/Math.max(h,1),zoom=aspect<1?5.6:5.0;vertices=[];
+if(!staticReady){
+ // Static terrain and buildings are generated and uploaded once, not each frame.
+ for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
+  ground(x,z);
+  if(tile(x,z)==='T')tree(x+.5,z+.5);
+  if(tile(x,z)==='F'){cylinder(x+.5,0,z+.5,.4,.38,.65,'#9eafa6',9);cylinder(x+.5,.65,z+.5,.27,.22,.15,'#c6d9cb',9);sphere(x+.5,.78,z+.5,.18,'#67b2c6',7);}
+ }
+ for(const h of world.houses||[])building(h);
+ staticCount=vertices.length/9;
+ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
+ gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
+ staticReady=true;vertices=[];
 }
-function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;}draw(sceneTime);requestAnimationFrame(frame);}
+for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false,0);}
+piece(visual.x+.5,visual.z+.5,'K','white',true,0);
+gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
+gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
+ gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
+ gl.drawArrays(gl.TRIANGLES,0,staticCount);
+ gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+ gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.DYNAMIC_DRAW);
+ gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
+ gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
+}
+function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}draw(sceneTime);requestAnimationFrame(frame);}
 function togglePause(force){if(!world)return;paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
 document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();togglePause();return;}if(paused)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
