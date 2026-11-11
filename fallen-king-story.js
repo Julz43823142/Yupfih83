@@ -264,6 +264,11 @@ function drawGround(g,x,z){
     g.box(x+.5,.005,z+.5,.96,.02,.96,'#616c67');
   if(wet)g.box(x+.5,.021,z+.5,.93,.012,.92,stain%3===0?'#385e62':stain%3===1?'#3e6267':'#476b69');
   if((x*7+z*3)%9===0)g.box(x+.26,.031,z+.76,.40,.009,.10,'#58785d');
+  if((x*17+z*11)%139===0){
+   // A recessed iron maintenance grate sits flush with the walkable wet stones.
+   g.box(x+.5,.036,z+.5,.70,.02,.61,'#364c51');
+   for(let i=0;i<5;i++)g.box(x+.21+i*.15,.048,z+.5,.045,.015,.58,'#87948e');
+  }
   return;
  }
  if(window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))return;
@@ -440,9 +445,11 @@ function drawProps(g){
    if(world.tiles[z][x]!=='H')continue;
    const around=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
    if(!around.some(([xx,zz])=>world.tiles[zz]?.[xx]==='s'))continue;
-   if((x+z)%7===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
+   if((x+z)%4===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
    else{box(x+.5,.82,z+.5,.99,1.64,.98,(x+z)%4===0?'#4c6061':'#536467');box(x+.5,1.72,z+.5,1.02,.12,1.02,'#818c87');}
    if((x*7+z*5)%13===0){box(x+.5,.13,z+.5,.48,.14,.3,'#577b70');model('stones',x+.5,.01,z+.5,.49,.28,.44);}
+   // Damp runs down individual stone joints instead of noisy random block decorations.
+   if((x*13+z*17)%23===0){box(x+.28,1.19,z+.02,.075,1.22,.06,'#38534f');box(x+.26,.47,z+.04,.15,.30,.07,'#4c6c61');}
   }
   // Drain rims help distinguish real water tiles from walkable stone.
   for(let z=2;z<world.height-2;z++)for(let x=2;x<world.width-2;x++){
