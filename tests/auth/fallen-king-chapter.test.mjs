@@ -150,7 +150,7 @@ test('detailed scene geometry and atmosphere render without changing story route
 });
 
 test('animated atmosphere receives the complete WebGL primitive API',()=>{
- assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone\},t\)/);
+ assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone,tri\},t\)/);
  assert.match(source,/const \{sphere,cone\}=g/);
  const doc={getElementById:()=>({hidden:false,textContent:'',addEventListener(){},getContext(){return {fillRect(){},drawImage(){}};}}),addEventListener(){}};
  const memory=new Map(),storage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)};
@@ -294,4 +294,10 @@ test('deferred PUZZLE is a single Continue checkpoint, and flowing water has no 
  assert.ok(p0.length>100);
  const delta=Math.max(...p0.map((v,i)=>Math.abs(v-p1[i])));
  assert.ok(delta<.002,'small time step must not teleport water surface');
+});
+
+test('sewer water uses real joined triangles from the original WebGL renderer',()=>{
+ assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone,tri\},t\)/);
+ assert.match(source,/tri\(\[x,a,z\],\[next,b,z\],\[next,farNext,z\+\.16\]/);
+ assert.match(source,/tri\(\[x,a,z\],\[next,farNext,z\+\.16\],\[x,far,z\+\.16\]/);
 });
