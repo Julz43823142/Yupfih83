@@ -576,10 +576,14 @@ function prepareVision(){
  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,image);
  previousVisionKey=key;
 }
+function oliver(x,z){
+ // One bare white pawn mesh used in the playable chapter AND every cinematic.
+ piece(x,z,'P','white',false);
+ for(const dx of [-.105,.105])sphere(x+dx,1.38,z+.28,.045,'#485057',8);
+}
 function recliningKing(x,z){
  const from=vertices.length;
- // Bare royal chess-piece silhouette: no costume, hats, scarf, or special accessories.
- piece(x,z,'K','white',false);
+ oliver(x,z);
  for(let i=from;i<vertices.length;i+=9){
   const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
   vertices[i]=x+dy-1.20;
@@ -592,7 +596,7 @@ function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(world.width>20?(aspect<1?8.3:7.3):(aspect<1?6.3:5.7)):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
- if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing,recliningPiece,tri});}else{
+ if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,oliver,features,tree,recliningKing,recliningPiece,tri});}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
   ground(x,z);
   if(tile(x,z)==='T')tree(x+.5,z+.5);
@@ -627,7 +631,10 @@ if(!staticReady){
 window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
-if(!window.FallenKingStory?.isIntro()){const prisoner=window.FallenKingStory?.isPrisoner();const type=prisoner?'P':'K';piece(visual.x+.5,visual.z+.5,type,'white',!prisoner);features(visual.x+.5,visual.z+.5,type,'white',!prisoner,'aldric');if(prisoner){box(visual.x+.5,.60,visual.z+.30,.48,.43,.08,'#b8ab96');box(visual.x+.5,.35,visual.z+.38,.56,.10,.11,'#7c6e62');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
+if(!window.FallenKingStory?.isIntro()){
+ // Never let player-controlled cosmetics change Oliver's canonical, crownless story appearance.
+ oliver(visual.x+.5,visual.z+.5);
+}
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
