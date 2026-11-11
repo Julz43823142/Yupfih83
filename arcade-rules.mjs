@@ -93,9 +93,15 @@ export function blockPartyLevel(seed,n){
  const type=['N','B','R'][n%3];
  const pos=at(2+Math.floor(rand()*4),2+Math.floor(rand()*4));
  const palette=Array.from({length:64},()=>Math.floor(rand()*COLORS.length));
- const reachable=moves(type,pos);
- const possible=shuffle([...new Set(reachable.map(i=>palette[i]))],rand);
- return {type,pos,palette,target:possible[0]??palette[pos],seconds:Math.max(1.5,3.6-n*.045)};
+ // Pick a destination reachable in two moves but not directly in one.
+ const direct=new Set(moves(type,pos));
+ const second=shuffle(Array.from(direct).flatMap(i=>moves(type,i)).filter(i=>i!==pos&&!direct.has(i)),rand);
+ const destination=second[0]??shuffle(Array.from({length:64},(_,i)=>i).filter(i=>i!==pos&&!direct.has(i)),rand)[0];
+ const target=Math.floor(rand()*COLORS.length);
+ // Every target-coloured square must require at least two moves.
+ for(let i=0;i<64;i++)if(i===pos||direct.has(i)){if(palette[i]===target)palette[i]=(target+1)%COLORS.length}
+ palette[destination]=target;
+ return {type,pos,palette,target,seconds:Math.max(5,9-n*.06),movesMade:0};
 }
 export function safeSquareLevel(seed,n){
  const rand=makeRandom(seed+':safe:'+n);
