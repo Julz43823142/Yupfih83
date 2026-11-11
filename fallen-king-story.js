@@ -3,17 +3,19 @@
 const $=id=>document.getElementById(id);
 const KEY='fallen-king-chapter-one-v2'; // Preserve existing chapter saves.
 const steps=[
- {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'In the kingdom of Aldemar, King Oliver slept in his royal chamber. Beside the bed, his crown rested on a velvet cushion.'},
- {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'Beyond the gold-trimmed curtains, the castle lay silent. The guards had no idea who was approaching.'},
- {scene:'approach',title:'A SHADOW AT THE DOOR',speaker:'Narrator',text:'Edwin slipped through the chamber door. He had watched Oliver for years and knew precisely where the crown was kept.'},
- {scene:'approach',title:'A SHADOW AT THE DOOR',speaker:'Edwin',text:'There it is. The key to the kingdom. No one will see me take it.'},
- {scene:'theft',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Edwin lifted the golden crown from its cushion while Oliver slept, unaware.'},
- {scene:'theft',title:'THE STOLEN CROWN',speaker:'Edwin',text:'By dawn, Aldemar will bow before its new king.'},
- {scene:'throne',title:'THE FALSE KING',speaker:'Edwin',text:'Guards! Seize that impostor. I am your king!'},
- {scene:'throne',title:'THE FALSE KING',speaker:'Oliver',text:'That is my crown. You know my face. Why will nobody listen?'},
- {scene:'prison',title:'BENEATH THE CASTLE',speaker:'Narrator',text:'The real King Oliver was dragged through the castle dungeon and locked behind iron bars.'},
- {scene:'prison',title:'BENEATH THE CASTLE',speaker:'Oliver',text:'They took my crown, but not my courage. I will find my way out.'}
-];
+ {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'In Aldemar, King Oliver slept in his royal bedchamber. His gold-and-ruby crown rested on a red-velvet cushion beside the bed.'},
+ {scene:'bedroom',title:'THE ROYAL BEDCHAMBER',speaker:'Narrator',text:'The candles burned low. Outside the tall windows, the castle guards patrolled while Oliver slept.'},
+ {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'Edwin was an ordinary black pawn at court. Tired of always obeying orders, he secretly dreamed of wearing the crown himself.'},
+ {scene:'approach',title:'EDWIN THE PAWN',speaker:'Edwin',text:'They treat me as nothing but a pawn. Tonight I will change everything.'},
+ {scene:'theft',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Still crownless, Edwin crept to the royal bed and stole Oliver’s crown from its cushion.'},
+ {scene:'theft',title:'THE STOLEN CROWN',speaker:'Edwin',text:'The king is asleep. Nobody will know what happened.'},
+ {scene:'confrontation',title:'THE FALSE KING',speaker:'Narrator',text:'Oliver woke to find Edwin standing in his bedchamber, the stolen crown now on the pawn’s head.'},
+ {scene:'confrontation',title:'THE FALSE KING',speaker:'Edwin',text:'Guards! To the bedchamber! Seize this impostor. I am the true king of Aldemar!'},
+ {scene:'arrest',title:'THE KING BETRAYED',speaker:'Narrator',text:'Two rook guards stormed the royal chamber. They believed the crown rather than their real king.'},
+ {scene:'arrest',title:'THE KING BETRAYED',speaker:'Oliver',text:'That is Edwin, a pawn! He stole my crown! Please, I am King Oliver!'},
+ {scene:'prison',title:'BENEATH THE CASTLE',speaker:'Narrator',text:'The two rooks dragged Oliver to the dungeon and locked him in the central cell between two other prisoners.'},
+ {scene:'prison',title:'THE SLEEPING GUARD',speaker:'Oliver',text:'The guard is sleeping in the corridor. I must find a way out and reclaim my crown.'}
+]
 // Placeholder stages only. Actual questions, answers and hints are intentionally deferred.
 const puzzles={cell:{},sluice:{},lantern:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
@@ -42,9 +44,9 @@ function updateObjective(){$('fallen-story-objective').textContent=objective();$
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
 function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
-function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];engine.setWorld(introWorld(step.scene),{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
+function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:9,facing:'down'}:{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
 function nextIntro(){if(scene!=='intro')return;engine.enableSound();if(chapter.step===0)engine.soundCue();chapter.step++;if(chapter.step>=steps.length){$('fallen-story-intro').hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');}else showIntro();}
-function introWorld(kind){const w=createWorld(18,12,'s');w.music=['theft','approach'].includes(kind)?'theft':kind==='prison'?'prison':'palace';return w;}
+function introWorld(kind){if(kind==='prison')return cellWorld();const w=createWorld(18,12,'s');w.music=['theft','approach','confrontation','arrest'].includes(kind)?'theft':'palace';return w;}
 function drawIntroImage(){const c=$('fallen-story-art').getContext('2d');c.fillStyle='#273944';c.fillRect(0,0,640,360);}
 function renderIntroFrame(canvas){if(scene!=='intro'||$('fallen-story-intro').hidden)return;const c=$('fallen-story-art').getContext('2d');c.imageSmoothingEnabled=false;try{c.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,640,360);}catch{}}
 function isIntro(){return scene==='intro';}
@@ -199,32 +201,37 @@ function drawProps(g){
  function pipe(x,z,length=3){cylinder(x,1.4,z,.24,.24,length,'#697e7a',10);cylinder(x,1.4,z,.28,.28,.12,'#b3a97e',10);}
  function arch(x,z){for(const dx of [-1.7,1.7]){box(x+dx,1.3,z,.37,2.6,.44,'#8a9991');box(x+dx,2.35,z,.49,.19,.52,'#a7ad9d');}box(x,2.68,z,3.8,.40,.5,'#6d7d7b');box(x,2.93,z,3.1,.12,.57,'#4a655f');}
  function king(x,z,prisoner=false){const type=prisoner?'P':'K';piece(x,z,type,'white',false);features(x,z,type,'white',false,'aldric');if(prisoner)box(x,.58,z+.3,.48,.42,.08,'#b8aa96');}
- function edwin(x,z,disguised){piece(x,z,'K',disguised?'white':'black',false);features(x,z,'K',disguised?'white':'black',false,disguised?'aldric':'scholar');if(!disguised){cone(x,2.29,z,.30,.56,'#543d65',8);box(x,.74,z+.27,.55,.30,.13,'#74516c');}}
- if(scene==='intro'){
+ function edwin(x,z,wearingCrown=false){piece(x,z,'P','black',false);/* Edwin remains a pawn with or without the stolen crown. */if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);}
+ if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison'){
   const kind=steps[Math.min(chapter.step,steps.length-1)].scene;
   for(let x=0;x<18;x++){wall(x+.5,.5,1,2.9);wall(x+.5,11.5,1,1.2);if(x%3===0)box(x+.5,2.95,.62,.30,.25,1.3,'#c0ae87');}
   for(let z=1;z<11;z++){wall(.5,z+.5,1,2.4);wall(17.5,z+.5,1,2.4);}
   for(let x=2;x<18;x+=4)box(x,.05,6,.06,.10,9,'#beaa8a');
   if(kind!=='prison'){for(const x of [3,7,11,15]){box(x,1.25,.95,.88,2.5,.4,'#b5a48b');tapestry(x,1.19);}for(const x of [2,16]){cylinder(x,.83,6,.36,.36,1.66,'#d8c599',10);sphere(x,1.76,6,.34,'#e4d3ad',10);}for(let z=2;z<11;z+=3)banner(17.04,z+.5,royal);}
-  if(['bedroom','approach','theft'].includes(kind)){
+  if(['bedroom','approach','theft','confrontation','arrest'].includes(kind)){
     box(9,.07,4,10,.12,5,'#9b7659');bed(9,5);
     box(3.8,1.0,3.2,1.4,2,.22,'#704751');box(3.8,1.03,3.36,1.2,1.6,.07,'#d4b26b');
     // The royal crown is kept on an obvious velvet-topped pedestal beside Oliver's bed.
     if(!model('table',13.8,0,5.1,1.70,1.03,1.33))box(13.8,.47,5.1,1.65,.94,1.25,wood);
     box(13.8,1.04,5.1,1.28,.14,.92,'#87364d');
-    if(kind!=='theft')dp?.crown?.(g,13.8,1.14,5.1,1.0);
+    if(['bedroom','approach'].includes(kind))dp?.crown?.(g,13.8,1.14,5.1,1.0);
+    for(const x of [3.3,15.7]){box(x,1.28,1.33,1.45,2.30,.18,'#6f3d55');box(x,2.52,1.42,1.62,.14,.22,'#c7a265');}
+    for(const x of [5.3,12.7]){box(x,1.55,11.25,1.45,1.36,.12,'#496c88');box(x,1.54,11.1,.12,1.38,.18,'#c6aa72');}
+    model('chest',4.7,0,9.2,1.05,.68,.72);
     box(4.1,1.20,8,1.6,2.4,.14,'#b59c78');for(let k=0;k<4;k++)box(4.1+(k-1.5)*.32,1.28,8.09,.04,1.8,.06,'#d6c29c');
     box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
     for(const x of [2.5,16])torch(x,2.9);
     // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
-    if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}
+    if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}}else piece(8.9,7.0,'K','white',false);
     box(9.6,.88,5,.72,.10,1.26,'#8e5470');
-    if(kind==='approach')edwin(15.1,8.7,false);
-    if(kind==='theft'){edwin(13.0,7.4,false);dp?.crown?.(g,12.55,2.17,7.0,.88);}
+    if(kind==='approach')edwin(15.1,8.7);
+    if(kind==='theft'){edwin(13.0,7.4);dp?.crown?.(g,12.55,1.65,7.0,.88);}
+    if(kind==='confrontation')edwin(12.7,7.0,true);
+    if(kind==='arrest'){edwin(13.7,7.0,true);for(const x of [6.5,11])piece(x,8.8,'R','white',false);}
   }else if(kind==='throne'){
     box(9,.62,3.8,3.4,1.24,1.4,'#916b54');box(9,1.42,3.7,2,1.6,.47,'#a44b53');
     // Edwin wears the crown and royal disguise; Oliver remains unmistakably crownless.
-    edwin(9,5.3,true);dp?.crown?.(g,9,2.45,5.3,1.0);
+    edwin(9,5.3,true);
     piece(8.5,9,'P','white',false);features(8.5,9,'P','white',false,'aldric');box(8.5,.6,9.29,.52,.47,.11,'#a8a08d');
     piece(5.2,7.5,'R','white',false);piece(12.8,7.5,'R','white',false);torch(3,3);torch(15,3);
     for(const x of [3.3,14.7]){tapestry(x,1.22);cylinder(x,.73,3.7,.42,.42,1.46,'#d2c2a0',12);}
@@ -237,7 +244,7 @@ function drawProps(g){
   }
   return;
  }
- if(scene==='cell'){
+ if(scene==='cell'||scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene==='prison'){
   // Single coherent cell block: corridor north, Mara's cell west, Tovin's cell east, Oliver in the middle.
   // Avoid a solid northern wall: the front of each cell is ironwork with visible corridor behind it.
   for(let x=0;x<25;x++){
@@ -294,6 +301,7 @@ function drawProps(g){
   box(12.5,.67,14.30,3.13,.14,.58,'#828e8b');
   // Cool moonlight pool on the floor, carefully flat and separate from the warm candle.
   for(const [x,z] of [[12.4,12.6],[12.9,12.1],[11.8,12.9]])box(x,.013,z,.44,.012,.69,'#7c9c9f');
+  if(scene==='intro'){piece(12.5,9.4,'K','white',false);for(const x of [11.4,13.9])piece(x,7.0,'R','white',false);}
   // One readable torch and a small iron pail; never wooden crates or random gate props.
   box(15.3,.85,6.0,.25,.17,.22,'#68767a');torch(15.3,6.0);
   cylinder(8.25,.09,11.45,.24,.29,.43,'#5d6b71',10);
