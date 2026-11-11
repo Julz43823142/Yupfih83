@@ -180,3 +180,17 @@ test('Antique chess club board has no water visuals and piece art has distinctiv
  assert.match(art,/horse profile/);
  assert.match(art,/Layered turned-wood foot/);
 });
+
+test('Mechanical Turk cabinet, thick rails, robot knight and clockwork waltz are shipped',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const art=readFileSync(new URL('../../pawn-piece-art.mjs',import.meta.url),'utf8');
+ const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
+ assert.match(world,/function turkCabinet\(time\)/);
+ assert.match(world,/turkCabinet\(time\)/);
+ assert.match(world,/width\/11\.9/);
+ assert.match(world,/edge-u\*\.48/);
+ assert.match(art,/Articulated brass automaton horse/);
+ assert.match(art,/Glowing monocular eye/);
+ assert.match(audio,/Original mechanical waltz/);
+ assert.match(audio,/escapement tick/);
+});
