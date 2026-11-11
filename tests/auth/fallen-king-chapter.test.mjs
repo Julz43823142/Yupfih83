@@ -106,12 +106,9 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  function answer(){element('fallen-story-puzzle-continue').listeners.click();}
  answer(0);
  chapter.talk();assert.equal(world.width,84);
- assert.equal(world.height,53);assert.equal(world.tiles[18][18],'H');
- assert.equal(chapter.beforeMove(18,18),true);
+ assert.equal(world.height,53);assert.equal(world.tiles[18][18],'s');
+ assert.equal(chapter.beforeMove(18,18),false);
  assert.equal(element('fallen-story-puzzle').hidden,true);
- player={x:18,y:20};chapter.talk();answer();
- assert.equal(world.tiles[18][18],'s');
- player={x:32,y:28};chapter.talk();answer();
  assert.equal(world.tiles[26][32],'s');
  player={x:48,y:38};chapter.talk();chapter.talk();answer();
  player={x:75,y:25};chapter.talk();answer();
@@ -311,8 +308,8 @@ test('sewer water uses real joined triangles from the original WebGL renderer',(
 
 test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer monster, forest and hidden map',()=>{
  assert.match(source,/scene:'confrontation'/);assert.match(source,/scene:'arrest'/);
- assert.match(source,/Edwin was an ordinary black pawn/);
- assert.match(source,/function edwin\(x,z,wearingCrown=false\)\{[\s\S]*?piece\(x,z,'P','black'/);
+ assert.match(source,/Edwin was a blue pawn/);
+ assert.match(source,/function edwin\(x,z,wearingCrown=false\)\{[\s\S]*?piece\(x,z,'P','blue'/);
  assert.match(source,/if\(kind==='arrest'\)/);
  assert.match(source,/for\(const x of \[6\.5,11\]\)/);
  assert.match(source,/scene==='intro'&&steps\[Math\.min\(chapter.step,steps.length-1\)\]\.scene==='prison'/);
@@ -386,14 +383,14 @@ test('rendering contract passes required geometry to every scene and frames the 
 
 test('Oliver matches his bare cinematic mesh in gameplay, Edwin remains visually distinct',()=>{
  assert.match(engine,/function oliver\(x,z\)\{/);
- assert.match(engine,/piece\(x,z,'P','white',false\)/);
+ assert.match(engine,/piece\(x,z,'K','white',true\)/);
  assert.match(engine,/recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
  assert.match(engine,/oliver\(visual\.x\+\.5,visual\.z\+\.5\)/);
  assert.match(source,/const drawOliver=\(x,z\)=>oliver\?oliver\(x,z\)/);
  assert.match(source,/else drawOliver\(8\.9,7\.0\)/);
  assert.match(source,/if\(scene==='intro'\)\{drawOliver\(12\.5,9\.4\)/);
  assert.match(source,/function edwin\(x,z,wearingCrown=false\)/);
- assert.match(source,/box\(x,\.68,z\+\.305,\.38,\.54,\.10,'#a44756'\)/);
+ assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(source,/if\(wearingCrown\)dp\?\.crown\?\./);
 });
 test('five-wide sewer maze and walkable forest are encoded in the actual collision maps',()=>{
@@ -408,8 +405,8 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
  const game=win.FallenKingStory;game.start(api);
  assert.equal(world.width,84);assert.equal(world.height,53);
  for(let x=5;x<=9;x++)assert.equal(world.tiles[25][x],'s');
- for(let x=16;x<=20;x++){assert.equal(world.tiles[18][x],'H');assert.equal(game.beforeMove(x,18),true);}
- for(let x=30;x<=34;x++){assert.equal(world.tiles[26][x],'H');assert.equal(game.beforeMove(x,26),true);}
+ for(let x=16;x<=20;x++){assert.equal(world.tiles[18][x],'s');assert.equal(game.beforeMove(x,18),false);}
+ for(let x=30;x<=34;x++){assert.equal(world.tiles[26][x],'s');assert.equal(game.beforeMove(x,26),false);}
  function route(a,b){
   const seen=new Set([a.join(',')]),q=[a];
   for(const [x,y] of q){
@@ -417,11 +414,8 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
    for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]){const xx=x+dx,yy=y+dy,k=xx+','+yy;if(!seen.has(k)&&['s','p','.'].includes(world.tiles[yy]?.[xx])){q.push([xx,yy]);seen.add(k);}}
   }return false;
  }
- assert.equal(route([6,25],[18,16]),false);
- assert.equal(route([6,25],[32,28]),false);
- player={x:18,y:20};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
- assert.ok(route([6,25],[18,16]));assert.equal(route([6,25],[32,28]),false);
- player={x:32,y:28};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
+ assert.ok(route([6,25],[18,16]));
+ assert.ok(route([6,25],[32,28]));
  assert.ok(route([6,25],[49,38]));assert.ok(route([6,25],[76,25]));
  player={x:48,y:38};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  player={x:75,y:25};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
@@ -434,4 +428,53 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
  assert.equal(route([3,10],[33,8]),true);
  const g={box(){},cylinder(){},sphere(){},cone(){},piece(){},features(){},tri(){},tree(){}};
  assert.doesNotThrow(()=>game.drawProps(g));
+});
+
+test('royal intro, blue pawn, awake rook and spy windows all use consistent assets',()=>{
+ assert.match(engine,/function oliver\(x,z\)\{[\s\S]*?piece\(x,z,'K','white',true\)/);
+ assert.match(engine,/function recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
+ assert.match(engine,/vertices\[i\+1\]=1\.08-dx/);
+ assert.match(source,/piece\(x,z,'P','blue',false\)/);
+ assert.match(engine,/blue\?'#487ec4'/);
+ assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
+ assert.match(source,/else if\(g\.recliningPiece\)/);
+ assert.match(source,/Solid stone partitions left and right/);
+ assert.match(source,/One narrow barred peephole/);
+ assert.match(source,/if\(\(x===6\|\|x===18\)&&z>=9&&z<=10\)return false/);
+ assert.doesNotMatch(source,/cylinder\(8\.25,\.09,11\.45/);
+});
+test('free-flowing walkable sewer has darkness, wet flagstones and only monster and exit puzzles',()=>{
+ assert.match(source,/createWorld\(84,53,'H'\)/);
+ assert.doesNotMatch(source,/openPuzzle\('sluice'\)/);
+ assert.doesNotMatch(source,/openPuzzle\('lantern'\)/);
+ assert.match(source,/openPuzzle\('monster'\)/);
+ assert.match(source,/openPuzzle\('exit'\)/);
+ assert.match(source,/scene==='sewer'\)return \{enabled:true,radius:10,isOpaque:sightOpaque\}/);
+ assert.match(source,/if\(scene==='sewer'\)return w\.tiles\[z\]\?\.\[x\]==='H'/);
+ assert.match(source,/Walkable wet flagstones/);
+ assert.match(source,/tile==='s'/);
+ assert.match(source,/tile!=='w'&&tile!=='s'/);
+ assert.doesNotMatch(source,/Gate wheels can be operated/);
+ assert.match(source,/No large gold wheels and no lamps/);
+ const elements=new Map(),doc={getElementById(id){if(!elements.has(id))elements.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn;},replaceChildren(...a){this.children=a;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return elements.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}}}};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],showcase:[],collectibles:[],spawn:{x:26,y:29}},player={x:26,y:29};
+ const state={scene:'sewer',step:12,flags:{cell:true},coins:[],position:{x:6,y:25,facing:'right'}};
+ const storage={getItem:k=>k==='fallen-king-chapter-one-v2'?JSON.stringify(state):null,setItem(){}};
+ const api={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p}},say(){},enableSound(){},soundCue(){}};
+ const win={};new Function('window','document','localStorage','location','confirm',source)(win,doc,storage,{},()=>true);
+ const game=win.FallenKingStory;game.start(api);
+ assert.equal(world.tiles[18][18],'s');assert.equal(world.tiles[26][32],'s');
+ assert.equal(game.beforeMove(18,18),false);
+ const visibility=game.fieldOfView();
+ assert.ok(visibility.enabled);assert.equal(visibility.radius,10);
+ assert.equal(visibility.isOpaque(18,18),false);
+ assert.equal(visibility.isOpaque(0,0),true);
+ const geom={box(){},tri(){},sphere(){},cone(){},cylinder(){},piece(){},features(){}};
+ assert.doesNotThrow(()=>game.drawGround(geom,18,18));
+ assert.doesNotThrow(()=>game.drawEffects(geom,0.5));
+ assert.equal(doc.getElementById('fallen-story-puzzle').hidden,true);
+ player={x:18,y:20};game.talk();
+ assert.equal(doc.getElementById('fallen-story-puzzle').hidden,true);
+ player={x:48,y:38};game.talk();game.talk();
+ assert.equal(doc.getElementById('fallen-story-puzzle').hidden,false);
 });
