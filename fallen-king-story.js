@@ -257,6 +257,15 @@ function drawGround(g,x,z){
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
  if(scene==='sewer'&&tile==='H'){g.box(x+.5,-.035,z+.5,1,.055,1,'#354447');return;}
  if(isPalace){g.box(x+.5,.006,z+.5,.94,.017,.94,(x+z)%4===0?'#b5a083':'#a8967c');return;}
+ if(scene==='sewer'&&tile==='s'){
+  // Walkable wet flagstones. The surface water is shallow decoration, not a collision tile.
+  const stain=(x*11+z*7)%7,wet=stain!==0;
+  if(!window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))
+    g.box(x+.5,.005,z+.5,.96,.02,.96,'#616c67');
+  if(wet)g.box(x+.5,.021,z+.5,.93,.012,.92,stain%3===0?'#385e62':stain%3===1?'#3e6267':'#476b69');
+  if((x*7+z*3)%9===0)g.box(x+.26,.031,z+.76,.40,.009,.10,'#58785d');
+  return;
+ }
  if(window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))return;
  g.box(x+.5,.005,z+.5,.96,.02,.96,scene==='sewer'?'#6c7977':'#94958c');
 }
@@ -613,16 +622,18 @@ function drawEffects(g,t){
  // phase changes continuously, and triangles never despawn, wrap or teleport.
  const waterWorld=engine.getWorld();
  for(let z=1;z<waterWorld.height-1;z++)for(let x=1;x<waterWorld.width-1;x++){
-  if(waterWorld.tiles[z][x]!=='w')continue;
-  for(const stripe of [.23,.50,.77]){
-   const y=(u,d)=>.055+.017*Math.sin(u*.92-d*.43-t*1.25);
-   const z0=z+stripe,z1=z+stripe+.09,x0=x+.08,x1=x+.92;
+  const tile=waterWorld.tiles[z][x];
+  if(tile!=='w'&&tile!=='s')continue;
+  // Fixed vertices with a periodic sine offset: never translate, disappear or teleport.
+  if(tile==='s'&&(x*11+z*7)%7===0)continue;
+  const stripes=tile==='w'?[.23,.50,.77]:[(x*13+z*5)%2===0?.34:.68];
+  for(const stripe of stripes){
+   const y=(u,d)=> (tile==='w'?.055:.039)+.010*Math.sin(u*.92-d*.43-t*1.25);
+   const z0=z+stripe,z1=z+stripe+.045,x0=x+.13,x1=x+.86;
    if(tri){
-    tri([x0,y(x0,z0),z0],[x1,y(x1,z0),z0],[x1,y(x1,z1),z1],'#6c9b9b');
-    tri([x0,y(x0,z0),z0],[x1,y(x1,z1),z1],[x0,y(x0,z1),z1],'#6c9b9b');
-   }else box(x+.50,.06,z0+.045,.84,.018,.09,'#6c9b9b');
-   const glow=.02+.05*(.5+.5*Math.sin(x*1.3+z*.67-t*1.25));
-   box(x+.48,.080+.012*Math.sin(t*1.25+x+z),z0,.13+glow,.009,.022,'#9bc1b8');
+    tri([x0,y(x0,z0),z0],[x1,y(x1,z0),z0],[x1,y(x1,z1),z1],tile==='w'?'#6c9b9b':'#779b96');
+    tri([x0,y(x0,z0),z0],[x1,y(x1,z1),z1],[x0,y(x0,z1),z1],tile==='w'?'#6c9b9b':'#779b96');
+   }else box(x+.50,.04,z0+.022,.74,.008,.045,'#779b96');
   }
  }
 
