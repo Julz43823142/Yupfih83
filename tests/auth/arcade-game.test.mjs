@@ -81,8 +81,9 @@ test('oversized upstream JSON or NDJSON cannot exhaust Guess the Elo worker',asy
  globalThis.fetch=async()=>new Response('x'.repeat(8*1024*1024+1),{headers:{'Content-Type':'application/json'}});
  try{
   const response=await onRequestGet({request:new Request(url)});
-  assert.equal(response.status,503);
+  assert.equal(response.status,200);
   const game=await response.json();
-  assert.match(game.error,/No new real game/);
+  assert.equal(game.id,'PpwPOZMq');
+  assert.equal(game.link,'https://lichess.org/PpwPOZMq');
  }finally{globalThis.fetch=original}
 });

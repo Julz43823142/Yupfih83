@@ -22,7 +22,7 @@ async function lichessFallback({request}){
   if(cache){const hit=await cache.match(cacheRequest);if(hit){games=await hit.json();}}
   if(!Array.isArray(games)||!games.length){
    const channelsResponse=await fetch(api+'/api/tv/channels',{headers:{Accept:'application/json'},signal:timeout()});
-   if(!channelsResponse.ok)return fail(excluded);
+   if(!channelsResponse.ok)throw Error('Lichess TV unavailable');
    const channels=await readBoundedJSON(channelsResponse,128*1024);
    const ids=['rapid','classical','blitz','bullet','ultraBullet'].map(k=>channels?.[k]?.user?.id).filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{2,30}$/.test(id));
    games=[];
