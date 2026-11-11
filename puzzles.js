@@ -663,7 +663,7 @@ async function updateRanking(id,mode){
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
 }
 function refreshRankings(){updateRanking('puzzle-sprint-ranking',document.querySelector('[data-rank-duration][aria-pressed="true"]')?.dataset.rankDuration==='3'?'sprint3':'sprint5');updateRanking('puzzle-survival-ranking','survival')}
-document.querySelectorAll('[data-rank-duration]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-rank-duration]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));const link=document.getElementById('puzzle-sprint-top100');if(link)link.href='/puzzle-top100.html?mode=sprint'+button.dataset.rankDuration;refreshRankings()}));
+document.querySelectorAll('[data-rank-duration]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-rank-duration]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));const link=document.getElementById('puzzle-sprint-top100');if(link)link.href='/puzzle-top100.html?mode=sprint'+button.dataset.rankDuration;const label=$('puzzle-sprint-rank-label');if(label)label.textContent=button.dataset.rankDuration+' minutes';refreshRankings()}));
 $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!completedRun||completedRun.score<1)return;
  const sourceType=publishChoice(),nickname=sourceType==='account'?leaderboardUser.username:$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
