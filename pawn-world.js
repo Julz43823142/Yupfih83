@@ -257,7 +257,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function playerSquare(now){
   // The ring tracks the animated sprite's actual ground position, never its future tile.
   let x=player.x,row=player.row;
-  if(hop){const p=Math.min(1,Math.max(0,(now-hop.since)/165));x=hop.from.x+(hop.to.x-hop.from.x)*p;row=hop.from.row+(hop.to.row-hop.from.row)*p}
+  if(hop){const t=Math.min(1,Math.max(0,(now-hop.since)/165)),p=t*t*(3-2*t);x=hop.from.x+(hop.to.x-hop.from.x)*p;row=hop.from.row+(hop.to.row-hop.from.row)*p}
   const [px,py]=project(x,row),u=cellSize();
   ctx.save();
   ctx.fillStyle='#163e3f66';ctx.beginPath();ctx.ellipse(px,py+u*.18,u*.29,u*.12,0,0,Math.PI*2);ctx.fill();
@@ -311,7 +311,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  function hit(reason='hit'){sound.play(reason);invincibleUntil=performance.now()+1500;player=safeRespawn();hop=null;onHit();}
  function move(dx,dy){
   const now=performance.now();
-  if(dead||!overlay.hidden||now-lastMove<68)return;
+  if(dead||!overlay.hidden||now-lastMove<105)return;
   const nx=Math.max(0,Math.min(8,player.x+dx)),nr=Math.max(0,player.row+dy);
   if(nx===player.x&&nr===player.row)return;
   sound.unlock();lastMove=now;sound.play('step');hop={from:{...player},to:{x:nx,row:nr},since:now};player={x:nx,row:nr};
@@ -371,20 +371,22 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
      if(x>=-.65&&x<=8.65)drawEnemy(x,row,enemyKind(row,k),.92);
     }
    }
-   if(row===player.row){
-    let x=player.x,r=player.row,jump=0;
-    if(hop){
-     const progress=Math.min(1,(now-hop.since)/165);
-     x=hop.from.x+(hop.to.x-hop.from.x)*progress;
-     r=hop.from.row+(hop.to.row-hop.from.row)*progress;
-     jump=Math.sin(progress*Math.PI);
-     if(progress>=1)hop=null;
-    }
-    const skin=selectedSkin();
-    if(skin.kind==='pawn')drawPawn(x,r,false,.97,now<invincibleUntil,jump);
-    else{ctx.save();if(now<invincibleUntil)ctx.globalAlpha=.45+.4*Math.abs(Math.sin(now/125));drawEnemy(x,r,skin.kind,.95,true,jump);ctx.restore();}
-   }
+
   }
+  // Render the player once after all hazards, with lateral hops interpolated
+  // on the same world coordinates as its ground shadow.
+  let x=player.x,r=player.row,jump=0;
+  if(hop){
+   const progress=Math.min(1,Math.max(0,(now-hop.since)/165));
+   const eased=progress*progress*(3-2*progress);
+   x=hop.from.x+(hop.to.x-hop.from.x)*eased;
+   r=hop.from.row+(hop.to.row-hop.from.row)*eased;
+   jump=Math.sin(progress*Math.PI);
+   if(progress>=1)hop=null;
+  }
+  const skin=selectedSkin();
+  if(skin.kind==='pawn')drawPawn(x,r,false,.86,now<invincibleUntil,jump);
+  else{ctx.save();if(now<invincibleUntil)ctx.globalAlpha=.45+.4*Math.abs(Math.sin(now/125));drawEnemy(x,r,skin.kind,.84,true,jump);ctx.restore();}
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
   const w=Math.min(204,width*.51),left=width-w-12;
   round(left,12,w,103,13,'#0c253be8');
