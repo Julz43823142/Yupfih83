@@ -237,11 +237,10 @@ function piece(x,z,type,color,aldric=false){
   box(x-.22,1.27,z+.38,.07,.30,.05,rim);
   box(x+.22,1.27,z+.38,.07,.30,.05,rim);
   if(aldric){
-   cylinder(x,1.24,z,.45,.43,.14,'#91684e',16);
-   box(x-.34,1.21,z+.12,.14,.58,.24,'#765048');
-   box(x+.34,1.21,z+.12,.14,.58,.24,'#765048');
-   cylinder(x,1.64,z,.33,.31,.075,'#e9d7a8',16);
-   sphere(x,2.12,z,.11,'#f1d9b5',10);
+   // True king, NO crown and NO wardrobe: a sculpted plain stone cap, not a pawn ball.
+   cylinder(x,1.99,z,.30,.26,.16,base,16);
+   sphere(x,2.07,z,.225,light,12);
+   // Distinctive royal profile is in the broad torso and collar rather than an ornament.
   }else{
    cylinder(x,2.02,z,.31,.31,.15,'#765636',16);
    cylinder(x,2.15,z,.36,.36,.10,'#e8b858',16);
@@ -577,9 +576,9 @@ function prepareVision(){
  previousVisionKey=key;
 }
 function oliver(x,z){
- // One bare white pawn mesh used in the playable chapter AND every cinematic.
- piece(x,z,'P','white',false);
- for(const dx of [-.105,.105])sphere(x+dx,1.38,z+.28,.045,'#485057',8);
+ // One consistently sculpted bare KING, both sleeping and playable, without his crown.
+ piece(x,z,'K','white',true);
+ for(const dx of [-.12,.12])sphere(x+dx,1.78,z+.31,.04,'#43505a',8);
 }
 function recliningKing(x,z){
  const from=vertices.length;
