@@ -23,11 +23,13 @@ test('original fullscreen engine and server-admin gate remain in place',()=>{
  assert.match(page,/fallen-king-story\.js/);
  assert.ok(page.indexOf('fallen-king-story.js')<page.indexOf('fallen-king.js'),'story controller must load before engine');
 });
-test('intro art, input, quest and four graduated hints are present',()=>{
+test('intro art, input, quest and deferred puzzle checkpoints are present',()=>{
  assert.match(source,/drawIntroImage/);
  assert.match(source,/\['e','enter',' '\]/);
  assert.match(source,/const coinSpots=/);
- assert.match(source,/Math\.min\(4,hintLevel\+1\)/);
+ assert.match(source,/function continuePuzzle\(\)/);
+ assert.match(source,/\$\('fallen-story-puzzle-name'\)\.textContent='PUZZLE'/);
+ assert.match(page,/id="fallen-story-puzzle-continue"/);
  for(const id of ['cell','sluice','lantern','merrick','lumber','ropes','bridge'])assert.match(source,new RegExp(id+':\\{'));
 });
 test('story respects original map and blocks bypassing the east river',()=>{
@@ -101,7 +103,7 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(element('fallen-story-puzzle').hidden,true);
  player={x:14,y:10};chapter.talk();assert.equal(element('fallen-story-puzzle').hidden,true);
  chapter.talk();assert.equal(element('fallen-story-puzzle').hidden,false);
- function answer(index){element('fallen-story-answers').listeners.click({target:element('fallen-story-answers').children[index]});}
+ function answer(){element('fallen-story-puzzle-continue').listeners.click();}
  answer(0);
  chapter.talk();assert.equal(world.width,36);
  assert.equal(world.tiles[2][7],'w');
@@ -137,7 +139,7 @@ test('detailed scene geometry and atmosphere render without changing story route
  assert.equal(world.width,25);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,1));
- player={x:14,y:10};game.talk();game.talk();el('fallen-story-answers').listeners.click({target:el('fallen-story-answers').children[0]});game.talk();
+ player={x:14,y:10};game.talk();game.talk();el('fallen-story-puzzle-continue').listeners.click();game.talk();
  assert.equal(world.width,36);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,2));
@@ -258,4 +260,38 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.equal(story.beforeMove(16,10),true,'toilet interaction remains explicit');
  const g={box(){},cylinder(){},cone(){},sphere(){},piece(){},features(){},tri(){},recliningPiece(){}};
  assert.doesNotThrow(()=>story.drawProps(g));
+});
+
+test('deferred PUZZLE is a single Continue checkpoint, and flowing water has no wraps or spawns',()=>{
+ assert.match(page,/id="fallen-story-puzzle-continue" type="button">Continue/);
+ assert.match(source,/function continuePuzzle\(\)/);
+ assert.match(source,/chapter\.flags\[id\]=true;closePuzzle\(\)/);
+ assert.doesNotMatch(source,/function pickAnswer\(/);
+ assert.doesNotMatch(source,/function showHint\(/);
+ const effect=source.slice(source.indexOf('function drawEffects(g,t)'),source.indexOf('function drawFollowers(g)'));
+ assert.match(effect,/function drawEffects/);
+ assert.match(effect,/Math\.sin\(x\*\.92-z\*\.43-t\*1\.25\+offset\)/);
+ assert.doesNotMatch(effect,/\bshift\s*=\s*\(t/);
+ assert.doesNotMatch(effect,/\bphase\s*=\s*\(x/);
+ assert.doesNotMatch(effect,/\bglint\s*>\s*\.48/);
+ const elements=new Map();
+ function el(id){if(!elements.has(id))elements.set(id,{hidden:true,textContent:'',children:[],addEventListener(kind,fn){this[kind]=fn;},replaceChildren(...v){this.children=v;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return elements.get(id);}
+ const document={getElementById:el,addEventListener(){},createElement(){return {dataset:{},closest(){return this;}};}};
+ const memory=new Map(),storage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],showcase:[],collectibles:[],spawn:{x:26,y:29}},player={x:26,y:29};
+ const engineApi={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player=p;},say(){},enableSound(){},soundCue(){}};
+ const window={};new Function('window','document','localStorage','location','confirm',source)(window,document,storage,{},()=>true);
+ const game=window.FallenKingStory;game.start(engineApi);
+ for(let i=0;i<10;i++)el('fallen-story-next').click();
+ player={x:14,y:10};game.talk();game.talk();assert.equal(el('fallen-story-puzzle-name').textContent,'PUZZLE');
+ el('fallen-story-puzzle-continue').click();game.talk();
+ assert.equal(world.width,36);
+ const renderAt=(t)=>{const meshes=[],g={tri(...args){meshes.push(args)},box(...args){meshes.push(args)},sphere(){},cone(){},cylinder(){}};game.drawEffects(g,t);return meshes;};
+ const a=renderAt(1),b=renderAt(1.01),c=renderAt(14),d=renderAt(14+Math.PI*2/1.25*25);
+ assert.ok(a.length>200);assert.equal(a.length,b.length);assert.equal(a.length,c.length);assert.equal(a.length,d.length);
+ const positions=items=>items.filter(x=>Array.isArray(x[0])).flatMap(x=>x.slice(0,3).flat());
+ const p0=positions(a),p1=positions(b);
+ assert.ok(p0.length>100);
+ const delta=Math.max(...p0.map((v,i)=>Math.abs(v-p1[i])));
+ assert.ok(delta<.002,'small time step must not teleport water surface');
 });
