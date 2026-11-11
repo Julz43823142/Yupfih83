@@ -189,7 +189,7 @@ function offlineRowToPuzzle(row,poolShard=null){
  if(line.length<2)throw Error('Invalid puzzle moves');
  const setup=line.shift(),chess=new Chess(fen);
  chess.move({from:setup.slice(0,2),to:setup.slice(2,4),promotion:setup[4]||'q'});
- return {game:{pgn:'offline puzzle'},puzzle:{id,initialPly:1,fen:chess.fen(),lastMove:setup,
+ return {game:{pgn:'offline puzzle'},puzzle:{id,initialPly:1,fen:chess.fen(),beforeFen:fen,lastMove:setup,
   rating,originalKey:fen+'|'+setup,solution:line,poolShard},source:'Lichess CC0 offline dataset'};
 }
 
@@ -276,7 +276,7 @@ function decode(data){
   if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))throw Error('Invalid puzzle move');
   test.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
  }
- return {position:chess,line,setup,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen()),shard:data.puzzle.poolShard??null};
+ return {position:chess,line,setup,beforeFen:typeof data.puzzle.beforeFen==='string'?data.puzzle.beforeFen:null,id:String(data.puzzle.id||''),rating:Math.round(Number(data.puzzle.rating)||0),puzzleKey:String(data.puzzle.originalKey||chess.fen()),shard:data.puzzle.poolShard??null};
 }
 
 /* While a puzzle is being solved, prepare the NEXT board in memory.
@@ -359,6 +359,17 @@ async function load(kind=mode){
   }
  }
  stats();buttons();draw();
+ if(generation===requestId&&ready&&puzzle?.beforeFen&&puzzle?.setup){
+  // Show the actual preceding position, then animate the opponent's last move.
+  const after=position;try{
+   position=new Chess(puzzle.beforeFen);lastMove=null;ready=false;draw();buttons();
+   say('Opponent to move…');
+   await new Promise(resolve=>setTimeout(resolve,420));
+   if(generation!==requestId)return;
+   position=after;lastMove=puzzle.setup;ready=true;draw();buttons();
+   say('Your move. Find the best continuation.');
+  }catch{position=after;ready=true;draw();buttons()}
+ }
  if(generation===requestId&&ready)prefetchNext(kind);
 }
 function finish(){
