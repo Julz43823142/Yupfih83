@@ -71,7 +71,9 @@ test('chapter scenes are distinct and the coin cap is one',()=>{
  assert.match(source,/v\.coins=v\.coins\.slice\(0,1\)/);
  assert.match(source,/const coinSpots=\{cell:\[\[3,8\]\]\}/);
  assert.match(source,/if\(scene==='cell'\)\{if\(x===11&&y===7\)return true;/);
- assert.doesNotMatch(source,/function beforeMove\([^]*?openPuzzle\('cell'\)/);
+ const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n return false;\}/)?.[0];
+ assert.ok(moveBlock);
+ assert.doesNotMatch(moveBlock,/openPuzzle/);
  assert.match(source,/function drawVillageProps\(g\)/);
 });
 test('chapter can be completed by E interactions without any random puzzle on movement',()=>{
