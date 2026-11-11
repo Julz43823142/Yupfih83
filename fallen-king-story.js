@@ -17,12 +17,12 @@ const steps=[
  {scene:'prison',title:'THE SLEEPING GUARD',speaker:'Oliver',text:'The guard is sleeping in the corridor. I must find a way out and reclaim my crown.'}
 ]
 // Placeholder stages only. Actual questions, answers and hints are intentionally deferred.
-const puzzles={cell:{},sluice:{},lantern:{},merrick:{},lumber:{},ropes:{},bridge:{}};
+const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
 let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,1);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,1);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -35,11 +35,46 @@ function cellWorld(){const w=createWorld(25,16,'H');
  for(let y=1;y<=14;y++){updateTile(w,0,y,'H');updateTile(w,24,y,'H');}
  // Guard has a bed in the northern passage; no direct passage through the cell bars.
  w.spawn={x:12,y:9};w.music='prison';return w;}
-function sewerWorld(){const w=createWorld(36,13,'H');for(let x=1;x<35;x++){for(const y of [2,3,9,10])updateTile(w,x,y,'w');for(let y=4;y<=8;y++)updateTile(w,x,y,y===6?'p':'s');}for(const x of [12,24])for(let y=4;y<=8;y++)updateTile(w,x,y,'H');if(complete('sluice'))updateTile(w,12,6,'p');if(complete('lantern'))updateTile(w,24,6,'p');for(const x of [4,9,18,28,33]){updateTile(w,x,5,'s');updateTile(w,x,7,'s');}w.spawn={x:3,y:6};w.music='sewer';return w;}
+
+function sewerWorld(){
+ const w=createWorld(48,29,'H');
+ // Continuous central winding route, plus genuine blind branches.
+ const carve=(x0,z0,x1,z1,kind='s')=>{
+  const dx=Math.sign(x1-x0),dz=Math.sign(z1-z0);let x=x0,z=z0;
+  while(true){updateTile(w,x,z,kind);if(x===x1&&z===z1)break;x+=dx;z+=dz;}
+ };
+ const route=[[3,15],[10,15],[10,6],[18,6],[18,22],[27,22],[27,8],[36,8],[36,17],[44,17]];
+ for(let i=1;i<route.length;i++)carve(...route[i-1],...route[i]);
+ // Side tunnels end against walls: places to explore and retrace your steps.
+ const branches=[[[5,15],[5,21]],[[7,15],[7,11]],[[10,10],[14,10]],[[12,6],[12,3]],[[18,11],[23,11]],[[18,17],[13,17]],[[22,22],[22,26]],[[27,18],[32,18]],[[27,12],[23,12]],[[31,8],[31,3]],[[36,13],[42,13]],[[40,17],[40,23]],[[44,17],[44,20]]];
+ for(const [[ax,az],[bx,bz]] of branches)carve(ax,az,bx,bz);
+ // Dark drainage pools next to the paths: never flood the walkable maze.
+ for(let z=2;z<27;z++)for(let x=2;x<46;x++)if(w.tiles[z][x]==='H'){
+  const adjacent=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]].some(([xx,zz])=>w.tiles[zz]?.[xx]==='s');
+  if(adjacent&&(x*7+z*11)%5===0)updateTile(w,x,z,'w');
+ }
+ // Sturdy floodgates; cleared only through an explicit E/Continue interaction.
+ if(!complete('sluice'))updateTile(w,10,12,'H');
+ if(!complete('lantern'))updateTile(w,18,18,'H');
+ w.spawn={x:3,y:15};w.music='sewer';return w;
+}
+function forestWorld(){
+ const w=createWorld(36,19,'T');
+ const carve=(a,b,c,d)=>{let x=a,z=b;const dx=Math.sign(c-a),dz=Math.sign(d-b);while(true){for(const ox of [0,1])for(const oz of [0,1])updateTile(w,x+ox,z+oz,'p');if(x===c&&z===d)break;x+=dx;z+=dz;}};
+ const route=[[2,10],[8,10],[8,6],[16,6],[16,12],[25,12],[25,8],[33,8]];
+ for(let i=1;i<route.length;i++)carve(...route[i-1],...route[i]);
+ for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]]){for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)updateTile(w,x+dx,y+dz,'p');}
+ w.spawn={x:3,y:10};w.music='willowmere';
+ w.npcs=[
+  {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
+  {id:'forest-woodcutter',name:'Old Woodcutter',x:21,y:13,piece:'R',color:'black',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']}
+ ];
+ return w;
+}
 function villageWorld(){const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.map(n=>({...n,lines:[...n.lines]}))};for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');w.npcs=w.npcs.filter(n=>!(complete('pip')&&n.id==='pip')).map(n=>n.id==='pip'?{...n,lines:['Oliver, I believe you. Let us repair the bridge.']}:n);w.spawn={x:26,y:29};return w;}
-function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():villageWorld();const pos=position||({...w.spawn,facing:'down'});engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
+function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const pos=position||({...w.spawn,facing:'down'});engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Find the sluice wheel. Press E to operate it.':!complete('lantern')?'Inspect the lantern station at the second gate (E).':!complete('merrick')?'Speak to the bishop by the stone archway (E).':'Investigate the tunnel exit to Willowmere (E).';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Explore the sewers and open the first iron sluice (E).':!complete('lantern')?'Follow the flooded tunnels to the second gate (E).':!complete('monster')?'Find the creature lost in the sewer maze (E).':!complete('exit')?'Find the exit and open the final lock (E).':'Escape the sewer into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
@@ -50,7 +85,7 @@ function introWorld(kind){if(kind==='prison')return cellWorld();const w=createWo
 function drawIntroImage(){const c=$('fallen-story-art').getContext('2d');c.fillStyle='#273944';c.fillRect(0,0,640,360);}
 function renderIntroFrame(canvas){if(scene!=='intro'||$('fallen-story-intro').hidden)return;const c=$('fallen-story-art').getContext('2d');c.imageSmoothingEnabled=false;try{c.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,640,360);}catch{}}
 function isIntro(){return scene==='intro';}
-function isPrisoner(){return scene==='cell'||scene==='sewer';}
+function isPrisoner(){return scene==='cell'||scene==='sewer'||scene==='forest';}
 function musicTheme(){if(scene==='intro')return ['theft','approach'].includes(steps[Math.min(chapter.step,steps.length-1)].scene)?'theft':steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?'prison':'palace';return scene==='cell'?'prison':scene==='sewer'?'sewer':'willowmere';}
 // Temporary narrative checkpoint; final logic puzzles will be authored after all levels are finished.
 function openPuzzle(id){if(!Object.hasOwn(puzzles,id)||complete(id))return;activePuzzle=id;
@@ -66,14 +101,17 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
  if(scene==='sewer')setScene('sewer',engine.getPlayer());
  else if(scene==='village')setScene('village',engine.getPlayer());
  else persist();
- const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The sluice wheel turns, and the first floodgate lifts.',lantern:'The second floodgate unlocks. The tunnel continues.',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
+ const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer. It lets me pass.',exit:'The last gate opens. I can feel fresh woodland air.',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
  say('Oliver',lines[id]||'The way ahead is clear.');updateObjective();
 }
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
-function beforeMove(x,y){if(scene==='cell'){if(x===16&&y===10)return true;return false;}
- if(scene==='sewer'){if((x===12&&y===6&&!complete('sluice'))||(x===24&&y===6&&!complete('lantern'))||(x>=34&&y===6))return true;return false;}
+function beforeMove(x,y){
+ if(scene==='cell')return x===16&&y===10;
+ if(scene==='sewer'){if(x===10&&y===12&&!complete('sluice'))return true;if(x===18&&y===18&&!complete('lantern'))return true;return x>=45&&y===17;}
+ if(scene==='forest')return x>=34&&y>=7&&y<=10;
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
- return false;}
+ return false;
+}
 const coinSpots={cell:[[9,12]]};
 function afterMove(){const p=engine.getPlayer();if(scene==='village'&&!complete('pip')&&Math.abs(p.x-28)+Math.abs(p.y-21)<=2){chapter.flags.pip=true;setScene('village',p);say('Pip','You really are King Oliver? The villagers think you are joking.','I believe you. I will help you reach the eastern bridge!');}
  if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Pip','The road east is open! Our adventure has only begun.');}
@@ -111,7 +149,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  }
  return false;}
 function beforeHouse(){return false;}
-function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer';}
+function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest';}
 
 // Deliberate material pass: shared deterministic details on the ORIGINAL WebGL meshes.
 // Keep small details in static geometry; do not trigger puzzles or alter collision tiles.
@@ -178,7 +216,8 @@ function sightOpaque(x,z){if(scene!=='cell')return false;const w=engine.getWorld
 function fieldOfView(){if(scene!=='cell'||!engine)return null;return {enabled:true,radius:13,isOpaque:sightOpaque};}
 function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
- const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':'#696f6d';
+ const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
+ if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
  g.box(x+.5,-.20,z+.5,1,.19,1,base);
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
  if(scene==='sewer'&&tile==='H'){g.box(x+.5,-.035,z+.5,1,.055,1,'#354447');return;}
