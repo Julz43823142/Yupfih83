@@ -29,12 +29,23 @@ export function paintChessPiece(ctx,kind,skin,x,y,size,{enemy=false,jump=0,shado
   ctx.beginPath();ctx.moveTo(-.10*u,-.58*u);ctx.lineTo(.11*u,-.88*u);ctx.strokeStyle=outline;ctx.lineWidth=u*.043;ctx.stroke();
   ellipse(0,-.985,.045,.05,trim,outline);
  }else if(kind==='knight'){
-  // Distinct horse profile: long muzzle, ears, flowing mane and eye.
-  poly([[-.19,-.45],[-.22,-.62],[-.30,-.69],[-.27,-.80],[-.14,-.80],[-.18,-.99],[-.07,-1.09],[.04,-.96],[.13,-1.04],[.19,-.88],[.27,-.75],[.24,-.61],[.12,-.47]],outline);
-  poly([[-.16,-.48],[-.18,-.65],[-.26,-.71],[-.24,-.76],[-.09,-.76],[-.12,-.98],[-.06,-1.02],[.04,-.89],[.11,-.98],[.15,-.83],[.22,-.73],[.19,-.60],[.09,-.49]],gradient);
-  ellipse(-.12,-.86,.028,.028,outline);
-  ctx.strokeStyle=trim;ctx.lineWidth=u*.03;ctx.beginPath();ctx.moveTo(.11*u,-.90*u);ctx.lineTo(.15*u,-.71*u);ctx.lineTo(.12*u,-.54*u);ctx.stroke();
-  rect(-.265,-.71,.11,.028,trim,.009,null);
+  // Articulated brass automaton horse: long muzzle, clear jaw, crest and gears.
+  poly([[-.20,-.44],[-.24,-.57],[-.36,-.69],[-.34,-.83],[-.20,-.86],[-.19,-1.04],[-.09,-1.16],[.01,-1.00],[.12,-1.12],[.22,-.97],[.27,-.75],[.21,-.55],[.11,-.44]],outline);
+  poly([[-.16,-.48],[-.20,-.60],[-.30,-.72],[-.29,-.79],[-.15,-.80],[-.14,-1.01],[-.08,-1.08],[.015,-.93],[.11,-1.05],[.16,-.92],[.22,-.73],[.16,-.55],[.08,-.48]],gradient);
+  // A pronounced jaw and segmented mechanical muzzle.
+  poly([[-.33,-.76],[-.18,-.77],[-.11,-.68],[-.24,-.65],[-.37,-.69]],trim);
+  rect(-.35,-.76,.14,.035,outline,.008,null);
+  ctx.strokeStyle=trim;ctx.lineWidth=u*.037;ctx.beginPath();ctx.moveTo(.15*u,-.94*u);ctx.lineTo(.20*u,-.74*u);ctx.lineTo(.12*u,-.54*u);ctx.stroke();
+  // Glowing monocular eye, riveted cheek and steel mane.
+  ellipse(-.17,-.87,.062,.064,outline);
+  ellipse(-.18,-.88,.035,.038,'#a2f3d7');
+  ellipse(.035,-.71,.09,.10,outline);
+  ellipse(.035,-.71,.052,.06,trim);
+  ellipse(.035,-.71,.018,.022,outline);
+  for(let i=0;i<4;i++){
+   const yy=-.95+i*.105;
+   poly([[.15,yy],[.30,yy+.045],[.18,yy+.09]],trim,outline);
+  }
  }else if(kind==='rook'){
   rect(-.19,-.80,.38,.36,gradient,.015);
   rect(-.26,-.84,.52,.085,trim,.015);
