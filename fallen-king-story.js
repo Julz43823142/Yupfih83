@@ -441,6 +441,25 @@ function drawVillageProps(g){
  const {box,cylinder,cone}=g,done=complete('bridge');
  window.FallenKingDetailPlus?.draw?.(g,'barrel',41.3,0,17.7,.65,.68,.65);
  window.FallenKingDetailPlus?.draw?.(g,'chest',41.8,0,21.4,.92,.58,.68);
+ // DetailPlus: an inhabited medieval market square, with readable stalls, barrels and civic stonework.
+ const mdl=(id,x,y,z,w,h,d)=>window.FallenKingDetailPlus?.draw?.(g,id,x,y,z,w,h,d);
+ for(const [x,z,canopy] of [[23.5,24.4,'#9e4e53'],[32.7,24.4,'#4b7882'],[30.7,33.2,'#bc9363']]){
+  for(const ox of [-.80,.80])for(const oz of [-.55,.55])cylinder(x+ox,.06,z+oz,.065,.07,1.44,'#80644d',8);
+  box(x,.89,z,2.05,.13,1.60,'#947155');
+  box(x,1.62,z,2.25,.16,1.87,canopy);
+  for(const ox of [-.83,-.4,.03,.46,.83])box(x+ox,1.53,z,.24,.10,1.8,ox<0?'#d9c494':'#e2d0a8');
+  mdl('barrel',x-1.23,0,z,.55,.58,.55);
+  mdl('chest',x+.55,.96,z,.49,.38,.46);
+ }
+ // Cobblestone well, benches and warm light in the village's public square.
+ cylinder(27.3,.1,27.1,.86,.85,.30,'#777f76',12);
+ cylinder(27.3,.38,27.1,.73,.73,.24,'#c4b8a0',12);
+ cylinder(27.3,.62,27.1,.58,.58,.08,'#405963',12);
+ for(const x of [26.4,28.2]){box(x,.67,27.1,.14,1.32,.14,'#856b4a');cone(x,1.43,27.1,.23,.20,'#c3a377',8);}
+ box(27.3,1.52,27.1,2.25,.15,.2,'#9b7951');
+ for(const [x,z] of [[21.2,29.8],[33.8,28.8],[29.2,20.7]]){cylinder(x,.08,z,.14,.14,.87,'#74624f',8);cone(x,1.02,z,.18,.31,'#e3b75c',9);sphere(x,1.27,z,.11,'#ffdf9e',9);}
+ for(const [x,z] of [[24.2,30.2],[31.2,29.8],[27.2,22.7]])mdl('stones',x,.02,z,.68,.33,.60);
+ 
  // Detailed riverside and bridgework: carved posts, reeds, stones and construction supplies.
  const rocks=[[42,17],[43,22],[44,16],[49,17],[49,22]];
  for(const [x,z] of rocks){box(x+.5,.12,z+.5,.49,.24,.45,'#828980');box(x+.64,.27,z+.55,.27,.06,.24,'#afb3a5');for(let i=0;i<3;i++)cone(x+.2+i*.2,.28,z+.9,.075,.46+i*.07,'#547d57',6);}
