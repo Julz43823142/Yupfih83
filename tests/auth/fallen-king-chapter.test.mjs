@@ -34,3 +34,29 @@ test('story respects original map and blocks bypassing the east river',()=>{
  assert.match(source,/complete\('bridge'\)/);
  assert.match(source,/complete\('pip'\)/);
 });
+
+test('dialogue advances before story interaction, preventing soft-lock',()=>{
+ const dialogue=engine.indexOf('function talk(){');
+ const advance=engine.indexOf('if(dialogue){dialogue.i++',dialogue);
+ const story=engine.indexOf('if(window.FallenKingStory?.talk())return;',dialogue);
+ assert.ok(dialogue>=0&&advance>dialogue&&story>advance);
+ assert.match(engine,/dialog\.addEventListener\('click'/);
+});
+test('intro pictures reuse existing WebGL renderer and stage characters',()=>{
+ assert.match(source,/function renderIntroFrame\(canvas\)/);
+ assert.match(source,/function introWorld\(kind\)/);
+ assert.match(source,/piece\(x,z,'K'/);
+ assert.match(engine,/window\.FallenKingStory\?\.renderIntroFrame\(canvas\)/);
+ assert.match(source,/function isPrisoner\(\)/);
+ assert.match(engine,/const type=prisoner\?'P':'K'/);
+ assert.doesNotMatch(source,/There was no spell/);
+});
+test('cell is furnished with realistic game geometry and toilet can be accessed nearby',()=>{
+ for(const marker of ['function toilet(x,z)','function bed(x,z)','function rails(a,b,z)','function wall(x,z','function torch(x,z)'])assert.ok(source.includes(marker));
+ assert.match(source,/Math\.abs\(x-11\)\+Math\.abs\(y-7\)<=3/);
+ assert.match(source,/setScene\('sewer'/);
+ assert.match(source,/function musicTheme\(\)/);
+ assert.match(engine,/palace:\{notes:/);
+ assert.match(engine,/prison:\{notes:/);
+ assert.match(engine,/sewer:\{notes:/);
+});
