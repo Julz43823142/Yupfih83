@@ -131,15 +131,17 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   ctx.setTransform(scale,0,0,scale,0,0);
  };
- const cellSize=()=>Math.min(width/11.9,height/8.8,112);
+ const isPhone=()=>width<=680 || (width<=900&&height>width*1.18);
+ const cellSize=()=>isPhone()?Math.min(width/9.1,height/9.6,112):Math.min(width/11.9,height/8.8,112);
+ const rowStep=()=>isPhone()?Math.max(cellSize()*1.35,height/10.5):cellSize()*.83;
  // Project the squares onto one consistent oblique chessboard plane.
  // One step up always equals the exact opposite edge of the next row.
  const project=(x,row)=>{
   const u=cellSize(),distance=row-camera;
-  return [width*.50+(x-4)*u,height*.69-distance*u*.83];
+  return [width*.50+(x-4)*u,height*(isPhone()?.72:.69)-distance*rowStep()];
  };
  const quad=(x,row)=>{
-  const [px,py]=project(x,row),u=cellSize(),v=0,d=u*.83;
+  const [px,py]=project(x,row),u=cellSize(),v=0,d=rowStep();
   return [[px-u*.5+v*.5,py-d*.5],[px+u*.5+v*.5,py-d*.5],
           [px+u*.5-v*.5,py+d*.5],[px-u*.5-v*.5,py+d*.5]];
  };
@@ -155,6 +157,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   table.addColorStop(0,'#17191a');table.addColorStop(.55,'#30261f');table.addColorStop(1,'#171719');
   ctx.fillStyle=table;ctx.fillRect(0,0,width,height);
   for(let i=0;i<28;i++){const y=(i*73)%height;ctx.strokeStyle='#c3a27c0b';ctx.lineWidth=i%4===0?2:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y+2);ctx.stroke()}
+  if(isPhone())return; // Mobile is an edge-to-edge chessboard without side rails.
   for(const edge of [left,right]){
    const x=edge===left?edge-u*.48:edge;
    const wood=ctx.createLinearGradient(x,0,x+u*.48,0);
@@ -166,38 +169,78 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
    for(let i=0;i<Math.ceil(height/115);i++){ctx.fillStyle='#d7a96a';ctx.beginPath();ctx.arc(x+u*.24,i*115+28,Math.max(2,u*.035),0,Math.PI*2);ctx.fill()}
   }
  }
+ function gear(cx,cy,r,time,reverse=false){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(time*(reverse?-.7:.7));
+  ctx.strokeStyle='#d2a05c';ctx.lineWidth=r*.22;ctx.beginPath();ctx.arc(0,0,r*.7,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<12;i++){ctx.rotate(Math.PI/6);ctx.fillStyle='#b78345';ctx.fillRect(-r*.14,-r*.96,r*.28,r*.30)}
+  ctx.fillStyle='#392a21';ctx.beginPath();ctx.arc(0,0,r*.23,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e3bd80';ctx.beginPath();ctx.arc(0,0,r*.1,0,Math.PI*2);ctx.fill();ctx.restore();
+ }
  function turkCabinet(time){
-  // The Mechanical Turk-inspired automaton is original artwork, not a copy of a historical engraving.
-  const u=cellSize(),left=project(0,0)[0]-u*.5,right=project(8,0)[0]+u*.5;
-  const gapLeft=left-u*.48,gapRight=width-(right+u*.48);
-  const side=gapRight>gapLeft?'right':'left',available=Math.max(gapLeft,gapRight);
-  if(available<u*.46)return;
-  const cx=side==='right'?right+u*.48+available*.5:(left-u*.48)*.5;
-  const scale=Math.min(available/(u*1.7),1.35),y=height*.49;
-  ctx.save();ctx.translate(cx,y);ctx.scale(scale,scale);
-  // Riveted iron housing and luminous clock-face.
-  round(-u*.64,-u*1.48,u*1.28,u*2.36,u*.12,'#261f1c');
-  round(-u*.57,-u*1.4,u*1.14,u*2.16,u*.08,'#6c482d');
-  round(-u*.48,-u*1.29,u*.96,u*1.96,u*.06,'#352b27');
-  ctx.strokeStyle='#c49a60';ctx.lineWidth=u*.045;ctx.strokeRect(-u*.49,-u*1.3,u*.98,u*1.98);
-  for(const x of [-.39,.39])for(const yy of [-1.18,.51]){ctx.fillStyle='#d6aa6a';ctx.beginPath();ctx.arc(x*u,yy*u,u*.045,0,Math.PI*2);ctx.fill()}
-  // Automaton's turban and face, with a mechanical monocle.
-  ctx.fillStyle='#c1a277';ctx.beginPath();ctx.ellipse(0,-u*.79,u*.30,u*.35,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#f0d7a4';ctx.beginPath();ctx.ellipse(0,-u*1.15,u*.42,u*.17,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#8a633e';ctx.fillRect(-u*.36,-u*1.20,u*.72,u*.1);
-  ctx.fillStyle='#ddae70';ctx.beginPath();ctx.arc(0,-u*1.3,u*.13,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#e2bd74';ctx.lineWidth=u*.035;ctx.beginPath();ctx.arc(u*.13,-u*.81,u*.13,0,Math.PI*2);ctx.stroke();
-  ctx.fillStyle='#90e4d6';ctx.beginPath();ctx.arc(u*.13,-u*.81,u*.07,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#241c1b';ctx.fillRect(-u*.20,-u*.80,u*.1,u*.045);
-  // Exposed, slowly turning gears in the torso.
-  for(const [gx,gy,rad,dir] of [[-.2,-.18,.23,1],[.23,.05,.19,-1]]){
-   ctx.save();ctx.translate(gx*u,gy*u);ctx.rotate(time*.35*dir);
-   ctx.strokeStyle='#d3a15e';ctx.lineWidth=u*.06;ctx.beginPath();ctx.arc(0,0,u*rad,0,Math.PI*2);ctx.stroke();
-   for(let i=0;i<8;i++){ctx.rotate(Math.PI/4);ctx.fillStyle='#b48852';ctx.fillRect(-u*.04,-u*(rad+.07),u*.08,u*.11)}
-   ctx.fillStyle='#d2ad72';ctx.beginPath();ctx.arc(0,0,u*.045,0,Math.PI*2);ctx.fill();ctx.restore();
+  if(isPhone())return;
+  // Historically inspired by von Kempelen's seated, turbaned chess automaton and
+  // its maple cabinet; a tiny concealed chess master nods behind a loose panel.
+  const u=cellSize(),left=project(0,0)[0]-u*.5,available=left-u*.48;
+  if(available<u*.9)return;
+  const cx=available*.5,scale=Math.min(available/(u*2.2),1.85);
+  ctx.save();ctx.translate(cx,height*.54);ctx.scale(scale,scale);
+  const wood=ctx.createLinearGradient(-u*.8,0,u*.8,0);
+  wood.addColorStop(0,'#281a13');wood.addColorStop(.35,'#906039');wood.addColorStop(.68,'#6c452c');wood.addColorStop(1,'#241811');
+  // Large cabinet and chessboard: period silhouette, original vector illustration.
+  round(-u*.83,-u*.28,u*1.66,u*1.52,u*.06,wood);
+  round(-u*.75,-u*.18,u*1.5,u*1.30,u*.035,'#3c2a20');
+  ctx.strokeStyle='#cda36a';ctx.lineWidth=u*.035;ctx.strokeRect(-u*.74,-u*.17,u*1.48,u*1.27);
+  round(-u*.92,-u*.35,u*1.84,u*.13,u*.025,'#b88c52');
+  for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#4c3425':'#ddbd86';ctx.fillRect(-u*.67+i*u*.165,-u*.42,u*.165,u*.07)}
+  // Seated automaton: rich burgundy robe, shoulder ornaments and turban.
+  ctx.fillStyle='#512d39';ctx.beginPath();ctx.moveTo(-u*.60,-u*.32);ctx.lineTo(-u*.48,-u*1.45);ctx.quadraticCurveTo(0,-u*1.8,u*.49,-u*1.44);ctx.lineTo(u*.59,-u*.32);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#d6b078';ctx.lineWidth=u*.06;ctx.beginPath();ctx.moveTo(-u*.45,-u*1.27);ctx.lineTo(-u*.26,-u*.43);ctx.moveTo(u*.43,-u*1.25);ctx.lineTo(u*.24,-u*.43);ctx.stroke();
+  ctx.fillStyle='#ad815d';ctx.beginPath();ctx.ellipse(0,-u*1.66,u*.29,u*.35,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#251b1a';ctx.beginPath();ctx.ellipse(0,-u*1.54,u*.24,u*.12,0,0,Math.PI);ctx.fill();
+  ctx.fillStyle='#30221e';ctx.beginPath();ctx.ellipse(-u*.12,-u*1.70,u*.035,u*.027,0,0,Math.PI*2);ctx.ellipse(u*.12,-u*1.70,u*.035,u*.027,0,0,Math.PI*2);ctx.fill();
+  // Layered ivory turban with central brass jewel.
+  for(let i=0;i<4;i++){ctx.fillStyle=i%2?'#c8ad7e':'#eee0ba';ctx.beginPath();ctx.ellipse((i-1.5)*u*.055,-u*(2.00+i*.015),u*(.33-i*.018),u*.13,-.13,0,Math.PI*2);ctx.fill()}
+  ctx.fillStyle='#dfb45e';ctx.beginPath();ctx.arc(0,-u*2.11,u*.09,0,Math.PI*2);ctx.fill();
+  // Right arm reaches toward the miniature chessboard.
+  ctx.strokeStyle='#5c3540';ctx.lineWidth=u*.18;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(u*.36,-u*1.32);ctx.lineTo(u*.56,-u*.83);ctx.lineTo(u*.22,-u*.43);ctx.stroke();
+  ctx.fillStyle='#c89c72';ctx.beginPath();ctx.arc(u*.22,-u*.43,u*.10,0,Math.PI*2);ctx.fill();
+  // Open gear bay; an off-center door exposes a hidden human operator.
+  round(-u*.64,u*.03,u*.68,u*.91,u*.03,'#171a1c');
+  gear(-u*.30,u*.36,u*.22,time);gear(-u*.17,u*.69,u*.15,time,true);
+  round(u*.06,u*.03,u*.57,u*.91,u*.025,'#6c4a31');
+  ctx.strokeStyle='#d0a36a';ctx.lineWidth=u*.028;ctx.strokeRect(u*.11,u*.08,u*.47,u*.81);
+  // Secret chess player: faint spectacles, eyes and a hand on a tiny lever.
+  ctx.fillStyle='#241c1a';ctx.beginPath();ctx.arc(u*.32,u*.38,u*.18,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#d3a37e';ctx.beginPath();ctx.ellipse(u*.32,u*.39,u*.12,u*.14,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#e6c18b';ctx.lineWidth=u*.018;for(const xx of [.27,.38]){ctx.beginPath();ctx.arc(xx*u,u*.37,u*.042,0,Math.PI*2);ctx.stroke()}
+  ctx.strokeStyle='#d5b27b';ctx.lineWidth=u*.035;ctx.beginPath();ctx.moveTo(u*.39,u*.52);ctx.lineTo(u*.51,u*.76);ctx.stroke();
+  ctx.restore();
+ }
+ function pieceFactory(time){
+  if(isPhone())return;
+  const u=cellSize(),right=project(8,0)[0]+u*.5,avail=width-right-u*.48;
+  if(avail<u*.9)return;
+  const cx=right+u*.48+avail*.5,scale=Math.min(avail/(u*2.1),1.8);
+  ctx.save();ctx.translate(cx,height*.54);ctx.scale(scale,scale);
+  // The enemy-piece press: pistons, conveyor, hot-pink enamel vats.
+  round(-u*.81,-u*1.76,u*1.62,u*2.76,u*.06,'#262b30');
+  round(-u*.72,-u*1.65,u*1.44,u*2.48,u*.05,'#56443a');
+  for(let i=0;i<3;i++)round(-u*.67+i*u*.48,-u*1.57,u*.09,u*2.31,u*.015,'#bd8b58');
+  round(-u*.58,-u*1.27,u*1.16,u*.22,u*.04,'#a76d4f');
+  for(let i=0;i<3;i++){const px=(i-1)*u*.34;round(px-u*.055,-u*1.67,u*.11,u*.59,u*.02,'#b7bbc1');round(px-u*.16,-u*1.17+Math.sin(time*2.8+i*1.8)*u*.13,u*.32,u*.20,u*.02,'#8d6671')}
+  round(-u*.62,-u*.69,u*1.24,u*.54,u*.07,'#211b20');
+  round(-u*.53,-u*.58,u*1.06,u*.32,u*.03,'#b34e70');
+  for(let i=0;i<3;i++){const x=(i-1)*u*.34;ctx.fillStyle='#f2b4c4';ctx.beginPath();ctx.arc(x,-u*.43,u*.11,0,Math.PI*2);ctx.fill()}
+  gear(-u*.45,u*.34,u*.21,time);gear(u*.38,u*.34,u*.19,time,true);
+  round(-u*.71,u*.67,u*1.42,u*.22,u*.03,'#1a2226');
+  // Little molded pink pieces travel along the conveyor.
+  for(let i=0;i<4;i++){
+   const x=((i*.49+time*.29)%2.1-1.05)*u;
+   ctx.save();ctx.translate(x,u*.62);ctx.scale(.27,.27);
+   ctx.fillStyle='#d77d99';ctx.beginPath();ctx.arc(0,-u*.31,u*.24,0,Math.PI*2);ctx.fill();
+   round(-u*.26,-u*.22,u*.52,u*.38,u*.06,'#b95576');
+   round(-u*.35,u*.13,u*.7,u*.12,u*.02,'#f0adc1');ctx.restore();
   }
-  ctx.fillStyle='#a87a47';ctx.font='bold '+Math.round(u*.17)+'px Georgia,serif';ctx.textAlign='center';
-  ctx.fillText('THE TURK',0,u*.47);
   ctx.restore();
  }
  function tile(x,row,type,time){
@@ -387,9 +430,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(!overlay.hidden){raf=requestAnimationFrame(frame);return}
   const time=(now-origin)/1000;
   camera+=(Math.max(0,player.row-3.3)-camera)*.14;
-  ctx.clearRect(0,0,width,height);scenery();turkCabinet(time);
-  const u=cellSize(),low=Math.max(0,Math.floor(camera-height*.36/(u*.83))-3);
-  const high=Math.max(10,Math.ceil(camera+height*.76/(u*.83))+3);
+  ctx.clearRect(0,0,width,height);scenery();turkCabinet(time);pieceFactory(time);
+  const u=cellSize(),low=Math.max(0,Math.floor(camera-height*.36/rowStep())-3);
+  const high=Math.max(10,Math.ceil(camera+height*.76/rowStep())+3);
   for(let row=high;row>=low;row--){
    const type=lane(row);
    if(type==='river')drawRiver(row,time);
@@ -422,7 +465,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(skin.kind==='pawn')drawPawn(x,r,false,.86,now<invincibleUntil,jump);
   else{ctx.save();if(now<invincibleUntil)ctx.globalAlpha=.45+.4*Math.abs(Math.sin(now/125));drawEnemy(x,r,skin.kind,.84,true,jump);ctx.restore();}
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
-  const w=Math.min(204,width*.51),left=width-w-12;
+  const w=Math.min(isPhone()?136:204,width*(isPhone()?.37:.51)),left=width-w-(isPhone()?7:12);
   round(left,12,w,103,13,'#0c253be8');
   ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,93);
   ctx.textAlign='right';ctx.fillStyle='#ffe3ae';ctx.font='bold 13px system-ui';
