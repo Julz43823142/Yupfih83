@@ -16,11 +16,17 @@ function talk(){if(paused||mapOpen)return;if(dialogue){dialogue.i++;if(dialogue.
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
-const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/24.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
-const frag='precision mediump float;varying vec3 col;void main(){gl_FragColor=vec4(pow(col,vec3(.88)),1.);}';
+const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;varying vec2 worldPos;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/24.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;worldPos=p.xz;}';
+const frag='precision mediump float;varying vec3 col;varying vec2 worldPos;uniform sampler2D visionTex;uniform vec2 visionSize;uniform float visionEnabled;void main(){vec3 lit=pow(col,vec3(.88));float seen=texture2D(visionTex,clamp(worldPos/visionSize,vec2(0.),vec2(1.))).r;float visibility=mix(1.,seen,visionEnabled);gl_FragColor=vec4(mix(vec3(.004,.007,.012),lit,visibility),1.);}';
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
 const posLoc=gl.getAttribLocation(program,'p'),normLoc=gl.getAttribLocation(program,'n'),colorLoc=gl.getAttribLocation(program,'c'),camLoc=gl.getUniformLocation(program,'cam'),aspectLoc=gl.getUniformLocation(program,'aspect'),zoomLoc=gl.getUniformLocation(program,'zoom');
+const visionLoc=gl.getUniformLocation(program,'visionTex'),visionSizeLoc=gl.getUniformLocation(program,'visionSize'),visionEnabledLoc=gl.getUniformLocation(program,'visionEnabled');
+const visionTexture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,visionTexture);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
+gl.uniform1i(visionLoc,0);let previousVisionKey='';
 const buffer=gl.createBuffer(),staticBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
 gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
 gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clearColor(.39,.56,.36,1);
@@ -375,7 +381,7 @@ const wardrobeContext=wardrobePreview.getContext('2d',{alpha:false});
 function updateWardrobePreview(){
  if(wardrobePanel.hidden||!world)return;
  const w=canvas.width,h=canvas.height,aspect=w/Math.max(1,h);
- const zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(aspect<1?6.3:5.7):(aspect<1?5.6:5.0);
+ const zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(aspect<1?6.3:5.7):window.FallenKingStory?.fieldOfView?.()?.enabled?(aspect<1?7.4:6.65):(aspect<1?5.6:5.0);
  const unit=h/(2*zoom),px=w/2+(visual.x-cam.x)*unit;
  const py=h/2+(visual.z-cam.z)*.93*unit;
  const cropW=Math.max(1,unit*2.7),cropH=Math.max(1,unit*3.5);
@@ -535,6 +541,41 @@ function fountain(x,z){
  for(let i=0;i<8;i++){const a=i*Math.PI/4;const px=x+Math.cos(a)*.49,pz=z+Math.sin(a)*.49;box(px,.48,pz,.11,.025,.07,'#b3e0dc');}
 }
 // Transform the original 2.5D chess-piece mesh to depict sleeping Oliver without new art.
+// Rotate a genuine chess mesh on its side for the guard sleeping in the corridor.
+function recliningPiece(x,z,type,color){
+ const from=vertices.length;
+ piece(x,z,type,color,false);features(x,z,type,color,false,'guard');
+ for(let i=from;i<vertices.length;i+=9){
+  const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
+  vertices[i]=x+dy-.9;vertices[i+1]=.48-dx;
+  vertices[i+3]=ny;vertices[i+4]=-nx;
+ }
+}
+function prepareVision(){
+ const policy=window.FallenKingStory?.fieldOfView?.(),on=!!policy?.enabled;
+ gl.uniform1f(visionEnabledLoc,on?1:0);
+ if(!on)return;
+ const w=world.width,h=world.height,p=player,key=[w,h,p.x,p.y,world.music].join(':');
+ gl.uniform2f(visionSizeLoc,w,h);
+ gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,visionTexture);
+ if(previousVisionKey===key)return;
+ const image=new Uint8Array(w*h*4),radius=policy.radius||12;
+ function lineVisible(tx,tz){
+  const dx=tx-p.x,dz=tz-p.y,count=Math.max(Math.abs(dx),Math.abs(dz))*3;
+  for(let k=1;k<count;k++){
+   const x=Math.floor(p.x+.5+dx*k/count),z=Math.floor(p.y+.5+dz*k/count);
+   if((x!==tx||z!==tz)&&policy.isOpaque(x,z))return false;
+  }
+  return true;
+ }
+ for(let z=0;z<h;z++)for(let x=0;x<w;x++){
+  const dst=Math.hypot(x-p.x,z-p.y),seen=dst<=radius&&lineVisible(x,z);
+  const intensity=seen?Math.round(255*Math.max(.36,Math.min(1,(radius+.6-dst)/1.8))):0;
+  const offset=(z*w+x)*4;image[offset]=intensity;image[offset+1]=intensity;image[offset+2]=intensity;image[offset+3]=255;
+ }
+ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,image);
+ previousVisionKey=key;
+}
 function recliningKing(x,z){
  const from=vertices.length;
  piece(x,z,'P','white',false);
@@ -551,7 +592,7 @@ function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(aspect<1?6.3:5.7):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
- if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing,tri});}else{
+ if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing,recliningPiece,tri});}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
   ground(x,z);
   if(tile(x,z)==='T')tree(x+.5,z+.5);
@@ -588,7 +629,7 @@ window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone},t);
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){const prisoner=window.FallenKingStory?.isPrisoner();const type=prisoner?'P':'K';piece(visual.x+.5,visual.z+.5,type,'white',!prisoner);features(visual.x+.5,visual.z+.5,type,'white',!prisoner,'aldric');if(prisoner){box(visual.x+.5,.60,visual.z+.30,.48,.43,.08,'#b8ab96');box(visual.x+.5,.35,visual.z+.38,.56,.10,.11,'#7c6e62');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
-gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
+gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,staticCount);
@@ -665,6 +706,6 @@ document.getElementById('fallen-music-toggle').addEventListener('click',()=>setM
 document.getElementById('fallen-save').addEventListener('click',save);document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};save();dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
 world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
-player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};window.FallenKingStory?.start(window.FallenKingEngine);canvas.focus({preventScroll:true});requestAnimationFrame(frame);
+player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};previousVisionKey='';staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};window.FallenKingStory?.start(window.FallenKingEngine);canvas.focus({preventScroll:true});requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();
