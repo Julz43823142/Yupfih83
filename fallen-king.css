@@ -61,3 +61,27 @@ html,body{width:100%;height:100%;overflow:hidden}
 #fallen-wardrobe-grid select{cursor:pointer;min-height:48px;pointer-events:auto}
 #fallen-wardrobe[hidden]{display:none!important}
 @media(max-width:600px){.fallen-wardrobe-layout{grid-template-columns:1fr}.fallen-wardrobe-avatar{max-width:310px;width:100%;margin:auto}.fallen-wardrobe-panel{padding:16px}}
+
+/* Chapter One sits above the original fullscreen WebGL scene, never replaces it. */
+#fallen-story-intro[hidden],#fallen-story-puzzle[hidden],#fallen-story-objective[hidden]{display:none!important}
+.fallen-story-intro{z-index:15;background:#09141eea;backdrop-filter:none;padding:clamp(8px,2vh,24px)}
+.fallen-story-cinematic{width:min(1060px,100%);max-height:98dvh;display:flex;flex-direction:column;align-items:stretch;background:#112b36;border:4px solid #e0c68e;box-shadow:0 20px 70px #000d;overflow-y:auto}
+.fallen-story-cinematic h1{font:900 clamp(18px,2.4vw,32px) Georgia,serif;letter-spacing:3px;text-align:center;color:#f6d998;padding:12px;margin:0;background:#1c3540}
+#fallen-story-art{width:100%;max-height:55dvh;aspect-ratio:16/9;object-fit:contain;image-rendering:pixelated;background:#2c4753;cursor:pointer}
+.fallen-story-caption{padding:clamp(14px,2vw,28px);background:#0c2632;display:grid;grid-template-columns:1fr auto;gap:8px 24px;align-items:center}
+.fallen-story-caption strong{color:#edcd87;font:800 clamp(17px,2vw,23px) Georgia,serif;grid-column:1/-1}
+.fallen-story-caption p{color:#fff6e7;font:clamp(17px,2vw,22px)/1.55 Georgia,serif;margin:0;min-height:3em}
+.fallen-story-caption button{grid-column:2;grid-row:2;background:#8a653a;color:#fff5de;border:2px solid #e6d091;padding:14px 24px;font-weight:800;cursor:pointer;border-radius:7px}
+.fallen-story-caption small{grid-column:1/-1;color:#becbd0;letter-spacing:1px}
+#fallen-story-puzzle{z-index:14;background:#071923e8}
+.fallen-story-puzzle-panel{width:min(760px,calc(100vw - 20px));gap:13px;padding:clamp(16px,3vw,32px)}
+.fallen-story-kicker{font-size:11px!important;letter-spacing:2px;color:#edcb84!important;margin:0!important}
+#fallen-story-question{font:clamp(17px,2vw,22px)/1.5 Georgia,serif;color:#fff5df;text-align:left;margin:0}
+#fallen-story-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#fallen-story-answers button{min-height:65px;text-align:left;font-family:Georgia,serif;font-size:17px;background:#294956;border:2px solid #8b9e99}
+#fallen-story-feedback{min-height:44px;text-align:left;font-size:15px!important;color:#f5dda8!important;margin:0!important}
+#fallen-story-hint{background:#846b43;border-color:#e3c98a}
+#fallen-story-objective{position:absolute;z-index:5;top:72px;left:14px;max-width:min(540px,65vw);padding:9px 14px;background:#0a2633dd;border:2px solid #c7ae78;color:#fff0ca;border-radius:8px;font:600 13px/1.35 system-ui;pointer-events:none}
+#fallen-story-hintcoins{position:absolute;z-index:5;bottom:14px;right:14px;padding:7px 12px;color:#ffe8ac;background:#0b2330dc;border:1px solid #b69c61;border-radius:7px;font-weight:700;font-size:12px}
+#fallen-story-restart{position:absolute;z-index:5;right:14px;bottom:60px;background:#122b37e0;color:#f0ddae;border:1px solid #c8b17e;border-radius:6px;padding:7px 11px;cursor:pointer;font-size:12px}
+@media(max-width:620px){.fallen-story-caption{grid-template-columns:1fr}.fallen-story-caption button{grid-column:1;grid-row:auto}.fallen-story-caption p{min-height:0}#fallen-story-answers{grid-template-columns:1fr}#fallen-story-objective{top:65px;font-size:11px;max-width:69vw}#fallen-story-restart{bottom:60px}}
