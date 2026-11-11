@@ -1,6 +1,6 @@
 # DetailPlus
 **The Fallen King — visual asset and material pipeline**  
-Status: researched architecture and implementation specification. **Not yet installed or deployed in the game.**  
+Status: **Phase 1 implemented on GitHub main** (commits 21–28). Browser screenshot verification and production Cloudflare deployment still require confirmation. Full textured-PBR renderer remains a future phase.  
 Research date: 2026-11-11. Version: research 1.
 
 ## Why previous detail passes failed
@@ -87,4 +87,16 @@ Use a different stone/brick material family, proper elevated walkway, flowing da
 - Hunyuan3D 2.1 license regional limit: https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1/blob/main/LICENSE
 - Mozilla MDN WebGL best practices: https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices
 
-**Status distinction**: This file records a researched implementable design; models have NOT been imported or visually tested in the game by this research commit.
+**Current implementation (2026-11-11)**: Eight actual Kenney CC0 GLB models from the Mini Dungeon and Furniture kits have been imported as embedded, self-hosted data in `fallen-king-detailplus-assets.js`. `fallen-king-detailplus.js` decodes glTF 2.0 meshes, model transforms and UVs, reads embedded palette images, and bakes texture colors per triangle into the original 2.5D vertex-color renderer. The engine still uses its original WebGL shaders and camera; this is a deliberately compatible first stage, **not yet a full textured GPU shader/PBR implementation**. Imported models: gate, wall, floor, table, barrel, chest, bed, stones. A single red-velvet/gold crown geometry is shared across intro locations, and the toilet has a new curved, sculpted silhouette. `drawGround()` now uses scene-specific materials in intro/cell/sewer and bypasses village grass, flowers and lily pads. Random decorative `drawMicroDetail` calls have been disconnected. Admin-only world endpoint is unchanged. 14 automated regression checks (including eight real model decode checks and complete mocked chapter route) passed in a JavaScript test harness. Production browser screenshot, rendering quality and deployment status remain unverified.
+
+## Embedded model source attribution and integrity
+
+- Original artist: Kenney (CC0 1.0 Universal): https://kenney.nl/assets/mini-dungeon and https://kenney.nl/assets/furniture-kit
+- Model distribution mirror: https://github.com/Hidencod/tge-assets (Kenney CC0 assets)
+- Only the 8 identified model files have been copied. The embedded base64 is original binary GLB data; no claim of authorship is made.
+- New code and crown/toilet geometry authored specifically for The Fallen King.
+- Every mesh is covered by source-license verification. CC0 permits commercial use and redistribution; attribution to Kenney is appreciated and given here, not mandatory.
+
+## Current phase 1 rendering specifics
+
+The GLB decoder currently **samples material texture colors once per triangle** and feeds those colors into the existing original vertex-color shader. This preserves exact geometry and a stylized, faceted color palette with no external CDN dependency; it does not reproduce pixel-for-pixel diffuse textures or roughness/PBR. A future stage can replace this with a GPU textured path if visual comparisons justify the complexity. The purpose of phase 1 is primarily to fix unreadable silhouette geometry, the green indoor floors and inconsistent crown color without risking another renderer replacement.
