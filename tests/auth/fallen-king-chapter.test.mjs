@@ -55,7 +55,7 @@ test('intro pictures reuse existing WebGL renderer and stage characters',()=>{
 });
 test('cell is furnished with realistic game geometry and toilet can be accessed nearby',()=>{
  for(const marker of ['function toilet(x,z)','function bed(x,z)','function rails(a,b,z)','function wall(x,z','function torch(x,z)'])assert.ok(source.includes(marker));
- assert.match(source,/if\(near\(p,11,7,2\)\)/);
+ assert.match(source,/if\(near\(p,16,10,2\)\)/);
  assert.match(source,/setScene\('sewer'/);
  assert.match(source,/function musicTheme\(\)/);
  assert.match(engine,/palace:\{notes:/);
@@ -71,8 +71,8 @@ test('chapter scenes are distinct and the coin cap is one',()=>{
  assert.match(source,/\[2,3,9,10\]/);
  assert.match(source,/function arch\(x,z\)/);
  assert.match(source,/v\.coins=v\.coins\.slice\(0,1\)/);
- assert.match(source,/const coinSpots=\{cell:\[\[3,8\]\]\}/);
- assert.match(source,/if\(scene==='cell'\)\{if\(x===11&&y===7\)return true;/);
+ assert.match(source,/const coinSpots=\{cell:\[\[9,12\]\]\}/);
+ assert.match(source,/if\(scene==='cell'\)\{if\(x===16&&y===10\)return true;/);
  const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n return false;\}/)?.[0];
  assert.ok(moveBlock);
  assert.doesNotMatch(moveBlock,/openPuzzle/);
@@ -96,10 +96,10 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  const chapter=window.FallenKingStory;chapter.start(engine);
  const geometry={box(){},cylinder(){},cone(){},sphere(){},piece(){},features(){}};
  for(let i=0;i<10;i++){assert.doesNotThrow(()=>chapter.drawProps(geometry));element('fallen-story-next').listeners.click();}
- assert.equal(world.width,15);
+ assert.equal(world.width,25);
  assert.equal(chapter.beforeMove(10,7),false);
  assert.equal(element('fallen-story-puzzle').hidden,true);
- player={x:9,y:7};chapter.talk();assert.equal(element('fallen-story-puzzle').hidden,true);
+ player={x:14,y:10};chapter.talk();assert.equal(element('fallen-story-puzzle').hidden,true);
  chapter.talk();assert.equal(element('fallen-story-puzzle').hidden,false);
  function answer(index){element('fallen-story-answers').listeners.click({target:element('fallen-story-answers').children[index]});}
  answer(0);
@@ -134,10 +134,10 @@ test('detailed scene geometry and atmosphere render without changing story route
  new Function('window','document','localStorage','location','confirm',source)(window,document,localStorage,{reload(){}},()=>true);
  const game=window.FallenKingStory;game.start(engine);
  for(let i=0;i<10;i++){assert.doesNotThrow(()=>game.drawProps(callbacks));assert.doesNotThrow(()=>game.drawEffects(callbacks,i*.3));el('fallen-story-next').listeners.click();}
- assert.equal(world.width,15);
+ assert.equal(world.width,25);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,1));
- player={x:9,y:7};game.talk();game.talk();el('fallen-story-answers').listeners.click({target:el('fallen-story-answers').children[0]});game.talk();
+ player={x:14,y:10};game.talk();game.talk();el('fallen-story-answers').listeners.click({target:el('fallen-story-answers').children[0]});game.talk();
  assert.equal(world.width,36);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,2));
@@ -218,8 +218,44 @@ test('prison readability: iron bars, clear cot, metal pail and preserved candle'
  assert.match(props,/Narrow prison cot/);
  assert.doesNotMatch(props,/model\('bed'/);
  assert.match(props,/Metal pail rather than a large wooden barrel/);
- assert.match(props,/torch\(13,1\.45\)/);
+ assert.match(props,/torch\(15\.3,6\.0\)/);
  assert.match(props,/for\(const x of \[4,10\]\)/);
- assert.match(props,/One clearly recognizable locked cell door/);
+ assert.match(props,/The gate is centred at x=12/);
  assert.match(source,/function drawGround\(g,x,z\)/);
+});
+
+test('cell layout has north corridor, two side prisoners, south window and occluding walls',()=>{
+ assert.match(source,/createWorld\(25,16,'H'\)/);
+ assert.match(source,/for\(let x=1;x<=23;x\+\+\)updateTile\(w,x,5,'H'\)/);
+ assert.match(source,/for\(const x of \[6,18\]\)updateTile\(w,x,y,'H'\)/);
+ assert.match(source,/Sleeping guard's cot belongs to the corridor/);
+ assert.match(source,/recliningPiece\(12\.1,2\.38,'R','black'\)/);
+ assert.match(source,/Mara and Tovin/);
+ assert.match(source,/SOUTH-facing window/);
+ assert.match(source,/function fieldOfView\(\)/);
+ assert.match(engine,/function prepareVision\(\)/);
+ assert.match(engine,/uniform sampler2D visionTex/);
+ assert.match(engine,/function recliningPiece\(x,z,type,color\)/);
+ const elements=new Map();
+ const doc={getElementById(id){if(!elements.has(id))elements.set(id,{hidden:true,textContent:'',children:[],addEventListener(n,fn){this[n]=fn;},getContext(){return{fillRect(){},drawImage(){}}},replaceChildren(...c){this.children=c;},focus(){}});return elements.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}}}};
+ const localStorage={getItem(){return null;},setItem(){}};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:26,y:29}},player={x:26,y:29};
+ const e={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player=p;},say(){},enableSound(){},soundCue(){}};
+ const win={};new Function('window','document','localStorage','location','confirm',source)(win,doc,localStorage,{},()=>true);
+ const story=win.FallenKingStory;story.start(e);
+ for(let i=0;i<10;i++)doc.getElementById('fallen-story-next').click();
+ assert.equal(world.width,25);assert.equal(world.height,16);
+ assert.equal(world.tiles[5][12],'H');assert.equal(world.tiles[9][6],'H');assert.equal(world.tiles[9][18],'H');
+ assert.equal(world.tiles[3][12],'s');assert.equal(world.tiles[9][12],'s');assert.equal(world.tiles[14][12],'H');
+ const vision=story.fieldOfView();
+ assert.ok(vision.enabled);assert.ok(vision.radius>=12);
+ assert.equal(vision.isOpaque(12,5),false,'north iron bars transmit sight');
+ assert.equal(vision.isOpaque(6,9),false,'west iron bars transmit sight');
+ assert.equal(vision.isOpaque(18,9),false,'east iron bars transmit sight');
+ assert.equal(vision.isOpaque(12,14),false,'south window transmits sight');
+ assert.equal(vision.isOpaque(10,14),true,'stone beside window blocks sight');
+ assert.equal(vision.isOpaque(0,9),true,'exterior wall blocks sight');
+ assert.equal(story.beforeMove(16,10),true,'toilet interaction remains explicit');
+ const g={box(){},cylinder(){},cone(){},sphere(){},piece(){},features(){},tri(){},recliningPiece(){}};
+ assert.doesNotThrow(()=>story.drawProps(g));
 });
