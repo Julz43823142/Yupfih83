@@ -97,3 +97,12 @@ html,body{width:100%;height:100%;overflow:hidden}
 #fallen-story-interact[hidden]{display:none!important}
 #fallen-story-art{image-rendering:pixelated;object-fit:fill}
 @media(max-width:650px){.fallen-story-caption{grid-template-columns:1fr 1fr}.fallen-story-caption p{grid-column:1/-1}.fallen-story-caption #fallen-story-next{grid-column:1/-1!important}.fallen-story-caption small{grid-column:1/-1}#fallen-story-interact{top:120px;max-width:78vw;font-size:10px}}
+
+/* Temporary one-click PUZZLE checkpoint until the final puzzle design pass. */
+#fallen-story-question[hidden],#fallen-story-answers[hidden],
+#fallen-story-feedback[hidden],#fallen-story-hint[hidden],
+#fallen-story-puzzle-close[hidden]{display:none!important}
+#fallen-story-puzzle-continue{min-width:220px;align-self:center;background:#8b683e;border:2px solid #e0bc83;color:#fff7df;font:800 19px Georgia,serif;letter-spacing:.04em;padding:17px 32px;box-shadow:0 7px 0 #4c3628,0 15px 35px #0007}
+#fallen-story-puzzle-continue:hover{background:#aa814c}
+#fallen-story-puzzle-continue:focus-visible{outline:3px solid #fff0b2;outline-offset:3px}
+#fallen-story-puzzle-name{font-size:clamp(27px,4vw,39px);letter-spacing:.12em}
