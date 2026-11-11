@@ -132,7 +132,7 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
  else if(scene==='sewer')setScene('sewer',engine.getPlayer());
  else if(scene==='village')setScene('village',engine.getPlayer());
  else persist();
- const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer. It lets me pass.',exit:'The last gate opens. I can feel fresh woodland air.',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
+ const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer. It lets me pass.',exit:'I climb the iron ladder and push the hatch open. Fresh woodland air!',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
  say('Oliver',lines[id]||'The way ahead is clear.');updateObjective();
 }
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
@@ -175,7 +175,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   }
   if(near(p,76,25,3)){
    if(!complete('exit')){openPuzzle('exit');return true;}
-   setScene('forest',{x:4,y:12,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
+   say('Oliver','The iron ladder leads up through a hatch into the forest.');setScene('forest',{x:4,y:12,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
   }
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
@@ -374,7 +374,8 @@ function drawProps(g){
   // Avoid a solid northern wall: the front of each cell is ironwork with visible corridor behind it.
   for(let x=0;x<25;x++){
    wall(x+.5,.5,1,2.65); // North exterior stone wall beyond the corridor.
-   wall(x+.5,15.48,1,2.35); // South exterior wall beyond the window.
+   if(x>=11&&x<=13)wall(x+.5,15.48,1,.55); // A real opening: low stone sill, no tall wall hiding the window.
+   else wall(x+.5,15.48,1,2.35); // Solid southern stone, never bars.
   }
   for(let z=1;z<15;z++){wall(.50,z+.5,1,2.4);wall(24.5,z+.5,1,2.4);}
   // Northern guard corridor: long unobstructed flagstone walkway with arch pilasters.
@@ -393,6 +394,7 @@ function drawProps(g){
      box(x,.53,z+.44,.80,1.06,.92,'#798282');
      box(x,2.05,z+.44,.80,.58,.92,'#87908c');
      for(const zz of [z+.23,z+.63])cylinder(x,1.28,zz,.055,.056,.90,'#3f5057',9);
+     box(x,1.34,z+.44,.035,.46,.52,'#9aadb8'); // Readable blue daylight through the narrow spy window.
      box(x,1.05,z+.44,.90,.12,.95,'#b0b0a4');
      box(x,1.71,z+.44,.90,.12,.95,'#b0b0a4');
     }else{
@@ -431,8 +433,10 @@ function drawProps(g){
   // There are no wall-length iron bars across the bottom of Oliver's cell.
   for(let x=7;x<=17;x+=.96){
    if(Math.abs(x-12.5)<1.20)continue;
-   model('wall',x,0,14.38,.97,2.25,.68);
+   if(!model('wall',x,0,14.38,.97,2.25,.68))box(x,1.1,14.38,.97,2.2,.68,'#818a8c');
   }
+  // Stone jambs and a brighter blue inset make it immediately recognisable as a window, not a third door.
+  box(12.5,.59,13.79,2.10,.06,.37,'#b4aea0');
   // Dark recess with a blue sky, distant castle towers and one bright moon.
   box(12.5,1.27,14.35,1.90,.92,.12,'#1c3041');
   box(12.5,1.11,14.25,1.80,.25,.04,'#345367');
@@ -495,10 +499,15 @@ function drawProps(g){
   for(const x of [49.12,49.70]){sphere(x,1.43,38.84,.13,'#e6c178',10);sphere(x,1.44,38.96,.045,'#26353e',8);}
   for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(49.4+Math.cos(a)*.64,.24,38.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
   for(const [x,z] of [[48.7,37.9],[50.2,38.1]])model('stones',x,0,z,.48,.28,.38);
-  // Portal to forest after the final PUZZLE -> Continue.
-  for(const x of [74.1,78.4]){model('wall',x,0,25.5,.82,2.55,.90);box(x,2.56,25.5,.87,.16,.93,'#a5aca2');}
-  box(76.2,2.60,25.5,4.5,.28,.84,'#a5aaa1');
-  box(76.2,.06,25.5,1.3,.11,1.0,complete('exit')?'#718c73':'#51646b');
+  // The end of the sewer has a real iron LADDER to an overhead hatch: no arch or altar.
+  box(76.5,2.97,25.5,2.00,.17,1.26,'#8a9695');
+  box(76.5,2.76,25.5,1.52,.12,.92,'#1a3034');
+  for(const x of [76.05,76.95])cylinder(x,.15,25.4,.069,.069,2.72,'#657e83',10);
+  for(let y=.35;y<=2.75;y+=.30){
+   box(76.5,y,25.48,.99,.064,.12,'#b0a68d');
+   box(76.5,y+.045,25.48,.88,.025,.11,'#d2c5a6');
+  }
+  box(76.5,.08,25.5,2.15,.15,1.50,'#637373');
   for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
  }else if(scene==='forest'){
   const world=engine.getWorld();
@@ -509,7 +518,8 @@ function drawProps(g){
     if((x*3+z*5)%19===0)model('stones',x+.5,.01,z+.5,.64,.27,.55);
    }
   }
-  for(const [x,z] of [[5.5,10.9],[10.5,6.9],[19.4,12.9],[29.3,8.8]]){
+  // The torches are stationed on grass OUTSIDE the walking path.
+  for(const [x,z] of [[5.5,13.2],[10.5,9.8],[19.4,14.8],[29.3,11.0]]){
    cylinder(x,.05,z,.11,.13,.69,'#665e48',9);
    cone(x,.79,z,.20,.29,'#ddae66',9);sphere(x,.97,z,.095,'#f5d18f',8);
   }
