@@ -301,8 +301,12 @@ function drawProps(g){
  function edwin(x,z,wearingCrown=false){
   piece(x,z,'P','black',false);
   // Edward's burgundy heraldic sash and gold badge distinguish him from ordinary pawns.
+  // Red cloak falls behind the pawn's recognisable head; it is NOT a crown.
+  box(x,.63,z-.26,.57,.78,.13,'#6c2945');
+  box(x,.29,z-.29,.68,.12,.15,'#bf6a65');
   box(x,.68,z+.305,.38,.54,.10,'#a44756');
   box(x+.125,.80,z+.37,.09,.16,.04,'#e3bc72');
+  sphere(x+.125,.81,z+.399,.056,'#f0d28b',8);
   for(const dx of [-.105,.105])sphere(x+dx,1.38,z+.285,.048,'#f7cb8c',8);
   if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);
  }
