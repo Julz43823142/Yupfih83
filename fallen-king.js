@@ -4,15 +4,15 @@ const gate=document.getElementById('fallen-gate'),game=document.getElementById('
 const dialog=document.getElementById('fallen-dialogue'),speaker=document.getElementById('fallen-speaker'),speech=document.getElementById('fallen-text');
 const pause=document.getElementById('fallen-pause'),volume=document.getElementById('fallen-volume'),volumeValue=document.getElementById('fallen-volume-value');
 const storageKey='eloscanner-fallen-king-admin-preview-v1',dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},pressed=new Set(),solid=new Set(['T','H','w','F','D','X']);
-let interior=null,mapOpen=false,world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
+let interior=null,outdoorState=null,mapOpen=false,world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
 const tile=(x,z)=>world?.tiles[z]?.[x]||'T';
 const hash=(x,z,n=0)=>{let h=Math.imul(x+31,73856093)^Math.imul(z+47,19349663)^Math.imul(n+3,83492791);h^=h>>>13;return (h>>>0)/4294967295;};
 function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
 function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
-function save(){try{localStorage.setItem(storageKey,JSON.stringify({version:world.version,x:player.x,y:player.y,facing:player.facing}));return true}catch{return false;}}
+function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:p.x,y:p.y,facing:p.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue||mapOpen||interior)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(canWalk(x,z)){player.x=x;player.y=z;save();}}
-function talk(){if(paused||mapOpen)return;if(interior){leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
+function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior)save();}}
+function talk(){if(paused||mapOpen)return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
@@ -93,12 +93,37 @@ function building(h){
  // Dormer and chimney with dark cap.
  box(x+w/2-.82,H+.22,z-.42,.51,.82,.49,'#bba486');
  box(x+w/2-.82,H+1.0,z-.42,.68,.15,.62,'#69504d');
+ if(h.name==='Town Hall'){box(x-w/2+.8,H+.1,z+.35,1.25,.72,1.35,'#b7a17d');box(x-w/2+.8,H+.87,z+.35,1.42,.12,1.48,'#50637a');}
+ if(h.name==='The Inn'){box(x+w/2-.42,.2,face+.14,.21,1.9,.16,'#795c48');box(x+w/2-.84,.75,face+.19,.18,.85,.11,'#b28d6b');}
+ if(h.name==='Village Library'){for(let i=0;i<3;i++)box(x-1.7+i*.28,1.94,face+.24,.09,.35,.08,'#6d8790');}
+ if(h.name==='The Workshop'){box(x-1.8,.34,face+.25,.72,.30,.20,'#756351');}
+ if(h.name==='The Bakery'){box(x-1.95,1.78,face+.20,.12,.44,.08,'#a68c6d');}
  // Consistent fascia ridge and roof tile rows; distinct height for stability.
  for(let i=-2;i<=2;i++){
   const tx=x+i*(w/6);
   box(tx,H+.055,z+d/2+.16,.10,.095,.14,'#e6ceaf');
  }
 }
+function drawBakeryInterior(){
+ for(let z=0;z<10;z++)for(let x=0;x<12;x++){
+  box(x+.5,-.20,z+.5,1,.16,1,(x+z)%2?'#ab7c55':'#b78a60');
+  if(z===0||z===9||x===0||x===11){
+   box(x+.5,0,z+.5,1,2.5,1,'#c7b38c');
+   if((x+z)%3===0)box(x+.5,.45,z+.5,1,.11,1,'#95714f');
+  }
+ }
+ box(6.5,.005,8.5,.85,.015,.85,'#d6bc8d');
+ box(5.5,.1,3.5,5,.88,1.2,'#835538','#b48153');
+ box(5.5,1.01,3.5,5.3,.16,1.35,'#e1c391');
+ for(let i=0;i<4;i++){sphere(3.7+i*1.1,1.27,3.55,.27,'#d7a45e',9);box(3.7+i*1.1,1.50,3.58,.25,.025,.05,'#f5d99c');}
+ box(9.5,.1,2.2,2.2,2.2,2.0,'#b17b5b');
+ box(9.5,.27,3.28,1.35,1.38,.12,'#493b32');
+ box(9.5,.32,3.38,.78,.35,.12,'#c86d3d');
+ for(const wx of [2.2,7.5]){box(wx,1.05,.54,1.3,1.05,.11,'#694b39');box(wx,1.16,.64,1.06,.82,.08,'#8db9bd');}
+ box(2.1,.65,5.0,1.1,.10,.5,'#77553d');
+ box(5.7,.012,6.25,2.5,.018,1.3,'#8c6251');box(5.7,.034,6.25,2.15,.018,.95,'#c59c74');
+}
+function villageProps(){box(19.5,.08,22.5,.44,.75,.42,'#735442');box(19.5,.88,22.5,.58,.18,.48,'#a34c43');box(19.5,1.03,22.5,.46,.06,.40,'#d4b58b');box(33.5,.05,20.5,.48,.55,.48,'#96714d');box(34.05,.05,20.55,.43,.37,.42,'#a9835b');cylinder(19.5,.04,12.5,.10,.09,1.65,'#70523b',8);box(19.5,1.35,12.5,1.3,.42,.15,'#b28a5d');}
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){
  const pale=color==='white',base=pale?'#e9ddc5':'#35435a',rim=pale?'#ad9b81':'#202a3a',light=pale?'#fff2d9':'#687991';
@@ -119,10 +144,10 @@ function piece(x,z,type,color,aldric=false){
  }
  if(type==='R'){
   cylinder(x,1.03,z,.28,.31,.58,base,12);
-  cylinder(x,1.60,z,.39,.38,.13,rim,12);
+  cylinder(x,1.60,z,.39,.38,.13,'#d1b98d',12);
   for(let i=0;i<8;i++){
    const a=i*Math.PI/4;
-   box(x+Math.cos(a)*.30,1.72,z+Math.sin(a)*.30,.16,.21,.16,light);
+   box(x+Math.cos(a)*.30,1.72,z+Math.sin(a)*.30,.16,.21,.16,i%2?'#bd9d71':light);
   }
   cylinder(x,1.75,z,.23,.23,.09,rim,10);
  }
@@ -136,17 +161,13 @@ function piece(x,z,type,color,aldric=false){
  }
  if(type==='N'){
   cylinder(x,1.03,z,.29,.28,.23,base,12);
-  box(x,1.31,z,.43,.61,.36,base);
-  sphere(x+.04,1.69,z-.09,.30,base,10);
-  cone(x+.22,1.45,z-.27,.17,.30,base,9);
-  sphere(x+.22,1.77,z-.33,.065,light,8);
-  box(x-.20,1.70,z+.02,.09,.25,.12,rim);
+  cylinder(x,1.23,z,.27,.23,.38,base,12);box(x+.03,1.53,z+.08,.38,.52,.35,base);box(x+.07,1.65,z+.31,.32,.27,.39,light);box(x+.07,1.48,z+.46,.25,.13,.25,rim);cone(x-.08,1.91,z-.07,.12,.30,base,8);cone(x+.18,1.92,z-.06,.12,.27,base,8);for(let i=0;i<4;i++)box(x-.17,1.40+i*.15,z-.15,.11,.11,.13,rim);sphere(x+.07,1.44,z+.60,.07,'#c4a995',8);
  }
  if(type==='Q'){
   cylinder(x,1.02,z,.28,.32,.64,base,12);cylinder(x,1.66,z,.37,.37,.16,rim,12);
-  cylinder(x,1.82,z,.29,.38,.26,light,12);
-  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;sphere(x+Math.cos(a)*.33,2.20,z+Math.sin(a)*.33,.115,light,7);}
-  sphere(x,2.30,z,.14,rim,9);
+  cylinder(x,1.82,z,.29,.38,.26,'#e1b66d',12);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;sphere(x+Math.cos(a)*.33,2.20,z+Math.sin(a)*.33,.115,i%2?'#f8d890':'#a884c3',7);}
+  sphere(x,2.30,z,.14,'#e8ca8b',9);
  }
  if(type==='K'){
   cylinder(x,1.02,z,.29,.31,.60,base,12);
@@ -159,66 +180,49 @@ function piece(x,z,type,color,aldric=false){
    sphere(x,2.13,z,.21,base,11);
    cylinder(x,1.59,z,.40,.39,.07,light,12);
   }else{
-   cylinder(x,1.95,z,.30,.30,.14,rim,12);
+   cylinder(x,1.95,z,.30,.30,.14,'#c59b54',12);
    for(let i=0;i<6;i++){
     const a=i*Math.PI/3;
-    sphere(x+Math.cos(a)*.28,2.18,z+Math.sin(a)*.28,.12,light,7);
+    sphere(x+Math.cos(a)*.28,2.18,z+Math.sin(a)*.28,.12,i%2?'#e9be67':'#f8e3a5',7);
    }
   }
  }
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const characterLooks={
- pip:{accent:'#d39b5b',face:'bright',trim:'#f0d7a0'},
- baker:{accent:'#b76c4f',face:'cheerful',trim:'#f7e0a6'},
- guard:{accent:'#426d89',face:'stern',trim:'#c9c7ac'},
- scholar:{accent:'#806a9e',face:'thoughtful',trim:'#d4c4f0'},
- courier:{accent:'#bd8847',face:'alert',trim:'#e8c788'},
- gardener:{accent:'#638d57',face:'gentle',trim:'#b7d6a0'},
- aldric:{accent:'#af8a54',face:'determined',trim:'#f5dfab'}
+ pip:{accent:'#cc8f4b',trim:'#f4cf83',face:'curious',outfit:'scarf'},
+ baker:{accent:'#b75f4c',trim:'#fff1c9',face:'smile',outfit:'apron'},
+ guard:{accent:'#4d728a',trim:'#d6c79d',face:'stern',outfit:'uniform'},
+ scholar:{accent:'#765b9b',trim:'#cbb7e6',face:'calm',outfit:'coat'},
+ courier:{accent:'#a87a44',trim:'#d9b67c',face:'alert',outfit:'satchel'},
+ gardener:{accent:'#578e63',trim:'#a8d4a0',face:'sleepy',outfit:'vest'},
+ aldric:{accent:'#b59b63',trim:'#eee0bd',face:'serious',outfit:'regal'},
+ showcase:{accent:'#c5b29b',trim:'#e8dbca',face:'calm',outfit:'plain'}
 };
 function features(x,z,type,color,aldric=false,id=''){
- const look=characterLooks[id]||characterLooks[aldric?'aldric':'pip'];
- const pale=color==='white';
- // Light sclera and tiny warm-gray pupils, never giant black doll eyes.
- const sclera=pale?'#f6eee0':'#f3ede2',pupil='#554b45';
- // Position the face on the actual head or tower, including the knight.
- const eyeY=type==='P'?1.36:type==='N'?1.75:type==='R'?1.43:type==='B'?1.53:1.90;
- const eyeZ=type==='N'?.125:type==='P'?.283:type==='R'?.315:type==='B'?.275:.275;
- const eyeX=type==='N'?.04:0;
+ const look=characterLooks[id]||characterLooks.showcase,pale=color==='white';
+ const eyeY=type==='P'?1.36:type==='N'?1.72:type==='R'?1.42:type==='B'?1.52:1.89;
+ const eyeZ=type==='N'?.205:type==='P'?.278:type==='R'?.315:type==='B'?.276:.275;
+ const eyeX=type==='N'?.10:0;
  for(const side of [-1,1]){
   const ex=x+eyeX+side*.108;
-  sphere(ex,eyeY,z+eyeZ,.062,sclera,9);
-  sphere(ex+side*.012,eyeY-.007,z+eyeZ+.050,.024,pupil,8);
-  // Individual eyebrow angle and thickness, subtle rather than cartoonish.
-  const browY=eyeY+(look.face==='stern'?.115:.100);
-  box(ex,browY,z+eyeZ+.012,.118,.023,.038,
-    look.face==='thoughtful'?'#b0a8a0':pale?'#a18e7a':'#d7c9b5');
+  sphere(ex,eyeY,z+eyeZ,.064,pale?'#fff6e8':'#f7eee1',9);
+  sphere(ex+side*(look.face==='curious'?.018:0),eyeY-.005,z+eyeZ+.056,.023,'#64544a',8);
+  box(ex,eyeY+(look.face==='sleepy'?.073:.109),z+eyeZ+.018,.105,.018,.035,pale?'#ae9783':'#c7b5a4');
  }
- // Small mouths with restrained expression; no exaggerated smiling pawns.
- const mouthY=eyeY-.16;
- if(look.face==='cheerful'){
-  box(x+eyeX,mouthY,z+eyeZ+.052,.14,.022,.035,'#a47768');
-  sphere(x+eyeX-.070,mouthY+.014,z+eyeZ+.055,.022,'#ad8070',6);
-  sphere(x+eyeX+.070,mouthY+.014,z+eyeZ+.055,.022,'#ad8070',6);
- }else if(look.face==='stern'||look.face==='determined'){
-  box(x+eyeX,mouthY,z+eyeZ+.046,.14,.025,.035,'#847365');
- }else if(look.face==='alert'){
-  sphere(x+eyeX,mouthY,z+eyeZ+.052,.035,'#8b7567',8);
- }else{
-  box(x+eyeX,mouthY,z+eyeZ+.046,.10,.018,.025,'#ad9180');
- }
- // Chess-inspired clothing details: coloured enamel bands, collars and badges.
- // No human arms, hands or hair; silhouettes stay recognisably chess pieces.
- cylinder(x,.69,z,.245,.245,.075,look.accent,12);
- cylinder(x,.77,z,.222,.222,.045,look.trim,12);
- box(x,.57,z+.241,.15,.19,.045,look.accent);
- if(id==='baker'){sphere(x,.60,z+.290,.052,'#e8cf92',8);}
- if(id==='guard'){box(x,1.10,z+.335,.15,.19,.045,look.accent);}
- if(id==='scholar'){sphere(x,1.06,z+.245,.075,look.trim,8);}
- if(id==='courier'){box(x,.50,z+.30,.19,.11,.055,look.trim);}
- if(id==='gardener'){sphere(x+.23,.94,z+.06,.085,'#a5c178',8);}
- if(aldric){cylinder(x,1.60,z,.39,.39,.065,look.accent,12);}
+ const mouthY=eyeY-.16,mouthZ=z+eyeZ+.047;
+ if(look.face==='smile')box(x+eyeX,mouthY,mouthZ,.11,.018,.035,'#ae7d68');
+ else if(look.face==='alert')sphere(x+eyeX,mouthY,mouthZ,.032,'#987c6c',7);
+ else if(look.face==='stern'||look.face==='serious')box(x+eyeX,mouthY,mouthZ,.14,.021,.030,'#806b5f');
+ else box(x+eyeX,mouthY,mouthZ,.09,.014,.025,'#ad9585');
+ if(look.outfit==='scarf'){cylinder(x,.88,z,.26,.26,.13,look.accent,12);box(x+.17,.62,z+.24,.13,.36,.11,look.trim);}
+ else if(look.outfit==='apron'){box(x,.43,z+.245,.43,.55,.10,look.trim);box(x,.61,z+.311,.33,.06,.055,look.accent);sphere(x,.47,z+.325,.055,'#c99056',7);}
+ else if(look.outfit==='uniform'){cylinder(x,.69,z,.29,.29,.15,look.accent,12);box(x,.65,z+.275,.26,.33,.08,look.trim);sphere(x,.83,z+.29,.075,'#e7ce7c',8);}
+ else if(look.outfit==='coat'){cylinder(x,.39,z,.30,.245,.50,look.accent,12);box(x,.52,z+.268,.06,.46,.08,look.trim);sphere(x,.62,z+.313,.043,look.trim,7);}
+ else if(look.outfit==='satchel'){box(x+.26,.47,z+.13,.26,.40,.24,look.accent);box(x+.21,.84,z+.23,.09,.36,.08,look.trim);}
+ else if(look.outfit==='vest'){cylinder(x,.43,z,.28,.25,.42,look.accent,12);box(x,.60,z+.264,.12,.34,.075,look.trim);sphere(x+.19,.96,z+.05,.11,'#78aa67',8);}
+ else if(look.outfit==='regal'){cylinder(x,.52,z,.34,.31,.39,look.accent,12);cylinder(x,.94,z,.29,.29,.09,look.trim,12);box(x,.69,z+.32,.19,.23,.07,'#e2c782');}
+ else cylinder(x,.72,z,.24,.24,.07,look.trim,12);
 }
 
 function ground(x,z){
@@ -251,10 +255,8 @@ function ground(x,z){
    box(px,.027,pz,.22,.013,.14,'#907c60');
    box(px-.11,.031,pz+.06,.12,.013,.05,'#a38e70');
   }
-  if(n>.91){
-   box(x+.29,.027,z+.53,.07,.013,.23,'#988b74');
-   box(x+.35,.030,z+.64,.17,.013,.05,'#988b74');
-  }
+  if(n>.91){box(x+.29,.027,z+.53,.07,.013,.23,'#988b74');box(x+.35,.030,z+.64,.17,.013,.05,'#988b74');}
+  if(n>.74&&n<.81){cylinder(x+.42,.031,z+.58,.25,.23,.013,'#8d7e63',10);box(x+.41,.050,z+.57,.24,.009,.045,'#b1b6a5');}
  } else if(water){
   // Static lily pads, shoreline and small ripples.
   const shore='#b8c68b';
@@ -290,15 +292,17 @@ function fountain(x,z){
  for(let i=0;i<8;i++){const a=i*Math.PI/4;const px=x+Math.cos(a)*.49,pz=z+Math.sin(a)*.49;box(px,.48,pz,.11,.025,.07,'#b3e0dc');}
 }
 function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,.85),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-const aspect=w/Math.max(h,1),zoom=aspect<1?5.6:5.0;vertices=[];
+const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
- // Static terrain and buildings are generated and uploaded once, not each frame.
+ // Static geometry is regenerated on entering and leaving a room.
+ if(interior){drawBakeryInterior();}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
   ground(x,z);
   if(tile(x,z)==='T')tree(x+.5,z+.5);
   if(tile(x,z)==='F')fountain(x+.5,z+.5);
  }
  for(const h of world.houses||[])building(h);
+ villageProps();
  for(const s of world.showcase||[]){
   // Raised stone plinths make the display visible against the plaza.
   const sx=s.x+.5,sz=s.y+.5;
@@ -308,6 +312,7 @@ if(!staticReady){
   piece(sx,sz,s.piece,s.color,false);
   features(sx,sz,s.piece,s.color,false,'showcase');
 }
+ }
  staticCount=vertices.length/9;
  gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
@@ -324,12 +329,12 @@ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
 }
-function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}updateDoorHint();draw(sceneTime);requestAnimationFrame(frame);}
-function togglePause(force){if(!world)return;if(mapOpen)closeMap();if(interior)return;paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(mapOpen){closeMap();return;}if(interior){leaveHouse();return;}togglePause();return;}if(paused||mapOpen||interior)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);requestAnimationFrame(frame);}
+function togglePause(force){if(!world)return;if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
-for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen||interior)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
+for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
 document.querySelector('[data-action="talk"]').addEventListener('click',talk);
 
 const mapPanel=document.getElementById('fallen-map'),mapCanvas=document.getElementById('fallen-map-canvas');
@@ -340,7 +345,7 @@ function drawMap(){
  for(let y=0;y<world.height;y++)for(let x=0;x<world.width;x++){
   ctx.fillStyle=colors[tile(x,y)]||colors['.'];ctx.fillRect(x*scale,y*scale,scale,scale);
  }
- for(const h of world.houses||[]){ctx.fillStyle='#f3e1b9';ctx.font='bold 9px sans-serif';ctx.fillText(h.name.slice(0,12),(h.x-1)*scale,(h.y-1)*scale);}
+ for(const h of world.houses||[]){const dx=h.x+Math.floor(h.w/2),dy=h.y+h.h;ctx.fillStyle='#f8edce';ctx.fillRect(dx*scale-2,dy*scale-2,5,5);ctx.fillStyle='#142a35';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#f8e6bd';ctx.strokeText(h.name,(h.x+h.w/2)*scale,(h.y-1.2)*scale);ctx.fillText(h.name,(h.x+h.w/2)*scale,(h.y-1.2)*scale);}ctx.textAlign='left';
  for(const s of world.showcase||[]){ctx.fillStyle='#f5d78b';ctx.fillRect(s.x*scale+3,s.y*scale+3,4,4);}
  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc((player.x+.5)*scale,(player.y+.5)*scale,5,0,Math.PI*2);ctx.fill();
  ctx.strokeStyle='#26364c';ctx.lineWidth=2;ctx.stroke();
@@ -353,19 +358,29 @@ const housePanel=document.getElementById('fallen-house');
 function enterHouse(x,y){
  const h=(world.houses||[]).find(h=>x>=h.x&&x<h.x+h.w&&y>=h.y&&y<h.y+h.h);
  if(!h)return;
- if(h.name!=='The Bakery'){
-  speaker.textContent=h.name;speech.textContent='The door is closed for now. The bakery on the north-west side of the square is open.';dialogue={npc:{lines:[speech.textContent]},i:0};dialog.hidden=false;pressed.clear();return;
- }
- interior=h;pressed.clear();housePanel.hidden=false;
- document.getElementById('fallen-house-name').textContent='The Bakery';
- document.getElementById('fallen-house-text').textContent='The smell of warm bread fills the bakery. A wooden counter, a brick oven and a sunlit window make this a cosy stop in Willowmere.';
+ if(h.name!=='The Bakery'){speaker.textContent=h.name;speech.textContent='This door is locked for now. The bakery is open.';dialogue={npc:{lines:[speech.textContent]},i:0};dialog.hidden=false;pressed.clear();return;}
+ outdoorState={world,player:{...player},cam:{...cam}};interior=h;
+ const width=12,height=10,rows=Array.from({length:height},(_,z)=>Array.from({length:width},(_,x)=>x===0||z===0||x===width-1||z===height-1?'H':'.'));
+ for(let z=3;z<=4;z++)for(let x=3;x<=8;x++)rows[z][x]='X';
+ for(let z=1;z<=3;z++)for(let x=9;x<=10;x++)rows[z][x]='X';
+ rows[5][2]='X';rows[8][6]='D';
+ world={width,height,tiles:rows.map(r=>r.join('')),houses:[],npcs:[],showcase:[],version:outdoorState.world.version};
+ player={x:6,y:7,facing:'up'};visual={x:6,z:7};cam={x:5.5,z:4.7};staticReady=false;pressed.clear();
+ const label=document.getElementById('fallen-interior-label');label.hidden=false;label.textContent='The Bakery · Walk around · Exit through the south door';
+ canvas.focus({preventScroll:true});
 }
-function leaveHouse(){interior=null;housePanel.hidden=true;canvas.focus({preventScroll:true});}
+function leaveHouse(){
+ if(!interior||!outdoorState)return;
+ world=outdoorState.world;player=outdoorState.player;cam=outdoorState.cam;visual={x:player.x,z:player.y};
+ interior=null;outdoorState=null;staticReady=false;pressed.clear();
+ document.getElementById('fallen-interior-label').hidden=true;canvas.focus({preventScroll:true});
+}
 function updateDoorHint(){
  const hint=document.getElementById('fallen-door-hint');if(!hint||!world)return;
+ if(interior){hint.hidden=!(player.y>=7&&!paused);if(!hint.hidden)hint.textContent='Walk south to the door · Leave Bakery';return;}
  const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;
  const h=tile(tx,tz)==='D'?(world.houses||[]).find(h=>tx>=h.x&&tx<h.x+h.w&&tz>=h.y&&tz<h.y+h.h):null;
- hint.hidden=!h||!!interior||mapOpen||paused||!!dialogue;
+ hint.hidden=!h||mapOpen||paused||!!dialogue;
  if(h)hint.textContent=h.name==='The Bakery'?'E / Space · Enter the Bakery':'E / Space · Check '+h.name;
 }
 document.getElementById('fallen-house-exit').addEventListener('click',leaveHouse);
