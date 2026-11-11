@@ -4,7 +4,7 @@ import {PIECE_ORDER,PIECE_LABELS,PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnS
 import {createPawnDashModel} from './pawn-world-logic.mjs';
 // Original EloScanner Pawn Dash: a chess-themed, perspective crossing game.
 // No game sprites, levels or assets from third-party titles are used.
-export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=()=>{}}){
+export function createPawnWorld({host,seed,onScore,onHit,onRetry=()=>{},onStatus,onPauseChange=()=>{}}){
  const sound=createPawnSound();
  const root=document.createElement('div');root.className='pawn-world pawn-world-immersive';
  const menuButton=document.createElement('button');menuButton.type='button';menuButton.className='pawn-world-menu-button';menuButton.textContent='☰ Menu';menuButton.setAttribute('aria-label','Open game menu');
@@ -55,9 +55,18 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  }
  const audioBack=document.createElement('button');audioBack.type='button';audioBack.textContent='← Back to menu';audioPanel.append(audioBack);
  soundButton.onclick=()=>{sound.unlock();sound.play('menu');audioPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true};
- audioBack.onclick=()=>{sound.play('menu');audioPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
+ audioBack.onclick=()=>{sound.play('menu');audioPanel.hidden=true;if(dead){gameOverPanel.hidden=false;return}menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
  const menuHelp=document.createElement('p');menuHelp.textContent='Tap to hop · Swipe to steer · Collect 1 coin at a time · Explore 30 skins · Esc pauses';
- overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel,audioPanel);
+ const gameOverPanel=document.createElement('section');gameOverPanel.className='pawn-game-over';gameOverPanel.hidden=true;
+ const gameOverTitle=document.createElement('h2');gameOverTitle.textContent='GAME OVER';
+ const gameOverMessage=document.createElement('p');gameOverMessage.textContent='You died! One life, one run.';
+ const gameOverScore=document.createElement('p');gameOverScore.className='pawn-game-over-score';
+ const retryButton=document.createElement('button');retryButton.type='button';retryButton.textContent='Retry';
+ const skinsButton=document.createElement('button');skinsButton.type='button';skinsButton.textContent='Skins';
+ const musicButton=document.createElement('button');musicButton.type='button';musicButton.textContent='Music';
+ const gameOverExit=document.createElement('button');gameOverExit.type='button';gameOverExit.textContent='Exit to minigames';
+ gameOverPanel.append(gameOverTitle,gameOverMessage,gameOverScore,retryButton,skinsButton,musicButton,gameOverExit);
+ overlay.append(menuTitle,resume,shopButton,soundButton,exit,menuHelp,shopPanel,audioPanel,gameOverPanel);
  let wallet;
  let runCoins=0; // Only physical coin pickups increase this run's earnings.
  try{wallet=readPawnWallet(localStorage.getItem('eloscanner-pawn-shop-v1'))}catch{wallet=readPawnWallet(null)}
@@ -114,9 +123,20 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  }
  shopButton.onclick=()=>{sound.play('menu');activeCategory=null;shopPanel.hidden=false;menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true;refreshShop()};
  shopCategoryBack.onclick=()=>{sound.play('menu');activeCategory=null;refreshShop()};
- shopBack.onclick=()=>{sound.play('menu');shopPanel.hidden=true;menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
+ shopBack.onclick=()=>{sound.play('menu');shopPanel.hidden=true;if(dead){gameOverPanel.hidden=false;return}menuTitle.hidden=false;resume.hidden=false;shopButton.hidden=false;soundButton.hidden=false;exit.hidden=false;menuHelp.hidden=false};
  const setMenu=open=>{sound.play('menu');if(!open&&!audioPanel.hidden)audioBack.click();if(!open&&shopPanel&&!shopPanel.hidden)shopBack.click();if(!open&&pausedAt){const delta=performance.now()-pausedAt;origin+=delta;invincibleUntil+=delta;if(hop)hop.since+=delta;pausedAt=0;}if(open&&!pausedAt)pausedAt=performance.now();overlay.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));onPauseChange(open);if(!open)canvas.focus({preventScroll:true})};
- menuButton.onclick=()=>{sound.unlock();setMenu(overlay.hidden)};resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
+ menuButton.onclick=()=>{if(!dead){sound.unlock();setMenu(overlay.hidden)}};resume.onclick=()=>setMenu(false);exit.onclick=()=>{location.href='/minigames.html'};
+ retryButton.onclick=()=>onRetry();
+ skinsButton.onclick=()=>{gameOverPanel.hidden=true;shopButton.click()};
+ musicButton.onclick=()=>{gameOverPanel.hidden=true;soundButton.click()};
+ gameOverExit.onclick=()=>{location.href='/minigames.html'};
+ function showGameOver(finalScore){
+  dead=true;cancelAnimationFrame(raf);raf=0;
+  gameOverScore.textContent='Final score: '+finalScore;
+  menuTitle.hidden=true;resume.hidden=true;shopButton.hidden=true;soundButton.hidden=true;exit.hidden=true;menuHelp.hidden=true;
+  shopPanel.hidden=true;audioPanel.hidden=true;gameOverPanel.hidden=false;
+  overlay.hidden=false;menuButton.hidden=true;controls.hidden=true;
+ }
  const canvas=document.createElement('canvas');canvas.className='pawn-world-canvas';canvas.tabIndex=0;
  canvas.setAttribute('aria-label','Pawn Dash in a chess club: tap to hop on a giant chessboard, collect coins and cross clockwork chasms on wooden drawbridges');
  const controls=document.createElement('div');controls.className='pawn-world-controls';controls.setAttribute('aria-label','Pawn Dash movement controls');
@@ -403,7 +423,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   while(row>0&&lane(row)!=='meadow')row--;
   return {x:4,row};
  }
- function hit(reason='hit'){sound.play(reason);invincibleUntil=performance.now()+1500;player=safeRespawn();hop=null;onHit();}
+ function hit(reason='hit'){if(dead)return;sound.play(reason);dead=true;hop=null;onHit();}
  function move(dx,dy){
   const now=performance.now();
   if(dead||!overlay.hidden||now-lastMove<105)return;
@@ -536,6 +556,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
    root.removeEventListener('dblclick',preventZoom);
    root.remove();document.body.classList.remove('pawn-dash-active');
   },
+  showGameOver,
   getProgress:()=>highest
  };
 }
