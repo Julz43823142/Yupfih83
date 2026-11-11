@@ -29,7 +29,7 @@ function cellWorld(){const w=createWorld(25,16,'H');
  // A continuous castle complex: guard corridor to the north, two flanking cells, Oliver's cell in the middle.
  for(let y=1;y<=13;y++)for(let x=1;x<=23;x++)updateTile(w,x,y,'s');
  for(let x=1;x<=23;x++)updateTile(w,x,5,'H'); // Locked northern cell fronts (visible iron bars).
- for(let y=5;y<=13;y++)for(const x of [6,18])updateTile(w,x,y,'H'); // Transparent barred partitions.
+ for(let y=5;y<=13;y++)for(const x of [6,18])updateTile(w,x,y,'H'); // Thick stone walls with narrow peephole windows.
  for(let x=1;x<=23;x++)updateTile(w,x,14,'H'); // South exterior wall and barred window.
  for(let x=1;x<=23;x++)updateTile(w,x,0,'H');
  for(let y=1;y<=14;y++){updateTile(w,0,y,'H');updateTile(w,24,y,'H');}
@@ -248,7 +248,7 @@ function backdrop(){if(scene==='cell')return [.004,.007,.012];if(scene==='sewer'
 function sightOpaque(x,z){if(scene!=='cell')return false;const w=engine.getWorld();if(x<0||z<0||x>=w.width||z>=w.height)return true;
  // Partition bars and the north gate block walking, but NOT the line of sight.
  if(z===5&&x>=1&&x<=23)return false;
- if((x===6||x===18)&&z>=5&&z<=13)return false;
+ if((x===6||x===18)&&z>=9&&z<=10)return false; // Sight only through each narrow spy window.
  if(z===14&&x>=11&&x<=13)return false; // South-facing barred window.
  return w.tiles[z]?.[x]==='H';}
 function fieldOfView(){if(scene!=='cell'||!engine)return null;return {enabled:true,radius:13,isOpaque:sightOpaque};}
@@ -337,7 +337,7 @@ function drawProps(g){
     if(kind==='approach')edwin(15.1,8.7);
     if(kind==='theft'){edwin(13.0,7.4);dp?.crown?.(g,12.55,1.65,7.0,.88);}
     if(kind==='confrontation')edwin(12.7,7.0,true);
-    if(kind==='arrest'){edwin(13.7,7.0,true);for(const x of [6.5,11])piece(x,8.8,'R','white',false);}
+    if(kind==='arrest'){edwin(13.7,7.0,true);for(const x of [6.5,11]){piece(x,8.8,'R','white',false);features(x,8.8,'R','white',false,'guard');}}
   }else if(kind==='throne'){
     box(9,.62,3.8,3.4,1.24,1.4,'#916b54');box(9,1.42,3.7,2,1.6,.47,'#a44b53');
     // Edwin wears the crown and royal disguise; Oliver remains unmistakably crownless.
@@ -371,10 +371,21 @@ function drawProps(g){
   rails(18.85,23.8,5.18);
   for(const x of [10.95,13.0]){box(x,.27,5.22,.18,.53,.32,'#77878b');box(x,1.83,5.22,.20,.43,.26,'#77878b');}
   box(12.0,1.04,5.33,.22,.43,.18,'#b2a37f');sphere(12.0,1.34,5.45,.062,'#283e43',8);
-  for(let z=6;z<=13;z+=.52){ // West and east side cells have transparent iron bars, not thick walls.
-   for(const x of [6.5,18.5]){cylinder(x,.09,z,.048,.051,1.92,iron,9);sphere(x,2.02,z,.066,'#859196',7);}
+  // Solid stone partitions left and right. One narrow barred peephole at eye level.
+  for(const x of [6.5,18.5]){
+   for(let z=5.8;z<13.8;z+=.90){
+    if(z>9.0&&z<10.8){
+     box(x,.53,z+.44,.80,1.06,.92,'#798282');
+     box(x,2.05,z+.44,.80,.58,.92,'#87908c');
+     for(const zz of [z+.23,z+.63])cylinder(x,1.28,zz,.055,.056,.90,'#3f5057',9);
+     box(x,1.05,z+.44,.90,.12,.95,'#b0b0a4');
+     box(x,1.71,z+.44,.90,.12,.95,'#b0b0a4');
+    }else{
+     if(!model('wall',x,0,z+.43,.80,2.36,.89))box(x,1.18,z+.43,.82,2.36,.9,'#707b7e');
+    }
+   }
+   box(x,2.35,9.7,.88,.20,8.3,'#89918b');
   }
-  for(const x of [6.5,18.5])for(const y of [.20,1.97])box(x,y,9.7,.16,.13,8.4,'#35464c');
   // Structural posts sit BEHIND the bars and mark the cell corners.
   for(const x of [6.5,18.5])for(const z of [5.3,13.55]){
    cylinder(x,.05,z,.21,.23,2.35,'#777f7f',11);
@@ -414,14 +425,10 @@ function drawProps(g){
   box(12.5,.67,14.30,3.13,.14,.58,'#828e8b');
   // Cool moonlight pool on the floor, carefully flat and separate from the warm candle.
   for(const [x,z] of [[12.4,12.6],[12.9,12.1],[11.8,12.9]])box(x,.013,z,.44,.012,.69,'#7c9c9f');
-  if(scene==='intro'){drawOliver(12.5,9.4);for(const x of [11.4,13.9])piece(x,7.0,'R','white',false);}
+  if(scene==='intro'){drawOliver(12.5,9.4);for(const x of [11.4,13.9]){piece(x,7.0,'R','white',false);features(x,7.0,'R','white',false,'guard');}}
   // One readable torch and a small iron pail; never wooden crates or random gate props.
   box(15.3,.85,6.0,.25,.17,.22,'#68767a');torch(15.3,6.0);
-  cylinder(8.25,.09,11.45,.24,.29,.43,'#5d6b71',10);
-  cylinder(8.25,.51,11.45,.30,.31,.07,'#a2adaf',10);
-  cylinder(8.25,.53,11.45,.21,.21,.02,'#2b4147',10);
-  model('stones',9.0,0,12.25,.66,.22,.60);
-  for(const x of [7.4,16.9]){box(x,.10,13.24,.60,.07,.32,'#596f70');}
+  // Remove the previously unreadable circular prop from the lower-left corner.
  }else if(scene==='sewer'){
   const world=engine.getWorld(),wet='#536a6c',ironDark='#42555b';
   // Walls are only modelled along the actual winding walkways; dead ends are visibly solid stone.
