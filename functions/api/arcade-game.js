@@ -7,7 +7,9 @@ const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Contro
 // Retain an authentic offline fallback when upstream requests are rate-limited.
 const archived={id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',whiteElo:2100,blackElo:2000,
  moves:['e2e4','c7c5','g1f3','b8c6','f1c4','e7e6','c2c3','b7b5','c4b3','c5c4','b3c2','a7a5','d2d4','c4d3','d1d3','g8f6','e4e5','f6d5','c1g5','d8c7','b1d2','h7h6','g5h4','c8a6','b2b3','d5f4']};
-const fail=excluded=>{if(excluded.has(archived.id))return reply({error:'No new rated game available right now. Retry in a moment.'},503);const side=Math.random()<.5?'white':'black';return reply({...archived,side,elo:side==='white'?archived.whiteElo:archived.blackElo,archived:true})};
+const fail=excluded=>{ // An authentic archived game is preferable to a permanently broken minigame.
+ // The same real game may recur when upstream archives are unavailable; never fabricate games.
+const side=Math.random()<.5?'white':'black';return reply({...archived,side,elo:side==='white'?archived.whiteElo:archived.blackElo,archived:true})};
 const timeout=()=>AbortSignal.timeout(6500);
 const ratings=g=>[g?.players?.white?.rating,g?.players?.black?.rating];
 async function lichessFallback({request}){
@@ -61,7 +63,8 @@ export async function onRequestGet({request}){
   const names=['hikaru','gothamchess','ericrosen','chessbrah'];
   const now=new Date(),first=Math.floor(Math.random()*names.length),monthOffsets=[1,2,3,5,7,10,13,17];
   // Try distinct archived months and players, not one current-month sample.
-  for(let attempt=0;attempt<3;attempt++){
+  for(let attempt=0;attempt<4;attempt++){
+   try{
    const player=names[(first+attempt)%names.length],monthOffset=monthOffsets[(Math.floor(Math.random()*monthOffsets.length)+attempt)%monthOffsets.length];
    const month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));
    let monthKey=month.getUTCFullYear()+'/'+String(month.getUTCMonth()+1).padStart(2,'0');
@@ -100,6 +103,7 @@ export async function onRequestGet({request}){
    if(!choices.length)continue;
    const game=choices[Math.floor(Math.random()*choices.length)],side=Math.random()<.5?'white':'black';
    return reply({platform:'chesscom',id:game.url.split('/').pop(),link:game.url,pgn:game.pgn,side,elo:game[side].rating});
+   }catch{continue} // One failed month must not abort all other archives.
   }
   throw Error('Chess.com archive unavailable');
  }catch{
