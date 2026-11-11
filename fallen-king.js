@@ -23,7 +23,7 @@ const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER
 const posLoc=gl.getAttribLocation(program,'p'),normLoc=gl.getAttribLocation(program,'n'),colorLoc=gl.getAttribLocation(program,'c'),camLoc=gl.getUniformLocation(program,'cam'),aspectLoc=gl.getUniformLocation(program,'aspect'),zoomLoc=gl.getUniformLocation(program,'zoom');
 const buffer=gl.createBuffer(),staticBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
 gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
-gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.39,.56,.36,1);
+gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clearColor(.39,.56,.36,1);
 let vertices=[],staticCount=0,staticReady=false;
 function rgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}
 function tri(a,b,c,color){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1,k=rgb(color);for(const p of [a,b,c])vertices.push(...p,n[0]/l,n[1]/l,n[2]/l,...k);}
@@ -33,42 +33,118 @@ function cylinder(x,y,z,r0,r1,h,color,sides=12){for(let i=0;i<sides;i++){const a
 function sphere(x,y,z,r,color,detail=9){for(let j=0;j<detail;j++){const v0=-Math.PI/2+j*Math.PI/detail,v1=-Math.PI/2+(j+1)*Math.PI/detail;for(let i=0;i<detail*2;i++){const a=i*Math.PI/detail,b=(i+1)*Math.PI/detail;const pt=(v,t)=>[x+r*Math.cos(v)*Math.cos(t),y+r*Math.sin(v),z+r*Math.cos(v)*Math.sin(t)];quad(pt(v0,a),pt(v0,b),pt(v1,b),pt(v1,a),color);}}}
 function cone(x,y,z,r,h,color,sides=9){cylinder(x,y,z,r,0,h,color,sides);}
 function roof(x,z,w,d,h,color){const e=.17,r=h+.94;quad([x-w/2-e,h,z-d/2-e],[x+w/2+e,h,z-d/2-e],[x+w/2+e,r,z],[x-w/2-e,r,z],color);quad([x-w/2-e,r,z],[x+w/2+e,r,z],[x+w/2+e,h,z+d/2+e],[x-w/2-e,h,z+d/2+e],color);tri([x-w/2-e,h,z-d/2-e],[x-w/2-e,r,z],[x-w/2-e,h,z+d/2+e],'#70505b');tri([x+w/2+e,h,z+d/2+e],[x+w/2+e,r,z],[x+w/2+e,h,z-d/2-e],'#70505b');}
-function building(h){const x=h.x+h.w/2,z=h.y+h.h/2,w=h.w-.15,d=h.h-.15,H=2.5;box(x,0,z,w,H,d,'#d9c9a6','#e7d6b2');roof(x,z,w,d,H,({red:'#a34f55',blue:'#456d8a',orange:'#b77445',purple:'#70537d',navy:'#4b586c'})[h.roof]||'#a44c52');const front=z+d/2+.012;box(x,.7,front,.92,1.38,.065,'#593c30');box(x-.95,1.48,front,.67,.72,.075,'#638b98');box(x+.95,1.48,front,.67,.72,.075,'#638b98');box(x-.95,1.48,front+.045,.07,.8,.09,'#dfcda2');box(x+.95,1.48,front+.045,.07,.8,.09,'#dfcda2');box(x,2.42,front+.04,1.25,.12,.11,'#8d7453');cylinder(x+.33,1.25,front+.08,.055,.055,.07,'#e7cb80',8);box(x+w/2-.8,H+.22,z-.4,.5,.85,.5,'#c4aa86');
- // Timber trims, raised stone foundation, pane borders, lintels, shutters and a hanging sign.
- box(x,.10,front+.07,w,.22,.13,'#927d68');
- for(const edge of [x-w/2+.17,x+w/2-.17]){
-   box(edge,1.32,front+.09,.13,2.36,.19,'#927154');
-   box(edge,2.53,front+.08,.23,.18,.21,'#f2e2bb');
+function building(h){
+ const x=h.x+h.w/2,z=h.y+h.h/2,w=h.w-.15,d=h.h-.15,H=2.5;
+ const roofColors={red:'#a34f55',blue:'#456d8a',orange:'#b77445',purple:'#70537d',navy:'#4b586c'};
+ const roofColor=roofColors[h.roof]||roofColors.red;
+ // Solid structure; every accent is placed clearly in front of the facade,
+ // rather than coplanar with the wall or another trim (prevents z-fighting).
+ box(x,0,z,w,H,d,'#d9c9a6','#e7d6b2');
+ roof(x,z,w,d,H,roofColor);
+ const face=z+d/2, trim=face+.13, detail=face+.31;
+ // One continuous stone foundation and a tidy timber fascia.
+ box(x,.08,face+.10,w-.14,.17,.13,'#a58b70');
+ box(x,H-.18,face+.12,w-.2,.17,.13,'#8f6a4b');
+ box(x,H-.44,face+.17,w-.36,.09,.10,'#edd4a4');
+ // Wall stones are deliberately separated, not intersecting corner posts.
+ for(let side of [-1,1]){
+  const sx=x+side*(w/2-.53);
+  for(let row=0;row<3;row++){
+   box(sx, .37+row*.56,trim+.025,.32,.11,.09,row%2?'#c7af8c':'#baa587');
+  }
  }
- box(x,2.58,front+.075,w,.17,.14,'#f5e1ae');
- for(const wx of [x-.95,x+.95]){
-   box(wx,1.49,front+.12,.77,.11,.13,'#e8d7ad');
-   box(wx,1.12,front+.12,.77,.11,.13,'#e8d7ad');
-   box(wx-.38,1.45,front+.14,.10,.73,.14,'#f1d9ab');
-   box(wx+.38,1.45,front+.14,.10,.73,.14,'#f1d9ab');
-   box(wx,1.48,front+.16,.09,.75,.09,'#ecd7aa');
-   box(wx-.52,1.48,front+.12,.14,.86,.10,'#785f47');
-   box(wx+.52,1.48,front+.12,.14,.86,.10,'#785f47');
+ // Windows: recessed blue glass with a single contrasting wood frame.
+ for(const wx of [x-1.30,x+1.30]){
+  box(wx,1.37,face+.10,.91,.95,.13,'#7b5840');
+  box(wx,1.40,face+.20,.70,.73,.10,'#608e9e');
+  box(wx,1.40,face+.29,.08,.72,.06,'#f0dfb9');
+  box(wx,1.40,face+.29,.70,.075,.06,'#f0dfb9');
+  box(wx, .88,face+.16,1.05,.11,.22,'#dfc79f');
+  // Flower boxes provide details without additional animation.
+  box(wx,.76,face+.30,.91,.16,.29,'#93684b');
+  for(let i=-1;i<=1;i++){
+   sphere(wx+i*.23,.92,face+.38,.105,i===0?'#639353':'#82a65a',6);
+  }
  }
- box(x,2.38,front+.14,1.8,.35,.12,'#795b3e');
- box(x,2.39,front+.23,1.56,.20,.08,'#e6cc92');
- // Readable door frame, step and roof ornament (no extra textures/downloads).
- box(x,.77,front+.13,1.10,1.56,.14,'#947253');
- box(x,.75,front+.23,.82,1.46,.07,'#60402f');
- box(x,.02,front+.32,1.55,.14,.55,'#b9a78d');
- box(x,1.60,front+.30,1.17,.13,.23,'#f2dfb5');
- for(let i=-2;i<=2;i++){box(x+i*(w/6),H+.02,z-d/2-.10,.10,.08,.23,'#e6d2a8');}
+ // One clearly layered door with lintel, brass handle and doorstep.
+ box(x,.78,face+.11,1.18,1.58,.14,'#8b6748');
+ box(x,.75,face+.23,.94,1.42,.10,'#60432f');
+ box(x+.30,1.06,face+.31,.065,.065,.06,'#ebcd83');
+ box(x,1.63,face+.18,1.34,.14,.17,'#e3ce9e');
+ box(x,.04,face+.35,1.50,.12,.46,'#baa890');
+ // Raised inn/bakery sign: raised away from the wall and from the frame.
+ box(x,2.24,face+.22,1.82,.36,.12,'#77573f');
+ box(x,2.24,face+.32,1.59,.22,.065,'#ebd09a');
+ // Dormer and chimney with dark cap.
+ box(x+w/2-.82,H+.22,z-.42,.51,.82,.49,'#bba486');
+ box(x+w/2-.82,H+1.0,z-.42,.68,.15,.62,'#69504d');
+ // Consistent fascia ridge and roof tile rows; distinct height for stability.
+ for(let i=-2;i<=2;i++){
+  const tx=x+i*(w/6);
+  box(tx,H+.055,z+d/2+.16,.10,.095,.14,'#e6ceaf');
  }
+}
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
-function pawnBody(x,z,color){const pale=color==='white',base=pale?'#eee3cc':'#35445a',rim=pale?'#b7a48b':'#1a2638',light=pale?'#fff6e3':'#63738d';cylinder(x,.08,z,.34,.31,.13,rim);cylinder(x,.2,z,.31,.23,.13,base);cylinder(x,.34,z,.2,.13,.49,base);cylinder(x,.83,z,.21,.24,.12,light);return {base,rim,light};}
-function piece(x,z,type,color,aldric=false,t=0){const y=0;const {base,rim,light}=pawnBody(x,z,color);
-if(type==='P'){sphere(x,1.15+y,z,.30,base,11);sphere(x-.08,1.25+y,z,.10,light,7);}
-if(type==='R'){cylinder(x,.94+y,z,.32,.33,.56,base);cylinder(x,1.5+y,z,.42,.42,.13,rim);for(let i=0;i<6;i++){const a=i*Math.PI/3;box(x+Math.cos(a)*.3,1.68+y,z+Math.sin(a)*.3,.18,.25,.18,light);}}
-if(type==='B'){cylinder(x,.94+y,z,.22,.30,.42,base);sphere(x,1.47+y,z,.29,base,10);cone(x,1.59+y,z,.18,.42,light);sphere(x,2.02+y,z,.075,rim,7);}
-if(type==='N'){cylinder(x,.9+y,z,.29,.27,.23,base);box(x,1.3+y,z,.43,.72,.42,base);sphere(x+.07,1.69+y,z-.1,.29,base,8);cone(x+.26,1.4+y,z-.19,.17,.34,base);sphere(x+.25,1.72+y,z-.31,.055,light,7);}
-if(type==='K'){cylinder(x,.92+y,z,.25,.32,.59,base);cylinder(x,1.51+y,z,.36,.35,.15,rim);cylinder(x,1.67+y,z,.26,.23,.13,light);if(aldric){ // King Aldric's crown is missing: a smooth empty circlet, no cross.
- cylinder(x,1.8+y,z,.27,.27,.08,rim);sphere(x,1.93+y,z,.22,base,9);
- }else{cylinder(x,1.82+y,z,.29,.3,.16,light);for(let i=0;i<5;i++){const a=i*Math.PI*2/5;sphere(x+Math.cos(a)*.25,2.08+y,z+Math.sin(a)*.25,.11,light,6);}}}
+function pawnBody(x,z,color){
+ const pale=color==='white',base=pale?'#e9ddc5':'#35435a',rim=pale?'#ad9b81':'#202a3a',light=pale?'#fff2d9':'#687991';
+ // Consistent turned-stone silhouette: foot, plinth, taper, neck, collar.
+ cylinder(x,.055,z,.37,.37,.12,rim,12);
+ cylinder(x,.18,z,.34,.29,.14,base,12);
+ cylinder(x,.32,z,.27,.17,.52,base,12);
+ cylinder(x,.84,z,.205,.24,.115,light,12);
+ cylinder(x,.95,z,.23,.21,.09,rim,12);
+ return {base,rim,light};
+}
+function piece(x,z,type,color,aldric=false){
+ const {base,rim,light}=pawnBody(x,z,color);
+ if(type==='P'){
+  cylinder(x,1.0,z,.19,.19,.11,base,12);
+  sphere(x,1.31,z,.30,base,12);
+  sphere(x-.075,1.39,z+.19,.055,light,6);
+ }
+ if(type==='R'){
+  cylinder(x,1.03,z,.28,.31,.58,base,12);
+  cylinder(x,1.60,z,.39,.38,.13,rim,12);
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4;
+   box(x+Math.cos(a)*.30,1.72,z+Math.sin(a)*.30,.16,.21,.16,light);
+  }
+  cylinder(x,1.75,z,.23,.23,.09,rim,10);
+ }
+ if(type==='B'){
+  cylinder(x,1.00,z,.23,.31,.45,base,12);
+  sphere(x,1.53,z,.31,base,12);
+  cone(x,1.69,z,.21,.36,light,12);
+  // A contrasting mitre slash identifies the bishop from overhead.
+  box(x,1.68,z+.23,.065,.25,.08,rim);
+  sphere(x,2.06,z,.072,light,8);
+ }
+ if(type==='N'){
+  cylinder(x,1.03,z,.29,.28,.23,base,12);
+  box(x,1.31,z,.43,.61,.36,base);
+  sphere(x+.04,1.69,z-.09,.30,base,10);
+  cone(x+.22,1.45,z-.27,.17,.30,base,9);
+  sphere(x+.22,1.77,z-.33,.065,light,8);
+  box(x-.20,1.70,z+.02,.09,.25,.12,rim);
+ }
+ if(type==='K'){
+  cylinder(x,1.02,z,.29,.31,.60,base,12);
+  cylinder(x,1.62,z,.37,.36,.15,rim,12);
+  cylinder(x,1.78,z,.27,.24,.16,light,12);
+  if(aldric){
+   // Crownless king: tall regal collar and exposed rounded finial.
+   // No crown points and no cross until the crown is recovered in the story.
+   cylinder(x,1.95,z,.28,.26,.10,rim,12);
+   sphere(x,2.13,z,.21,base,11);
+   cylinder(x,1.59,z,.40,.39,.07,light,12);
+  }else{
+   cylinder(x,1.95,z,.30,.30,.14,rim,12);
+   for(let i=0;i<6;i++){
+    const a=i*Math.PI/3;
+    sphere(x+Math.cos(a)*.28,2.18,z+Math.sin(a)*.28,.12,light,7);
+   }
+  }
+ }
 }
 function ground(x,z){
  const kind=tile(x,z),n=hash(x,z);
@@ -121,7 +197,7 @@ function fountain(x,z){
  sphere(x,1.86,z,.15,'#f2e6c8',8);
  for(let i=0;i<8;i++){const a=i*Math.PI/4;const px=x+Math.cos(a)*.49,pz=z+Math.sin(a)*.49;box(px,.48,pz,.11,.025,.07,'#b3e0dc');}
 }
-function draw(t){if(!world)return;const dpr=.65,w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,.85),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
 const aspect=w/Math.max(h,1),zoom=aspect<1?5.6:5.0;vertices=[];
 if(!staticReady){
  // Static terrain and buildings are generated and uploaded once, not each frame.
@@ -136,8 +212,8 @@ if(!staticReady){
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
  staticReady=true;vertices=[];
 }
-for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false,0);}
-piece(visual.x+.5,visual.z+.5,'K','white',true,0);
+for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);}
+piece(visual.x+.5,visual.z+.5,'K','white',true);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
