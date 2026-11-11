@@ -370,3 +370,16 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  player={x:32,y:8};game.talk();assert.equal(world.width,52);
  assert.doesNotThrow(()=>game.drawVillageProps(geometry));
 });
+
+test('rendering contract passes required geometry to every scene and frames the expanded prison intro',()=>{
+ assert.match(engine,/drawProps\(\{box,cylinder,cone,sphere,piece,features,tree,recliningKing,recliningPiece,tri\}\)/);
+ assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone,tri\},t\)/);
+ assert.match(engine,/drawVillageProps\?\.\(\{box,cylinder,cone,sphere,tri\}\)/);
+ assert.match(source,/function drawVillageProps\(g\)\{[\s\S]*?const \{box,cylinder,cone,sphere\}=g/);
+ assert.match(source,/step\.scene==='prison'\?\{x:12,y:7/);
+ assert.match(engine,/world\.width>20\?\(aspect<1\?8\.3:7\.3\)/);
+ assert.match(source,/kind==='confrontation'/);
+ assert.match(source,/kind==='arrest'/);
+ assert.match(source,/if\(scene==='forest'\)\{/);
+ assert.match(source,/model\('stones',27\.4,\.15,22\.4/);
+});
