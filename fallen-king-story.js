@@ -70,9 +70,9 @@ function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():ne
 function say(name,...lines){engine.say(name,lines);}
 function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Find the sluice wheel. Press E to operate it.':!complete('lantern')?'Inspect the lantern station at the second gate (E).':!complete('merrick')?'Speak to the bishop by the stone archway (E).':'Investigate the tunnel exit to Willowmere (E).';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
-function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-hint').addEventListener('click',showHint);$('fallen-story-answers').addEventListener('click',pickAnswer);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
+function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
-function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle&&k!=='e'&&k!==' '&&k!=='enter'){}return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
+function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
 function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];engine.setWorld(introWorld(step.scene),{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
 function nextIntro(){if(scene!=='intro')return;engine.enableSound();if(chapter.step===0)engine.soundCue();chapter.step++;if(chapter.step>=steps.length){$('fallen-story-intro').hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');}else showIntro();}
 function introWorld(kind){const w=createWorld(18,12,'s');w.music=['theft','approach'].includes(kind)?'theft':kind==='prison'?'prison':'palace';return w;}
@@ -81,10 +81,23 @@ function renderIntroFrame(canvas){if(scene!=='intro'||$('fallen-story-intro').hi
 function isIntro(){return scene==='intro';}
 function isPrisoner(){return scene==='cell'||scene==='sewer';}
 function musicTheme(){if(scene==='intro')return ['theft','approach'].includes(steps[Math.min(chapter.step,steps.length-1)].scene)?'theft':steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?'prison':'palace';return scene==='cell'?'prison':scene==='sewer'?'sewer':'willowmere';}
-function openPuzzle(id){if(complete(id))return;engine.soundCue();activePuzzle=id;hintLevel=0;const p=puzzles[id];$('fallen-story-puzzle-name').textContent=p.title;$('fallen-story-question').textContent=p.question;$('fallen-story-feedback').textContent='Think carefully. The first three hints give clues; the fourth reveals the answer.';$('fallen-story-answers').replaceChildren(...p.choices.map((value,i)=>{const b=document.createElement('button');b.type='button';b.dataset.choice=String(i);b.textContent=String.fromCharCode(65+i)+'. '+value;return b;}));$('fallen-story-hint').disabled=false;$('fallen-story-hint').textContent='Hint 1 of 4';$('fallen-story-puzzle').hidden=false;}
+// Temporary narrative checkpoint; final logic puzzles will be authored after all levels are finished.
+function openPuzzle(id){if(complete(id))return;activePuzzle=id;
+ $('fallen-story-puzzle-name').textContent='PUZZLE';
+ $('fallen-story-question').textContent='';
+ $('fallen-story-feedback').textContent='';
+ $('fallen-story-answers').replaceChildren();
+ $('fallen-story-puzzle').hidden=false;
+ $('fallen-story-puzzle-continue').hidden=false;
+}
 function closePuzzle(){activePuzzle=null;$('fallen-story-puzzle').hidden=true;document.getElementById('fallen-canvas').focus({preventScroll:true});}
-function showHint(){if(!activePuzzle)return;const p=puzzles[activePuzzle];hintLevel=Math.min(4,hintLevel+1);$('fallen-story-feedback').textContent='HINT '+hintLevel+': '+p.hints[hintLevel-1];$('fallen-story-hint').textContent=hintLevel===4?'All hints revealed':'Hint '+(hintLevel+1)+' of 4';$('fallen-story-hint').disabled=hintLevel===4;if(hintLevel===4&&chapter.coins.length){chapter.coins.pop();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;persist();}}
-function pickAnswer(e){const b=e.target.closest('button[data-choice]');if(!b||!activePuzzle)return;const id=activePuzzle;if(+b.dataset.choice!==puzzles[id].answer){$('fallen-story-feedback').textContent='Not quite. Examine each clue and try again.';return;}chapter.flags[id]=true;closePuzzle();if(scene==='sewer')setScene('sewer',engine.getPlayer());else if(scene==='village')setScene('village',engine.getPlayer());else persist();say('Oliver',puzzles[id].success);updateObjective();}
+function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.flags[id]=true;closePuzzle();
+ if(scene==='sewer')setScene('sewer',engine.getPlayer());
+ else if(scene==='village')setScene('village',engine.getPlayer());
+ else persist();
+ const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The sluice wheel turns, and the first floodgate lifts.',lantern:'The second floodgate unlocks. The tunnel continues.',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
+ say('Oliver',lines[id]||'The way ahead is clear.');updateObjective();
+}
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
 function beforeMove(x,y){if(scene==='cell'){if(x===16&&y===10)return true;return false;}
  if(scene==='sewer'){if((x===12&&y===6&&!complete('sluice'))||(x===24&&y===6&&!complete('lantern'))||(x>=34&&y===6))return true;return false;}
@@ -403,27 +416,36 @@ function drawEffects(g,t){
   }
   return;
  }
+ // Fixed-position sine waves: smooth periodic motion without spawning, teleporting or vanishing glints.
+ const {box,sphere,tri}=g;
+ const flow=(x,z,offset=0)=>Math.sin(x*.92-z*.43-t*1.25+offset);
  if(scene==='village'){
-  const {box,sphere}=g,drift=(t*.39)%1;
-  for(let x=45;x<48;x++)for(const z of [16.8,19.5,22.2]){
-   box(x+.2+drift*.5,.055,z,.42,.02,.055,'#b6d9bd');
-   box(x+.45-drift*.3,.06,z+.30,.26,.014,.04,'#8dbec0');
+  for(let x=45.15;x<47.85;x+=.38)for(const z of [17.25,19.5,21.8]){
+   const w=flow(x,z),h=.05+.014*w;
+   box(x,h,z,.29,.012,.045,w>0?'#a7d4cc':'#77afb4');
   }
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
   return;
  }
  if(scene!=='sewer')return;
- const {box,sphere}=g;
- // Water glints drift along both channels; distant drips and bubbles move each frame.
- const shift=(t*.65)%1;
- for(let x=2;x<35;x+=3){for(const z of [2.5,9.5]){
-  const phase=(x*.27+shift)%1;
-  box(x+.35+phase,.12,z,.40,.018,.07,'#8abfb6');
-  box(x+.80-phase,.14,z+.37,.23,.015,.05,'#689eac');
- }}
- for(const x of [6,14,22,30]){const p=(t*.6+x*.11)%2.1;
-  sphere(x+.3,.09+p*.48,3.25,.055,'#b0c9b5',6);
-  sphere(x+.7,.09+(p*.6),9.85,.042,'#96b6b7',6);
+ // Each canal uses full-length connected wave bands. Sine motion is cyclic and seamless.
+ for(const z of [2.45,3.25,9.55,10.35]){
+  for(let x=1.25;x<34.7;x+=.48){
+   const next=Math.min(34.75,x+.48);
+   const a=.045+.020*flow(x,z),b=.045+.020*flow(next,z);
+   const far=.045+.020*flow(x,z+.16,1.1),farNext=.045+.020*flow(next,z+.16,1.1);
+   if(tri){
+    tri([x,a,z],[next,b,z],[next,farNext,z+.16],'#57939a');
+    tri([x,a,z],[next,farNext,z+.16],[x,far,z+.16],'#57939a');
+   }else box(x+.24,(a+b)/2,z,.46,.012,.16,'#57939a');
+   const glint=.5+.5*Math.sin(x*1.35-t*1.25+z*.7);
+   if(glint>.48)box(x+.17,.060+.017*flow(x,z,2),z+.055,.14,.009,.020,'#94bdba');
+  }
+ }
+ // Bubbles oscillate in place and do not wrap or pop into another location.
+ for(const x of [6,14,22,30])for(const z of [3.25,9.85]){
+  const lift=.18+.12*Math.sin(t*1.6+x*.47+z);
+  sphere(x+.3,.10+lift,z,.050,'#8faaa7',7);
  }
 }
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
