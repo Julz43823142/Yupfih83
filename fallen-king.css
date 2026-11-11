@@ -85,3 +85,15 @@ html,body{width:100%;height:100%;overflow:hidden}
 #fallen-story-hintcoins{position:absolute;z-index:5;bottom:14px;right:14px;padding:7px 12px;color:#ffe8ac;background:#0b2330dc;border:1px solid #b69c61;border-radius:7px;font-weight:700;font-size:12px}
 #fallen-story-restart{position:absolute;z-index:5;right:14px;bottom:60px;background:#122b37e0;color:#f0ddae;border:1px solid #c8b17e;border-radius:6px;padding:7px 11px;cursor:pointer;font-size:12px}
 @media(max-width:620px){.fallen-story-caption{grid-template-columns:1fr}.fallen-story-caption button{grid-column:1;grid-row:auto}.fallen-story-caption p{min-height:0}#fallen-story-answers{grid-template-columns:1fr}#fallen-story-objective{top:65px;font-size:11px;max-width:69vw}#fallen-story-restart{bottom:60px}}
+
+/* Chapter One: keep illustrated cutscenes framed like the original fullscreen game. */
+.fallen-story-caption{grid-template-columns:1fr auto auto;gap:8px 12px}
+#fallen-story-intro-text{grid-column:1/-1}
+#fallen-story-next{grid-column:1!important;grid-row:auto!important}
+#fallen-story-skip,#fallen-story-sound{padding:12px 14px;border:1px solid #d6ba85;border-radius:7px;color:#ffe9b4;background:#28424a;font-weight:700;cursor:pointer}
+#fallen-story-skip:hover,#fallen-story-sound:hover{background:#37565e}
+#fallen-story-sound[aria-pressed="true"]{border-color:#98cbaa;background:#214f4a;color:#e2ffdb}
+#fallen-story-interact{position:absolute;z-index:5;left:14px;top:125px;max-width:min(540px,65vw);padding:8px 12px;color:#e9dbb9;background:#102938e6;border:1px solid #baad8c;border-radius:8px;font:500 12px/1.4 system-ui;pointer-events:none}
+#fallen-story-interact[hidden]{display:none!important}
+#fallen-story-art{image-rendering:pixelated;object-fit:fill}
+@media(max-width:650px){.fallen-story-caption{grid-template-columns:1fr 1fr}.fallen-story-caption p{grid-column:1/-1}.fallen-story-caption #fallen-story-next{grid-column:1/-1!important}.fallen-story-caption small{grid-column:1/-1}#fallen-story-interact{top:120px;max-width:78vw;font-size:10px}}
