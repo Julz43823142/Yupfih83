@@ -146,3 +146,18 @@ body{min-height:100vh}
  .play-page>.play-main-layout{grid-column:2;grid-row:2;min-width:0}
  .play-page>.play-main-layout .play-board-card{max-width:none!important}
 }
+
+/* Elo Flow 139: keep Knight Maze controls beside the board on laptops. */
+.maze-page{margin-top:10px!important;width:min(1570px,calc(100% - 24px))!important}
+.maze-heading{margin-bottom:10px!important;align-items:center!important;flex-direction:row!important;gap:12px}
+.maze-heading h1{font-size:clamp(21px,2vw,29px)!important;letter-spacing:-.5px!important;margin:0!important}
+.maze-heading .maze-home{margin-left:auto;font-size:13px}
+@media(min-width:800px){
+ .maze-layout{display:grid!important;grid-template-columns:minmax(135px,170px) minmax(0,1fr) minmax(200px,270px)!important;gap:12px!important}
+ .maze-layout>.maze-controls-panel{grid-column:1!important;grid-row:1!important;min-width:0}
+ .maze-layout>.maze-game{grid-column:2!important;grid-row:1!important;min-width:0}
+ .maze-layout>.maze-sidebar{grid-column:3!important;grid-row:1!important;min-width:0;display:grid!important;grid-template-columns:1fr!important}
+ .maze-layout>.maze-sidebar>.maze-panel{grid-column:1!important}
+ .maze-controls-panel .maze-stats{grid-template-columns:1fr!important}
+}
+@media(max-width:799px){.maze-heading{align-items:center!important}.maze-layout{grid-template-columns:1fr!important}.maze-layout>.maze-game{grid-column:1!important;grid-row:1!important}.maze-layout>.maze-controls-panel{grid-column:1!important;grid-row:2!important}.maze-layout>.maze-sidebar{grid-column:1!important;grid-row:3!important}.maze-controls-panel .maze-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
