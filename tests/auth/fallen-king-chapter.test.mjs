@@ -436,7 +436,7 @@ test('royal intro, blue pawn, awake rook and spy windows all use consistent asse
  assert.match(engine,/function recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
- assert.match(engine,/blue\?'#487ec4'/);
+ assert.match(engine,/blue:\['#487ec4','#294d85','#91bbed'\]/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
  assert.match(source,/else if\(g\.recliningPiece\)/);
  assert.match(source,/Solid stone partitions left and right/);
