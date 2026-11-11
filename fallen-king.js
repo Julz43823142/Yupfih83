@@ -586,7 +586,9 @@ function recliningKing(x,z){
  for(let i=from;i<vertices.length;i+=9){
   const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
   vertices[i]=x+dy-1.20;
-  vertices[i+1]=.73-dx;
+  // Lift the lying king above the mattress and shift him toward the camera.
+  vertices[i+1]=1.08-dx;
+  vertices[i+2]+=.28;
   vertices[i+3]=ny;
   vertices[i+4]=-nx;
  }
