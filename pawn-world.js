@@ -294,7 +294,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
 
  function drawRiver(row,time){
   // A collapsed board rank: animated brass clockwork below, not water.
-  const u=cellSize(),cy=project(4,row)[1],h=u*.83,left=project(0,row)[0]-u*.5,right=project(8,row)[0]+u*.5;
+  const u=cellSize(),cy=project(4,row)[1],h=rowStep(),left=project(0,row)[0]-u*.5,right=project(8,row)[0]+u*.5;
   const gap=ctx.createLinearGradient(0,cy-h*.5,0,cy+h*.5);
   gap.addColorStop(0,'#100f11');gap.addColorStop(.45,'#31251c');gap.addColorStop(1,'#090c10');
   ctx.fillStyle=gap;ctx.fillRect(left,cy-h*.52,right-left,h*1.04);
@@ -466,15 +466,16 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   else{ctx.save();if(now<invincibleUntil)ctx.globalAlpha=.45+.4*Math.abs(Math.sin(now/125));drawEnemy(x,r,skin.kind,.84,true,jump);ctx.restore();}
   // HUD is intentionally detached from the camera and has a consistent hit-free area.
   const w=Math.min(isPhone()?136:204,width*(isPhone()?.37:.51)),left=width-w-(isPhone()?7:12);
-  round(left,12,w,103,13,'#0c253be8');
-  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.4;ctx.strokeRect(left+5,17,w-10,93);
-  ctx.textAlign='right';ctx.fillStyle='#ffe3ae';ctx.font='bold 13px system-ui';
-  ctx.fillText('PAWN KINGDOM',width-24,37);
-  ctx.fillStyle='#fff9e9';ctx.font='bold 23px system-ui';
-  ctx.fillText(''+highest+'  SQUARES',width-24,68);
+  const compact=isPhone(),hh=compact?67:103,offset=compact?12:24;
+  round(left,compact?7:12,w,hh,compact?9:13,'#0c253be8');
+  ctx.strokeStyle='#dfca92b5';ctx.lineWidth=1.2;ctx.strokeRect(left+4,compact?11:17,w-8,hh-10);
+  ctx.textAlign='right';ctx.fillStyle='#ffe3ae';ctx.font='bold '+(compact?9:13)+'px system-ui';
+  ctx.fillText(compact?'KINGDOM':'PAWN KINGDOM',width-offset,compact?25:37);
+  ctx.fillStyle='#fff9e9';ctx.font='bold '+(compact?17:23)+'px system-ui';
+  ctx.fillText(''+highest+(compact?'':'  SQUARES'),width-offset,compact?47:68);
   const tier=difficulty(highest),badge=tier===0?'ROOKIE':tier===1?'CHALLENGER':tier===2?'MASTER':'GRANDMASTER';
-  ctx.textAlign='right';ctx.font='bold 12px system-ui';ctx.fillStyle='#fff0c5';
-  ctx.fillText('🪙 '+wallet.coins+'  ·  '+badge,width-24,91);
+  ctx.textAlign='right';ctx.font='bold '+(compact?9:12)+'px system-ui';ctx.fillStyle='#fff0c5';
+  ctx.fillText('🪙 '+wallet.coins+' · '+badge,width-offset,compact?64:91);
   if(collision(player.x,player.row,time)&&now>=invincibleUntil)hit('hit');
   if(!dead)raf=requestAnimationFrame(frame);
  }
