@@ -149,13 +149,21 @@ function piece(x,z,type,color,aldric=false){
   sphere(x-.075,1.39,z+.19,.055,light,6);
  }
  if(type==='R'){
-  cylinder(x,1.03,z,.28,.31,.58,base,12);
-  cylinder(x,1.60,z,.39,.38,.13,'#d1b98d',12);
+  // A squat stone keep: distinct dark masonry joints, arched front gate, battlements.
+  cylinder(x,.98,z,.36,.36,.22,'#746b66',12);
+  cylinder(x,1.20,z,.33,.30,.42,base,12);
+  cylinder(x,1.61,z,.43,.43,.12,'#8d8279',12);
+  cylinder(x,1.73,z,.33,.33,.12,light,12);
   for(let i=0;i<8;i++){
    const a=i*Math.PI/4;
-   box(x+Math.cos(a)*.30,1.72,z+Math.sin(a)*.30,.16,.21,.16,i%2?'#bd9d71':light);
+   box(x+Math.cos(a)*.35,1.84,z+Math.sin(a)*.35,.18,.25,.18,i%2?'#81716c':'#d4c7b4');
   }
-  cylinder(x,1.75,z,.23,.23,.09,rim,10);
+  // Dark doorway and lintel face the camera, so it reads as a castle.
+  box(x,1.03,z+.358,.22,.38,.055,'#514e50');
+  sphere(x,1.37,z+.363,.11,'#514e50',8);
+  box(x,1.58,z+.347,.43,.045,.065,'#655e5b');
+  for(let row=0;row<3;row++)for(let side of [-1,1])
+   box(x+side*.22,1.24+row*.17,z+.287,.12,.027,.06,'#81766e');
  }
  if(type==='B'){
   cylinder(x,1.00,z,.23,.31,.45,base,12);
@@ -166,46 +174,67 @@ function piece(x,z,type,color,aldric=false){
   sphere(x,2.06,z,.072,light,8);
  }
  if(type==='N'){
-  cylinder(x,1.03,z,.29,.28,.23,base,12);
-  box(x,1.28,z-.08,.38,.62,.40,base);
-  box(x,1.68,z+.10,.44,.50,.42,light);
-  box(x,1.55,z+.42,.40,.22,.43,base);
-  box(x,1.46,z+.65,.34,.13,.15,rim);
-  for(const sx of [-.16,.16]){
-   cone(x+sx,1.91,z-.05,.105,.29,base,8);
-   sphere(x+sx*.70,1.74,z+.335,.052,'#f1e7d8',8);
-   sphere(x+sx*.70,1.74,z+.383,.026,'#393d45',7);
+  // A true horse profile, not a vertical stack of spheres.
+  // Dark silhouette behind light planes gives the head visible 2.5D depth.
+  cylinder(x,.96,z,.35,.30,.30,'#4b4748',12);
+  box(x,1.18,z-.13,.55,.66,.45,'#4e4948');
+  box(x,1.25,z+.05,.45,.62,.44,base);
+  box(x,1.61,z+.12,.52,.48,.46,'#615850');
+  box(x,1.67,z+.32,.45,.38,.45,light);
+  // Projecting long muzzle with separate lower jaw and dark nose.
+  box(x,1.52,z+.57,.40,.27,.44,base);
+  box(x,1.41,z+.76,.37,.13,.21,'#73685e');
+  box(x,1.54,z+.81,.36,.12,.15,'#a99b88');
+  for(const side of [-1,1]){
+   cone(x+side*.19,1.90,z+.08,.115,.31,'#554c49',9);
+   cone(x+side*.19,1.96,z+.10,.055,.18,light,8);
+   // Eye sockets with pale sclera, small pupils, no oversized cartoon stare.
+   sphere(x+side*.215,1.75,z+.475,.092,'#443f3f',9);
+   sphere(x+side*.215,1.75,z+.537,.058,'#f4ebdc',9);
+   sphere(x+side*.215,1.75,z+.586,.023,'#3b3335',7);
+   sphere(x+side*.11,1.55,z+.896,.025,'#403c3c',7);
   }
-  for(let i=0;i<5;i++)box(x,1.29+i*.12,z-.33,.30,.065,.09,rim);
-  sphere(x-.10,1.50,z+.73,.037,'#3e4146',7);
-  sphere(x+.10,1.50,z+.73,.037,'#3e4146',7);
+  for(let i=0;i<5;i++){
+   box(x,1.23+i*.13,z-.37,.36,.095,.13,i%2?'#443f40':'#62534e');
+  }
+  box(x,1.38,z+.53,.43,.045,.09,'#514646');
  }
  if(type==='Q'){
-  cylinder(x,1.02,z,.28,.32,.64,base,12);cylinder(x,1.66,z,.37,.37,.16,rim,12);
-  cylinder(x,1.82,z,.29,.38,.26,'#e1b66d',12);
-  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;sphere(x+Math.cos(a)*.33,2.20,z+Math.sin(a)*.33,.115,i%2?'#f8d890':'#a884c3',7);}
-  sphere(x,2.30,z,.14,'#e8ca8b',9);
+  cylinder(x,1.02,z,.33,.27,.43,base,16);
+  cylinder(x,1.45,z,.31,.39,.24,'#b7a58f',16);
+  cylinder(x,1.69,z,.37,.34,.16,rim,16);
+  sphere(x,1.88,z,.28,base,14);
+  cylinder(x,2.03,z,.32,.34,.14,'#6f577a',16);
+  cylinder(x,2.17,z,.36,.34,.09,'#e2bc76',16);
+  for(let i=0;i<7;i++){
+   const a=i*Math.PI*2/7;
+   cone(x+Math.cos(a)*.31,2.18,z+Math.sin(a)*.31,.105,.27,i%2?'#b690d1':'#f4d49a',8);
+  }
+  sphere(x,2.48,z,.13,'#f3d7a3',10);
+  for(let i=0;i<5;i++)sphere(x+Math.cos(i*1.26)*.345,2.12,z+Math.sin(i*1.26)*.345,.045,'#674c7a',7);
  }
  if(type==='K'){
-  cylinder(x,1.02,z,.34,.40,.32,base,16);
-  cylinder(x,1.34,z,.40,.31,.24,light,16);
-  cylinder(x,1.58,z,.31,.29,.14,rim,16);
-  sphere(x,1.83,z,.31,base,14);
-  cylinder(x,1.57,z,.39,.37,.065,'#d2b78d',16);
+  // Royal silhouette: wide shoulders, narrow neck, face and gold collar.
+  cylinder(x,.99,z,.39,.33,.36,base,16);
+  cylinder(x,1.32,z,.34,.45,.22,'#c2ad90',16);
+  cylinder(x,1.54,z,.42,.31,.16,'#806d5d',16);
+  sphere(x,1.83,z,.30,base,14);
+  cylinder(x,1.55,z,.42,.42,.065,'#d2b78d',16);
   if(aldric){
-   // Crownless, broad-shouldered monarch: no crown until the story awards it.
-   cylinder(x,1.42,z,.43,.40,.12,'#a78c64',16);
-   box(x-.31,1.40,z+.24,.12,.45,.12,'#c4a77b');
-   box(x+.31,1.40,z+.24,.12,.45,.12,'#c4a77b');
-   sphere(x,2.13,z,.12,'#e7d5b2',10);
+   // Aldric is still crownless; his cloak and contrasting royal collar identify him.
+   cylinder(x,1.26,z,.45,.44,.13,'#8c664e',16);
+   box(x-.35,1.25,z+.15,.14,.57,.28,'#795d53');
+   box(x+.35,1.25,z+.15,.14,.57,.28,'#795d53');
+   cylinder(x,1.63,z,.33,.31,.085,'#ead7aa',16);
+   sphere(x,2.13,z,.115,'#e7d5b2',10);
   }else{
-   cylinder(x,2.06,z,.31,.32,.16,'#8d6a38',16);
-   cylinder(x,2.17,z,.34,.32,.10,'#e2b760',16);
+   cylinder(x,2.02,z,.33,.32,.16,'#6c553c',16);
+   cylinder(x,2.16,z,.37,.36,.10,'#e6b75c',16);
    for(let i=0;i<6;i++){
-    const angle=i*Math.PI/3;
-    cone(x+Math.cos(angle)*.28,2.22,z+Math.sin(angle)*.28,.095,.26,i%2?'#f5d17d':'#b78843',7);
+    const a=i*Math.PI/3;
+    cone(x+Math.cos(a)*.32,2.20,z+Math.sin(a)*.32,.10,.32,i%2?'#f6d886':'#b98942',8);
    }
-   sphere(x,2.48,z,.11,'#f9e4ad',9);
+   sphere(x,2.52,z,.11,'#f9e6aa',9);
   }
  }
 }
@@ -222,9 +251,10 @@ const characterLooks={
 };
 function features(x,z,type,color,aldric=false,id=''){
  const look=characterLooks[id]||characterLooks.showcase,pale=color==='white';
- const eyeY=type==='P'?1.36:type==='N'?1.74:type==='R'?1.42:type==='B'?1.52:1.85;
- const eyeZ=type==='N'?.34:type==='P'?.278:type==='R'?.315:type==='B'?.276:.282;
+ const eyeY=type==='P'?1.36:type==='N'?1.75:type==='R'?1.53:type==='B'?1.52:1.83;
+ const eyeZ=type==='N'?.52:type==='P'?.278:type==='R'?.315:type==='B'?.276:.29;
  const eyeX=0;
+ if(type==='N')return; // The horse's own anatomically placed eyes are modelled with its head.
  for(const side of [-1,1]){
   const ex=x+eyeX+side*.108;
   sphere(ex,eyeY,z+eyeZ,.064,pale?'#fff6e8':'#f7eee1',9);
@@ -244,6 +274,40 @@ function features(x,z,type,color,aldric=false,id=''){
  else if(look.outfit==='vest'){cylinder(x,.43,z,.28,.25,.42,look.accent,12);box(x,.60,z+.264,.12,.34,.075,look.trim);sphere(x+.19,.96,z+.05,.11,'#78aa67',8);box(x-.16,.94,z+.14,.10,.12,.07,'#476f42');}
  else if(look.outfit==='regal'){cylinder(x,.52,z,.40,.37,.43,look.accent,16);cylinder(x,.94,z,.36,.35,.10,look.trim,16);box(x,.69,z+.36,.24,.25,.08,'#e2c782');box(x-.31,.58,z+.16,.12,.66,.22,'#765348');box(x+.31,.58,z+.16,.12,.66,.22,'#765348');}
  else cylinder(x,.72,z,.24,.24,.07,look.trim,12);
+ // Identity-specific accessories: hats, hair, facial hair and outerwear.
+ if(id==='baker'){
+  cylinder(x,1.69,z,.29,.29,.10,'#f0e3c7',12);
+  sphere(x,1.82,z,.25,'#f5e8cf',10);
+  box(x-.10,1.18,z+.295,.15,.055,.055,'#805d4d');
+  box(x+.10,1.18,z+.295,.15,.055,.055,'#805d4d');
+ }else if(id==='guard'){
+  cylinder(x,1.64,z,.32,.28,.20,'#456477',12);
+  box(x,1.83,z+.04,.43,.08,.32,'#d1b880');
+  box(x-.16,1.20,z+.30,.13,.08,.06,'#675b55');
+  box(x+.16,1.20,z+.30,.13,.08,.06,'#675b55');
+ }else if(id==='scholar'){
+  cylinder(x,1.72,z,.34,.28,.13,'#5d527b',12);
+  box(x,1.85,z,.76,.08,.50,'#695a8b');
+  box(x-.12,1.52,z+.33,.18,.035,.055,'#5e4b49');
+  box(x+.12,1.52,z+.33,.18,.035,.055,'#5e4b49');
+ }else if(id==='courier'){
+  box(x-.13,1.64,z+.30,.20,.095,.055,'#6b4c3c');
+  box(x+.13,1.64,z+.30,.20,.095,.055,'#6b4c3c');
+  cylinder(x,1.68,z,.33,.32,.08,'#b38a58',12);
+  box(x+.29,.52,z+.23,.09,.24,.12,'#e5c18c');
+ }else if(id==='gardener'){
+  cylinder(x,1.65,z,.35,.29,.10,'#688454',12);
+  box(x,1.78,z,.76,.065,.49,'#b7a178');
+  box(x-.10,1.22,z+.29,.17,.085,.055,'#75664c');
+  box(x+.10,1.22,z+.29,.17,.085,.055,'#75664c');
+ }else if(id==='pip'){
+  box(x-.18,1.55,z+.14,.13,.11,.08,'#8c6b4c');
+  box(x+.18,1.55,z+.14,.13,.11,.08,'#8c6b4c');
+ }else if(id==='aldric'){
+  box(x,1.51,z+.33,.31,.075,.06,'#8b6b56');
+  box(x-.15,1.69,z+.23,.09,.12,.08,'#c4aa7d');
+  box(x+.15,1.69,z+.23,.09,.12,.08,'#c4aa7d');
+ }
 }
 
 function ground(x,z){
