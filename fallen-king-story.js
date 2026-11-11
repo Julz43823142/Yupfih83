@@ -326,7 +326,7 @@ function drawProps(g){
   for(let x=0;x<18;x++){wall(x+.5,.5,1,2.9);wall(x+.5,11.5,1,1.2);if(x%3===0)box(x+.5,2.95,.62,.30,.25,1.3,'#c0ae87');}
   for(let z=1;z<11;z++){wall(.5,z+.5,1,2.4);wall(17.5,z+.5,1,2.4);}
   for(let x=2;x<18;x+=4)box(x,.05,6,.06,.10,9,'#beaa8a');
-  if(kind!=='prison'){for(const x of [3,7,11,15]){box(x,1.25,.95,.88,2.5,.4,'#b5a48b');tapestry(x,1.19);}for(const x of [2,16]){cylinder(x,.83,6,.36,.36,1.66,'#d8c599',10);sphere(x,1.76,6,.34,'#e4d3ad',10);}for(let z=2;z<11;z+=3)banner(17.04,z+.5,royal);}
+  if(kind!=='prison'){for(const x of [3,7,11,15]){box(x,1.25,.95,.88,2.5,.4,'#b5a48b');tapestry(x,1.19);}/* Oversized royal chamber pillars removed. */for(let z=2;z<11;z+=3)banner(17.04,z+.5,royal);}
   if(['bedroom','approach','theft','confrontation','arrest'].includes(kind)){
     // Inlaid burgundy carpet with gold borders instead of an enormous untextured brown rectangle.
     box(9,.025,5.4,10.2,.046,5.60,'#654452');
