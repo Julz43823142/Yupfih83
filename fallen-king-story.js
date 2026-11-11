@@ -265,7 +265,7 @@ function drawGround(g,x,z){
 }
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
- const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'P','white',false);
+ const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
  const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>!!dp?.draw?.(g,id,x,y,z,w,h,d,rot);
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
  const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
@@ -299,15 +299,12 @@ function drawProps(g){
  function arch(x,z){for(const dx of [-1.7,1.7]){box(x+dx,1.3,z,.37,2.6,.44,'#8a9991');box(x+dx,2.35,z,.49,.19,.52,'#a7ad9d');}box(x,2.68,z,3.8,.40,.5,'#6d7d7b');box(x,2.93,z,3.1,.12,.57,'#4a655f');}
  function king(x,z){drawOliver(x,z);}
  function edwin(x,z,wearingCrown=false){
+  // Edwin is an unmistakable BLUE pawn; the stolen crown is a separate attachment.
   piece(x,z,'P','black',false);
-  // Edward's burgundy heraldic sash and gold badge distinguish him from ordinary pawns.
-  // Red cloak falls behind the pawn's recognisable head; it is NOT a crown.
-  box(x,.63,z-.26,.57,.78,.13,'#6c2945');
-  box(x,.29,z-.29,.68,.12,.15,'#bf6a65');
-  box(x,.68,z+.305,.38,.54,.10,'#a44756');
-  box(x+.125,.80,z+.37,.09,.16,.04,'#e3bc72');
-  sphere(x+.125,.81,z+.399,.056,'#f0d28b',8);
-  for(const dx of [-.105,.105])sphere(x+dx,1.38,z+.285,.048,'#f7cb8c',8);
+  cylinder(x,.53,z,.315,.30,.45,'#426ba8',12);
+  sphere(x,1.30,z,.305,'#4786ce',12);
+  box(x,.61,z+.31,.35,.40,.09,'#2f66a5');
+  box(x+.13,.72,z+.36,.12,.16,.05,'#91c2ec');
   if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);
  }
  if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison'){
@@ -390,7 +387,10 @@ function drawProps(g){
   box(12.2,.18,2.43,3.6,.18,1.14,'#536066');
   box(12.2,.35,2.43,3.32,.12,1.02,'#807c73');
   box(13.35,.48,2.45,.53,.13,.85,'#9b998d');
-  if(g.recliningPiece)g.recliningPiece(12.1,2.38,'R','black');else{
+  if(scene==='intro'){
+   // The guard is still AWAKE when Oliver is imprisoned.
+   piece(12.1,2.38,'R','black',false);
+  }else if(g.recliningPiece)g.recliningPiece(12.1,2.38,'R','black');else{
    piece(12.0,2.45,'R','black',false);
    features(12.0,2.45,'R','black',false,'guard');
   }
@@ -567,7 +567,7 @@ function drawEffects(g,t){
    sphere(x,1.35+wobble,z,glow,'#f5d5a2',7);
    cone(x,.98+wobble,z,.10,.19,'#e7ad5b',7);
   }
-  if(scene==='cell'||kind==='prison'){
+  if(scene==='cell'){
    // Three clear, floating Z glyphs above the sleeping rook; no UI image overlay.
    const {tri}=g;
    if(tri)for(let i=0;i<3;i++){
