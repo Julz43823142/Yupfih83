@@ -37,26 +37,34 @@ function cellWorld(){const w=createWorld(25,16,'H');
  w.spawn={x:12,y:9};w.music='prison';return w;}
 
 function sewerWorld(){
- const w=createWorld(48,29,'H');
- // Continuous central winding route, plus genuine blind branches.
- const carve=(x0,z0,x1,z1,kind='s')=>{
-  const dx=Math.sign(x1-x0),dz=Math.sign(z1-z0);let x=x0,z=z0;
-  while(true){updateTile(w,x,z,kind);if(x===x1&&z===z1)break;x+=dx;z+=dz;}
- };
- const route=[[3,15],[10,15],[10,6],[18,6],[18,22],[27,22],[27,8],[36,8],[36,17],[44,17]];
- for(let i=1;i<route.length;i++)carve(...route[i-1],...route[i]);
- // Side tunnels end against walls: places to explore and retrace your steps.
- const branches=[[[5,15],[5,21]],[[7,15],[7,11]],[[10,10],[14,10]],[[12,6],[12,3]],[[18,11],[23,11]],[[18,17],[13,17]],[[22,22],[22,26]],[[27,18],[32,18]],[[27,12],[23,12]],[[31,8],[31,3]],[[36,13],[42,13]],[[40,17],[40,23]],[[44,17],[44,20]]];
- for(const [[ax,az],[bx,bz]] of branches)carve(ax,az,bx,bz);
- // Dark drainage pools next to the paths: never flood the walkable maze.
- for(let z=2;z<27;z++)for(let x=2;x<46;x++)if(w.tiles[z][x]==='H'){
-  const adjacent=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]].some(([xx,zz])=>w.tiles[zz]?.[xx]==='s');
-  if(adjacent&&(x*7+z*11)%5===0)updateTile(w,x,z,'w');
+ // Five-tile-wide stone passages in an expanded winding underground maze.
+ const w=createWorld(84,53,'H'),radius=2;
+ function hall(x0,z0,x1,z1){
+  const dx=Math.sign(x1-x0),dz=Math.sign(z1-z0);
+  for(let x=x0,z=z0;;x+=dx,z+=dz){
+   for(let oz=-radius;oz<=radius;oz++)for(let ox=-radius;ox<=radius;ox++)
+    if(x+ox>0&&x+ox<w.width-1&&z+oz>0&&z+oz<w.height-1)updateTile(w,x+ox,z+oz,'s');
+   if(x===x1&&z===z1)break;
+  }
  }
- // Sturdy floodgates; cleared only through an explicit E/Continue interaction.
- if(!complete('sluice'))updateTile(w,10,12,'H');
- if(!complete('lantern'))updateTile(w,18,18,'H');
- w.spawn={x:3,y:15};w.music='sewer';return w;
+ const route=[[6,25],[18,25],[18,10],[32,10],[32,38],[49,38],[49,13],[64,13],[64,25],[76,25]];
+ for(let i=1;i<route.length;i++)hall(...route[i-1],...route[i]);
+ // Side tunnels deliberately finish in stone; the main route remains five across.
+ const branches=[[[9,25],[9,39]],[[12,25],[12,17]],[[18,12],[23,12]],
+ [[24,10],[24,4]],[[32,17],[41,17]],[[32,31],[23,31]],
+ [[40,38],[40,46]],[[49,28],[56,28]],[[56,13],[56,5]],
+ [[64,18],[73,18]],[[70,25],[70,36]],[[49,36],[56,36]]];
+ for(const [start,end] of branches)hall(...start,...end);
+ // Small water gutters remain outside walkable corridors.
+ for(let z=2;z<w.height-2;z++)for(let x=2;x<w.width-2;x++)if(w.tiles[z][x]==='H'){
+  const neighbours=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
+  if(neighbours.some(([xx,zz])=>w.tiles[zz]?.[xx]==='s')&&(x*7+z*11)%4===0)updateTile(w,x,z,'w');
+ }
+ // Each locked sluice blocks the complete five-tile cross-section, not just one square.
+ for(const [z,x,id] of [[18,18,'sluice'],[26,32,'lantern']]){
+  for(let dx=-radius;dx<=radius;dx++)updateTile(w,x+dx,z,complete(id)?'s':'H');
+ }
+ w.spawn={x:6,y:25};w.music='sewer';return w;
 }
 function forestWorld(){
  const w=createWorld(36,19,'T');
@@ -74,7 +82,7 @@ function forestWorld(){
 function villageWorld(){const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.map(n=>({...n,lines:[...n.lines]}))};for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');w.npcs=w.npcs.filter(n=>!(complete('pip')&&n.id==='pip')).map(n=>n.id==='pip'?{...n,lines:['Oliver, I believe you. Let us repair the bridge.']}:n);w.spawn={x:26,y:29};return w;}
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Explore the sewers and open the first iron sluice (E).':!complete('lantern')?'Follow the flooded tunnels to the second gate (E).':!complete('monster')?'Find the creature lost in the sewer maze (E).':!complete('exit')?'Find the exit and open the final lock (E).':'Escape the sewer into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('sluice')?'Explore the wider sewers and open the first iron sluice (E).':!complete('lantern')?'Follow the five-stone-wide tunnels to the second gate (E).':!complete('monster')?'Find the creature lost in the sewer maze (E).':!complete('exit')?'Find the exit and open the final lock (E).':'Escape the sewer into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
@@ -109,7 +117,7 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
 function beforeMove(x,y){
  if(scene==='cell')return x===16&&y===10;
- if(scene==='sewer'){if(x===10&&y===12&&!complete('sluice'))return true;if(x===18&&y===18&&!complete('lantern'))return true;return x>=45&&y===17;}
+ if(scene==='sewer'){if(y===18&&x>=16&&x<=20&&!complete('sluice'))return true;if(y===26&&x>=30&&x<=34&&!complete('lantern'))return true;return x>=79&&y>=23&&y<=27;}
  if(scene==='forest')return x>=34&&y>=7&&y<=10;
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
@@ -123,7 +131,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  if(scene==='cell'){
   if(near(p,16,10,2)){if(!complete('inspectedToilet')){chapter.flags.inspectedToilet=true;say('Oliver','An old toilet. A drain and a hidden mechanism: perhaps it leads below the castle.');}
    else if(!complete('cell'))openPuzzle('cell');
-   else{setScene('sewer',{x:3,y:15,facing:'right'});say('Oliver','I have slid through the filthy pipe into the vast sewers. That explains the smell.');}
+   else{setScene('sewer',{x:6,y:25,facing:'right'});say('Oliver','I have slid through the filthy pipe into the vast sewers. That explains the smell.');}
    persist();updateObjective();return true;}
   if(near(p,12,13,2)&&y>=11){
    if(!complete('coinFound')){chapter.flags.coinFound=true;chapter.coins=['one-hidden-coin'];$('fallen-story-hintcoins').textContent='Hint coins: 1';persist();say('Oliver','A glint on the south window ledge! One hint coin. I will save it for later.');}
@@ -137,15 +145,15 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   say('Oliver','Cold stone. Iron bars. The way out must be hidden somewhere.');return true;
  }
  if(scene==='sewer'){
-  if(near(p,2,15,2)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
-  if(near(p,10,12,2)&&!complete('sluice')){openPuzzle('sluice');return true;}
-  if(near(p,18,18,2)&&!complete('lantern')){openPuzzle('lantern');return true;}
-  if(near(p,27,22,2)&&!complete('monster')){
+  if(near(p,3,25,3)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
+  if(near(p,18,20,3)&&!complete('sluice')){openPuzzle('sluice');return true;}
+  if(near(p,32,28,3)&&!complete('lantern')){openPuzzle('lantern');return true;}
+  if(near(p,49,38,3)&&!complete('monster')){
    if(!complete('monsterIntroduced')){chapter.flags.monsterIntroduced=true;persist();say('Sewer Creature','I have lived in these filthy drains for years. One strange puzzle has defeated me every night. Can you help me?');}
    else openPuzzle('monster');
    return true;
   }
-  if(near(p,44,17,2)){
+  if(near(p,76,25,3)){
    if(!complete('monster')){say('Oliver','I cannot leave yet. The strange creature may know the way.');return true;}
    if(!complete('exit')){openPuzzle('exit');return true;}
    setScene('forest',{x:3,y:10,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
