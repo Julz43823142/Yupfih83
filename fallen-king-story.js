@@ -116,7 +116,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
 function beforeHouse(){return false;}
 function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer';}
 function drawProps(g){
- const {box,cylinder,cone,sphere,piece,features}=g;
+ const {box,cylinder,cone,sphere,piece,features,recliningKing}=g;
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
  const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
  function wall(x,z,w=1,h=1.8){box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
@@ -145,10 +145,9 @@ function drawProps(g){
     box(4.1,1.20,8,1.6,2.4,.14,'#b59c78');for(let k=0;k<4;k++)box(4.1+(k-1.5)*.32,1.28,8.09,.04,1.8,.06,'#d6c29c');
     box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
     for(const x of [2.5,16])torch(x,2.9);
-    // Oliver sleeping, horizontal stone-white torso, turned towards camera.
-    box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(7.38,.97,5,.40,'#e8ddc5',12);
-    box(7.27,1.04,5.34,.085,.06,.06,'#3f4547');box(7.56,1.04,5.34,.085,.06,.06,'#3f4547');
-    box(9.2,1.02,5,.94,.10,.7,'#c3aa73');
+    // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
+    if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}
+    box(9.6,.88,5,.72,.10,1.26,'#8e5470');
     if(kind==='approach')edwin(15.1,8.7,false);
     if(kind==='theft'){edwin(13.0,7.4,false);cylinder(12.55,2.19,7.0,.36,.36,.15,brass,9);for(const n of [-1,0,1])cone(12.55+n*.23,2.33,7.0,.10,.29,'#f2d17b',7);}
   }else if(kind==='throne'){
@@ -238,6 +237,21 @@ function drawVillageProps(g){
   for(const x of [45.1,47.4]){box(x,.02,19.8,.48,.10,.90,'#665341');box(x,.12,19.8,.15,.20,.24,'#493d34');}
  }
 }
+function drawEffects(g,t){
+ if(scene!=='sewer')return;
+ const {box,sphere}=g;
+ // Water glints drift along both channels; distant drips and bubbles move each frame.
+ const shift=(t*.65)%1;
+ for(let x=2;x<35;x+=3){for(const z of [2.5,9.5]){
+  const phase=(x*.27+shift)%1;
+  box(x+.35+phase,.12,z,.40,.018,.07,'#8abfb6');
+  box(x+.80-phase,.14,z+.37,.23,.015,.05,'#689eac');
+ }}
+ for(const x of [6,14,22,30]){const p=(t*.6+x*.11)%2.1;
+  sphere(x+.3,.09+p*.48,3.25,.055,'#b0c9b5',6);
+  sphere(x+.7,.09+(p*.6),9.85,.042,'#96b6b7',6);
+ }
+}
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
-window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawProps,drawVillageProps,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
+window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
