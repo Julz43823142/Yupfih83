@@ -589,7 +589,7 @@ function recliningKing(x,z){
  }
 }
 function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,.85),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(aspect<1?6.3:5.7):(aspect<1?5.6:5.0);vertices=[];
+const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(world.width>20?(aspect<1?8.3:7.3):(aspect<1?6.3:5.7)):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
  if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing,recliningPiece,tri});}else{
