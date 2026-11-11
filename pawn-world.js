@@ -131,7 +131,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   ctx.setTransform(scale,0,0,scale,0,0);
  };
- const cellSize=()=>Math.min(width/8.9,height/8.8,112);
+ const cellSize=()=>Math.min(width/11.9,height/8.8,112);
  // Project the squares onto one consistent oblique chessboard plane.
  // One step up always equals the exact opposite edge of the next row.
  const project=(x,row)=>{
