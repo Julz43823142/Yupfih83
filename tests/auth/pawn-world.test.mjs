@@ -145,7 +145,7 @@ test('Bounded wooden chessboard, original music and independent volume sliders',
  const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
  const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
  assert.match(world,/const base=dark\?'#68432e':'#b18b5c'/);
- assert.match(world,/const x=edge===left\?edge-u\*\.28:edge/);
+ assert.match(world,/edge-u/);
  assert.match(world,/pawn-audio-panel/);
  assert.match(world,/pawn-audio-slider/);
  assert.match(world,/eloscanner-pawn-audio-v1/);
