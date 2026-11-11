@@ -87,7 +87,7 @@ function forestWorld(){
  }
  for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
   if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
- w.spawn={x:3,y:10};w.music='willowmere';
+ w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
   {id:'forest-woodcutter',name:'Old Woodcutter',x:21,y:13,piece:'R',color:'black',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']}
@@ -128,7 +128,7 @@ function openPuzzle(id){if(!Object.hasOwn(puzzles,id)||complete(id))return;activ
 }
 function closePuzzle(){activePuzzle=null;$('fallen-story-puzzle').hidden=true;document.getElementById('fallen-canvas').focus({preventScroll:true});}
 function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.flags[id]=true;closePuzzle();
- if(id==='exit')setScene('forest',{x:3,y:10,facing:'right'});
+ if(id==='exit')setScene('forest',{x:4,y:12,facing:'right'});
  else if(scene==='sewer')setScene('sewer',engine.getPlayer());
  else if(scene==='village')setScene('village',engine.getPlayer());
  else persist();
@@ -175,7 +175,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   }
   if(near(p,76,25,3)){
    if(!complete('exit')){openPuzzle('exit');return true;}
-   setScene('forest',{x:3,y:10,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
+   setScene('forest',{x:4,y:12,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
   }
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
