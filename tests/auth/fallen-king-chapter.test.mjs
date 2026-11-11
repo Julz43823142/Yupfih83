@@ -430,7 +430,7 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
  assert.equal(world.tiles[12][10],'.');
  assert.equal(world.tiles[1][1],'T');
  assert.ok(route([3,10],[4,12]));
- assert.equal(world.tiles[9][34],'T');
+ assert.equal(world.tiles[4][34],'T');
  assert.equal(route([3,10],[33,8]),true);
  const g={box(){},cylinder(){},sphere(){},cone(){},piece(){},features(){},tri(){},tree(){}};
  assert.doesNotThrow(()=>game.drawProps(g));
