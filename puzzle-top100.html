@@ -7,21 +7,21 @@
 <main class="puzzles-page puzzle-leaderboard-page"><a class="puzzles-back" href="/puzzles.html">← Back to puzzles</a><h1>Leaderboards</h1>
 
 <nav class="leaderboard-categories" aria-label="Leaderboard categories"><a data-category="puzzles" href="?category=puzzles">Puzzles</a><a data-category="minigames" href="?category=minigames">Minigames</a></nav>
-<nav class="puzzles-tabs" id="puzzle-leaderboard-tabs" aria-label="Puzzle leaderboards"><a data-mode="sprint" href="?mode=sprint">Puzzle Sprint</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a></nav>
+<nav class="puzzles-tabs" id="puzzle-leaderboard-tabs" aria-label="Puzzle leaderboards"><a data-mode="sprint3" href="?mode=sprint3">Sprint 3 min</a><a data-mode="sprint5" href="?mode=sprint5">Sprint 5 min</a><a data-mode="survival" href="?mode=survival">Puzzle Survival</a></nav>
 <nav class="puzzles-tabs" id="minigame-leaderboard-tabs" aria-label="Minigame leaderboards" hidden><a data-mode="knight-maze" href="?mode=knight-maze">Knight Maze</a> <a data-mode="endgame-survivor" href="?mode=endgame-survivor">Endgame Survivor</a><a data-mode="guess-the-elo" href="?mode=guess-the-elo">Guess the Elo</a><a data-mode="chess-memory" href="?mode=chess-memory">Chess Memory</a><a data-mode="missing-piece" href="?mode=missing-piece">Missing Piece</a><a data-mode="safe-square-rush" href="?mode=safe-square-rush">Safe Square Rush</a><a data-mode="falling-board" href="?mode=falling-board">Falling Board</a><a data-mode="queen-chase" href="?mode=queen-chase">Queen Chase</a><a data-mode="chess-block-party" href="?mode=chess-block-party">Chess Block Party</a><a data-mode="pawn-dash" href="?mode=pawn-dash">Pawn Dash</a></nav>
 <p class="puzzle-ranking-legend"><span class="rank-nickname">Orange = nickname</span> · <span class="rank-account">Green = account</span></p><p id="ranking-period" class="puzzle-ranking-note"></p><p id="ranking-status" role="status">Loading…</p>
 <table class="puzzle-top100-table"><thead><tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr></thead><tbody id="ranking-rows"></tbody></table>
 </main>
 <script>
 (async()=>{
- const allowed=['sprint','survival','knight-maze','endgame-survivor','guess-the-elo','chess-memory','missing-piece','safe-square-rush','falling-board','queen-chase','chess-block-party','pawn-dash'],requested=new URLSearchParams(location.search).get('mode'),mode=allowed.includes(requested)?requested:new URLSearchParams(location.search).get('category')==='minigames'?'knight-maze':'sprint';
- const params=new URLSearchParams(location.search),category=mode==='sprint'||mode==='survival'?'puzzles':'minigames';
+ const allowed=['sprint','sprint3','sprint5','survival','knight-maze','endgame-survivor','guess-the-elo','chess-memory','missing-piece','safe-square-rush','falling-board','queen-chase','chess-block-party','pawn-dash'],requested=new URLSearchParams(location.search).get('mode'),mode=allowed.includes(requested)?requested:new URLSearchParams(location.search).get('category')==='minigames'?'knight-maze':'sprint';
+ const params=new URLSearchParams(location.search),category=['sprint','sprint3','sprint5','survival'].includes(mode)?'puzzles':'minigames';
  document.getElementById('puzzle-leaderboard-tabs').hidden=category!=='puzzles';
  document.getElementById('minigame-leaderboard-tabs').hidden=category!=='minigames';
  for(const a of document.querySelectorAll('[data-category]'))if(a.dataset.category===category)a.setAttribute('aria-current','page');
  for(const a of document.querySelectorAll('[data-mode]'))if(a.dataset.mode===mode)a.setAttribute('aria-current','page');
  const status=document.getElementById('ranking-status'),body=document.getElementById('ranking-rows');
- const isMaze=mode==='knight-maze',isArcade=!['sprint','survival','knight-maze'].includes(mode);
+ const isMaze=mode==='knight-maze',isArcade=!['sprint','sprint3','sprint5','survival','knight-maze'].includes(mode);
  document.querySelector('.puzzle-top100-table thead').innerHTML='<tr><th>Rank</th><th>Nickname / Account</th><th>Score</th><th>Report</th></tr>';
  async function load(){
  body.replaceChildren();
