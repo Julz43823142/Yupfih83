@@ -18,3 +18,12 @@ html,body{width:100%;height:100%;overflow:hidden}
 #fallen-canvas{width:100%;height:100%;image-rendering:pixelated}
 .fallen-hud{top:12px;right:16px;left:auto}
 .fallen-hud button{background:#193d43e8;border:2px solid #e6d49b;box-shadow:0 3px 0 #091c20;font-family:system-ui,sans-serif}
+
+/* Map, interior and compact two-button HUD. */
+.fallen-hud{gap:8px}.fallen-hud button{white-space:nowrap}
+#fallen-map[hidden],#fallen-house[hidden]{display:none!important}
+.fallen-map-panel{width:min(680px,calc(100vw - 24px));max-height:92dvh;overflow:auto}
+#fallen-map-canvas{display:block;width:100%;height:auto;image-rendering:pixelated;border:3px solid #d5c49b;background:#416d4b}
+.fallen-house-panel{width:min(520px,calc(100vw - 24px))}
+.fallen-room-art{height:180px;display:flex;align-items:center;justify-content:space-around;background:repeating-linear-gradient(90deg,#a17a54 0 34px,#b38b60 34px 68px);border:12px solid #73533d;box-shadow:inset 0 12px #e1c69d,inset 0 -14px #634735;color:#d9e6cf;font-size:64px}
+@media(max-width:650px){.fallen-hud button{padding:10px 12px;font-size:12px}.fallen-map-panel{padding:16px}}
