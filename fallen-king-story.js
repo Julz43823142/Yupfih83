@@ -80,7 +80,61 @@ function afterMove(){const p=engine.getPlayer();const spot=(coinSpots[scene]||[]
 function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.getPlayer(),{x,y}=p;let object=null;if(scene==='cell'){if(Math.abs(x-11)+Math.abs(y-7)<=2){if(!complete('cell'))openPuzzle('cell');else say('Oliver','The passage through the drain is open.');return true;}if(x<5&&y<5){say('Oliver','A locked cell. No tools. The toilet drain is the only unusual thing here.');return true;}return false;}if(scene==='sewer'){if(Math.abs(x-12)+Math.abs(y-6)<=2&&!complete('sluice')){openPuzzle('sluice');return true;}if(Math.abs(x-24)+Math.abs(y-6)<=2&&!complete('lantern')){openPuzzle('lantern');return true;}if(x>=27&&x<=32&&Math.abs(y-6)<=3&&!complete('merrick')){openPuzzle('merrick');return true;}return false;}if(scene==='village'){if(Math.abs(x-28)+Math.abs(y-21)<=2&&!complete('pip')){chapter.flags.pip=true;setScene('village',p);say('Pip','I believe you, Oliver. We will find a way across the broken bridge.');persist();updateObjective();return true;}if(complete('pip')&&Math.abs(x-17)+Math.abs(y-19)<=2&&!complete('lumber')){openPuzzle('lumber');return true;}if(complete('lumber')&&Math.abs(x-16)+Math.abs(y-28)<=2&&!complete('ropes')){openPuzzle('ropes');return true;}if(x>=41&&y>=17&&y<=21){if(!complete('lumber')||!complete('ropes'))say('Pip','The bridge needs timber and ropes. Find the baker and courier.');else if(!complete('bridge'))openPuzzle('bridge');else say('Pip','The bridge is repaired. We can go east!');return true;}return false;}return false;}
 function beforeHouse(){return false;}
 function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer';}
-function drawProps(g){const {box,cylinder,cone,sphere,piece}=g;if(scene==='cell'){for(let x=0;x<15;x++){box(x+.5,.60,.5,1,1.2,.8,'#657076');box(x+.5,.60,10.5,1,1.2,.8,'#657076');}for(let y=1;y<10;y++){box(.5,.60,y+.5,.8,1.2,1,'#657076');box(14.5,.60,y+.5,.8,1.2,1,'#657076');}for(let x=2;x<7;x++)box(x+.5,.17,3.3,1,.32,1.8,'#856b57');box(4.5,.45,3.3,2,.14,1.6,'#bcb2a0');box(11.5,.16,7.5,.9,.30,.9,'#c3c7bd');cylinder(11.5,.36,7.5,.38,.38,.16,'#e6ddd0',12);for(let x=7;x<=9;x++)box(x+.5,.52,1.4,.10,1.04,.10,'#303e48');}else if(scene==='sewer'){for(let x=0;x<36;x++){box(x+.5,.65,.5,1,1.30,.8,'#506467');box(x+.5,.65,12.5,1,1.30,.8,'#506467');}for(let x of [12,24]){for(let y=1;y<12;y++)if((x===12&&!complete('sluice')||x===24&&!complete('lantern'))||y!==6)box(x+.5,.62,y+.5,.9,1.24,.9,'#65747a');}for(let x=2;x<35;x+=3){cylinder(x+.5,.08,10.4,.47,.47,.11,'#547f80',8);box(x+.5,.2,10.4,.24,.08,.24,'#819f89');}piece(30.5,4.5,'B','black',false);box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');}}
+function drawProps(g){
+ const {box,cylinder,cone,sphere,piece,features}=g;
+ const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
+ function wall(x,z,w=1,h=1.8){box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
+ function rails(a,b,z){box((a+b)/2,1.98,z,b-a,.14,.16,iron);box((a+b)/2,.18,z,b-a,.14,.16,iron);for(let x=a+.25;x<b;x+=.53)cylinder(x,.98,z,.067,.067,1.83,iron,7);}
+ function bed(x,z){box(x,.22,z,3.1,.40,1.65,wood);box(x,.53,z,2.95,.18,1.45,'#a5a79f');box(x-1,.67,z,.80,.12,1.23,ivory);box(x+.6,.66,z,1.4,.10,1.38,'#728894');for(const a of [-1.36,1.36])for(const b of [-.65,.65])box(x+a,.27,z+b,.16,.54,.17,'#5b4334');}
+ function toilet(x,z){box(x,.36,z-.3,.9,.7,.65,'#aeb4ae');cylinder(x,.57,z+.18,.5,.5,.22,ivory,12);cylinder(x,.7,z+.18,.35,.35,.06,'#becbca',12);cylinder(x,.73,z+.18,.21,.21,.06,'#416477',12);box(x,.87,z-.53,.77,.14,.15,ivory);box(x+.33,.77,z-.59,.10,.18,.12,'#ad9f78');}
+ function torch(x,z){box(x,.84,z,.22,.36,.2,wood);cone(x,1.16,z,.15,.38,'#e5a94d',8);sphere(x,1.34,z,.12,'#ffe0a0',8);}
+ function king(x,z){piece(x,z,'K','white',false);features(x,z,'K','white',false,'aldric');}
+ function edwin(x,z,disguised){piece(x,z,'K',disguised?'white':'black',false);features(x,z,'K',disguised?'white':'black',false,disguised?'aldric':'scholar');if(!disguised){cone(x,2.29,z,.30,.56,'#543d65',8);box(x,.74,z+.27,.55,.30,.13,'#74516c');}}
+ if(scene==='intro'){
+  const kind=steps[Math.min(chapter.step,steps.length-1)].scene;
+  for(let x=0;x<18;x++){wall(x+.5,.5,1,2);wall(x+.5,11.5,1,1.2);}
+  for(let z=1;z<11;z++){wall(.5,z+.5,1,1.8);wall(17.5,z+.5,1,1.8);}
+  for(let x=2;x<18;x+=4)box(x,.05,6,.06,.10,9,'#beaa8a');
+  if(kind==='bedroom'||kind==='theft'){
+    box(9,.07,4,10,.12,5,'#9b7659');bed(9,5);
+    box(3.8,1.0,3.2,1.4,2,.22,'#704751');box(3.8,1.03,3.36,1.2,1.6,.07,'#d4b26b');
+    box(14.2,.55,3.8,1.1,1.1,.9,wood);cylinder(14.2,1.15,3.8,.40,.40,.11,'#d7b35d',12);
+    // Oliver sleeping, horizontal stone-white torso, turned towards camera.
+    box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(7.38,.97,5,.40,'#e8ddc5',12);
+    box(7.27,1.04,5.34,.085,.06,.06,'#3f4547');box(7.56,1.04,5.34,.085,.06,.06,'#3f4547');
+    box(9.2,1.02,5,.94,.10,.7,'#c3aa73');
+    if(kind==='theft'){edwin(12.2,7.3,false);box(12.95,2.42,7.4,.74,.11,.55,'#ddbb65');for(const n of [-1,0,1])cone(12.95+n*.22,2.52,7.4,.10,.26,'#f2d17b',7);}
+  }else if(kind==='throne'){
+    box(9,.62,3.8,3.4,1.24,1.4,'#916b54');box(9,1.42,3.7,2,1.6,.47,'#a44b53');
+    edwin(9,5.3,true);king(8.5,9);piece(5.2,7.5,'R','white',false);piece(12.8,7.5,'R','white',false);torch(3,3);torch(15,3);
+  }else{
+    for(let x=1;x<17;x++)wall(x+.5,2,1,1.8);
+    rails(3,15,6);bed(5,8.5);toilet(12,8.5);king(9,8.9);torch(15,3);
+  }
+  return;
+ }
+ if(scene==='cell'){
+  // A solid enclosed room, a cell-block corridor BEHIND the bars and an overhead beam.
+  for(let x=0;x<15;x++){wall(x+.5,.5,1,2.2);box(x+.5,2.25,.5,1,.2,.9,'#999b92');box(x+.5,.13,10.5,1,.26,.8,'#546269');}
+  for(let z=1;z<11;z++){wall(.5,z+.5,.8,2.1);wall(14.5,z+.5,.8,2.1);}
+  for(let x=1;x<14;x++){box(x+.5,.07,1.35,1,.14,1.4,'#747e7b');if(x%2===0)box(x+.5,2.29,1.7,.18,.32,2.4,'#8c928c');}
+  rails(1.1,13.9,2.15);
+  // Blue-tinted, iron-barred window set into the west wall.
+  box(1,1.56,5.6,.16,.84,1.6,'#93b9bc');
+  for(const z of [5.1,5.6,6.1])box(1.09,1.57,z,.16,.98,.07,iron);
+  for(const y of [1.16,1.98])box(1.1,y,5.6,.16,.08,1.7,iron);
+  bed(4.6,4.2);toilet(11.5,7.5);cylinder(11.5,.07,7.5,.70,.70,.11,'#73746d',12);
+  box(12.5,.55,7.0,.22,1.1,.22,'#7c8382');box(12.2,1.08,7,.7,.15,.2,'#7c8382');
+  box(3,.45,8.7,1.2,.22,.65,wood);torch(13,1.45);
+  box(12.5,1.05,2.35,.30,.46,.16,'#c4a26d');
+ }else if(scene==='sewer'){
+  for(let x=0;x<36;x++){wall(x+.5,.5,1,1.6);wall(x+.5,12.5,1,1.6);}
+  for(const x of [12,24])for(let y=1;y<12;y++)if((x===12&&!complete('sluice')||x===24&&!complete('lantern'))||y!==6)wall(x+.5,y+.5,.88,1.4);
+  for(let x=2;x<35;x+=3){cylinder(x+.5,.08,10.4,.47,.47,.11,'#537d82',8);box(x+.5,.2,10.4,.24,.08,.24,'#819f89');}
+  for(let x=3;x<36;x+=6)torch(x,1.5);
+  piece(30.5,4.5,'B','black',false);features(30.5,4.5,'B','black',false,'scholar');box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');
+ }
+}
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
 window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawProps,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
