@@ -327,3 +327,45 @@ test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer mo
  assert.match(engine,/FallenKingStory\?\.hasMap\?\.\(\)/);
  assert.match(page,/id="fallen-map-button"[^>]* hidden>/);
 });
+
+test('one hint coin is found only at the southern window and the sleeping guard can be inspected with E',()=>{
+ const items=new Map();
+ const document={getElementById(id){if(!items.has(id))items.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn;},replaceChildren(...c){this.children=c;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return items.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}};}};
+ const state=new Map(),storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,v),removeItem:k=>state.delete(k)};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],showcase:[],collectibles:[],spawn:{x:26,y:29}},player={x:26,y:29},said=[];
+ const api={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p};},say:(speaker,lines)=>said.push([speaker,...lines]),enableSound(){},soundCue(){}};
+ const win={};new Function('window','document','localStorage','location','confirm',source)(win,document,storage,{},()=>true);
+ win.FallenKingStory.start(api);for(let i=0;i<12;i++)document.getElementById('fallen-story-next').click();
+ player={x:12,y:12};win.FallenKingStory.talk();
+ assert.match(document.getElementById('fallen-story-hintcoins').textContent,/1/);
+ assert.match(said.at(-1).join(' '),/window ledge/i);
+ win.FallenKingStory.talk();assert.match(document.getElementById('fallen-story-hintcoins').textContent,/1/);
+ player={x:12,y:7};win.FallenKingStory.talk();assert.match(said.at(-1).join(' '),/I think he is asleep/);
+ assert.equal(win.FallenKingStory.hasMap(),false);
+});
+test('larger sewer maze remains navigable and the woodland path reaches the village',()=>{
+ const elements=new Map();
+ const doc={getElementById(id){if(!elements.has(id))elements.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn;},replaceChildren(...c){this.children=c;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return elements.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}}}};
+ const saved={scene:'sewer',step:12,flags:{cell:true,sluice:true,lantern:true},coins:[],position:{x:3,y:15,facing:'right'}};
+ const storage={getItem:k=>k==='fallen-king-chapter-one-v2'?JSON.stringify(saved):null,setItem(){}};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],showcase:[],collectibles:[],spawn:{x:26,y:29}},player={x:26,y:29};
+ const api={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p};},say(){},enableSound(){},soundCue(){}};
+ const win={};new Function('window','document','localStorage','location','confirm',source)(win,doc,storage,{},()=>true);
+ const game=win.FallenKingStory;game.start(api);assert.equal(world.width,48);assert.equal(world.height,29);
+ assert.ok(world.tiles.flatMap(r=>r.split('')).filter(t=>t==='w').length>20);
+ assert.equal(world.tiles[12][10],'s');assert.equal(world.tiles[18][18],'s');
+ function path(start,end){const queue=[start],seen=new Set([start.join(',')]);for(const [x,y] of queue){if(x===end[0]&&y===end[1])return queue.length;for(const [dx,dz] of [[0,1],[0,-1],[1,0],[-1,0]]){const xx=x+dx,zz=y+dz,k=xx+','+zz;if(!seen.has(k)&&['s','p'].includes(world.tiles[zz]?.[xx])){seen.add(k);queue.push([xx,zz]);}}}return 0;}
+ assert.ok(path([3,15],[10,12])>10);assert.ok(path([3,15],[27,22])>40);assert.ok(path([3,15],[44,17])>40);
+ assert.equal(world.tiles[21][5],'s');assert.equal(world.tiles[11][7],'s'); // Actual dead ends
+ const geometry={box(){},cylinder(){},cone(){},sphere(){},tri(){},piece(){},features(){},tree(){}};
+ assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,2.7));
+ player={x:26,y:22};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
+ player={x:43,y:17};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
+ assert.equal(world.width,36);
+ assert.ok(path([3,10],[33,8])>20);
+ assert.ok(world.npcs.some(n=>/Bishop/.test(n.name)&&/joking/.test(n.lines[0])));
+ assert.ok(world.npcs.some(n=>/Woodcutter/.test(n.name)));
+ assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,1.8));
+ player={x:32,y:8};game.talk();assert.equal(world.width,52);
+ assert.doesNotThrow(()=>game.drawVillageProps(geometry));
+});
