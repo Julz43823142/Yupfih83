@@ -52,7 +52,7 @@ test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original p
  }finally{globalThis.fetch=previous}
 });
 
-test('Guess the Elo excludes already-viewed Chess.com games and never repeats its single fallback',async()=>{
+test('Guess the Elo excludes viewed Chess.com games and remains playable with authentic archived fallback',async()=>{
  const previous=globalThis.fetch;
  const pgn='[Event "Rated"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
  globalThis.fetch=async input=>{
@@ -72,7 +72,7 @@ test('Guess the Elo excludes already-viewed Chess.com games and never repeats it
  globalThis.fetch=async()=>new Response('unavailable',{status:503});
  try{
   const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});
-  assert.equal(r.status,503);assert.match((await r.json()).error,/No new rated game/);
+  assert.equal(r.status,200);const archived=await r.json();assert.equal(archived.id,'PpwPOZMq');assert.equal(archived.link,'https://lichess.org/PpwPOZMq');
  }finally{globalThis.fetch=previous}
 });
 

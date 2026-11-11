@@ -285,3 +285,19 @@ body.pawn-dash-active{overscroll-behavior:none}
  .pawn-shop-panel,.pawn-audio-panel{max-height:calc(100dvh - 16px)!important;}
  .pawn-world-immersive .pawn-world-canvas{background:#5b402c!important;}
 }
+
+/* Elo Flow arcade: give board-based games the central column's full width. */
+@media(min-width:1080px){
+ .arcade-page{width:min(1720px,calc(100% - 28px))}
+ .arcade-layout{grid-template-columns:minmax(155px,185px) minmax(0,1fr) minmax(225px,285px);gap:13px}
+ .arcade-board-wrap{max-width:min(100%,820px)}
+ .arcade-main{padding:12px}
+}
+.arcade-square.available::after{content:'';position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);width:24%;height:24%;border-radius:50%;background:#102d3b91;pointer-events:none}
+.arcade-square.available:has(.chess-piece)::after{inset:5%;width:auto;height:auto;transform:none;border:5px solid #102d3ba8;background:transparent}
+.arcade-board-wrap{position:relative}
+.arcade-memory-meter[hidden]{display:none!important}
+.arcade-memory-meter{position:absolute;z-index:8;left:-20px;top:0;width:15px;height:100%;border:2px solid #5d7685;border-radius:4px;background:#131d2b;overflow:hidden;pointer-events:none}
+.arcade-memory-meter-fill{position:absolute;bottom:0;left:0;width:100%;height:100%;background:linear-gradient(0deg,#f7f7ee,#cbd8e2);transition:height .09s linear}
+.arcade-memory-meter-label{position:absolute;bottom:6px;left:50%;writing-mode:vertical-rl;transform:translateX(-50%) rotate(180deg);color:#163448;font-size:9px;font-weight:900}
+@media(max-width:650px){.arcade-memory-meter{left:-13px;width:10px}}

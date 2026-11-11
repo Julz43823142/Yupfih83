@@ -95,6 +95,7 @@ const controls=attachChessBoardControls({
  repaint:()=>paint(),
  getArrows:()=>marks,getHighlights:()=>highlights
 });
+const memoryMeter=document.createElement('div');memoryMeter.className='arcade-memory-meter';memoryMeter.hidden=true;memoryMeter.setAttribute('role','progressbar');memoryMeter.setAttribute('aria-label','Time left to memorize pieces');memoryMeter.setAttribute('aria-valuemin','0');memoryMeter.setAttribute('aria-valuemax','100');memoryMeter.innerHTML='<span class="arcade-memory-meter-fill"></span><span class="arcade-memory-meter-label">Memorize</span>';board.parentElement.insertBefore(memoryMeter,board);
 function resetAnnotations(){marks.length=0;highlights.clear();selected=null}
 function drawAnnotations(){
  marksLayer.replaceChildren();
@@ -127,7 +128,7 @@ function paint(){
   let classes='arcade-square '+((x+y)%2?'dark':'light');
   if(selected===square(i))classes+=' selected';
   if(p?.colour)classes+=' knight-'+p.colour;
-  if(sources.includes(i)&&mode!=='chess-block-party')classes+=' available';
+  if(sources.includes(i))classes+=' available';
   if(state&&mode==='falling-board'&&state.falling.gone.includes(i))classes+=' lost';
   if(state&&mode==='chess-block-party'){
    classes+=' board-color';
@@ -229,7 +230,8 @@ function setupLevel(){
   void loadRealEloGame(state);
  }else if(mode==='chess-memory'){
   state.answer=memoryLevel(state.seed,state.level);state.placed={};state.phase='preview';
-  state.revealUntil=Date.now()+Math.max(2700,6500-state.level*200);
+  state.previewDuration=Math.max(2700,6500-state.level*200);
+   state.revealUntil=Date.now()+state.previewDuration;
   status('Memorize the pieces! They disappear shortly.');
  }else if(mode==='missing-piece'){
   state.puzzle=missing[(state.level-1+state.positionOffset)%missing.length];
@@ -550,6 +552,10 @@ function tick(){
   lose('Too slow!');if(!state.finished){nextLevel();paint();}
  }else if(mode==='chess-block-party'&&state.phase==='playing'&&now>=state.levelUntil){
   lose('The other colours collapsed!');if(!state.finished){nextLevel();paint();}
+ }else if(mode==='chess-memory'&&state.phase==='preview'&&now<state.revealUntil){
+  const fraction=Math.max(0,(state.revealUntil-now)/state.previewDuration);
+  memoryMeter.querySelector('.arcade-memory-meter-fill').style.height=(fraction*100)+'%';
+  memoryMeter.setAttribute('aria-valuenow',String(Math.round(fraction*100)));
  }else if(mode==='chess-memory'&&state.phase==='preview'&&now>=state.revealUntil){
   resetAnnotations();state.phase='build';state.placed={};palette([
    ...['K','Q','R','B','N','P'].map(type=>({type,side:'player'})),

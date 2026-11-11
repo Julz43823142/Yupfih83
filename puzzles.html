@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=3">
 <link rel="stylesheet" href="/style.css?v=20261104-dark">
 <link rel="stylesheet" href="/chess-tools.css">
-<link rel="stylesheet" href="/puzzles.css?v=20261105-account-leaderboard">
+<link rel="stylesheet" href="/puzzles.css?v=20261111-eloflow14">
 <link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/elo-chess-unified-theme.css?v=3"><style id="eloflow-board-nav">body.elo-unified-chess .elo-nav-pair{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;flex:0 0 100%!important;min-width:0!important}body.elo-unified-chess .elo-nav-pair>button{width:100%!important;min-width:0!important;box-sizing:border-box!important}</style>
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/account-nav.js?v=4-capitalized" defer></script>
@@ -89,13 +89,13 @@
     </section>
   </div>
   <section class="puzzle-ranking" aria-label="Puzzle rankings">
-    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · all time</h2><a href="/puzzle-top100.html?mode=sprint">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname / Account</span><span>Score</span><span>Report</span></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
+    <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Sprint · <span id="puzzle-sprint-rank-label">5 minutes</span></h2><div class="puzzle-rank-filter" role="group" aria-label="Sprint leaderboard duration"><button type="button" data-rank-duration="3" aria-pressed="false">3 min</button><button type="button" data-rank-duration="5" aria-pressed="true">5 min</button></div><a id="puzzle-sprint-top100" href="/puzzle-top100.html?mode=sprint5">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname / Account</span><span>Score</span><span>Report</span></div><ol id="puzzle-sprint-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <div class="puzzle-rank-card"><div class="puzzle-rank-head"><h2>Puzzle Survival · all time</h2><a href="/puzzle-top100.html?mode=survival">Top 100 →</a></div><div class="puzzle-rank-columns" aria-hidden="true"><span>Rank</span><span>Nickname / Account</span><span>Score</span><span>Report</span></div><ol id="puzzle-survival-ranking" class="puzzle-rank-list"><li class="rank-note">Loading…</li></ol></div>
     <p class="puzzle-ranking-note"></p>
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=20261105-account-leaderboard"></script>
+<script type="module" src="/puzzles.js?v=20261111-eloflow14"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>
