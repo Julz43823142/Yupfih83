@@ -12,9 +12,10 @@ on:
 permissions:
   contents: read
 
+# Only the newest release should deploy. Cancel older queued/running releases.
 concurrency:
   group: eloscanner-production-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   publish:
