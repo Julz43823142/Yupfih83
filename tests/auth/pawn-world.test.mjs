@@ -218,3 +218,18 @@ test('Steam factory has full moving chess pieces, thick board rails, and pickup-
  assert.match(world,/wallet=earnPawnCoins\(wallet,1\);runCoins\+\+;persistWallet\(\)/);
  assert.match(world,/saved coins/);
 });
+
+test('Elo Flow arcade boards, puzzle durations and memory meter are wired',()=>{
+ const arcade=readFileSync(new URL('../../arcade.js',import.meta.url),'utf8');
+ const puzzles=readFileSync(new URL('../../puzzles.js',import.meta.url),'utf8');
+ const page=readFileSync(new URL('../../puzzles.html',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../../arcade.css',import.meta.url),'utf8');
+ assert.match(arcade,/if\(sources.includes\(i\)\)classes\+=' available'/);
+ assert.match(arcade,/arcade-memory-meter/);
+ assert.match(arcade,/state.previewDuration/);
+ assert.match(puzzles,/nextTarget=\(kind,count\)/);
+ assert.match(puzzles,/beforeFen:fen/);
+ assert.match(page,/data-rank-duration="3"/);
+ assert.match(page,/data-rank-duration="5"/);
+ assert.match(css,/max-width:min\(100%,820px\)/);
+});
