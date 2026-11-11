@@ -12,24 +12,23 @@
 <link rel="stylesheet" href="/elo-global-menu.css?v=4-current"><script src="/elo-global-menu.js?v=4-current" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/elo-chess-unified-theme.css?v=3"><style id="eloflow-board-nav">body.elo-unified-chess .elo-nav-pair{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;flex:0 0 100%!important;min-width:0!important}body.elo-unified-chess .elo-nav-pair>button{width:100%!important;min-width:0!important;box-sizing:border-box!important}</style>
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/account-nav.js?v=4-capitalized" defer></script>
-</head>
+<link rel="stylesheet" href="/chess-layout-fixes.css?v=143"></head>
 <body class="elo-unified-chess">
 <header class="navbar puzzles-navbar">
 <a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
 <nav class="puzzles-site-nav" aria-label="Chess Tools"><a href="/">Home</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html" aria-current="page">Puzzles</a><a href="/minigames.html">Minigames</a></nav>
 <details class="mobile-chess-menu puzzles-mobile-menu"><summary aria-label="Open navigatiemenu"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></summary><nav aria-label="Mobiele navigatie"><a href="/">Home</a><a href="/analysis.html">Analyse</a><a href="/player-prep.html">Player Prep</a><a href="/puzzles.html" aria-current="page">Puzzles</a><a href="/minigames.html">Minigames</a></nav></details>
-</header>
+<div class="elo-page-nav"><span>Chess Puzzles</span></div></header>
 <main class="puzzles-page">
-  <div class="puzzles-top">
-    <div><h1>Chess Puzzles</h1></div>
-  </div>
+
+  <div class="puzzles-layout" id="puzzles-layout">
   <div class="puzzles-tabs" role="tablist" aria-label="Choose puzzle mode">
     <button type="button" role="tab" data-puzzle-mode="random" aria-selected="true">Random Puzzle</button>
     <button type="button" role="tab" data-puzzle-mode="custom" aria-selected="false">Custom Puzzle</button>
     <button type="button" role="tab" data-puzzle-mode="sprint" aria-selected="false">Puzzle Sprint</button>
     <button type="button" role="tab" data-puzzle-mode="survival" aria-selected="false">Puzzle Survival</button>
   </div>
-  <div class="puzzles-layout" id="puzzles-layout">
+
     <aside class="puzzle-save-run" id="puzzle-save-run" hidden aria-label="Save your puzzle score">
       <h3>Publish your score on the leaderboards?</h3><p id="puzzle-final-score"></p>
       <div class="puzzle-publish-choice" id="puzzle-publish-choice" hidden><label><input type="radio" name="puzzle-publish-as" value="account" checked> Use my account: <strong id="puzzle-account-name"></strong></label><label><input type="radio" name="puzzle-publish-as" value="nickname"> Use a nickname</label></div><div class="puzzle-save-controls"><label for="puzzle-nickname" id="puzzle-nickname-label">Nickname <input id="puzzle-nickname" maxlength="20" autocomplete="off" placeholder="Your nickname"></label><button id="puzzle-submit-score" type="button">Yes, publish score</button><button id="puzzle-skip-score" type="button">No thanks</button></div>
