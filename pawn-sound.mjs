@@ -51,9 +51,14 @@ export function createPawnSound(){
   tone(280,.35,'sine',.055,0,.19);
   tone(145,.28,'triangle',.028,.07,.35);
  }
- const melody=[659.25,0,783.99,880,783.99,659.25,587.33,0,523.25,587.33,659.25,0,783.99,659.25,587.33,0];
- const bass=[130.81,164.81,174.61,146.83];
- const beatLength=.36;
+ // Original mechanical waltz: music-box arpeggios, clock ticks and brass-like bass.
+ // Industrial mystery mood, with no borrowed melody or recordings.
+ const melody=[392,466.16,587.33,698.46,587.33,466.16,349.23,0,
+               392,523.25,622.25,783.99,698.46,523.25,466.16,0,
+               349.23,440,523.25,659.25,587.33,440,392,0,
+               311.13,392,466.16,587.33,523.25,466.16,392,0];
+ const bass=[98,116.54,87.31,103.83,98,130.81,77.78,116.54];
+ const beatLength=.31;
  function schedule(){
   if(!ctx||muted||paused||!musicOn||music<=0)return;
   const now=ctx.currentTime;
@@ -61,12 +66,19 @@ export function createPawnSound(){
   let count=0;
   while(nextBeat<now+.35&&count++<4){
    const n=beat%melody.length,offset=Math.max(0,nextBeat-now);
-   if(melody[n])tone(melody[n],.29,'sine',.038,offset,1,'music');
-   if(n%4===0){
-    tone(bass[Math.floor(n/4)],1.13,'triangle',.047,offset,.995,'music');
-    tone(bass[Math.floor(n/4)]*2,.63,'sine',.012,offset,1,'music');
+   if(melody[n]){
+    tone(melody[n],.18,'triangle',.026,offset,.998,'music');
+    tone(melody[n]*2,.12,'sine',.009,offset+.018,.995,'music');
    }
-   if(n%2===1)tone(980,.025,'sine',.004,offset,1,'music');
+   if(n%4===0){
+    const low=bass[Math.floor(n/4)];
+    tone(low,.85,'sawtooth',.016,offset,.985,'music');
+    tone(low*2,.34,'triangle',.017,offset,1,'music');
+   }
+   // An escapement tick on every beat and a tiny metallic counter-tick.
+   tone(n%2?1300:1900,.018,'square',.004,offset, .72,'music');
+   if(n%2===1)tone(2600,.012,'sine',.002,offset+.15,.78,'music');
+   if(n%8===6)tone(233.08,.38,'triangle',.012,offset,.96,'music');
    beat++;nextBeat+=beatLength;
   }
  }
@@ -86,7 +98,7 @@ export function createPawnSound(){
   if(kind==='step')tone(240,.095,'triangle',.028,0,.77);
   if(kind==='coin'){tone(740,.10,'sine',.055);tone(1108,.2,'sine',.044,.085)}
   if(kind==='water')splash();
-  if(kind==='hit'){tone(360,.13,'square',.027,0,.65);tone(155,.28,'sawtooth',.025,.08,.46)}
+  if(kind==='hit'){tone(360,.13,'square',.027,0,.65);tone(155,.28,'sawtooth',.025,.08,.46);tone(95,.4,'triangle',.034,.05,.35)}
   if(kind==='menu'){tone(440,.08,'triangle',.022);tone(660,.11,'triangle',.019,.06)}
   if(kind==='buy'){tone(440,.11,'sine',.036);tone(554,.11,'sine',.034,.09);tone(740,.18,'sine',.04,.17)}
   if(kind==='equip')tone(570,.13,'triangle',.03);

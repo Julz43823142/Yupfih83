@@ -1,5 +1,5 @@
 import {paintChessPiece} from './pawn-piece-art.mjs';
-import {createPawnSound} from './pawn-sound.mjs?v=20261111-startup8';
+import {createPawnSound} from './pawn-sound.mjs?v=20261111-turk11';
 import {PIECE_ORDER,PIECE_LABELS,PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnSkin,pawnCoinAt} from './pawn-shop.mjs';
 import {createPawnDashModel} from './pawn-world-logic.mjs';
 // Original EloScanner Pawn Dash: a chess-themed, perspective crossing game.
@@ -131,7 +131,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   ctx.setTransform(scale,0,0,scale,0,0);
  };
- const cellSize=()=>Math.min(width/8.9,height/8.8,112);
+ const cellSize=()=>Math.min(width/11.9,height/8.8,112);
  // Project the squares onto one consistent oblique chessboard plane.
  // One step up always equals the exact opposite edge of the next row.
  const project=(x,row)=>{
@@ -156,15 +156,49 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   ctx.fillStyle=table;ctx.fillRect(0,0,width,height);
   for(let i=0;i<28;i++){const y=(i*73)%height;ctx.strokeStyle='#c3a27c0b';ctx.lineWidth=i%4===0?2:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y+2);ctx.stroke()}
   for(const edge of [left,right]){
-   const x=edge===left?edge-u*.28:edge;
-   const wood=ctx.createLinearGradient(x,0,x+u*.28,0);
+   const x=edge===left?edge-u*.48:edge;
+   const wood=ctx.createLinearGradient(x,0,x+u*.48,0);
    wood.addColorStop(0,'#27180f');wood.addColorStop(.3,'#805333');wood.addColorStop(.65,'#ad8051');wood.addColorStop(1,'#29180f');
-   ctx.fillStyle='#08080988';ctx.fillRect(x-5,0,u*.28+10,height);
-   ctx.fillStyle=wood;ctx.fillRect(x,0,u*.28,height);
+   ctx.fillStyle='#08080988';ctx.fillRect(x-5,0,u*.48+10,height);
+   ctx.fillStyle=wood;ctx.fillRect(x,0,u*.48,height);
    ctx.fillStyle='#e0b47888';ctx.fillRect(x+u*.04,0,Math.max(1,u*.023),height);
-   ctx.fillStyle='#23150f';ctx.fillRect(x+u*.24,0,Math.max(2,u*.04),height);
-   for(let i=0;i<Math.ceil(height/115);i++){ctx.fillStyle='#d7a96a';ctx.beginPath();ctx.arc(x+u*.14,i*115+28,Math.max(2,u*.035),0,Math.PI*2);ctx.fill()}
+   ctx.fillStyle='#23150f';ctx.fillRect(x+u*.44,0,Math.max(2,u*.04),height);
+   for(let i=0;i<Math.ceil(height/115);i++){ctx.fillStyle='#d7a96a';ctx.beginPath();ctx.arc(x+u*.24,i*115+28,Math.max(2,u*.035),0,Math.PI*2);ctx.fill()}
   }
+ }
+ function turkCabinet(time){
+  // The Mechanical Turk-inspired automaton is original artwork, not a copy of a historical engraving.
+  const u=cellSize(),left=project(0,0)[0]-u*.5,right=project(8,0)[0]+u*.5;
+  const gapLeft=left-u*.48,gapRight=width-(right+u*.48);
+  const side=gapRight>gapLeft?'right':'left',available=Math.max(gapLeft,gapRight);
+  if(available<u*.46)return;
+  const cx=side==='right'?right+u*.48+available*.5:(left-u*.48)*.5;
+  const scale=Math.min(available/(u*1.7),1.35),y=height*.49;
+  ctx.save();ctx.translate(cx,y);ctx.scale(scale,scale);
+  // Riveted iron housing and luminous clock-face.
+  round(-u*.64,-u*1.48,u*1.28,u*2.36,u*.12,'#261f1c');
+  round(-u*.57,-u*1.4,u*1.14,u*2.16,u*.08,'#6c482d');
+  round(-u*.48,-u*1.29,u*.96,u*1.96,u*.06,'#352b27');
+  ctx.strokeStyle='#c49a60';ctx.lineWidth=u*.045;ctx.strokeRect(-u*.49,-u*1.3,u*.98,u*1.98);
+  for(const x of [-.39,.39])for(const yy of [-1.18,.51]){ctx.fillStyle='#d6aa6a';ctx.beginPath();ctx.arc(x*u,yy*u,u*.045,0,Math.PI*2);ctx.fill()}
+  // Automaton's turban and face, with a mechanical monocle.
+  ctx.fillStyle='#c1a277';ctx.beginPath();ctx.ellipse(0,-u*.79,u*.30,u*.35,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f0d7a4';ctx.beginPath();ctx.ellipse(0,-u*1.15,u*.42,u*.17,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8a633e';ctx.fillRect(-u*.36,-u*1.20,u*.72,u*.1);
+  ctx.fillStyle='#ddae70';ctx.beginPath();ctx.arc(0,-u*1.3,u*.13,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#e2bd74';ctx.lineWidth=u*.035;ctx.beginPath();ctx.arc(u*.13,-u*.81,u*.13,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#90e4d6';ctx.beginPath();ctx.arc(u*.13,-u*.81,u*.07,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#241c1b';ctx.fillRect(-u*.20,-u*.80,u*.1,u*.045);
+  // Exposed, slowly turning gears in the torso.
+  for(const [gx,gy,rad,dir] of [[-.2,-.18,.23,1],[.23,.05,.19,-1]]){
+   ctx.save();ctx.translate(gx*u,gy*u);ctx.rotate(time*.35*dir);
+   ctx.strokeStyle='#d3a15e';ctx.lineWidth=u*.06;ctx.beginPath();ctx.arc(0,0,u*rad,0,Math.PI*2);ctx.stroke();
+   for(let i=0;i<8;i++){ctx.rotate(Math.PI/4);ctx.fillStyle='#b48852';ctx.fillRect(-u*.04,-u*(rad+.07),u*.08,u*.11)}
+   ctx.fillStyle='#d2ad72';ctx.beginPath();ctx.arc(0,0,u*.045,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+  ctx.fillStyle='#a87a47';ctx.font='bold '+Math.round(u*.17)+'px Georgia,serif';ctx.textAlign='center';
+  ctx.fillText('THE TURK',0,u*.47);
+  ctx.restore();
  }
  function tile(x,row,type,time){
   const q=quad(x,row),u=cellSize(),cx=project(x,row)[0],cy=project(x,row)[1];
@@ -353,7 +387,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(!overlay.hidden){raf=requestAnimationFrame(frame);return}
   const time=(now-origin)/1000;
   camera+=(Math.max(0,player.row-3.3)-camera)*.14;
-  ctx.clearRect(0,0,width,height);scenery();
+  ctx.clearRect(0,0,width,height);scenery();turkCabinet(time);
   const u=cellSize(),low=Math.max(0,Math.floor(camera-height*.36/(u*.83))-3);
   const high=Math.max(10,Math.ceil(camera+height*.76/(u*.83))+3);
   for(let row=high;row>=low;row--){

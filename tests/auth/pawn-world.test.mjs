@@ -145,7 +145,7 @@ test('Bounded wooden chessboard, original music and independent volume sliders',
  const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
  const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
  assert.match(world,/const base=dark\?'#68432e':'#b18b5c'/);
- assert.match(world,/const x=edge===left\?edge-u\*\.28:edge/);
+ assert.match(world,/edge-u/);
  assert.match(world,/pawn-audio-panel/);
  assert.match(world,/pawn-audio-slider/);
  assert.match(world,/eloscanner-pawn-audio-v1/);
@@ -177,6 +177,20 @@ test('Antique chess club board has no water visuals and piece art has distinctiv
  assert.match(world,/const eased=progress\*progress\*\(3-2\*progress\)/);
  for(const kind of ['pawn','bishop','knight','rook','queen','king'])
   assert.match(art,new RegExp("kind==='"+kind+"'"));
- assert.match(art,/horse profile/);
+ assert.match(art,/automaton horse/);
  assert.match(art,/Layered turned-wood foot/);
+});
+
+test('Mechanical Turk cabinet, thick rails, robot knight and clockwork waltz are shipped',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const art=readFileSync(new URL('../../pawn-piece-art.mjs',import.meta.url),'utf8');
+ const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
+ assert.match(world,/function turkCabinet\(time\)/);
+ assert.match(world,/turkCabinet\(time\)/);
+ assert.match(world,/width\/11\.9/);
+ assert.match(world,/edge-u\*\.48/);
+ assert.match(art,/Articulated brass automaton horse/);
+ assert.match(art,/Glowing monocular eye/);
+ assert.match(audio,/Original mechanical waltz/);
+ assert.match(audio,/escapement tick/);
 });
