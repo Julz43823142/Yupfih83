@@ -560,16 +560,20 @@ function prepareVision(){
  const policy=window.FallenKingStory?.fieldOfView?.(),on=!!policy?.enabled;
  gl.uniform1f(visionEnabledLoc,on?1:0);
  if(!on)return;
- const w=world.width,h=world.height,p=player,key=[w,h,p.x,p.y,world.music].join(':');
+ const w=world.width,h=world.height,p={x:Math.round(visual.x*4)/4,y:Math.round(visual.z*4)/4},key=[w,h,p.x,p.y,world.music].join(':');
  gl.uniform2f(visionSizeLoc,w,h);
  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,visionTexture);
  if(previousVisionKey===key)return;
  const image=new Uint8Array(w*h*4),radius=policy.radius||12;
  function lineVisible(tx,tz){
   const dx=tx-p.x,dz=tz-p.y,count=Math.max(Math.abs(dx),Math.abs(dz))*3;
+  let oldX=Math.floor(p.x+.5),oldZ=Math.floor(p.y+.5);
   for(let k=1;k<count;k++){
    const x=Math.floor(p.x+.5+dx*k/count),z=Math.floor(p.y+.5+dz*k/count);
    if((x!==tx||z!==tz)&&policy.isOpaque(x,z))return false;
+   // Two touching solid corners must not allow diagonal visibility through the seam.
+   if(x!==oldX&&z!==oldZ&&policy.isOpaque(x,oldZ)&&policy.isOpaque(oldX,z))return false;
+   oldX=x;oldZ=z;
   }
   return true;
  }
