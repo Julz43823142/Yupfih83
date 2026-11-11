@@ -132,7 +132,7 @@ function villageProps(){
 }
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){
- const pale=color==='white',base=pale?'#e9ddc5':'#303e56',rim=pale?'#ad9b81':'#182638',light=pale?'#fff2d9':'#627b97';
+ const pale=color==='white',base=pale?'#e9ddc5':'#293d63',rim=pale?'#ad9b81':'#17263d',light=pale?'#fff2d9':'#7399c4';
  // Consistent turned-stone silhouette: foot, plinth, taper, neck, collar.
  cylinder(x,.055,z,.37,.37,.12,rim,12);
  cylinder(x,.18,z,.34,.29,.14,base,12);
@@ -150,30 +150,23 @@ function piece(x,z,type,color,aldric=false){
   sphere(x-.075,1.39,z+.19,.055,light,6);
  }
  if(type==='R'){
-  // Dark slate tower with visible cool-blue lit facets and fine black joints.
-  cylinder(x,.96,z,.405,.405,.27,ink,12);
-  cylinder(x,.98,z,.36,.36,.22,base,12);
-  cylinder(x,1.18,z,.375,.365,.47,ink,12);
-  cylinder(x,1.20,z,.33,.30,.42,base,12);
-  box(x-.20,1.28,z+.29,.10,.42,.035,light);
-  box(x+.20,1.28,z+.29,.10,.42,.035,light);
-  cylinder(x,1.60,z,.46,.46,.15,ink,12);
-  cylinder(x,1.61,z,.43,.43,.12,rim,12);
-  cylinder(x,1.72,z,.37,.37,.14,ink,12);
-  cylinder(x,1.73,z,.33,.33,.12,light,12);
+  // Material-first rook: no dark duplicate shells obscuring the colored tower.
+  cylinder(x,.98,z,.36,.34,.20,rim,12);
+  cylinder(x,1.16,z,.32,.30,.44,base,12);
+  cylinder(x,1.58,z,.43,.43,.12,light,12);
+  cylinder(x,1.72,z,.34,.34,.12,base,12);
   for(let i=0;i<8;i++){
-   const a=i*Math.PI/4;
-   box(x+Math.cos(a)*.35,1.825,z+Math.sin(a)*.35,.205,.29,.205,ink);
-   box(x+Math.cos(a)*.35,1.85,z+Math.sin(a)*.35,.16,.23,.16,i%2?rim:light);
+   const t=i*Math.PI/4;
+   box(x+Math.cos(t)*.34,1.81,z+Math.sin(t)*.34,.16,.24,.16,i%2?base:light);
   }
-  // Dark doorway and lintel face the camera, so it reads as a castle.
-  box(x,1.01,z+.393,.29,.43,.045,ink);
-  box(x,1.03,z+.422,.22,.38,.055,'#0c1826');
-  sphere(x,1.37,z+.414,.145,ink,8);
-  sphere(x,1.37,z+.443,.11,ink,8);
-  box(x,1.58,z+.347,.43,.045,.065,'#b9985c');
+  // Strong readable front: bright masonry faces, narrow ink joints and arched door.
+  box(x-.17,1.19,z+.315,.10,.38,.065,light);
+  box(x+.17,1.19,z+.315,.10,.38,.065,light);
+  box(x,1.19,z+.337,.15,.34,.065,ink);
+  sphere(x,1.46,z+.345,.075,ink,10);
+  box(x,1.56,z+.42,.58,.035,.04,'#c5a46c');
   for(let row=0;row<3;row++)for(let side of [-1,1])
-   box(x+side*.22,1.24+row*.17,z+.287,.12,.027,.06,row===1?'#b9985c':rim);
+   box(x+side*.22,1.25+row*.13,z+.346,.11,.018,.035,row===1?ink:light);
  }
  if(type==='B'){
   cylinder(x,1.00,z,.23,.31,.45,base,12);
@@ -184,48 +177,33 @@ function piece(x,z,type,color,aldric=false){
   sphere(x,2.06,z,.072,light,8);
  }
  if(type==='N'){
-  // Dark navy horse with clearly separate neck, cheek, forehead and muzzle.
-  // Dark silhouette behind light planes gives the head visible 2.5D depth.
-  cylinder(x,.94,z,.367,.317,.31,ink,12);
-  cylinder(x,.96,z,.35,.30,.30,rim,12);
-  box(x,1.15,z-.13,.565,.68,.465,ink);
-  box(x,1.18,z-.13,.55,.66,.45,rim);
-  box(x,1.23,z+.05,.47,.635,.465,ink);
-  box(x,1.25,z+.05,.45,.62,.44,base);
-  box(x,1.59,z+.12,.54,.49,.48,ink);
-  box(x,1.61,z+.12,.52,.48,.46,base);
-  box(x,1.65,z+.32,.47,.40,.47,ink);
-  box(x,1.67,z+.32,.45,.38,.45,base);
-  box(x,1.68,z+.555,.28,.27,.04,light);
-  // Side cheek planes and a bold cheekbone define the direction of the head.
-  box(x-.215,1.56,z+.42,.06,.24,.32,rim);
-  box(x+.215,1.56,z+.42,.06,.24,.32,rim);
-  // Projecting long muzzle with separate lower jaw and dark nose.
-  box(x,1.50,z+.57,.42,.29,.46,ink);
-  box(x,1.52,z+.57,.40,.27,.44,base);
-  box(x,1.54,z+.805,.28,.12,.045,light);
-  box(x,1.39,z+.76,.39,.145,.23,ink);
-  box(x,1.41,z+.76,.37,.13,.21,rim);
-  box(x,1.53,z+.81,.38,.13,.17,ink);
-  box(x,1.55,z+.81,.36,.11,.15,rim);
+  // Horse bust: clear front-facing nose, contrasting forehead and side cheeks.
+  // No oversized outline shells: dark lines are narrow surface details only.
+  cylinder(x,.96,z,.35,.32,.28,rim,12);
+  box(x,1.18,z-.12,.52,.65,.40,base);
+  box(x,1.24,z+.12,.44,.62,.42,light);
+  box(x,1.58,z+.20,.52,.44,.46,base);
+  box(x,1.65,z+.37,.43,.39,.42,light);
+  // Ear silhouettes and inner ear highlights.
   for(const side of [-1,1]){
-   cone(x+side*.19,1.88,z+.08,.14,.36,ink,9);
-   cone(x+side*.19,1.90,z+.08,.105,.29,color==='white'?'#b8a58b':'#485f7c',9);
-   cone(x+side*.19,1.96,z+.10,.055,.18,light,8);
-   // Eye sockets with pale sclera, small pupils, no oversized cartoon stare.
-   sphere(x+side*.215,1.75,z+.475,.092,ink,9);
-   sphere(x+side*.215,1.75,z+.537,.058,'#f4ebdc',9);
-   sphere(x+side*.215,1.75,z+.586,.023,ink,7);
-   sphere(x+side*.11,1.55,z+.896,.025,ink,7);
+   cone(x+side*.19,1.85,z+.10,.12,.34,rim,10);
+   cone(x+side*.19,1.88,z+.14,.072,.25,base,10);
   }
-  for(let i=0;i<5;i++){
-   box(x,1.23+i*.13,z-.37,.36,.095,.13,i%2?ink:rim);
+  // Long projecting muzzle with a distinct bridge, nose and lower lip.
+  box(x,1.48,z+.59,.36,.27,.40,base);
+  box(x,1.51,z+.81,.29,.11,.10,light);
+  box(x,1.40,z+.76,.34,.10,.17,rim);
+  box(x,1.39,z+.858,.31,.035,.055,ink);
+  // Eye patches are high on the face, well above the muzzle.
+  for(const side of [-1,1]){
+   box(x+side*.14,1.71,z+.60,.16,.14,.06,base);
+   sphere(x+side*.14,1.75,z+.64,.065,'#fff2de',10);
+   sphere(x+side*.14,1.75,z+.70,.027,ink,8);
+   sphere(x+side*.11,1.51,z+.875,.025,ink,8);
+   box(x+side*.235,1.54,z+.50,.04,.24,.20,rim);
   }
-  box(x,1.38,z+.53,.43,.045,.09,'#b9985c');
-  // Visible bridge and nostril separation, without filling the entire face black.
-  box(x,1.56,z+.813,.35,.025,.035,ink);
-  box(x-.16,1.40,z+.77,.045,.17,.045,ink);
-  box(x+.16,1.40,z+.77,.045,.17,.045,ink);
+  // Mane: small dark tufts behind the ears, not across the face.
+  for(let i=0;i<4;i++)box(x,1.28+i*.13,z-.37,.30,.075,.09,rim);
  }
  if(type==='Q'){
   cylinder(x,1.02,z,.33,.27,.43,base,16);
@@ -242,41 +220,30 @@ function piece(x,z,type,color,aldric=false){
   for(let i=0;i<5;i++)sphere(x+Math.cos(i*1.26)*.345,2.12,z+Math.sin(i*1.26)*.345,.045,'#674c7a',7);
  }
  if(type==='K'){
-  // Royal silhouette: wide shoulders, narrow neck, face and gold collar.
-  cylinder(x,.97,z,.407,.347,.37,ink,16);
-  cylinder(x,.99,z,.39,.33,.36,base,16);
-  cylinder(x,1.30,z,.36,.47,.235,ink,16);
-  cylinder(x,1.32,z,.34,.45,.22,base,16);
-  box(x-.20,1.34,z+.38,.11,.28,.045,light);
-  box(x+.20,1.34,z+.38,.11,.28,.045,light);
-  cylinder(x,1.52,z,.435,.325,.175,ink,16);
-  cylinder(x,1.54,z,.42,.31,.16,'#b99760',16);
-  sphere(x,1.83,z,.312,ink,14);
-  sphere(x,1.83,z+.022,.29,base,14);
-  cylinder(x,1.55,z,.45,.45,.065,ink,16);
-  cylinder(x,1.58,z,.41,.41,.055,'#d2b579',16);
+  // Broad royal torso, clearly lit chest and face; avoid dark silhouette shells.
+  cylinder(x,.99,z,.38,.34,.36,base,16);
+  cylinder(x,1.32,z,.34,.43,.24,light,16);
+  cylinder(x,1.53,z,.41,.34,.13,'#c7a469',16);
+  sphere(x,1.81,z,.29,base,16);
+  // Bright forward face plane, distinct collar and narrow ink seams.
+  box(x,1.77,z+.265,.37,.28,.08,light);
+  box(x,1.59,z+.34,.48,.055,.07,'#e4c184');
+  box(x-.22,1.27,z+.38,.07,.30,.05,rim);
+  box(x+.22,1.27,z+.38,.07,.30,.05,rim);
   if(aldric){
-   // Aldric is still crownless; his cloak and contrasting royal collar identify him.
-   cylinder(x,1.25,z,.465,.455,.14,ink,16);
-   cylinder(x,1.27,z,.45,.44,.12,'#8c664e',16);
-   box(x-.35,1.23,z+.15,.17,.60,.31,ink);
-   box(x-.35,1.25,z+.17,.13,.55,.27,'#795d53');
-   box(x+.35,1.23,z+.15,.17,.60,.31,ink);
-   box(x+.35,1.25,z+.17,.13,.55,.27,'#795d53');
-   cylinder(x,1.62,z,.36,.34,.10,ink,16);
-   cylinder(x,1.64,z,.33,.31,.08,'#ead7aa',16);
-   sphere(x,2.13,z,.115,'#e7d5b2',10);
+   cylinder(x,1.24,z,.45,.43,.14,'#91684e',16);
+   box(x-.34,1.21,z+.12,.14,.58,.24,'#765048');
+   box(x+.34,1.21,z+.12,.14,.58,.24,'#765048');
+   cylinder(x,1.64,z,.33,.31,.075,'#e9d7a8',16);
+   sphere(x,2.12,z,.11,'#f1d9b5',10);
   }else{
-   cylinder(x,2.01,z,.36,.35,.19,ink,16);
-   cylinder(x,2.03,z,.33,.32,.15,'#b68e50',16);
-   cylinder(x,2.15,z,.40,.39,.13,ink,16);
-   cylinder(x,2.17,z,.37,.36,.09,'#e6b75c',16);
+   cylinder(x,2.02,z,.31,.31,.15,'#765636',16);
+   cylinder(x,2.15,z,.36,.36,.10,'#e8b858',16);
    for(let i=0;i<6;i++){
-    const a=i*Math.PI/3;
-    cone(x+Math.cos(a)*.32,2.19,z+Math.sin(a)*.32,.125,.36,ink,8);
-    cone(x+Math.cos(a)*.32,2.21,z+Math.sin(a)*.32,.09,.30,i%2?'#f6d886':'#b98942',8);
+    const t=i*Math.PI/3;
+    cone(x+Math.cos(t)*.31,2.19,z+Math.sin(t)*.31,.09,.31,i%2?'#f6d889':'#c99547',8);
    }
-   sphere(x,2.52,z,.11,'#f9e6aa',9);
+   sphere(x,2.48,z,.11,'#f9e6aa',9);
   }
  }
 }
