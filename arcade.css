@@ -271,3 +271,17 @@ body.pawn-dash-active{overscroll-behavior:none}
 .pawn-world-overlay .pawn-audio-panel button{min-height:44px;background:#2b5262;border:1px solid #b6a37e;border-radius:10px;color:#fff0d0;font-weight:700}
 .pawn-world-overlay .pawn-audio-panel button[aria-pressed=true]{background:#39675d;border-color:#cce6bd}
 @media(max-width:410px){.pawn-audio-panel{padding:14px 12px;gap:10px}}
+
+/* Center shop and sound dialogs both horizontally and vertically; scroll inside panels. */
+.pawn-world-overlay:has(.pawn-shop-panel:not([hidden])),
+.pawn-world-overlay:has(.pawn-audio-panel:not([hidden])){
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  padding:clamp(10px,2.5vh,24px)!important;overflow:hidden!important;
+}
+.pawn-shop-panel,.pawn-audio-panel{margin:auto!important;max-height:calc(100dvh - 36px)!important;min-height:0;overflow-y:auto!important;}
+@media(max-width:680px){
+ .pawn-world-overlay:has(.pawn-shop-panel:not([hidden])),
+ .pawn-world-overlay:has(.pawn-audio-panel:not([hidden])){padding:8px!important;}
+ .pawn-shop-panel,.pawn-audio-panel{max-height:calc(100dvh - 16px)!important;}
+ .pawn-world-immersive .pawn-world-canvas{background:#5b402c!important;}
+}
