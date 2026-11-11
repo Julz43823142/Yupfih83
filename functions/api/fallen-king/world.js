@@ -29,6 +29,17 @@ export async function onRequestGet({request,env}) {
   for(const h of houses)fill(h.x,h.y,h.w,h.h,'H');
   // A door tile in front of each building.
   for(const h of houses){const dx=h.x+Math.floor(h.w/2);rows[h.y+h.h-1][dx]='D';rows[h.y+h.h][dx]='p';}
+  // A permanent showcase across the north edge of the square. Gallery pieces
+  // are decorative and cannot be confused with interactive villagers.
+  const showcase=[
+    {x:20,y:16,piece:'P',color:'white'},
+    {x:22,y:16,piece:'R',color:'white'},
+    {x:24,y:16,piece:'N',color:'white'},
+    {x:26,y:16,piece:'B',color:'white'},
+    {x:28,y:16,piece:'Q',color:'white'},
+    {x:30,y:16,piece:'K',color:'white'}
+  ];
+  for(const s of showcase)rows[s.y][s.x]='X';
   const npcs=[
     {id:'pip',x:28,y:21,piece:'P',color:'white',name:'Pip',lines:['Hello! Welcome to our village.','The bakery is on the west side of the square.']},
     {id:'baker',x:17,y:19,piece:'P',color:'white',name:'Baker Bea',lines:['Fresh bread, every morning!','We do not have a shop menu yet. Come back later.']},
@@ -37,5 +48,5 @@ export async function onRequestGet({request,env}) {
     {id:'courier',x:16,y:28,piece:'N',color:'white',name:'Courier Nox',lines:['I travel between villages.','These roads lead beyond the village, but that area is not ready yet.']},
     {id:'gardener',x:9,y:24,piece:'P',color:'black',name:'Gardener Moss',lines:['These flowers take patience.','Watch your step near the pond.']}
   ];
-  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,spawn:{x:26,y:29},version:2},{headers:adminHeaders});
+  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:3},{headers:adminHeaders});
 }
