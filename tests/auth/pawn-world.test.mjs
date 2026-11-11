@@ -177,7 +177,7 @@ test('Antique chess club board has no water visuals and piece art has distinctiv
  assert.match(world,/const eased=progress\*progress\*\(3-2\*progress\)/);
  for(const kind of ['pawn','bishop','knight','rook','queen','king'])
   assert.match(art,new RegExp("kind==='"+kind+"'"));
- assert.match(art,/automaton horse/);
+ assert.match(art,/mechanical horse/);
  assert.match(art,/Layered turned-wood foot/);
 });
 
@@ -189,8 +189,20 @@ test('Mechanical Turk cabinet, thick rails, robot knight and clockwork waltz are
  assert.match(world,/turkCabinet\(time\)/);
  assert.match(world,/width\/11\.9/);
  assert.match(world,/edge-u\*\.48/);
- assert.match(art,/Articulated brass automaton horse/);
- assert.match(art,/Glowing monocular eye/);
+ assert.match(art,/Readable side-profile mechanical horse/);
+ assert.match(art,/Wide rectangular snout/);
  assert.match(audio,/Original mechanical waltz/);
  assert.match(audio,/escapement tick/);
+});
+
+test('Mechanical Turk historical stage and mobile board-only framing',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../../arcade.css',import.meta.url),'utf8');
+ assert.match(world,/function pieceFactory\(time\)/);
+ assert.match(world,/if\(isPhone\(\)\)return/);
+ assert.match(world,/function rowStep\(\)|const rowStep=/);
+ assert.match(world,/const compact=isPhone\(\)/);
+ assert.doesNotMatch(world,/fillText\('THE TURK'/);
+ assert.match(world,/Secret chess player/);
+ assert.match(css,/justify-content:center!important;align-items:center!important/);
 });
