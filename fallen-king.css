@@ -7,3 +7,6 @@
 .fallen-bar{display:none}
 .fallen-panel{max-height:94dvh;overflow-y:auto}
 @media(max-width:650px){#fallen-dialogue{bottom:clamp(90px,18vh,145px);padding:16px 20px;max-height:45vh}#fallen-dialogue p{font-size:17px}.fallen-touch{bottom:12px}.fallen-hud{right:12px}}
+
+/* Crisp, deliberately low-resolution 2.5D presentation. */
+#fallen-canvas{image-rendering:pixelated;image-rendering:crisp-edges}
