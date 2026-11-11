@@ -578,8 +578,8 @@ function prepareVision(){
 }
 function recliningKing(x,z){
  const from=vertices.length;
- piece(x,z,'P','white',false);
- features(x,z,'P','white',false,'aldric');
+ // Bare royal chess-piece silhouette: no costume, hats, scarf, or special accessories.
+ piece(x,z,'K','white',false);
  for(let i=from;i<vertices.length;i+=9){
   const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
   vertices[i]=x+dy-1.20;
@@ -661,7 +661,7 @@ function drawMap(){
  ctx.strokeStyle='#26364c';ctx.lineWidth=2;ctx.stroke();
 }
 function closeMap(){mapOpen=false;mapPanel.hidden=true;canvas.focus({preventScroll:true});}
-function openMap(){if(!world||paused||interior||window.FallenKingStory?.customScene())return;mapOpen=true;pressed.clear();drawMap();mapPanel.hidden=false;}
+function openMap(){if(!window.FallenKingStory?.hasMap?.())return;if(!world||paused||interior||window.FallenKingStory?.customScene())return;mapOpen=true;pressed.clear();drawMap();mapPanel.hidden=false;}
 document.getElementById('fallen-map-button').addEventListener('click',openMap);
 document.getElementById('fallen-map-close').addEventListener('click',closeMap);
 const housePanel=document.getElementById('fallen-house');
