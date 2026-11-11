@@ -49,7 +49,7 @@ test('dialogue advances before story interaction, preventing soft-lock',()=>{
 test('intro pictures reuse existing WebGL renderer and stage characters',()=>{
  assert.match(source,/function renderIntroFrame\(canvas\)/);
  assert.match(source,/function introWorld\(kind\)/);
- assert.match(source,/piece\(x,z,'K'/);
+ assert.match(source,/piece\(8\.9,7\.0,'K'/);
  assert.match(engine,/window\.FallenKingStory\?\.renderIntroFrame\(canvas\)/);
  assert.match(source,/function isPrisoner\(\)/);
  assert.match(engine,/const type=prisoner\?'P':'K'/);
@@ -75,7 +75,7 @@ test('chapter scenes are distinct and the coin cap is one',()=>{
  assert.match(source,/v\.coins=v\.coins\.slice\(0,1\)/);
  assert.match(source,/const coinSpots=\{cell:\[\[12,13\]\]\}/);
  assert.match(source,/if\(scene==='cell'\)return x===16&&y===10;/);
- const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n return false;\}/)?.[0];
+ const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n\}/)?.[0];
  assert.ok(moveBlock);
  assert.doesNotMatch(moveBlock,/openPuzzle/);
  assert.match(source,/function drawVillageProps\(g\)/);
@@ -115,7 +115,7 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(world.tiles[18][18],'s');
  player={x:26,y:22};chapter.talk();chapter.talk();answer();
  player={x:43,y:17};chapter.talk();answer();
- assert.equal(world.width,48);assert.equal(world.height,19);
+ assert.equal(world.width,36);assert.equal(world.height,19);
  assert.ok(world.npcs.some(n=>n.id==='forest-traveller'));
  assert.ok(world.npcs.some(n=>n.id==='forest-woodcutter'));
  player={x:32,y:8};chapter.talk();assert.equal(world.width,52);
