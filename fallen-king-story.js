@@ -246,7 +246,7 @@ function sightOpaque(x,z){if(scene!=='cell'&&scene!=='sewer')return false;const 
  // Partition bars and the north gate block walking, but NOT the line of sight.
  if(z===5&&x>=1&&x<=23)return false;
  if((x===6||x===18)&&z>=9&&z<=10)return false; // Sight only through each narrow spy window.
- if(z===14&&x>=11&&x<=13)return false; // South-facing barred window.
+ if(z===14&&x===12)return false; // The small south-facing opening.
  return w.tiles[z]?.[x]==='H';}
 function fieldOfView(){if(!engine)return null;if(scene==='sewer')return {enabled:true,radius:10,isOpaque:sightOpaque};if(scene==='cell')return {enabled:true,radius:13,isOpaque:sightOpaque};return null;}
 function drawGround(g,x,z){
@@ -284,23 +284,15 @@ function drawProps(g){
  function rails(a,b,z){/* Genuine forged-iron bars, not Kenney's brown timber dungeon gates. */box((a+b)/2,1.98,z,b-a,.17,.19,'#303b40');box((a+b)/2,.14,z,b-a,.15,.19,'#27353a');for(let x=a+.20;x<b-.12;x+=.46){cylinder(x,.99,z,.052,.055,1.86,iron,10);sphere(x,1.95,z,.070,'#78878a',8);box(x,.20,z,.17,.10,.20,'#455257');}for(let x=a+.16;x<b;x+=1.85)box(x,1.03,z,.15,.11,.24,'#809195');}
  function bed(x,z){/* Narrow prison cot: low iron legs, a pale mattress, a pillow and faded blue blanket. */for(const dx of [-1.35,1.35])for(const dz of [-.63,.63])cylinder(x+dx,.20,z+dz,.065,.065,.39,'#46535a',8);box(x,.31,z,2.95,.10,1.48,'#566166');box(x,.42,z,2.83,.15,1.37,'#c4bea9');box(x-.94,.53,z,.70,.13,1.12,'#e2ddc9');box(x+.55,.52,z,1.54,.09,1.28,'#6d8294');box(x+.52,.58,z+.56,1.5,.06,.10,'#8e9da1');}
  function royalBed(x,z){
-  // Recognisable upholstered royal four-poster bed: DetailPlus bed mesh plus carved posts and velvet drapery.
-  if(!model('bed',x,0,z,3.85,.82,2.22))bed(x,z);
-  for(const dx of [-1.76,1.76])for(const dz of [-1.06,1.06]){
-   cylinder(x+dx,.02,z+dz,.13,.14,2.64,'#73523c',10);
-   cylinder(x+dx,2.66,z+dz,.20,.20,.13,'#d9b677',10);
-   sphere(x+dx,2.86,z+dz,.15,'#d9b677',9);
-  }
-  for(const dz of [-1.06,1.06]){
-   box(x,2.53,z+dz,3.70,.14,.13,'#a17b52');
-   for(let i=0;i<7;i++)box(x-1.52+i*.50,2.38,z+dz,.18,.30,.07,i%2?'#8a435c':'#aa576d');
-  }
-  box(x-1.89,1.09,z,.18,1.89,2.25,'#7f3d56');
-  box(x-1.94,1.10,z,.07,1.81,1.93,'#ad6578');
-  for(const dz of [-.70,.70])sphere(x-1.79,1.25,z+dz,.085,'#e3c286',9);
-  box(x+.65,.72,z,1.88,.07,1.73,'#8d4c6a');
-  box(x+1.50,.81,z,0.14,.10,1.74,'#d3b483');
-  box(x-1.03,.75,z,.72,.15,1.60,'#e7ddca');
+  // Low, open royal bed; no canopy, tall pillars or curtains hiding Oliver's face.
+  if(!model('bed',x,0,z,3.85,.62,2.32))bed(x,z);
+  box(x-1.84,.28,z,.17,.55,2.22,'#765142');
+  box(x-1.81,.83,z,.13,.22,2.08,'#a67858');
+  box(x-1.80,.93,z,.16,.035,1.93,'#d2b277');
+  box(x-1.05,.66,z,.79,.17,1.47,'#e5dbc9'); // The head pillow stays visible.
+  box(x+.66,.67,z,1.61,.10,1.76,'#824e6b'); // Blanket covers feet, NOT the king's face.
+  box(x+.65,.77,z-.73,1.58,.03,.10,'#d9bb84');
+  box(x+.65,.77,z+.73,1.58,.03,.10,'#d9bb84');
  }
  function toilet(x,z){if(dp?.toilet?.(g,x,z))return;box(x,.36,z-.3,.9,.7,.65,'#aeb4ae');cylinder(x,.57,z+.18,.5,.5,.22,ivory,12);cylinder(x,.7,z+.18,.35,.35,.06,'#becbca',12);cylinder(x,.73,z+.18,.21,.21,.06,'#416477',12);box(x,.87,z-.53,.77,.14,.15,ivory);box(x+.33,.77,z-.59,.10,.18,.12,'#ad9f78');}
  function torch(x,z){box(x,.84,z,.22,.36,.2,wood);cone(x,1.16,z,.15,.38,'#e5a94d',8);sphere(x,1.34,z,.12,'#ffe0a0',8);}
@@ -341,7 +333,7 @@ function drawProps(g){
     box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
     for(const x of [2.5,16])torch(x,2.9);
     // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
-    if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else{box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(8.0,1.05,5,.39,'#e8ddc5',12);}}else drawOliver(8.9,7.0);
+    if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else drawOliver(8.0,5);}else drawOliver(8.9,7.0);
     box(9.6,.88,5,.72,.10,1.26,'#8e5470');
     if(kind==='approach')edwin(15.1,8.7);
     if(kind==='theft'){edwin(13.0,7.4);dp?.crown?.(g,12.55,1.65,7.0,.88);}
@@ -421,19 +413,24 @@ function drawProps(g){
   piece(21.0,9.1,'P','black',false);features(21.0,9.1,'P','black',false,'scholar');
   box(21.0,.45,9.38,.56,.39,.14,'#746e75');
   box(2.45,.25,11.55,1.65,.35,.90,'#778089');box(20.7,.16,11.8,1.4,.28,.75,'#555e63');
-  // SOUTH-facing window: inset cyan moonlight behind the southern iron bars (no west-side false window).
-  // What Oliver can see beyond the south window: moon, castle silhouettes and a dark moat.
-  box(12.5,.84,14.52,2.78,1.26,.11,'#293f57');
-  box(12.5,.83,14.45,2.52,.43,.07,'#355e74');
-  sphere(13.15,1.76,14.38,.16,'#d7dfd4',12);
-  for(const x of [11.51,12.07,12.58]){box(x,1.0,14.37,.33,.53,.08,'#273e48');box(x,1.5,14.36,.40,.12,.09,'#273e48');}
-  for(const x of [11.8,12.65,13.2])box(x,.70,14.34,.35,.015,.045,'#88a9b0');
-  for(const x of [11.66,12.45,13.24])cylinder(x,.79,14.37,.062,.062,1.35,'#34444b',10);
-  for(const y of [.78,1.95])box(12.5,y,14.36,2.52,.11,.19,'#354a50');
-  box(12.5,2.05,14.30,3.12,.16,.55,'#a2aca5');
-  box(12.5,.67,14.30,3.13,.14,.58,'#828e8b');
+  // A SMALL, unmistakeable window cut into the solid southern stone wall.
+  // There are no wall-length iron bars across the bottom of Oliver's cell.
+  for(let x=7;x<=17;x+=.96){
+   if(Math.abs(x-12.5)<1.20)continue;
+   model('wall',x,0,14.38,.97,2.25,.68);
+  }
+  // Dark recess with a blue sky, distant castle towers and one bright moon.
+  box(12.5,1.27,14.35,1.90,.92,.12,'#1c3041');
+  box(12.5,1.11,14.25,1.80,.25,.04,'#345367');
+  sphere(12.98,1.56,14.20,.15,'#e7dfc3',12);
+  for(const x of [11.85,12.38])box(x,1.13,14.20,.27,.38,.05,'#2a414b');
+  // Heavy dressed-stone lintel, jambs and deep sill make the opening readable from above.
+  for(const x of [11.49,13.51])box(x,1.27,14.25,.23,1.21,.48,'#a7aca4');
+  box(12.5,1.95,14.23,2.30,.23,.52,'#b4b6a9');
+  box(12.5,.63,14.16,2.22,.18,.62,'#b3b0a0');
+  box(12.5,.70,13.94,1.73,.055,.31,'#d5c5aa');
   // Cool moonlight pool on the floor, carefully flat and separate from the warm candle.
-  for(const [x,z] of [[12.4,12.6],[12.9,12.1],[11.8,12.9]])box(x,.013,z,.44,.012,.69,'#7c9c9f');
+  for(const [x,z] of [[12.4,12.6],[12.9,12.1],[11.8,12.9]])box(x,.021,z,.44,.012,.69,'#7c9c9f');
   if(scene==='intro'){drawOliver(12.5,9.4);for(const x of [11.4,13.9]){piece(x,7.0,'R','white',false);features(x,7.0,'R','white',false,'guard');}}
   // One readable torch and a small iron pail; never wooden crates or random gate props.
   box(15.3,.85,6.0,.25,.17,.22,'#68767a');torch(15.3,6.0);
