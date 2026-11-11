@@ -463,7 +463,7 @@ function drawProps(g){
 }
 function drawVillageProps(g){
  if(scene!=='village')return;
- const {box,cylinder,cone}=g,done=complete('bridge');
+ const {box,cylinder,cone,sphere}=g,done=complete('bridge');
  window.FallenKingDetailPlus?.draw?.(g,'barrel',41.3,0,17.7,.65,.68,.65);
  window.FallenKingDetailPlus?.draw?.(g,'chest',41.8,0,21.4,.92,.58,.68);
  // DetailPlus: an inhabited medieval market square, with readable stalls, barrels and civic stonework.
