@@ -36,7 +36,7 @@ test('story respects original map and blocks bypassing the east river',()=>{
  assert.match(source,/baseWorld=api\.getWorld\(\)/);
  assert.match(source,/for\(let y=2;y<=37;y\+\+\)/);
  assert.match(source,/complete\('bridge'\)/);
- assert.match(source,/complete\('pip'\)/);
+ assert.doesNotMatch(source,/if\(scene==='village'&&!complete\('pip'\)/);
 });
 
 test('dialogue advances before story interaction, preventing soft-lock',()=>{
@@ -237,7 +237,7 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.match(source,/Sleeping guard's cot belongs to the corridor/);
  assert.match(source,/recliningPiece\(12\.1,2\.38,'R','black'\)/);
  assert.match(source,/Mara and Tovin/);
- assert.match(source,/SOUTH-facing window/);
+ assert.match(source,/A SMALL, unmistakeable window/);
  assert.match(source,/function fieldOfView\(\)/);
  assert.match(engine,/function prepareVision\(\)/);
  assert.match(engine,/uniform sampler2D visionTex/);
@@ -302,8 +302,8 @@ test('deferred PUZZLE is a single Continue checkpoint, and flowing water has no 
 
 test('sewer water uses real joined triangles from the original WebGL renderer',()=>{
  assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone,tri\},t\)/);
- assert.match(source,/tri\(\[x0,y\(x0,z0\),z0\]/);
- assert.match(source,/tri\(\[x0,y\(x0,z0\),z0\],\[x1,y\(x1,z1\),z1\]/);
+ assert.match(source,/tri\(a,b,c,'#719a9b'\)/);
+ assert.match(source,/stream\[z\*world\.width\+x\]/);
 });
 
 test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer monster, forest and hidden map',()=>{
@@ -313,7 +313,7 @@ test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer mo
  assert.match(source,/if\(kind==='arrest'\)/);
  assert.match(source,/for\(const x of \[6\.5,11\]\)/);
  assert.match(source,/scene==='intro'&&steps\[Math\.min\(chapter.step,steps.length-1\)\]\.scene==='prison'/);
- assert.match(source,/SOUTH-facing window/);
+ assert.match(source,/A SMALL, unmistakeable window/);
  assert.match(source,/near\(p,12,13,2\)&&y>=11/);
  assert.match(source,/I think he is asleep/);
  assert.match(source,/function forestWorld\(\)/);
@@ -350,7 +350,8 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  const api={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p};},say(){},enableSound(){},soundCue(){}};
  const win={};new Function('window','document','localStorage','location','confirm',source)(win,doc,storage,{},()=>true);
  const game=win.FallenKingStory;game.start(api);assert.equal(world.width,84);assert.equal(world.height,53);
- assert.ok(world.tiles.flatMap(r=>r.split('')).filter(t=>t==='w').length>20);
+ assert.equal(world.tiles.flatMap(r=>r.split('')).filter(t=>t==='w').length,0);
+ assert.ok(world.streamTiles.filter(Boolean).length>100);
  assert.equal(world.tiles[18][18],'s');assert.equal(world.tiles[26][32],'s');
  function path(start,end){const queue=[start],seen=new Set([start.join(',')]);for(const [x,y] of queue){if(x===end[0]&&y===end[1])return queue.length;for(const [dx,dz] of [[0,1],[0,-1],[1,0],[-1,0]]){const xx=x+dx,zz=y+dz,k=xx+','+zz;if(!seen.has(k)&&['s','p'].includes(world.tiles[zz]?.[xx])){seen.add(k);queue.push([xx,zz]);}}}return 0;}
  assert.ok(path([6,25],[18,18])>10);assert.ok(path([6,25],[49,38])>40);assert.ok(path([6,25],[76,25])>40);
@@ -433,7 +434,7 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
 test('royal intro, blue pawn, awake rook and spy windows all use consistent assets',()=>{
  assert.match(engine,/function oliver\(x,z\)\{[\s\S]*?piece\(x,z,'K','white',true\)/);
  assert.match(engine,/function recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
- assert.match(engine,/vertices\[i\+1\]=1\.08-dx/);
+ assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(engine,/blue\?'#487ec4'/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
@@ -451,9 +452,9 @@ test('free-flowing walkable sewer has darkness, wet flagstones and only monster 
  assert.match(source,/openPuzzle\('exit'\)/);
  assert.match(source,/scene==='sewer'\)return \{enabled:true,radius:10,isOpaque:sightOpaque\}/);
  assert.match(source,/if\(scene==='sewer'\)return w\.tiles\[z\]\?\.\[x\]==='H'/);
- assert.match(source,/Walkable wet flagstones/);
+ assert.match(source,/const stream=w\.streamTiles\?\.\[z\*w\.width\+x\]/);
  assert.match(source,/tile==='s'/);
- assert.match(source,/tile!=='w'&&tile!=='s'/);
+ assert.match(source,/const direction=stream\[z\*world\.width\+x\]/);
  assert.doesNotMatch(source,/Gate wheels can be operated/);
  assert.match(source,/No large gold wheels and no lamps/);
  const elements=new Map(),doc={getElementById(id){if(!elements.has(id))elements.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn;},replaceChildren(...a){this.children=a;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return elements.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}}}};
@@ -477,4 +478,26 @@ test('free-flowing walkable sewer has darkness, wet flagstones and only monster 
  assert.equal(doc.getElementById('fallen-story-puzzle').hidden,true);
  player={x:48,y:38};game.talk();game.talk();
  assert.equal(doc.getElementById('fallen-story-puzzle').hidden,false);
+});
+
+test('single connected sewer stream, optional monster, no Pip, smooth royal bed and stable village colors',()=>{
+ assert.match(source,/w\.streamTiles=new Uint8Array\(w\.width\*w\.height\)/);
+ assert.match(source,/for\(let i=1;i<sewerRoute\.length;i\+\+\)/);
+ assert.match(source,/g\.box\(x\+\.5,\.025,z\+\.5,1\.005,\.017,1\.005,'#426871'\)/);
+ assert.match(source,/const vertical=direction>=3/);
+ assert.match(source,/scene==='sewer'\)return !complete\('exit'\)/);
+ assert.doesNotMatch(source,/I cannot leave yet\. The strange creature/);
+ assert.match(source,/n\.id!=='pip'/);
+ assert.doesNotMatch(source,/say\('Pip'/);
+ assert.match(source,/function drawFollowers\(g\)\{\/\* Pip is reserved/);
+ assert.match(engine,/const npcPalette=\['white','black','blue','red','green','purple','orange'\]/);
+ assert.match(engine,/Math\.imul\(hash\^id\.charCodeAt\(i\),16777619\)/);
+ assert.match(engine,/const tone=npcColor\(n\)/);
+ assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
+ assert.match(engine,/gl\.polygonOffset\(-1,-1\)/);
+ assert.match(engine,/vertices\[i\]=x\+\.86-py/);
+ assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
+ assert.match(source,/Low, open royal bed/);
+ assert.match(source,/The head pillow stays visible/);
+ assert.match(source,/A SMALL, unmistakeable window/);
 });
