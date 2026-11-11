@@ -3,17 +3,17 @@
 const gate=document.getElementById('fallen-gate'),game=document.getElementById('fallen-game'),canvas=document.getElementById('fallen-canvas');
 const dialog=document.getElementById('fallen-dialogue'),speaker=document.getElementById('fallen-speaker'),speech=document.getElementById('fallen-text');
 const pause=document.getElementById('fallen-pause'),volume=document.getElementById('fallen-volume'),volumeValue=document.getElementById('fallen-volume-value');
-const storageKey='eloscanner-fallen-king-admin-preview-v1',dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},pressed=new Set(),solid=new Set(['T','H','w','F']);
-let world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
+const storageKey='eloscanner-fallen-king-admin-preview-v1',dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},pressed=new Set(),solid=new Set(['T','H','w','F','D','X']);
+let interior=null,mapOpen=false,world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
 const tile=(x,z)=>world?.tiles[z]?.[x]||'T';
 const hash=(x,z,n=0)=>{let h=Math.imul(x+31,73856093)^Math.imul(z+47,19349663)^Math.imul(n+3,83492791);h^=h>>>13;return (h>>>0)/4294967295;};
 function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
 function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify({version:world.version,x:player.x,y:player.y,facing:player.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(canWalk(x,z)){player.x=x;player.y=z;save();}}
-function talk(){if(paused)return;if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
-const [dx,dz]=dirs[player.facing],npc=world.npcs.find(n=>n.x===player.x+dx&&n.y===player.y+dz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
+function move(dir){if(paused||dialogue||mapOpen||interior)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(canWalk(x,z)){player.x=x;player.y=z;save();}}
+function talk(){if(paused||mapOpen)return;if(interior){leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
+const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
 const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/42.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
@@ -33,6 +33,21 @@ function cylinder(x,y,z,r0,r1,h,color,sides=12){for(let i=0;i<sides;i++){const a
 function sphere(x,y,z,r,color,detail=9){for(let j=0;j<detail;j++){const v0=-Math.PI/2+j*Math.PI/detail,v1=-Math.PI/2+(j+1)*Math.PI/detail;for(let i=0;i<detail*2;i++){const a=i*Math.PI/detail,b=(i+1)*Math.PI/detail;const pt=(v,t)=>[x+r*Math.cos(v)*Math.cos(t),y+r*Math.sin(v),z+r*Math.cos(v)*Math.sin(t)];quad(pt(v0,a),pt(v0,b),pt(v1,b),pt(v1,a),color);}}}
 function cone(x,y,z,r,h,color,sides=9){cylinder(x,y,z,r,0,h,color,sides);}
 function roof(x,z,w,d,h,color){const e=.17,r=h+.94;quad([x-w/2-e,h,z-d/2-e],[x+w/2+e,h,z-d/2-e],[x+w/2+e,r,z],[x-w/2-e,r,z],color);quad([x-w/2-e,r,z],[x+w/2+e,r,z],[x+w/2+e,h,z+d/2+e],[x-w/2-e,h,z+d/2+e],color);tri([x-w/2-e,h,z-d/2-e],[x-w/2-e,r,z],[x-w/2-e,h,z+d/2+e],'#70505b');tri([x+w/2+e,h,z+d/2+e],[x+w/2+e,r,z],[x+w/2+e,h,z-d/2-e],'#70505b');}
+function roofTiles(h){
+ const x=h.x+h.w/2,z=h.y+h.h/2,w=h.w-.15,d=h.h-.15,H=2.5;
+ const palette={red:['#bb6a63','#86434b'],blue:['#658ba0','#3b5c76'],orange:['#d18a58','#92573a'],purple:['#92749a','#604769'],navy:['#697e92','#384c63']}[h.roof]||['#bb6a63','#86434b'];
+ const e=.17,half=d/2+e;
+ // Tiles sit just above each sloping roof plane to avoid z-fighting.
+ for(let side of [-1,1])for(let row=0;row<4;row++){
+  const f=(row+.5)/4,zz=z+side*half*f,yy=H+.94*(1-f)+.028;
+  for(let col=0;col<Math.ceil(w*2);col++){
+   const xx=x-w/2+(col+.5)*w/Math.ceil(w*2);
+   box(xx,yy,zz,w/Math.ceil(w*2)-.055,.025,.13,(row+col)%3===0?palette[1]:palette[0]);
+  }
+ }
+ box(x,H+.94,z,w+.35,.085,.15,'#e5d2b3');
+}
+
 function building(h){
  const x=h.x+h.w/2,z=h.y+h.h/2,w=h.w-.15,d=h.h-.15,H=2.5;
  const roofColors={red:'#a34f55',blue:'#456d8a',orange:'#b77445',purple:'#70537d',navy:'#4b586c'};
@@ -40,7 +55,7 @@ function building(h){
  // Solid structure; every accent is placed clearly in front of the facade,
  // rather than coplanar with the wall or another trim (prevents z-fighting).
  box(x,0,z,w,H,d,'#d9c9a6','#e7d6b2');
- roof(x,z,w,d,H,roofColor);
+ roof(x,z,w,d,H,roofColor);roofTiles(h);
  const face=z+d/2, trim=face+.13, detail=face+.31;
  // One continuous stone foundation and a tidy timber fascia.
  box(x,.08,face+.10,w-.14,.17,.13,'#a58b70');
@@ -127,6 +142,12 @@ function piece(x,z,type,color,aldric=false){
   sphere(x+.22,1.77,z-.33,.065,light,8);
   box(x-.20,1.70,z+.02,.09,.25,.12,rim);
  }
+ if(type==='Q'){
+  cylinder(x,1.02,z,.28,.32,.64,base,12);cylinder(x,1.66,z,.37,.37,.16,rim,12);
+  cylinder(x,1.82,z,.29,.38,.26,light,12);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;sphere(x+Math.cos(a)*.33,2.20,z+Math.sin(a)*.33,.115,light,7);}
+  sphere(x,2.30,z,.14,rim,9);
+ }
  if(type==='K'){
   cylinder(x,1.02,z,.29,.31,.60,base,12);
   cylinder(x,1.62,z,.37,.36,.15,rim,12);
@@ -146,6 +167,18 @@ function piece(x,z,type,color,aldric=false){
   }
  }
 }
+function features(x,z,type,color,aldric=false){
+ const white=color==='white',dark=white?'#403d35':'#dce7ec',hand=white?'#f0e3c9':'#61728b';
+ // Two forward-facing eyes, subtle pupils and small sculpted hands.
+ for(const side of [-1,1]){
+  sphere(x+side*.115,1.37,z+.284,.055,dark,7);
+  sphere(x+side*.115,1.38,z+.332,.023,white?'#171f25':'#17232c',6);
+  cylinder(x+side*.34,.79,z+.04,.082,.076,.14,hand,8);
+  sphere(x+side*.34,.93,z+.04,.09,hand,7);
+ }
+ if(type==='K'&&aldric)box(x,1.12,z+.29,.20,.06,.07,'#c5a271');
+}
+
 function ground(x,z){
  const kind=tile(x,z),n=hash(x,z);
  const path=kind==='p'||kind==='s',water=kind==='w',forest=kind==='T';
@@ -159,10 +192,12 @@ function ground(x,z){
   if(!['p','s','D'].includes(right))box(x+.93,.009,z+.5,.105,.018,.90,edge);
   if(!['p','s','D'].includes(up))box(x+.5,.009,z+.07,.90,.018,.105,edge);
   if(!['p','s','D'].includes(down))box(x+.5,.009,z+.93,.90,.018,.105,edge);
-  for(let i=0;i<3;i++){
-   const dx=.18+(i%2)*.37+hash(x,z,i)*.08,dz=.2+i*.27;
-   box(x+dx,.009,z+dz,.22,.015,.115,i===1?'#b5a688':stone);
+  for(let i=0;i<5;i++){
+   const dx=.10+(i%3)*.31+hash(x,z,i)*.06,dz=.16+Math.floor(i/3)*.43+hash(z,x,i)*.14;
+   box(x+dx,.011,z+dz,.19+hash(x,z,i+7)*.10,.018,.12,i%4===0?'#a99a7d':i%3===0?'#efe0ba':stone);
   }
+  if(n<.24){box(x+.65,.015,z+.69,.25,.018,.13,'#9e8d6f');}
+  if(n>.80){box(x+.31,.016,z+.25,.14,.016,.18,'#a68e6b');}
  } else if(water){
   // Static lily pads, shoreline and small ripples.
   const shore='#b8c68b';
@@ -207,13 +242,14 @@ if(!staticReady){
   if(tile(x,z)==='F')fountain(x+.5,z+.5);
  }
  for(const h of world.houses||[])building(h);
+ for(const s of world.showcase||[]){cylinder(s.x+.5,.0,s.y+.5,.53,.53,.20,'#8b8b83',12);cylinder(s.x+.5,.20,s.y+.5,.44,.44,.10,'#d3c9ae',12);piece(s.x+.5,s.y+.5,s.piece,s.color,false);features(s.x+.5,s.y+.5,s.piece,s.color);}
  staticCount=vertices.length/9;
  gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
  staticReady=true;vertices=[];
 }
-for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);}
-piece(visual.x+.5,visual.z+.5,'K','white',true);
+for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color);}
+piece(visual.x+.5,visual.z+.5,'K','white',true);features(visual.x+.5,visual.z+.5,'K','white',true);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
@@ -224,12 +260,39 @@ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
 }
 function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}draw(sceneTime);requestAnimationFrame(frame);}
-function togglePause(force){if(!world)return;paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();togglePause();return;}if(paused)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+function togglePause(force){if(!world)return;if(mapOpen)closeMap();if(interior)return;paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(mapOpen){closeMap();return;}if(interior){leaveHouse();return;}togglePause();return;}if(paused||mapOpen||interior)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
-for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
+for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen||interior)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
 document.querySelector('[data-action="talk"]').addEventListener('click',talk);
+
+const mapPanel=document.getElementById('fallen-map'),mapCanvas=document.getElementById('fallen-map-canvas');
+function drawMap(){
+ if(!world)return;const ctx=mapCanvas.getContext('2d'),scale=10;
+ mapCanvas.width=world.width*scale;mapCanvas.height=world.height*scale;
+ const colors={T:'#3b6947',w:'#3c8fb0',p:'#bfa878',s:'#d2bf99',H:'#b07c5a',D:'#d4b27a',F:'#88a9b2',f:'#81b668',g:'#8dbd73','.':'#76a65f'};
+ for(let y=0;y<world.height;y++)for(let x=0;x<world.width;x++){
+  ctx.fillStyle=colors[tile(x,y)]||colors['.'];ctx.fillRect(x*scale,y*scale,scale,scale);
+ }
+ for(const h of world.houses||[]){ctx.fillStyle='#f3e1b9';ctx.font='bold 9px sans-serif';ctx.fillText(h.name.slice(0,12),(h.x-1)*scale,(h.y-1)*scale);}
+ for(const s of world.showcase||[]){ctx.fillStyle='#f5d78b';ctx.fillRect(s.x*scale+3,s.y*scale+3,4,4);}
+ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc((player.x+.5)*scale,(player.y+.5)*scale,5,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#26364c';ctx.lineWidth=2;ctx.stroke();
+}
+function closeMap(){mapOpen=false;mapPanel.hidden=true;canvas.focus({preventScroll:true});}
+function openMap(){if(!world||paused||interior)return;mapOpen=true;pressed.clear();drawMap();mapPanel.hidden=false;}
+document.getElementById('fallen-map-button').addEventListener('click',openMap);
+document.getElementById('fallen-map-close').addEventListener('click',closeMap);
+const housePanel=document.getElementById('fallen-house');
+function enterHouse(x,y){
+ const h=(world.houses||[]).find(h=>x>=h.x&&x<h.x+h.w&&y>=h.y&&y<h.y+h.h);
+ if(!h)return;interior=h;pressed.clear();housePanel.hidden=false;
+ document.getElementById('fallen-house-name').textContent=h.name;
+ document.getElementById('fallen-house-text').textContent='A warm room with wooden floors, a window and a small table. The rest of the interior is still being furnished.';
+}
+function leaveHouse(){interior=null;housePanel.hidden=true;canvas.focus({preventScroll:true});}
+document.getElementById('fallen-house-exit').addEventListener('click',leaveHouse);
 document.getElementById('fallen-menu-button').addEventListener('click',()=>togglePause(true));document.getElementById('fallen-continue').addEventListener('click',()=>togglePause(false));
 document.getElementById('fallen-exit').addEventListener('click',()=>{save();window.location.assign('/minigames.html');});
 const fsButton=document.getElementById('fallen-fullscreen');fsButton.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}});document.addEventListener('fullscreenchange',()=>{fsButton.textContent=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';});
