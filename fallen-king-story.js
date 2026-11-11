@@ -184,7 +184,7 @@ function drawMicroDetail(g,kind){
  }
 }
 // Scene-specific floor materials: never reuse village grass, flowers or pond lilies indoors.
-function backdrop(){if(scene==='cell'||scene==='sewer')return [.065,.10,.12];if(scene==='intro')return steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?[.065,.10,.12]:[.18,.14,.16];return null;}
+function backdrop(){if(scene==='cell')return [.004,.007,.012];if(scene==='sewer')return [.065,.10,.12];if(scene==='intro')return steps[Math.min(chapter.step,steps.length-1)].scene==='prison'?[.065,.10,.12]:[.18,.14,.16];return null;}
 function sightOpaque(x,z){if(scene!=='cell')return false;const w=engine.getWorld();if(x<0||z<0||x>=w.width||z>=w.height)return true;
  // Partition bars and the north gate block walking, but NOT the line of sight.
  if(z===5&&x>=1&&x<=23)return false;
@@ -300,8 +300,12 @@ function drawProps(g){
   box(21.0,.45,9.38,.56,.39,.14,'#746e75');
   box(2.45,.25,11.55,1.65,.35,.90,'#778089');box(20.7,.16,11.8,1.4,.28,.75,'#555e63');
   // SOUTH-facing window: inset cyan moonlight behind the southern iron bars (no west-side false window).
-  box(12.5,1.3,14.7,2.8,1.30,.12,'#57798d');
-  box(12.5,1.3,14.55,2.42,1.12,.10,'#9ab9c8');
+  // What Oliver can see beyond the south window: moon, castle silhouettes and a dark moat.
+  box(12.5,.84,14.52,2.78,1.26,.11,'#293f57');
+  box(12.5,.83,14.45,2.52,.43,.07,'#355e74');
+  sphere(13.15,1.76,14.38,.16,'#d7dfd4',12);
+  for(const x of [11.51,12.07,12.58]){box(x,1.0,14.37,.33,.53,.08,'#273e48');box(x,1.5,14.36,.40,.12,.09,'#273e48');}
+  for(const x of [11.8,12.65,13.2])box(x,.70,14.34,.35,.015,.045,'#88a9b0');
   for(const x of [11.66,12.45,13.24])cylinder(x,.79,14.37,.062,.062,1.35,'#34444b',10);
   for(const y of [.78,1.95])box(12.5,y,14.36,2.52,.11,.19,'#354a50');
   box(12.5,2.05,14.30,3.12,.16,.55,'#a2aca5');
