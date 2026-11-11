@@ -118,32 +118,51 @@ function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer';}
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,features}=g;
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
+ const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
  function wall(x,z,w=1,h=1.8){box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
  function rails(a,b,z){box((a+b)/2,1.98,z,b-a,.14,.16,iron);box((a+b)/2,.18,z,b-a,.14,.16,iron);for(let x=a+.25;x<b;x+=.53)cylinder(x,.98,z,.067,.067,1.83,iron,7);}
  function bed(x,z){box(x,.22,z,3.1,.40,1.65,wood);box(x,.53,z,2.95,.18,1.45,'#a5a79f');box(x-1,.67,z,.80,.12,1.23,ivory);box(x+.6,.66,z,1.4,.10,1.38,'#728894');for(const a of [-1.36,1.36])for(const b of [-.65,.65])box(x+a,.27,z+b,.16,.54,.17,'#5b4334');}
  function toilet(x,z){box(x,.36,z-.3,.9,.7,.65,'#aeb4ae');cylinder(x,.57,z+.18,.5,.5,.22,ivory,12);cylinder(x,.7,z+.18,.35,.35,.06,'#becbca',12);cylinder(x,.73,z+.18,.21,.21,.06,'#416477',12);box(x,.87,z-.53,.77,.14,.15,ivory);box(x+.33,.77,z-.59,.10,.18,.12,'#ad9f78');}
  function torch(x,z){box(x,.84,z,.22,.36,.2,wood);cone(x,1.16,z,.15,.38,'#e5a94d',8);sphere(x,1.34,z,.12,'#ffe0a0',8);}
+ function banner(x,z,c=royal){box(x,1.85,z,.65,1.48,.07,c);box(x,2.60,z,.77,.10,.13,brass);box(x,1.05,z,.70,.12,.13,brass);box(x,2.05,z+.06,.16,.18,.08,brass);}
+ function tapestry(x,z){box(x,1.85,z,1.10,1.45,.09,'#784157');box(x,2.60,z,1.2,.10,.18,brass);for(let i=0;i<3;i++)box(x+(i-1)*.25,1.55,z+.065,.09,.58,.07,brass);}
+ function pipe(x,z,length=3){cylinder(x,1.4,z,.24,.24,length,'#697e7a',10);cylinder(x,1.4,z,.28,.28,.12,'#b3a97e',10);}
+ function arch(x,z){for(const dx of [-1.7,1.7]){box(x+dx,1.3,z,.37,2.6,.44,'#8a9991');box(x+dx,2.35,z,.49,.19,.52,'#a7ad9d');}box(x,2.68,z,3.8,.40,.5,'#6d7d7b');box(x,2.93,z,3.1,.12,.57,'#4a655f');}
  function king(x,z,prisoner=false){const type=prisoner?'P':'K';piece(x,z,type,'white',false);features(x,z,type,'white',false,'aldric');if(prisoner)box(x,.58,z+.3,.48,.42,.08,'#b8aa96');}
  function edwin(x,z,disguised){piece(x,z,'K',disguised?'white':'black',false);features(x,z,'K',disguised?'white':'black',false,disguised?'aldric':'scholar');if(!disguised){cone(x,2.29,z,.30,.56,'#543d65',8);box(x,.74,z+.27,.55,.30,.13,'#74516c');}}
  if(scene==='intro'){
   const kind=steps[Math.min(chapter.step,steps.length-1)].scene;
-  for(let x=0;x<18;x++){wall(x+.5,.5,1,2);wall(x+.5,11.5,1,1.2);}
-  for(let z=1;z<11;z++){wall(.5,z+.5,1,1.8);wall(17.5,z+.5,1,1.8);}
+  for(let x=0;x<18;x++){wall(x+.5,.5,1,2.9);wall(x+.5,11.5,1,1.2);if(x%3===0)box(x+.5,2.95,.62,.30,.25,1.3,'#c0ae87');}
+  for(let z=1;z<11;z++){wall(.5,z+.5,1,2.4);wall(17.5,z+.5,1,2.4);}
   for(let x=2;x<18;x+=4)box(x,.05,6,.06,.10,9,'#beaa8a');
-  if(kind==='bedroom'||kind==='theft'){
+  if(kind!=='prison'){for(const x of [3,7,11,15]){box(x,1.25,.95,.88,2.5,.4,'#b5a48b');tapestry(x,1.19);}for(const x of [2,16]){cylinder(x,.83,6,.36,.36,1.66,'#d8c599',10);sphere(x,1.76,6,.34,'#e4d3ad',10);}for(let z=2;z<11;z+=3)banner(17.04,z+.5,royal);}
+  if(['bedroom','approach','theft'].includes(kind)){
     box(9,.07,4,10,.12,5,'#9b7659');bed(9,5);
     box(3.8,1.0,3.2,1.4,2,.22,'#704751');box(3.8,1.03,3.36,1.2,1.6,.07,'#d4b26b');
-    box(14.2,.55,3.8,1.1,1.1,.9,wood);cylinder(14.2,1.15,3.8,.40,.40,.11,'#d7b35d',12);
+    // The royal crown is kept on an obvious velvet-topped pedestal beside Oliver's bed.
+    box(13.8,.47,5.1,1.65,.94,1.25,wood);box(13.8,.98,5.1,1.7,.14,1.29,'#d2bd97');box(13.8,1.11,5.1,1.25,.15,.92,'#8f3f59');
+    if(kind!=='theft'){cylinder(13.8,1.25,5.1,.44,.44,.19,brass,11);for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(13.8+Math.cos(a)*.36,1.38,5.1+Math.sin(a)*.36,.095,.36,'#f3d57e',6);}sphere(13.8,1.51,5.1,.15,'#cf445a',8);}else box(13.8,1.22,5.1,.65,.07,.60,'#753c4c');
+    box(4.1,1.20,8,1.6,2.4,.14,'#b59c78');for(let k=0;k<4;k++)box(4.1+(k-1.5)*.32,1.28,8.09,.04,1.8,.06,'#d6c29c');
+    box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
+    for(const x of [2.5,16])torch(x,2.9);
     // Oliver sleeping, horizontal stone-white torso, turned towards camera.
     box(8.8,.84,5,2.15,.35,.74,'#e6dbbf');sphere(7.38,.97,5,.40,'#e8ddc5',12);
     box(7.27,1.04,5.34,.085,.06,.06,'#3f4547');box(7.56,1.04,5.34,.085,.06,.06,'#3f4547');
     box(9.2,1.02,5,.94,.10,.7,'#c3aa73');
-    if(kind==='theft'){edwin(12.2,7.3,false);box(12.95,2.42,7.4,.74,.11,.55,'#ddbb65');for(const n of [-1,0,1])cone(12.95+n*.22,2.52,7.4,.10,.26,'#f2d17b',7);}
+    if(kind==='approach')edwin(15.1,8.7,false);
+    if(kind==='theft'){edwin(13.0,7.4,false);cylinder(12.55,2.19,7.0,.36,.36,.15,brass,9);for(const n of [-1,0,1])cone(12.55+n*.23,2.33,7.0,.10,.29,'#f2d17b',7);}
   }else if(kind==='throne'){
     box(9,.62,3.8,3.4,1.24,1.4,'#916b54');box(9,1.42,3.7,2,1.6,.47,'#a44b53');
-    edwin(9,5.3,true);king(8.5,9);piece(5.2,7.5,'R','white',false);piece(12.8,7.5,'R','white',false);torch(3,3);torch(15,3);
+    // Edwin wears the crown and royal disguise; Oliver remains unmistakably crownless.
+    edwin(9,5.3,true);cylinder(9,2.45,5.3,.47,.47,.15,brass,10);for(const n of [-1,0,1])cone(9+n*.3,2.57,5.3,.10,.31,'#e9cf7a',7);
+    piece(8.5,9,'P','white',false);features(8.5,9,'P','white',false,'aldric');box(8.5,.6,9.29,.52,.47,.11,'#a8a08d');
+    piece(5.2,7.5,'R','white',false);piece(12.8,7.5,'R','white',false);torch(3,3);torch(15,3);
+    for(const x of [3.3,14.7]){tapestry(x,1.22);cylinder(x,.73,3.7,.42,.42,1.46,'#d2c2a0',12);}
   }else{
     for(let x=1;x<17;x++)wall(x+.5,2,1,1.8);
+    // Dungeon establishing shot: real cell block and narrow corridor beyond the gate.
+    for(const x of [4,8,12]){box(x,2.1,2.8,.88,2.8,.7,'#343f45');rails(x-.36,x+.36,3.25);}
+    for(const x of [3,7,11,15]){box(x,2.7,1.4,.35,.28,5.2,'#4c5256');}
     rails(3,15,6);bed(5,8.5);toilet(12,8.5);king(9,8.9,true);torch(15,3);
   }
   return;
@@ -151,6 +170,9 @@ function drawProps(g){
  if(scene==='cell'){
   // A solid enclosed room, a cell-block corridor BEHIND the bars and an overhead beam.
   for(let x=0;x<15;x++){wall(x+.5,.5,1,2.2);box(x+.5,2.25,.5,1,.2,.9,'#999b92');box(x+.5,.13,10.5,1,.26,.8,'#546269');}
+  // The far wall contains shadowed entrances to neighbouring cells along the corridor.
+  for(const x of [3,7,11]){box(x,1.2,.98,1.3,1.9,.17,'#26353e');rails(x-.52,x+.52,1.09);}
+  for(const x of [3,7,11]){box(x,2.60,1.6,.40,.45,2.3,'#7d8585');}
   for(let z=1;z<11;z++){wall(.5,z+.5,.8,2.1);wall(14.5,z+.5,.8,2.1);}
   for(let x=1;x<14;x++){box(x+.5,.07,1.35,1,.14,1.4,'#747e7b');if(x%2===0)box(x+.5,2.29,1.7,.18,.32,2.4,'#8c928c');}
   rails(1.1,13.9,2.15);
@@ -160,14 +182,30 @@ function drawProps(g){
   for(const y of [1.16,1.98])box(1.1,y,5.6,.16,.08,1.7,iron);
   bed(4.6,4.2);toilet(11.5,7.5);cylinder(11.5,.07,7.5,.70,.70,.11,'#73746d',12);
   box(12.5,.55,7.0,.22,1.1,.22,'#7c8382');box(12.2,1.08,7,.7,.15,.2,'#7c8382');
-  box(3,.45,8.7,1.2,.22,.65,wood);torch(13,1.45);
+  // Loose stone for the one hidden coin, a wooden bucket, chains and damp stains.
+  box(3,.12,8.7,.78,.20,.66,'#9a9688');box(3,.24,8.7,.36,.05,.35,'#b7b0a0');
+  cylinder(5.4,.28,8.6,.31,.32,.52,'#665343',10);cylinder(5.4,.57,8.6,.35,.35,.08,'#b6a282',10);
+  for(const x of [7.3,7.6]){for(let y=.9;y<1.9;y+=.28)cylinder(x,y,10.04,.055,.055,.20,'#536069',7);}torch(13,1.45);
   box(12.5,1.05,2.35,.30,.46,.16,'#c4a26d');
  }else if(scene==='sewer'){
-  for(let x=0;x<36;x++){wall(x+.5,.5,1,1.6);wall(x+.5,12.5,1,1.6);}
-  for(const x of [12,24])for(let y=1;y<12;y++)if((x===12&&!complete('sluice')||x===24&&!complete('lantern'))||y!==6)wall(x+.5,y+.5,.88,1.4);
-  for(let x=2;x<35;x+=3){cylinder(x+.5,.08,10.4,.47,.47,.11,'#537d82',8);box(x+.5,.2,10.4,.24,.08,.24,'#819f89');}
+  // Long underground aqueduct: two open flowing channels, raised central stone walk, vaulted ribs and major sluice machinery.
+  for(let x=0;x<36;x++){wall(x+.5,.5,1,2.5);wall(x+.5,12.5,1,2.5);if(x%3===0){box(x+.5,2.6,2.25,.27,.28,3.0,'#65746f');box(x+.5,2.6,10.75,.27,.28,3.0,'#65746f');}}
+  for(let x=1;x<35;x++){box(x+.5,.10,4.1,1,.20,.34,'#b0ad98');box(x+.5,.10,8.9,1,.20,.34,'#b0ad98');box(x+.5,.19,6.5,1,.11,1.7,x%2?'#687f7b':'#758c87');}
+  for(const x of [4,10,16,22,28,34]){arch(x,6.5);pipe(x,2.0,3.0);pipe(x,11,3.0);box(x,2.8,6.5,3.7,.20,.54,'#6a817b');}
+  for(let x=2;x<35;x+=4){box(x,1.25,1.55,.36,1.0,.55,'#526560');box(x,1.25,11.45,.36,1.0,.55,'#526560');}
+  for(const x of [5,11,18,23,29,33]){cylinder(x,.20,3.2,.21,.21,.22,'#b7a475',10);cylinder(x,.20,9.8,.21,.21,.22,'#b7a475',10);} 
+  for(const x of [12,24]){for(let y=4;y<=8;y++)if((x===12&&!complete('sluice')||x===24&&!complete('lantern'))||y!==6)wall(x+.5,y+.5,.88,1.4);
+    // Sluice wheel and clear machine to interact with via E (never proximity-triggered).
+    box(x-.6,.78,5.5,.66,1.45,.42,'#697a75');cylinder(x-.6,1.1,5.78,.66,.66,.15,'#d4bb83',12);for(let k=0;k<8;k++){const t=k*Math.PI/4;box(x-.6+Math.cos(t)*.43,1.1+Math.sin(t)*.43,5.88,.12,.12,.20,'#d8c99a');}
+    box(x-.8,.15,6.5,.54,.28,1.5,'#b3aa8c');}
+  for(let x=2;x<35;x+=3){cylinder(x+.5,.16,10.4,.29,.29,.26,'#526e67',8);box(x+.5,.34,10.4,.20,.12,.23,'#809c7c');}
+  for(let x=3;x<35;x+=5){box(x,.4,4.45,.95,.7,.14,'#7c8d85');box(x,.38,8.50,.95,.7,.14,'#7c8d85');}
+  // Drips and algae above the moving canal; recurring lanterns mark the correct route.
+  for(let x=2;x<35;x+=6){for(let z of [2.2,10.8]){cone(x,2.15,z,.12,.68,'#4b7460',7);cone(x+.55,2.15,z,.08,.49,'#517d65',7);}}
   for(let x=3;x<36;x+=6)torch(x,1.5);
-  piece(30.5,4.5,'B','black',false);features(30.5,4.5,'B','black',false,'scholar');box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');
+  piece(30.5,5.5,'B','black',false);features(30.5,5.5,'B','black',false,'scholar');
+  box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');box(34,.70,6.5,.16,.92,1.2,'#a8af9e');
+  for(const z of [4.4,8.5])box(33.2,.92,z,.45,1.76,.42,'#b0b3a3');
  }
 }
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
