@@ -138,7 +138,13 @@ function villageProps(){
 }
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){
- const pale=color==='white',blue=color==='blue',base=blue?'#487ec4':pale?'#e9ddc5':'#293d63',rim=blue?'#294d85':pale?'#ad9b81':'#17263d',light=blue?'#91bbed':pale?'#fff2d9':'#7399c4';
+ const palette={
+ white:['#e9ddc5','#ad9b81','#fff2d9'],black:['#293d63','#17263d','#7399c4'],
+ blue:['#487ec4','#294d85','#91bbed'],red:['#b65a5a','#713b47','#efa69f'],
+ green:['#618c60','#35573d','#a1c696'],purple:['#886ca5','#53436e','#c8a9e0'],
+ orange:['#c38b4c','#815734','#f0c78a']
+ };
+ const [base,rim,light]=palette[color]||palette.white;
  // Consistent turned-stone silhouette: foot, plinth, taper, neck, collar.
  cylinder(x,.055,z,.37,.37,.12,rim,12);
  cylinder(x,.18,z,.34,.29,.14,base,12);
@@ -581,19 +587,21 @@ function oliver(x,z){
  for(const dx of [-.12,.12])sphere(x+dx,1.78,z+.31,.04,'#43505a',8);
 }
 function recliningKing(x,z){
- const from=vertices.length;
- oliver(x,z);
+ // Rotate the EXISTING king chess mesh onto his back so the same royal face points UP at the camera.
+ const from=vertices.length;oliver(x,z);
  for(let i=from;i<vertices.length;i+=9){
-  const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
-  vertices[i]=x+dy-1.20;
-  // Lift the lying king above the mattress and shift him toward the camera.
-  vertices[i+1]=1.08-dx;
-  vertices[i+2]+=.28;
-  vertices[i+3]=ny;
-  vertices[i+4]=-nx;
+  const px=vertices[i],py=vertices[i+1],pz=vertices[i+2];
+  const nx=vertices[i+3],ny=vertices[i+4],nz=vertices[i+5];
+  vertices[i]=x+.86-py; // Head over the pillow on the left, feet to the right.
+  vertices[i+1]=1.10+(pz-z); // Front face and eyes now face the ceiling, NOT the far wall.
+  vertices[i+2]=z+(px-x);
+  vertices[i+3]=-ny;vertices[i+4]=nz;vertices[i+5]=nx;
  }
 }
-function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,.85),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+// Deterministic per-character palette: random-looking diversity without changing on every frame.
+const npcPalette=['white','black','blue','red','green','purple','orange'];
+function npcColor(n){const id=String(n.id||n.name||n.x+':'+n.y);let hash=2166136261;for(let i=0;i<id.length;i++)hash=Math.imul(hash^id.charCodeAt(i),16777619);return npcPalette[(hash>>>0)%npcPalette.length];}
+function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,1.4),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(world.width>20?(aspect<1?8.3:7.3):(aspect<1?6.3:5.7)):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
@@ -631,20 +639,23 @@ if(!staticReady){
 }
 window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
-for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
+for(const n of world.npcs){const tone=npcColor(n);piece(n.x+.5,n.y+.5,n.piece,tone,false);features(n.x+.5,n.y+.5,n.piece,tone,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){
  // Never let player-controlled cosmetics change Oliver's canonical, crownless story appearance.
  oliver(visual.x+.5,visual.z+.5);
 }
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
+gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1,1);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,staticCount);
- gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+ gl.polygonOffset(-1,-1); // Keep moving chess models in front of coplanar background surfaces.
+gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.DYNAMIC_DRAW);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
+gl.disable(gl.POLYGON_OFFSET_FILL);
 window.FallenKingStory?.renderIntroFrame(canvas);
 }
 function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused&&!window.FallenKingStory?.blockedInput()){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=world.width<=18?cam.x:Math.max(7,Math.min(world.width-8,cam.x));cam.z=world.height<=13?cam.z:Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
