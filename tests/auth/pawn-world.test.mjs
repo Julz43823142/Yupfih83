@@ -233,3 +233,18 @@ test('Elo Flow arcade boards, puzzle durations and memory meter are wired',()=>{
  assert.match(page,/data-rank-duration="5"/);
  assert.match(css,/max-width:min\(100%,820px\)/);
 });
+
+test('Pawn Dash has one life and a dedicated death screen with working actions',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const arcade=readFileSync(new URL('../../arcade.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../../arcade.css',import.meta.url),'utf8');
+ assert.match(arcade,/mode==='pawn-dash'\?1:null/);
+ assert.match(arcade,/pawnWorld\?\.showGameOver\(state\.score\)/);
+ assert.match(arcade,/if\(mode!=='pawn-dash'\)\{pawnWorld\?\.destroy\(\)/);
+ assert.match(world,/function hit\(reason='hit'\)\{if\(dead\)return;.*dead=true;hop=null;onHit\(\)/);
+ for(const label of ['GAME OVER','Retry','Skins','Music','Exit to minigames'])assert.ok(world.includes(label));
+ assert.match(world,/retryButton\.onclick=\(\)=>onRetry\(\)/);
+ assert.match(world,/skinsButton\.onclick=\(\)=>\{gameOverPanel\.hidden=true;shopButton\.click\(\)\}/);
+ assert.match(world,/musicButton\.onclick=\(\)=>\{gameOverPanel\.hidden=true;soundButton\.click\(\)\}/);
+ assert.match(css,/\.pawn-game-over\[hidden\]\{display:none!important\}/);
+});

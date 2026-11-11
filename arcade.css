@@ -301,3 +301,12 @@ body.pawn-dash-active{overscroll-behavior:none}
 .arcade-memory-meter-fill{position:absolute;bottom:0;left:0;width:100%;height:100%;background:linear-gradient(0deg,#f7f7ee,#cbd8e2);transition:height .09s linear}
 .arcade-memory-meter-label{position:absolute;bottom:6px;left:50%;writing-mode:vertical-rl;transform:translateX(-50%) rotate(180deg);color:#163448;font-size:9px;font-weight:900}
 @media(max-width:650px){.arcade-memory-meter{left:-13px;width:10px}}
+
+/* Pawn Dash one-life end screen; keep the immersive world visible behind it. */
+.pawn-game-over[hidden]{display:none!important}
+.pawn-world-overlay .pawn-game-over{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(430px,calc(100% - 28px));max-height:calc(100dvh - 24px);overflow-y:auto;padding:24px 18px;border:1px solid #d7c38c;border-radius:20px;background:#102b40f5;box-shadow:0 20px 65px #0009}
+.pawn-world-overlay .pawn-game-over h2{font-size:clamp(32px,7vw,52px);color:#ffe0a2;margin:0}
+.pawn-world-overlay .pawn-game-over p{margin:0;padding:0}
+.pawn-world-overlay .pawn-game-over-score{font-size:19px;font-weight:800;color:white}
+.pawn-world-overlay .pawn-game-over button{width:min(100%,300px);min-width:0;padding:12px 18px}
+.pawn-world-overlay .pawn-game-over button:first-of-type{background:#257c61;border-color:#b8f1cf}

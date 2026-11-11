@@ -266,7 +266,7 @@ function setupLevel(){
   board.hidden=true;pawnWorld?.destroy();
   import('./pawn-world.js?v=20261111-steam13').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
-   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
+   pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished)lose('An enemy chess piece caught you, or you stepped into the river.')},onRetry:()=>{void start()},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(error=>{board.hidden=false;console.error('Pawn Dash world startup failed:',error);status('Pawn Dash could not start: '+(error?.message||'Unknown error')+'. Please refresh and retry.')});
  }
 }
@@ -631,7 +631,7 @@ async function start(){
  state?.eloAbort?.abort();stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
  const now=Date.now(),s=seed();premoveSource=null;runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
- state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party','pawn-dash'].includes(mode)?3:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
+ state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party'].includes(mode)?3:mode==='pawn-dash'?1:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
@@ -648,7 +648,7 @@ async function start(){
 }
 function finish(){
  if(!state||state.finished)return;
- queuedPremove=null;pawnWorld?.destroy();pawnWorld=null;state.eloAbort?.abort();
+ queuedPremove=null;if(mode!=='pawn-dash'){pawnWorld?.destroy();pawnWorld=null}state.eloAbort?.abort();
  state.finished=true;state.phase='done';clearInterval(clockTimer);stopBot();controls.cancelDrag();
  $('arcade-finish').hidden=true;
  $('arcade-final-score').textContent='Final score: '+state.score+' points · level '+state.level+'.';
@@ -656,6 +656,11 @@ function finish(){
  $('arcade-submit').disabled=state.score<1;
  $('arcade-submit-status').textContent=state.score<1?'Score at least one point to enter the Top 100.':'';
  if(mode!=='endgame-survivor'&&mode!=='pawn-dash')$('arcade-time').textContent=clockLabel(timeLeft());
+ if(mode==='pawn-dash'){
+  status('Game over. Final score: '+state.score+'.');
+  pawnWorld?.showGameOver(state.score);
+  return;
+ }
  status('Run finished with '+state.score+' points. Review your moves and mistakes below.');reviewStep=Math.max(0,runReview.length-1);displayReview();
  paint();
 }
