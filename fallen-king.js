@@ -625,7 +625,7 @@ if(!staticReady){
  staticReady=true;vertices=[];
 }
 window.FallenKingStory?.drawFollowers({piece,features});
-window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone},t);
+window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){const prisoner=window.FallenKingStory?.isPrisoner();const type=prisoner?'P':'K';piece(visual.x+.5,visual.z+.5,type,'white',!prisoner);features(visual.x+.5,visual.z+.5,type,'white',!prisoner,'aldric');if(prisoner){box(visual.x+.5,.60,visual.z+.30,.48,.43,.08,'#b8ab96');box(visual.x+.5,.35,visual.z+.38,.56,.10,.11,'#7c6e62');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
