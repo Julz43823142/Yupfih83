@@ -425,7 +425,7 @@ function drawProps(g){
    if(world.tiles[z][x]!=='H')continue;
    const around=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
    if(!around.some(([xx,zz])=>world.tiles[zz]?.[xx]==='s'))continue;
-   if((x+z)%3===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
+   if((x+z)%7===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
    else{box(x+.5,.82,z+.5,.99,1.64,.98,(x+z)%4===0?'#4c6061':'#536467');box(x+.5,1.72,z+.5,1.02,.12,1.02,'#818c87');}
    if((x*7+z*5)%13===0){box(x+.5,.13,z+.5,.48,.14,.3,'#577b70');model('stones',x+.5,.01,z+.5,.49,.28,.44);}
   }
@@ -436,7 +436,7 @@ function drawProps(g){
     box(x+.5,.03,z+.5,.18,.065,.92,'#7b8780');
   }
   // The foul outlet pipe at the western spawn: a recognisable circular bore and iron rim.
-  const pipeX=1.55,pipeY=.95,pipeZ=15.5;
+  const pipeX=3.55,pipeY=.95,pipeZ=25.5;
   for(let i=0;i<16;i++){
    const a=i*Math.PI/8,b=(i+1)*Math.PI/8;
    const vertex=(r,t)=>[pipeX,pipeY+Math.sin(t)*r,pipeZ+Math.cos(t)*r];
@@ -446,35 +446,36 @@ function drawProps(g){
     tri(vertex(.42,a),vertex(.42,b),[pipeX-.05,pipeY,pipeZ],'#172d34');
    }
   }
-  for(const x of [1.55,2.0])cylinder(x,.06,15.5,.54,.54,.08,'#6c7978',14);
-  for(const [x,z] of [[5,15],[10,9],[18,8],[21,22],[30,8],[38,17]]){
+  for(const x of [3.55,4.0])cylinder(x,.06,25.5,.54,.54,.08,'#6c7978',14);
+  for(const [x,z] of [[9,25],[18,12],[25,10],[35,38],[55,13],[70,25],[40,44],[27,32]]){
    box(x,.20,z,.51,.4,.51,'#515f5b');model('stones',x,.12,z,.64,.34,.54);
    cylinder(x,.52,z,.07,.07,.47,'#a29b7c',9);
    cone(x,1.04,z,.12,.25,'#d6a65b',8);sphere(x,1.21,z,.095,'#f5d492',8);
   }
   // Gate wheels can be operated from the corridor with E; never trigger on walking.
-  for(const [x,z,opened] of [[10,12,complete('sluice')],[18,18,complete('lantern')]]){
-   box(x+.48,.80,z+.44,.38,1.52,.34,wet);
-   cylinder(x+.50,1.10,z+.68,.54,.54,.14,'#ad986d',12);
-   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(x+.50+Math.cos(a)*.38,1.10+Math.sin(a)*.38,z+.78,.13,.13,.11,'#d5c085');}
-   if(!opened)box(x+.5,.72,z+.50,.83,1.42,.74,ironDark);
+  for(const [x,z,opened] of [[18,18,complete('sluice')],[32,26,complete('lantern')]]){
+   box(x+2.2,.80,z+.44,.38,1.52,.34,wet);
+   cylinder(x+2.2,1.10,z+.68,.54,.54,.14,'#ad986d',12);
+   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(x+2.2+Math.cos(a)*.38,1.10+Math.sin(a)*.38,z+.78,.13,.13,.11,'#d5c085');}
+   // Gate bars span every one of the five corridor tiles.
+   if(!opened){for(let dx=-2;dx<=2;dx++){box(x+dx+.5,.85,z+.5,.08,1.67,.16,ironDark);sphere(x+dx+.5,1.72,z+.5,.085,'#889a96',8);}box(x+.5,1.72,z+.5,5.15,.15,.25,ironDark);}
   }
   // The long-lost sewer creature has a distinct silhouette, luminous eyes and a ring of tendrils.
-  model('stones',27.4,.15,22.4,1.50,1.38,1.29);model('stones',27.38,1.13,22.4,1.02,.82,.93);
-  for(const x of [27.12,27.70]){sphere(x,1.43,22.84,.13,'#e6c178',10);sphere(x,1.44,22.96,.045,'#26353e',8);}
-  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(27.4+Math.cos(a)*.64,.24,22.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
-  for(const [x,z] of [[26.7,21.9],[28.2,22.1]])model('stones',x,0,z,.48,.28,.38);
+  model('stones',49.4,.15,38.4,1.50,1.38,1.29);model('stones',49.38,1.13,38.4,1.02,.82,.93);
+  for(const x of [49.12,49.70]){sphere(x,1.43,38.84,.13,'#e6c178',10);sphere(x,1.44,38.96,.045,'#26353e',8);}
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(49.4+Math.cos(a)*.64,.24,38.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
+  for(const [x,z] of [[48.7,37.9],[50.2,38.1]])model('stones',x,0,z,.48,.28,.38);
   // Portal to forest after the final PUZZLE -> Continue.
-  for(const x of [43.2,45.6]){model('wall',x,0,17.5,.82,2.55,.90);box(x,2.56,17.5,.87,.16,.93,'#a5aca2');}
-  box(44.4,2.60,17.5,2.6,.28,.84,'#a5aaa1');
-  box(44.4,.06,17.5,1.3,.11,1.0,complete('exit')?'#718c73':'#51646b');
-  for(const x of [39,42])model('barrel',x,0,18.75,.55,.67,.55);
+  for(const x of [74.1,78.4]){model('wall',x,0,25.5,.82,2.55,.90);box(x,2.56,25.5,.87,.16,.93,'#a5aca2');}
+  box(76.2,2.60,25.5,4.5,.28,.84,'#a5aaa1');
+  box(76.2,.06,25.5,1.3,.11,1.0,complete('exit')?'#718c73':'#51646b');
+  for(const x of [69,73])model('barrel',x,0,27.75,.55,.67,.55);
  }else if(scene==='forest'){
   const world=engine.getWorld();
   // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
   for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
    if(world.tiles[z][x]==='T'){
-    if((x*11+z*7)%12===0&&g.tree)g.tree(x+.5,z+.5);
+    if(g.tree&&((x<=2||x>=33||z<=2||z>=16)?(x+z)%2===0:(x+z)%3===0))g.tree(x+.5,z+.5);
     if((x*3+z*5)%19===0)model('stones',x+.5,.01,z+.5,.64,.27,.55);
    }
   }
