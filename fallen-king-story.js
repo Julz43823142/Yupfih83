@@ -309,6 +309,21 @@ function drawVillageProps(g){
  }
 }
 function drawEffects(g,t){
+ if(scene==='intro'||scene==='cell'){
+  const {sphere,cone}=g;
+  // Torchlight flickers and dust drifts through the prison and royal chambers.
+  const kind=scene==='intro'?steps[Math.min(chapter.step,steps.length-1)].scene:'cell';
+  const palace=kind!=='prison'&&kind!=='cell',lights=palace?[[2.5,2.9],[16,2.9]]:scene==='cell'?[[13,1.45]]:[[15,3]];
+  for(const [x,z] of lights){const wobble=Math.sin(t*9+x)*.047,glow=.11+Math.sin(t*4+x)*.025;
+   sphere(x,1.35+wobble,z,glow,'#f5d5a2',7);
+   cone(x,.98+wobble,z,.10,.19,'#e7ad5b',7);
+  }
+  const bound=scene==='cell'?13:16;
+  for(let i=0;i<9;i++){const x=2+((i*2.17+t*.11)%bound),z=3+((i*1.43)%6),y=.5+((i*.49+t*.09)%1.7);
+   sphere(x,y,z,.018+(i%3)*.007,palace?'#f2deb4':'#889a9d',5);
+  }
+  return;
+ }
  if(scene==='village'){
   const {box,sphere}=g,drift=(t*.39)%1;
   for(let x=45;x<48;x++)for(const z of [16.8,19.5,22.2]){
