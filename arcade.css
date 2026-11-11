@@ -310,3 +310,23 @@ body.pawn-dash-active{overscroll-behavior:none}
 .pawn-world-overlay .pawn-game-over-score{font-size:19px;font-weight:800;color:white}
 .pawn-world-overlay .pawn-game-over button{width:min(100%,300px);min-width:0;padding:12px 18px}
 .pawn-world-overlay .pawn-game-over button:first-of-type{background:#257c61;border-color:#b8f1cf}
+
+/* Elo Flow 139: compact, board-first desktop arcade layout. */
+.arcade-page{margin-top:10px!important}
+.arcade-heading{margin:0 0 10px!important;align-items:center!important;flex-direction:row!important;gap:12px}
+.arcade-heading h1{font-size:clamp(21px,2vw,29px)!important;letter-spacing:-.5px;line-height:1.2;margin:0!important}
+.arcade-heading .arcade-other{margin-left:auto;white-space:nowrap;font-size:13px}
+.arcade-description[hidden]{display:none!important}
+@media(min-width:761px){
+ .arcade-layout{grid-template-columns:minmax(145px,180px) minmax(0,1fr) minmax(215px,285px)!important;gap:12px!important}
+ .arcade-stats{grid-column:1!important;grid-row:1!important}
+ .arcade-main{grid-column:2!important;grid-row:1!important;min-width:0}
+ .arcade-side{grid-column:3!important;grid-row:1!important;min-width:0;display:grid;grid-template-columns:1fr!important;gap:12px}
+ .arcade-side>.arcade-panel{grid-column:1!important}
+ .arcade-board-wrap{max-width:min(100%,820px)}
+}
+@media(min-width:761px) and (max-width:1100px){
+ .arcade-layout{grid-template-columns:145px minmax(0,1fr) 210px!important;gap:9px!important}
+ .arcade-stats,.arcade-side .arcade-panel{padding:10px!important}
+}
+@media(max-width:760px){.arcade-heading{align-items:center!important}.arcade-heading h1{font-size:23px!important}}
