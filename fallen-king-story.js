@@ -93,10 +93,16 @@ function forestWorld(){
  ];
  return w;
 }
-function villageWorld(){const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.map(n=>({...n,lines:[...n.lines]}))};for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');w.npcs=w.npcs.filter(n=>!(complete('pip')&&n.id==='pip')).map(n=>n.id==='pip'?{...n,lines:['Oliver, I believe you. Let us repair the bridge.']}:n);w.spawn={x:26,y:29};return w;}
+function villageWorld(){
+ const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.filter(n=>n.id!=='pip').map(n=>({...n,lines:[...n.lines]}))};
+ for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
+ for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
+ if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
+ w.spawn={x:26,y:29};return w;
+}
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('monster')?'Explore the flooded maze and speak to the strange creature (E).':!complete('exit')?'Find the sewer exit (E).':'Escape into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('pip'))return 'Meet Pip near the village square.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit. The creature and its puzzle are optional (E).':'Escape into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
@@ -137,8 +143,8 @@ function beforeMove(x,y){
  return false;
 }
 const coinSpots={cell:[[12,13]]};
-function afterMove(){const p=engine.getPlayer();if(scene==='village'&&!complete('pip')&&Math.abs(p.x-28)+Math.abs(p.y-21)<=2){chapter.flags.pip=true;setScene('village',p);say('Pip','You really are King Oliver? The villagers think you are joking.','I believe you. I will help you reach the eastern bridge!');}
- if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Pip','The road east is open! Our adventure has only begun.');}
+function afterMove(){const p=engine.getPlayer();
+ if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Oliver','The road east is open. I must continue my journey.');}
  persist();updateObjective();}
 function near(p,x,y,r=2){return Math.abs(p.x-x)+Math.abs(p.y-y)<=r;}
 function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.getPlayer(),{x,y}=p;
@@ -167,7 +173,6 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
    return true;
   }
   if(near(p,76,25,3)){
-   if(!complete('monster')){say('Oliver','I cannot leave yet. The strange creature may know the way.');return true;}
    if(!complete('exit')){openPuzzle('exit');return true;}
    setScene('forest',{x:3,y:10,facing:'right'});say('Oliver','Fresh air! A forest path leads toward a village.');return true;
   }
@@ -181,10 +186,14 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   return false;
  }
  if(scene==='village'){
-  if(near(p,28,21,2)&&!complete('pip')){chapter.flags.pip=true;setScene('village',p);say('Pip','I believe you, Oliver. We can repair the broken bridge together.');persist();updateObjective();return true;}
-  if(complete('pip')&&near(p,17,19,2)&&!complete('lumber')){openPuzzle('lumber');return true;}
+  if(near(p,17,19,2)&&!complete('lumber')){openPuzzle('lumber');return true;}
   if(complete('lumber')&&near(p,16,28,2)&&!complete('ropes')){openPuzzle('ropes');return true;}
-  if(x>=41&&y>=17&&y<=21){if(!complete('lumber')||!complete('ropes'))say('Pip','We still need timber and rope. Ask the villagers first.');else if(!complete('bridge'))openPuzzle('bridge');else say('Pip','Our bridge is repaired!');return true;}
+  if(x>=41&&y>=17&&y<=21){
+   if(!complete('lumber')||!complete('ropes'))say('Oliver','Timber and rope are still needed to repair the bridge.');
+   else if(!complete('bridge'))openPuzzle('bridge');
+   else say('Oliver','The bridge is ready. The way ahead is clear.');
+   return true;
+  }
   return false;
  }
  return false;}
@@ -643,6 +652,6 @@ function drawEffects(g,t){
  }
 
 }
-function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
+function drawFollowers(g){/* Pip is reserved for the second village, not Willowmere. */}
 window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
