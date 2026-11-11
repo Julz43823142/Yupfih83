@@ -127,7 +127,7 @@ function paint(){
   let classes='arcade-square '+((x+y)%2?'dark':'light');
   if(selected===square(i))classes+=' selected';
   if(p?.colour)classes+=' knight-'+p.colour;
-  if(sources.includes(i)&&mode!=='chess-block-party')classes+=' available';
+  if(sources.includes(i))classes+=' available';
   if(state&&mode==='falling-board'&&state.falling.gone.includes(i))classes+=' lost';
   if(state&&mode==='chess-block-party'){
    classes+=' board-color';
@@ -229,7 +229,8 @@ function setupLevel(){
   void loadRealEloGame(state);
  }else if(mode==='chess-memory'){
   state.answer=memoryLevel(state.seed,state.level);state.placed={};state.phase='preview';
-  state.revealUntil=Date.now()+Math.max(2700,6500-state.level*200);
+  state.previewDuration=Math.max(2700,6500-state.level*200);
+   state.revealUntil=Date.now()+state.previewDuration;
   status('Memorize the pieces! They disappear shortly.');
  }else if(mode==='missing-piece'){
   state.puzzle=missing[(state.level-1+state.positionOffset)%missing.length];
