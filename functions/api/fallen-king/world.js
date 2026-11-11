@@ -48,5 +48,5 @@ export async function onRequestGet({request,env}) {
     {id:'courier',x:16,y:28,piece:'N',color:'white',name:'Courier Nox',lines:['I travel between villages.','These roads lead beyond the village, but that area is not ready yet.']},
     {id:'gardener',x:9,y:24,piece:'P',color:'black',name:'Gardener Moss',lines:['These flowers take patience.','Watch your step near the pond.']}
   ];
-  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:3},{headers:adminHeaders});
+  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:4},{headers:adminHeaders});
 }
