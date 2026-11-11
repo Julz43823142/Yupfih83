@@ -48,3 +48,16 @@ html,body{width:100%;height:100%;overflow:hidden}
 @media(max-width:500px){#fallen-wardrobe-grid{grid-template-columns:1fr}}
 
 #fallen-pickup-hint{position:absolute;z-index:6;top:80px;left:50%;transform:translateX(-50%);background:#193d43ed;border:2px solid #e1c582;border-radius:9px;color:#fff0c8;padding:11px 16px;text-align:center;font-weight:700;max-width:85vw}#fallen-pickup-hint[hidden]{display:none}
+
+/* Interactive wardrobe: visible, clickable selectors and live character on the left. */
+.fallen-wardrobe-panel{width:min(900px,calc(100vw - 24px));max-height:94dvh;overflow:auto;position:relative;z-index:1}
+.fallen-wardrobe-layout{display:grid;grid-template-columns:minmax(190px,.85fr) minmax(220px,1.15fr);gap:22px;align-items:start}
+.fallen-wardrobe-avatar{display:flex;flex-direction:column;align-items:center;gap:9px;background:#b6a68b;border:3px solid #d9bd80;border-radius:12px;padding:12px;color:#263a3d}
+.fallen-wardrobe-avatar h2{margin:0;font-size:16px;letter-spacing:2px;color:#273e43}
+.fallen-wardrobe-avatar span{font-size:12px;font-weight:700}
+#fallen-wardrobe-preview{display:block;width:min(100%,256px);height:auto;aspect-ratio:256/336;image-rendering:pixelated;border:2px solid #715e48;background:#c5b69a}
+#fallen-wardrobe-grid{grid-template-columns:1fr;gap:12px}
+#fallen-wardrobe-grid label{display:flex;flex-direction:column;align-items:stretch;justify-content:initial;gap:7px;margin:0}
+#fallen-wardrobe-grid select{cursor:pointer;min-height:48px;pointer-events:auto}
+#fallen-wardrobe[hidden]{display:none!important}
+@media(max-width:600px){.fallen-wardrobe-layout{grid-template-columns:1fr}.fallen-wardrobe-avatar{max-width:310px;width:100%;margin:auto}.fallen-wardrobe-panel{padding:16px}}
