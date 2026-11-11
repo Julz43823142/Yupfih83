@@ -159,14 +159,14 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   for(let i=0;i<28;i++){const y=(i*73)%height;ctx.strokeStyle='#c3a27c0b';ctx.lineWidth=i%4===0?2:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y+2);ctx.stroke()}
   if(isPhone())return; // Mobile is an edge-to-edge chessboard without side rails.
   for(const edge of [left,right]){
-   const x=edge===left?edge-u*.48:edge;
-   const wood=ctx.createLinearGradient(x,0,x+u*.48,0);
+   const x=edge===left?edge-u*.64:edge;
+   const wood=ctx.createLinearGradient(x,0,x+u*.64,0);
    wood.addColorStop(0,'#27180f');wood.addColorStop(.3,'#805333');wood.addColorStop(.65,'#ad8051');wood.addColorStop(1,'#29180f');
-   ctx.fillStyle='#08080988';ctx.fillRect(x-5,0,u*.48+10,height);
-   ctx.fillStyle=wood;ctx.fillRect(x,0,u*.48,height);
+   ctx.fillStyle='#08080988';ctx.fillRect(x-5,0,u*.64+10,height);
+   ctx.fillStyle=wood;ctx.fillRect(x,0,u*.64,height);
    ctx.fillStyle='#e0b47888';ctx.fillRect(x+u*.04,0,Math.max(1,u*.023),height);
-   ctx.fillStyle='#23150f';ctx.fillRect(x+u*.44,0,Math.max(2,u*.04),height);
-   for(let i=0;i<Math.ceil(height/115);i++){ctx.fillStyle='#d7a96a';ctx.beginPath();ctx.arc(x+u*.24,i*115+28,Math.max(2,u*.035),0,Math.PI*2);ctx.fill()}
+   ctx.fillStyle='#23150f';ctx.fillRect(x+u*.60,0,Math.max(2,u*.04),height);
+   for(let i=0;i<Math.ceil(height/115);i++){ctx.fillStyle='#d7a96a';ctx.beginPath();ctx.arc(x+u*.32,i*115+28,Math.max(2,u*.035),0,Math.PI*2);ctx.fill()}
   }
  }
  function gear(cx,cy,r,time,reverse=false){
@@ -180,7 +180,7 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   if(isPhone())return;
   // Historically inspired by von Kempelen's seated, turbaned chess automaton and
   // its maple cabinet; a tiny concealed chess master nods behind a loose panel.
-  const u=cellSize(),left=project(0,0)[0]-u*.5,available=left-u*.48;
+  const u=cellSize(),left=project(0,0)[0]-u*.5,available=left-u*.64;
   if(available<u*.9)return;
   const cx=available*.5,scale=Math.min(available/(u*2.2),1.85);
   ctx.save();ctx.translate(cx,height*.54);ctx.scale(scale,scale);
@@ -218,9 +218,9 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
  }
  function pieceFactory(time){
   if(isPhone())return;
-  const u=cellSize(),right=project(8,0)[0]+u*.5,avail=width-right-u*.48;
+  const u=cellSize(),right=project(8,0)[0]+u*.5,avail=width-right-u*.64;
   if(avail<u*.9)return;
-  const cx=right+u*.48+avail*.5,scale=Math.min(avail/(u*2.1),1.8);
+  const cx=right+u*.64+avail*.5,scale=Math.min(avail/(u*2.1),1.8);
   ctx.save();ctx.translate(cx,height*.54);ctx.scale(scale,scale);
   // The enemy-piece press: pistons, conveyor, hot-pink enamel vats.
   round(-u*.81,-u*1.76,u*1.62,u*2.76,u*.06,'#262b30');
@@ -233,14 +233,31 @@ export function createPawnWorld({host,seed,onScore,onHit,onStatus,onPauseChange=
   for(let i=0;i<3;i++){const x=(i-1)*u*.34;ctx.fillStyle='#f2b4c4';ctx.beginPath();ctx.arc(x,-u*.43,u*.11,0,Math.PI*2);ctx.fill()}
   gear(-u*.45,u*.34,u*.21,time);gear(u*.38,u*.34,u*.19,time,true);
   round(-u*.71,u*.67,u*1.42,u*.22,u*.03,'#1a2226');
-  // Little molded pink pieces travel along the conveyor.
-  for(let i=0;i<4;i++){
-   const x=((i*.49+time*.29)%2.1-1.05)*u;
-   ctx.save();ctx.translate(x,u*.62);ctx.scale(.27,.27);
-   ctx.fillStyle='#d77d99';ctx.beginPath();ctx.arc(0,-u*.31,u*.24,0,Math.PI*2);ctx.fill();
-   round(-u*.26,-u*.22,u*.52,u*.38,u*.06,'#b95576');
-   round(-u*.35,u*.13,u*.7,u*.12,u*.02,'#f0adc1');ctx.restore();
+  // Smokestacks release layered, drifting steam above the working press.
+  for(let stack=0;stack<2;stack++){
+   const sx=(stack? .43:-.43)*u;
+   round(sx-u*.105,-u*2.14,u*.21,u*.65,u*.025,'#333a3d');
+   round(sx-u*.14,-u*2.16,u*.28,u*.12,u*.025,'#b08a64');
+   for(let puff=0;puff<5;puff++){
+    const t=(time*.21+puff*.19+stack*.33)%1;
+    ctx.globalAlpha=(1-t)*.38;
+    ctx.fillStyle='#d5cfc0';ctx.beginPath();
+    ctx.ellipse(sx+Math.sin(time*.8+puff+stack)*u*.10+t*u*.13,
+     -u*(2.17+t*.91),u*(.13+t*.22),u*(.09+t*.17),0,0,Math.PI*2);ctx.fill();
+   }
+   ctx.globalAlpha=1;
   }
+  // Full recognizable chess pieces travel smoothly through the factory.
+  // Clip to the conveyor's exit gates: they enter/leave offstage, never pop in place.
+  ctx.save();ctx.beginPath();ctx.rect(-u*.77,u*.40,u*1.54,u*.33);ctx.clip();
+  const skins={color:'#cf6689',accent:'#ffd0df',trim:'#f4b8c4'};
+  const kinds=['pawn','rook','bishop','queen','knight','king'];
+  for(let i=0;i<7;i++){
+   const progress=(time*.18+i/6)%1;
+   const x=(-.98+progress*2.0)*u;
+   paintChessPiece(ctx,kinds[i%kinds.length],skins,x,u*.59,u*.38,{enemy:true});
+  }
+  ctx.restore();
   ctx.restore();
  }
  function tile(x,row,type,time){
