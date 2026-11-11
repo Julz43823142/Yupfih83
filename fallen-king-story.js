@@ -486,10 +486,24 @@ function drawEffects(g,t){
   const {sphere,cone}=g;
   // Torchlight flickers and dust drifts through the prison and royal chambers.
   const kind=scene==='intro'?steps[Math.min(chapter.step,steps.length-1)].scene:'cell';
-  const palace=kind!=='prison'&&kind!=='cell',lights=palace?[[2.5,2.9],[16,2.9]]:scene==='cell'?[[15.3,6.0]]:[[15,3]];
+  const palace=kind!=='prison'&&kind!=='cell',lights=palace?[[2.5,2.9],[16,2.9]]:[[15.3,6.0]];
   for(const [x,z] of lights){const wobble=Math.sin(t*9+x)*.047,glow=.11+Math.sin(t*4+x)*.025;
    sphere(x,1.35+wobble,z,glow,'#f5d5a2',7);
    cone(x,.98+wobble,z,.10,.19,'#e7ad5b',7);
+  }
+  if(scene==='cell'||kind==='prison'){
+   // Three clear, floating Z glyphs above the sleeping rook; no UI image overlay.
+   const {tri}=g;
+   if(tri)for(let i=0;i<3;i++){
+    const x=11.7+i*.49,y=1.88+i*.24+.07*Math.sin(t*2+i),z=2.83;
+    const p=(dx,dy)=>[x+dx,y+dy,z],color=i===2?'#d8e0d2':'#b4c8c9';
+    function stroke(ax,ay,bx,by){
+     const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len*.042,ny=dx/len*.042;
+     tri(p(ax+nx,ay+ny),p(bx+nx,by+ny),p(bx-nx,by-ny),color);
+     tri(p(ax+nx,ay+ny),p(bx-nx,by-ny),p(ax-nx,ay-ny),color);
+    }
+    stroke(0,.22,.23,.22);stroke(.23,.22,0,0);stroke(0,0,.23,0);
+   }
   }
   const bound=scene==='cell'?13:16;
   for(let i=0;i<9;i++){const x=2+((i*2.17+t*.11)%bound),z=3+((i*1.43)%6),y=.5+((i*.49+t*.09)%1.7);
@@ -509,26 +523,23 @@ function drawEffects(g,t){
   return;
  }
  if(scene!=='sewer')return;
- // Each canal uses full-length connected wave bands. Sine motion is cyclic and seamless.
- for(const z of [2.45,3.25,9.55,10.35]){
-  for(let x=1.25;x<34.7;x+=.48){
-   const next=Math.min(34.75,x+.48);
-   const a=.045+.020*flow(x,z),b=.045+.020*flow(next,z);
-   const far=.045+.020*flow(x,z+.16,1.1),farNext=.045+.020*flow(next,z+.16,1.1);
+ // Animate ONLY the actual sewer water tiles. All wave vertices remain anchored;
+ // phase changes continuously, and triangles never despawn, wrap or teleport.
+ const waterWorld=engine.getWorld();
+ for(let z=1;z<waterWorld.height-1;z++)for(let x=1;x<waterWorld.width-1;x++){
+  if(waterWorld.tiles[z][x]!=='w')continue;
+  for(const stripe of [.23,.50,.77]){
+   const y=(u,d)=>.055+.017*Math.sin(u*.92-d*.43-t*1.25);
+   const z0=z+stripe,z1=z+stripe+.09,x0=x+.08,x1=x+.92;
    if(tri){
-    tri([x,a,z],[next,b,z],[next,farNext,z+.16],'#57939a');
-    tri([x,a,z],[next,farNext,z+.16],[x,far,z+.16],'#57939a');
-   }else box(x+.24,(a+b)/2,z,.46,.012,.16,'#57939a');
-   const glint=.5+.5*Math.sin(x*1.35-t*1.25+z*.7);
-   // Ripples remain in place: varying height and width, never disappearing or wrapping.
-   box(x+.17,.061+.014*flow(x,z,2),z+.055,.05+glint*.12,.008,.018,'#94bdba');
+    tri([x0,y(x0,z0),z0],[x1,y(x1,z0),z0],[x1,y(x1,z1),z1],'#6c9b9b');
+    tri([x0,y(x0,z0),z0],[x1,y(x1,z1),z1],[x0,y(x0,z1),z1],'#6c9b9b');
+   }else box(x+.50,.06,z0+.045,.84,.018,.09,'#6c9b9b');
+   const glow=.02+.05*(.5+.5*Math.sin(x*1.3+z*.67-t*1.25));
+   box(x+.48,.080+.012*Math.sin(t*1.25+x+z),z0,.13+glow,.009,.022,'#9bc1b8');
   }
  }
- // Bubbles oscillate in place and do not wrap or pop into another location.
- for(const x of [6,14,22,30])for(const z of [3.25,9.85]){
-  const lift=.18+.12*Math.sin(t*1.6+x*.47+z);
-  sphere(x+.3,.10+lift,z,.050,'#8faaa7',7);
- }
+
 }
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
 window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
