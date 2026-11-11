@@ -40,6 +40,7 @@ export async function onRequestGet({request,env}) {
     {x:30,y:16,piece:'K',color:'white'}
   ];
   for(const s of showcase)rows[s.y][s.x]='X';
+  rows[22][19]='X';
   const npcs=[
     {id:'pip',x:28,y:21,piece:'P',color:'white',name:'Pip',lines:['Hello! Welcome to our village.','The bakery is on the west side of the square.']},
     {id:'baker',x:17,y:19,piece:'P',color:'white',name:'Baker Bea',lines:['Fresh bread, every morning!','We do not have a shop menu yet. Come back later.']},
@@ -48,5 +49,5 @@ export async function onRequestGet({request,env}) {
     {id:'courier',x:16,y:28,piece:'N',color:'white',name:'Courier Nox',lines:['I travel between villages.','These roads lead beyond the village, but that area is not ready yet.']},
     {id:'gardener',x:9,y:24,piece:'P',color:'black',name:'Gardener Moss',lines:['These flowers take patience.','Watch your step near the pond.']}
   ];
-  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:4},{headers:adminHeaders});
+  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,showcase,spawn:{x:26,y:29},version:5},{headers:adminHeaders});
 }
