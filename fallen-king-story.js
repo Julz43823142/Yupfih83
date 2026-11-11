@@ -94,8 +94,8 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
    persist();updateObjective();return true;}
   if(near(p,4,4,2)){say('Oliver','The prison bed is cold stone and straw. No blanket, no belongings.');return true;}
   if(y<=4){say('Oliver','Iron bars, a locked gate and a torchlit corridor. Guards may return at any moment.');return true;}
-  if(x<=4){say('Oliver','A narrow barred window. I can see a pale sliver of daylight, far beyond my reach.');return true;}
   if(!complete('coinFound')&&near(p,3,8,1)){chapter.flags.coinFound=true;chapter.coins=['one-hidden-coin'];$('fallen-story-hintcoins').textContent='Hint coins: 1';say('Oliver','One hint coin hidden beneath a loose stone. I should save it for later.');persist();return true;}
+  if(x<=4){say('Oliver','A narrow barred window. I can see a pale sliver of daylight, far beyond my reach.');return true;}
   say('Oliver','Wet stone, a rusty bucket and the smell of rain. There must be some way out.');return true;
  }
  if(scene==='sewer'){
