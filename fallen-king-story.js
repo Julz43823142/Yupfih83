@@ -208,6 +208,36 @@ function drawProps(g){
   for(const z of [4.4,8.5])box(33.2,.92,z,.45,1.76,.42,'#b0b3a3');
  }
 }
+function drawVillageProps(g){
+ if(scene!=='village')return;
+ const {box,cylinder,cone}=g,done=complete('bridge');
+ // Wooden bridge across the eastern stream; timber and rope appear only after the repairs.
+ for(const x of [44.5,48.5])for(const z of [18.7,20.3]){
+  cylinder(x,.28,z,.20,.22,.55,'#695442',10);
+  cone(x,.66,z,.18,.20,'#d0b47f',8);
+ }
+ for(const z of [18.1,20.8])for(let x=43;x<=49;x+=2){
+  box(x,.10,z,1.1,.20,.24,'#83745b');
+  box(x,.22,z,.86,.08,.29,'#bba27a');
+ }
+ if(done){
+  for(let x=44;x<=48;x+=.48){
+   box(x+.3,.19,19.5,.40,.26,2.25,x%1<.45?'#b38c61':'#c19b70');
+   box(x+.3,.32,19.5,.08,.03,2.0,'#e1c28e');
+  }
+  for(const z of [18.3,20.7]){
+   box(46.3,.49,z,4.9,.12,.17,'#b8a078');
+   for(const x of [44.1,45.2,46.3,47.4,48.5])cylinder(x,.47,z,.08,.08,.76,'#6f523b',8);
+  }
+ }else{
+  // Two ends of a collapsed bridge, with snapped boards projecting over the water.
+  for(const x of [43.9,44.4,48.25,48.8]){const z=19.5;
+   box(x,.20,z,.51,.24,1.95,'#8f6947');
+   box(x,.35,z+.55,.28,.08,.15,'#c8a274');
+  }
+  for(const x of [45.1,47.4]){box(x,.02,19.8,.48,.10,.90,'#665341');box(x,.12,19.8,.15,.20,.24,'#493d34');}
+ }
+}
 function drawFollowers(g){if(scene==='village'&&complete('pip')){const p=engine.getPlayer(),x=p.x+(p.facing==='right'?-1:p.facing==='left'?1:0),y=p.y+(p.facing==='down'?-1:p.facing==='up'?1:1);if(x>=0&&x<engine.getWorld().width&&y>=0&&y<engine.getWorld().height){g.piece(x+.5,y+.5,'P','white',false);g.features(x+.5,y+.5,'P','white',false,'pip');}}}
-window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawProps,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
+window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,drawProps,drawVillageProps,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
