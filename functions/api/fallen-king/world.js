@@ -18,7 +18,7 @@ export async function onRequestGet({request,env}) {
   fill(8,20,3,13,'p');fill(40,12,3,19,'p');fill(15,25,29,2,'p');
   fill(20,15,13,12,'s');fill(24,12,4,22,'p');
   fill(23,17,7,1,'s');fill(23,22,7,1,'s');
-  fill(26,19,1,3,'F');
+  fill(26,19,1,3,'s');rows[20][26]='F';
   const houses=[
     {x:12,y:14,w:6,h:4,roof:'red',name:'The Bakery'},
     {x:34,y:14,w:6,h:4,roof:'blue',name:'Village Library'},
@@ -37,5 +37,5 @@ export async function onRequestGet({request,env}) {
     {id:'courier',x:16,y:28,piece:'N',color:'white',name:'Courier Nox',lines:['I travel between villages.','These roads lead beyond the village, but that area is not ready yet.']},
     {id:'gardener',x:9,y:24,piece:'P',color:'black',name:'Gardener Moss',lines:['These flowers take patience.','Watch your step near the pond.']}
   ];
-  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,spawn:{x:26,y:29},version:1},{headers:adminHeaders});
+  return Response.json({width,height,tiles:rows.map(r=>r.join('')),houses,npcs,spawn:{x:26,y:29},version:2},{headers:adminHeaders});
 }
