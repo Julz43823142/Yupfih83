@@ -210,3 +210,16 @@ test('DetailPlus never applies outdoor grass or lilies to prison and sewer floor
  assert.ok(page.indexOf('fallen-king-detailplus-assets.js')<page.indexOf('fallen-king-detailplus.js'));
  assert.ok(page.indexOf('fallen-king-detailplus.js')<page.indexOf('fallen-king-story.js'));
 });
+
+test('prison readability: iron bars, clear cot, metal pail and preserved candle',()=>{
+ const props=source.slice(source.indexOf('function drawProps(g){'),source.indexOf('function drawVillageProps(g)'));
+ assert.match(props,/Genuine forged-iron bars/);
+ assert.doesNotMatch(props,/model\('gate'/);
+ assert.match(props,/Narrow prison cot/);
+ assert.doesNotMatch(props,/model\('bed'/);
+ assert.match(props,/Metal pail rather than a large wooden barrel/);
+ assert.match(props,/torch\(13,1\.45\)/);
+ assert.match(props,/for\(const x of \[4,10\]\)/);
+ assert.match(props,/One clearly recognizable locked cell door/);
+ assert.match(source,/function drawGround\(g,x,z\)/);
+});
