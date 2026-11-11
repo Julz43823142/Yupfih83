@@ -115,6 +115,61 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  return false;}
 function beforeHouse(){return false;}
 function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer';}
+
+// Deliberate material pass: shared deterministic details on the ORIGINAL WebGL meshes.
+// Keep small details in static geometry; do not trigger puzzles or alter collision tiles.
+function drawMicroDetail(g,kind){
+ const {box,cylinder,cone,sphere}=g;
+ const h=(x,z,n=0)=>{const k=Math.sin(x*127.1+z*311.7+n*74.7)*43758.5453;return k-Math.floor(k)};
+ function flagStone(x,z,y=0,color='#8c9088'){box(x,y+.014,z,.88,.028,.89,color);box(x-.30,y+.032,z-.3,.16,.018,.12,'#b0aea0');}
+ function rivet(x,y,z){sphere(x,y,z,.047,'#d2bb86',6);}
+ function candle(x,z,y=.55){cylinder(x,y,z,.075,.075,.20,'#e9d5b6',8);cone(x,y+.14,z,.062,.16,'#e6a64f',7);sphere(x,y+.24,z,.055,'#f9d69a',6);}
+ function book(x,z,c){box(x,.76,z,.36,.16,.53,c);box(x+.025,.85,z,.32,.035,.49,'#eadab8');box(x-.18,.77,z,.05,.17,.58,'#e4b978');}
+ if(kind==='bedroom'||kind==='approach'||kind==='theft'){
+  for(let x=2;x<17;x++)for(let z=2;z<11;z++)if(h(x,z)<.61)flagStone(x+.5,z+.5,.02,h(x,z,1)>.5?'#aa967d':'#b4a38e');
+  // Carved wardrobe, mirror, heraldic inlays, layered draperies and furniture joinery.
+  for(const x of [2.2,4.0]){box(x,.78,3.2,.14,1.58,.15,'#6a4e40');box(x,1.25,3.29,.08,.85,.05,'#d1b179');rivet(x,1.77,3.34);}
+  for(const x of [6.0,12.0]){box(x,1.73,1.16,.13,2.0,.18,'#e2c184');for(let j=0;j<5;j++)rivet(x,1.1+j*.35,1.33);}
+  box(5.1,.83,8.7,1.25,.12,.80,'#6e4c42');for(const dx of [-.45,.45])cylinder(5.1+dx,.42,8.7,.07,.07,.80,'#bca17a',8);
+  for(let i=0;i<4;i++){book(4.55+i*.28,8.55,['#7f3f54','#44677b','#566e57','#97694a'][i]);}
+  for(const x of [2.3,15.5]){box(x,1.18,10.5,.8,2.3,.13,'#6c3d52');box(x,2.48,10.54,.98,.16,.16,'#d0ac72');for(let a=0;a<3;a++)rivet(x+(a-1)*.27,1.34,10.61);}
+  for(const z of [2.3,7.4]){cylinder(1.7,.92,z,.26,.27,1.70,'#b49f7b',9);box(1.7,1.87,z,.7,.15,.70,'#e4cf9c');candle(1.7,z,2.0);}
+  for(const [x,z] of [[12.1,8.6],[14.8,8.4]]){box(x,.25,z,.52,.48,.50,'#79604d');box(x,.53,z,.56,.09,.54,'#af9676');rivet(x,.58,z+.29);}
+  for(let i=0;i<6;i++){const x=6.6+i*.95;box(x,.41,4.12,.09,.03,.15,'#d0bc89');}
+ }
+ if(kind==='throne'){
+  for(let x=2;x<17;x++)for(let z=2;z<11;z++)if(h(x,z)<.83)flagStone(x+.5,z+.5,.0,h(x,z,1)>.55?'#c2af8b':'#ab9c81');
+  for(const x of [3,15]){cylinder(x,.55,4.1,.27,.28,1.12,'#d3bc87',10);box(x,1.21,4.1,.8,.14,.8,'#e4ca92');candle(x,4.1,1.34);}
+  for(const z of [2.5,5.4,8.3]){box(1.4,.75,z,.17,1.5,1.25,'#9d4752');box(1.51,1.50,z,.22,.13,1.38,'#e7be6f');}
+  for(let z=2;z<10;z+=2)for(const x of [5.6,12.4]){cylinder(x,.66,z,.13,.17,1.33,'#af9c7a',8);box(x,1.4,z,.44,.10,.37,'#dbc58f');}
+  for(const x of [7.4,10.6])for(let z=2;z<=5;z+=.8){box(x,.055,z,.17,.08,.55,'#eed6aa');}
+ }
+ if(kind==='prison'||kind==='cell'){
+  const max=kind==='cell'?14:17;
+  for(let x=1;x<max;x++)for(let z=3;z<=9;z++){const k=h(x,z);if(k<.43)flagStone(x+.5,z+.5,.0,k<.12?'#68736e':'#81837b');if(k>.91)box(x+.5,.07,z+.5,.09,.02,.31,'#4b6665');}
+  // Irregular mortar, damp patches, drainage seams and thick iron anchors.
+  for(let x=1;x<max;x+=2){for(const y of [.44,1.05,1.71,2.05]){box(x+.5,y,.94,.74,.036,.09,'#434e53');box(x+1.0,y+.22,.94,.06,.42,.09,'#4b595d');}}
+  for(const x of [2.3,5.7,8.7,12.4]){box(x,.06,9.85,.70,.06,.18,'#455e5b');box(x,.09,9.88,.23,.025,.15,'#6e8d79');}
+  for(const x of [3.0,6.8,10.9]){cylinder(x,.28,2.0,.14,.14,.50,'#424c54',8);box(x,.57,2.0,.31,.11,.32,'#a5a197');}
+  for(let x=2;x<max;x+=3){box(x,2.50,1.63,.12,.23,2.1,'#5a6468');box(x,2.62,1.63,.20,.08,2.1,'#92968b');}
+  for(const z of [4,7,9]){box(14.04,.7,z,.08,.92,.62,'#52605b');box(14.07,.35,z,.09,.08,.70,'#38564e');}
+  if(kind==='cell'){
+   for(const x of [3.4,4.5,5.6]){box(x,.08,4.8,.11,.08,.65,'#b2ad93');}
+   for(let i=0;i<6;i++){const z=6.6+i*.20;box(11.08,.19,z,.07,.03,.11,'#555d59');}
+   box(12.12,.77,7.0,.25,.13,.12,'#a9a9a4');rivet(12.14,.86,7.14);
+   box(6.8,.11,8.8,.38,.17,.38,'#554a3d');box(6.8,.21,8.8,.32,.06,.29,'#81715b');
+  }
+ }
+ if(kind==='sewer'){
+  for(let x=1;x<35;x++)for(const z of [4.65,5.05,7.92,8.34])if(h(x,z)<.63){box(x+.5,.08,z,.82,.05,.30,h(x,z,2)>.5?'#4b7568':'#52796f');}
+  // Water runoff, concentric grates, riveted pipe bands, growth in cracks.
+  for(let x=2;x<35;x+=4){for(const z of [1.0,12.0]){cylinder(x,.79,z,.29,.30,.20,'#8e9283',10);cylinder(x,.79,z,.21,.21,.23,'#3f5151',10);for(let a=0;a<6;a++){const t=a*Math.PI/3;box(x+Math.cos(t)*.25,.79,z+Math.sin(t)*.25,.11,.06,.09,'#b5ad8c');}}}
+  for(let x=4;x<35;x+=6){for(const z of [3.55,9.35]){box(x,.13,z,.52,.12,.40,'#788983');for(let i=0;i<4;i++)box(x-.18+i*.12,.20,z,.06,.025,.41,'#364d51');}}
+  for(let x=2;x<35;x+=3){const a=h(x,4);if(a>.42){cone(x+.2,.33,4.48,.11,.46,'#426e55',7);cone(x+.5,.26,8.65,.08,.38,'#577b57',7);}if(a>.75){sphere(x+.7,.26,3.1,.13,'#608d84',7);sphere(x+.82,.31,3.14,.07,'#99b4a7',6);}}
+  for(const x of [6,16,26])for(const z of [4.6,8.4]){box(x,1.20,z,.29,1.5,.22,'#5a6f68');box(x,1.92,z,.40,.11,.30,'#b3aa83');rivet(x,1.53,z+.19);}
+  for(let x=2;x<35;x+=5){box(x,2.75,3.8,.13,.60,.13,'#54735e');cone(x,2.21,3.8,.20,.62,'#456a58',8);box(x,2.75,9.2,.14,.58,.13,'#54735e');}
+ }
+}
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,features,recliningKing}=g;
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
@@ -164,6 +219,7 @@ function drawProps(g){
     for(const x of [3,7,11,15]){box(x,2.7,1.4,.35,.28,5.2,'#4c5256');}
     rails(3,15,6);bed(5,8.5);toilet(12,8.5);king(9,8.9,true);torch(15,3);
   }
+  drawMicroDetail(g,kind);
   return;
  }
  if(scene==='cell'){
@@ -186,6 +242,7 @@ function drawProps(g){
   cylinder(5.4,.28,8.6,.31,.32,.52,'#665343',10);cylinder(5.4,.57,8.6,.35,.35,.08,'#b6a282',10);
   for(const x of [7.3,7.6]){for(let y=.9;y<1.9;y+=.28)cylinder(x,y,10.04,.055,.055,.20,'#536069',7);}torch(13,1.45);
   box(12.5,1.05,2.35,.30,.46,.16,'#c4a26d');
+  drawMicroDetail(g,'cell');
  }else if(scene==='sewer'){
   // Long underground aqueduct: two open flowing channels, raised central stone walk, vaulted ribs and major sluice machinery.
   for(let x=0;x<36;x++){wall(x+.5,.5,1,2.5);wall(x+.5,12.5,1,2.5);if(x%3===0){box(x+.5,2.6,2.25,.27,.28,3.0,'#65746f');box(x+.5,2.6,10.75,.27,.28,3.0,'#65746f');}}
@@ -205,6 +262,7 @@ function drawProps(g){
   piece(30.5,5.5,'B','black',false);features(30.5,5.5,'B','black',false,'scholar');
   box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');box(34,.70,6.5,.16,.92,1.2,'#a8af9e');
   for(const z of [4.4,8.5])box(33.2,.92,z,.45,1.76,.42,'#b0b3a3');
+  drawMicroDetail(g,'sewer');
  }
 }
 function drawVillageProps(g){
