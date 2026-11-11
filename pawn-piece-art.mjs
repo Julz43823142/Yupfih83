@@ -29,23 +29,32 @@ export function paintChessPiece(ctx,kind,skin,x,y,size,{enemy=false,jump=0,shado
   ctx.beginPath();ctx.moveTo(-.10*u,-.58*u);ctx.lineTo(.11*u,-.88*u);ctx.strokeStyle=outline;ctx.lineWidth=u*.043;ctx.stroke();
   ellipse(0,-.985,.045,.05,trim,outline);
  }else if(kind==='knight'){
-  // Articulated brass automaton horse: long muzzle, clear jaw, crest and gears.
-  poly([[-.20,-.44],[-.24,-.57],[-.36,-.69],[-.34,-.83],[-.20,-.86],[-.19,-1.04],[-.09,-1.16],[.01,-1.00],[.12,-1.12],[.22,-.97],[.27,-.75],[.21,-.55],[.11,-.44]],outline);
-  poly([[-.16,-.48],[-.20,-.60],[-.30,-.72],[-.29,-.79],[-.15,-.80],[-.14,-1.01],[-.08,-1.08],[.015,-.93],[.11,-1.05],[.16,-.92],[.22,-.73],[.16,-.55],[.08,-.48]],gradient);
-  // A pronounced jaw and segmented mechanical muzzle.
-  poly([[-.33,-.76],[-.18,-.77],[-.11,-.68],[-.24,-.65],[-.37,-.69]],trim);
-  rect(-.35,-.76,.14,.035,outline,.008,null);
-  ctx.strokeStyle=trim;ctx.lineWidth=u*.037;ctx.beginPath();ctx.moveTo(.15*u,-.94*u);ctx.lineTo(.20*u,-.74*u);ctx.lineTo(.12*u,-.54*u);ctx.stroke();
-  // Glowing monocular eye, riveted cheek and steel mane.
-  ellipse(-.17,-.87,.062,.064,outline);
-  ellipse(-.18,-.88,.035,.038,'#a2f3d7');
-  ellipse(.035,-.71,.09,.10,outline);
-  ellipse(.035,-.71,.052,.06,trim);
-  ellipse(.035,-.71,.018,.022,outline);
+  // Readable side-profile mechanical horse: muzzle points LEFT, neck slopes RIGHT.
+  // Strong single silhouette, not a humanoid mask or an abstract gear.
+  poly([[-.12,-.43],[-.27,-.58],[-.43,-.60],[-.48,-.70],[-.43,-.80],
+        [-.31,-.83],[-.32,-.99],[-.24,-1.16],[-.10,-1.05],[.02,-1.13],
+        [.16,-.97],[.23,-.74],[.18,-.52],[.13,-.43]],outline);
+  poly([[-.10,-.47],[-.23,-.62],[-.39,-.65],[-.42,-.71],[-.38,-.76],
+        [-.25,-.78],[-.26,-.99],[-.22,-1.08],[-.10,-.98],[.01,-1.06],
+        [.11,-.94],[.17,-.73],[.12,-.55],[.09,-.47]],gradient);
+  // Wide rectangular snout, a mechanical lower jaw and visible nostril.
+  rect(-.47,-.76,.22,.095,trim,.025);
+  rect(-.44,-.68,.045,.035,outline,.012,null);
+  ctx.strokeStyle=outline;ctx.lineWidth=u*.023;ctx.beginPath();ctx.moveTo(-u*.44,-u*.65);ctx.lineTo(-u*.28,-u*.65);ctx.stroke();
+  // Distinct pointed ears and riveted plate along the back of the mane.
+  poly([[-.26,-1.04],[-.27,-1.26],[-.13,-1.13]],trim);
+  poly([[-.07,-1.08],[.03,-1.23],[.07,-1.01]],outline);
   for(let i=0;i<4;i++){
-   const yy=-.95+i*.105;
-   poly([[.15,yy],[.30,yy+.045],[.18,yy+.09]],trim,outline);
+   const yy=-1.00+i*.13;
+   poly([[.10,yy],[.28,yy+.04],[.13,yy+.11]],trim);
   }
+  ellipse(-.28,-.90,.059,.063,outline);
+  ellipse(-.29,-.91,.033,.036,'#9df5df');
+  // Jaw hinge and a little brass winding key in the neck.
+  ellipse(.04,-.65,.085,.085,outline);
+  ellipse(.04,-.65,.052,.052,trim);
+  ellipse(.04,-.65,.020,.020,outline);
+  ctx.strokeStyle=trim;ctx.lineWidth=u*.026;ctx.beginPath();ctx.moveTo(.04*u,-.65*u);ctx.lineTo(.16*u,-.65*u);ctx.stroke();
  }else if(kind==='rook'){
   rect(-.19,-.80,.38,.36,gradient,.015);
   rect(-.26,-.84,.52,.085,trim,.015);
