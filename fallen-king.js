@@ -138,7 +138,7 @@ function villageProps(){
 }
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){
- const pale=color==='white',base=pale?'#e9ddc5':'#293d63',rim=pale?'#ad9b81':'#17263d',light=pale?'#fff2d9':'#7399c4';
+ const pale=color==='white',blue=color==='blue',base=blue?'#487ec4':pale?'#e9ddc5':'#293d63',rim=blue?'#294d85':pale?'#ad9b81':'#17263d',light=blue?'#91bbed':pale?'#fff2d9':'#7399c4';
  // Consistent turned-stone silhouette: foot, plinth, taper, neck, collar.
  cylinder(x,.055,z,.37,.37,.12,rim,12);
  cylinder(x,.18,z,.34,.29,.14,base,12);
