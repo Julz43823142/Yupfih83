@@ -11,8 +11,8 @@ function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
 function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
 function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:p.x,y:p.y,facing:p.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior){save();collectCosmetic();}}}
-function talk(){if(paused||mapOpen)return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
+function move(dir){if(paused||dialogue||mapOpen||window.FallenKingStory?.blockedInput())return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(window.FallenKingStory?.beforeMove(x,z))return;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior){if(!window.FallenKingStory?.customScene())save();collectCosmetic();window.FallenKingStory?.afterMove();}}}
+function talk(){if(paused||mapOpen)return;if(window.FallenKingStory?.talk())return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
@@ -538,7 +538,7 @@ function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
- if(interior){drawBakeryInterior();}else{
+ if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)ground(x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree});}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
   ground(x,z);
   if(tile(x,z)==='T')tree(x+.5,z+.5);
@@ -569,6 +569,7 @@ if(!staticReady){
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
  staticReady=true;vertices=[];
 }
+window.FallenKingStory?.drawFollowers({piece,features});
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
 piece(visual.x+.5,visual.z+.5,'K','white',true);features(visual.x+.5,visual.z+.5,'K','white',true,'aldric');cosmeticGeometry(visual.x+.5,visual.z+.5);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
@@ -580,9 +581,9 @@ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
 }
-function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
-function togglePause(force){if(!world)return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused&&!window.FallenKingStory?.blockedInput()){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
+function togglePause(force){if(!world||window.FallenKingStory?.blockedInput())return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
+document.addEventListener('keydown',e=>{if(window.FallenKingStory?.blockedInput())return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
 for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
@@ -602,11 +603,11 @@ function drawMap(){
  ctx.strokeStyle='#26364c';ctx.lineWidth=2;ctx.stroke();
 }
 function closeMap(){mapOpen=false;mapPanel.hidden=true;canvas.focus({preventScroll:true});}
-function openMap(){if(!world||paused||interior)return;mapOpen=true;pressed.clear();drawMap();mapPanel.hidden=false;}
+function openMap(){if(!world||paused||interior||window.FallenKingStory?.customScene())return;mapOpen=true;pressed.clear();drawMap();mapPanel.hidden=false;}
 document.getElementById('fallen-map-button').addEventListener('click',openMap);
 document.getElementById('fallen-map-close').addEventListener('click',closeMap);
 const housePanel=document.getElementById('fallen-house');
-function enterHouse(x,y){
+function enterHouse(x,y){if(window.FallenKingStory?.beforeHouse(x,y))return;
  const h=(world.houses||[]).find(h=>x>=h.x&&x<h.x+h.w&&y>=h.y&&y<h.y+h.h);
  if(!h)return;
  if(h.name!=='The Bakery'){speaker.textContent=h.name;speech.textContent='This door is locked for now. The bakery is open.';dialogue={npc:{lines:[speech.textContent]},i:0};dialog.hidden=false;pressed.clear();return;}
@@ -627,7 +628,7 @@ function leaveHouse(){
  document.getElementById('fallen-interior-label').hidden=true;canvas.focus({preventScroll:true});
 }
 function updateDoorHint(){
- const hint=document.getElementById('fallen-door-hint');if(!hint||!world)return;
+ const hint=document.getElementById('fallen-door-hint');if(!hint||!world)return;if(window.FallenKingStory?.customScene()){hint.hidden=true;return;}
  if(interior){hint.hidden=!(player.y>=7&&!paused);if(!hint.hidden)hint.textContent='Walk south to the door · Leave Bakery';return;}
  const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;
  const h=tile(tx,tz)==='D'?(world.houses||[]).find(h=>tx>=h.x&&tx<h.x+h.w&&tz>=h.y&&tz<h.y+h.h):null;
@@ -646,6 +647,6 @@ document.getElementById('fallen-music-toggle').addEventListener('click',e=>{musi
 document.getElementById('fallen-save').addEventListener('click',save);document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};save();dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
 world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
-player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;canvas.focus({preventScroll:true});requestAnimationFrame(frame);
+player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};window.FallenKingStory?.start(window.FallenKingEngine);canvas.focus({preventScroll:true});requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();
