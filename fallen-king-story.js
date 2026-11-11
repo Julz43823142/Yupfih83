@@ -5,7 +5,7 @@ const KEY='fallen-king-chapter-one-v2'; // Preserve existing chapter saves.
 const steps=[
  {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'In Aldemar, King Oliver slept in his royal bedchamber. His gold-and-ruby crown rested on a red-velvet cushion beside the bed.'},
  {scene:'bedroom',title:'THE ROYAL BEDCHAMBER',speaker:'Narrator',text:'The candles burned low. Outside the tall windows, the castle guards patrolled while Oliver slept.'},
- {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'Edwin was an ordinary black pawn at court. Tired of always obeying orders, he secretly dreamed of wearing the crown himself.'},
+ {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'Edwin was a blue pawn at court. Tired of always obeying orders, he secretly dreamed of wearing the crown himself.'},
  {scene:'approach',title:'EDWIN THE PAWN',speaker:'Edwin',text:'They treat me as nothing but a pawn. Tonight I will change everything.'},
  {scene:'theft',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Still crownless, Edwin crept to the royal bed and stole Oliver’s crown from its cushion.'},
  {scene:'theft',title:'THE STOLEN CROWN',speaker:'Edwin',text:'The king is asleep. Nobody will know what happened.'},
@@ -306,9 +306,7 @@ function drawProps(g){
  function king(x,z){drawOliver(x,z);}
  function edwin(x,z,wearingCrown=false){
   // Edwin is an unmistakable BLUE pawn; the stolen crown is a separate attachment.
-  piece(x,z,'P','black',false);
-  cylinder(x,.53,z,.315,.30,.45,'#426ba8',12);
-  sphere(x,1.30,z,.305,'#4786ce',12);
+  piece(x,z,'P','blue',false);
   box(x,.61,z+.31,.35,.40,.09,'#2f66a5');
   box(x+.13,.72,z+.36,.12,.16,.05,'#91c2ec');
   if(wearingCrown)dp?.crown?.(g,x,1.53,z,.82);
