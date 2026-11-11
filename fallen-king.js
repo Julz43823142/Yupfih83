@@ -233,13 +233,16 @@ function piece(x,z,type,color,aldric=false){
  }
  if(type==='K'){
   // Broad royal torso, clearly lit chest and face; avoid dark silhouette shells.
-  cylinder(x,.99,z,.38,.34,.36,base,16);
-  cylinder(x,1.32,z,.34,.43,.24,light,16);
-  cylinder(x,1.53,z,.41,.34,.13,'#c7a469',16);
+  // Classic chess-king silhouette: two distinct proportionate STONE bands.
+  // Lower wide foot ring, tapered waist, lower and slimmer neck ring. No gold trim.
+  cylinder(x,.15,z,.43,.40,.16,rim,16); // First broad ring above the plinth.
+  cylinder(x,.99,z,.38,.34,.32,base,16);
+  cylinder(x,1.28,z,.40,.39,.14,light,16); // Second ring, just below the neck.
+  cylinder(x,1.42,z,.30,.28,.19,base,16);
   sphere(x,1.81,z,.29,base,16);
   // Bright forward face plane, distinct collar and narrow ink seams.
   box(x,1.77,z+.265,.37,.28,.08,light);
-  box(x,1.59,z+.34,.48,.055,.07,'#e4c184');
+  box(x,1.53,z+.34,.35,.033,.055,light);
   box(x-.22,1.27,z+.38,.07,.30,.05,rim);
   box(x+.22,1.27,z+.38,.07,.30,.05,rim);
   if(aldric){
