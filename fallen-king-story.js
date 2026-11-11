@@ -367,35 +367,73 @@ function drawProps(g){
   model('stones',9.0,0,12.25,.66,.22,.60);
   for(const x of [7.4,16.9]){box(x,.10,13.24,.60,.07,.32,'#596f70');}
  }else if(scene==='sewer'){
-  // Long underground aqueduct: two open flowing channels, raised central stone walk, vaulted ribs and major sluice machinery.
-  for(let x=0;x<36;x++){wall(x+.5,.5,1,2.5);wall(x+.5,12.5,1,2.5);if(x%3===0){box(x+.5,2.6,2.25,.27,.28,3.0,'#65746f');box(x+.5,2.6,10.75,.27,.28,3.0,'#65746f');}}
-  for(let x=1;x<35;x++){box(x+.5,.10,4.1,1,.20,.34,'#b0ad98');box(x+.5,.10,8.9,1,.20,.34,'#b0ad98');box(x+.5,.19,6.5,1,.11,1.7,x%2?'#687f7b':'#758c87');}
-  for(const x of [4,10,16,22,28,34]){arch(x,6.5);pipe(x,2.0,3.0);pipe(x,11,3.0);box(x,2.8,6.5,3.7,.20,.54,'#6a817b');}
-  for(let x=2;x<35;x+=4){box(x,1.25,1.55,.36,1.0,.55,'#526560');box(x,1.25,11.45,.36,1.0,.55,'#526560');}
-  for(const x of [5,11,18,23,29,33]){cylinder(x,.20,3.2,.21,.21,.22,'#b7a475',10);cylinder(x,.20,9.8,.21,.21,.22,'#b7a475',10);} 
-  for(const x of [12,24]){for(let y=4;y<=8;y++)if((x===12&&!complete('sluice')||x===24&&!complete('lantern'))||y!==6)wall(x+.5,y+.5,.88,1.4);
-    // Sluice wheel and clear machine to interact with via E (never proximity-triggered).
-    box(x-.6,.78,5.5,.66,1.45,.42,'#697a75');cylinder(x-.6,1.1,5.78,.66,.66,.15,'#d4bb83',12);for(let k=0;k<8;k++){const t=k*Math.PI/4;box(x-.6+Math.cos(t)*.43,1.1+Math.sin(t)*.43,5.88,.12,.12,.20,'#d8c99a');}
-    box(x-.8,.15,6.5,.54,.28,1.5,'#b3aa8c');}
-  for(let x=2;x<35;x+=3){cylinder(x+.5,.16,10.4,.29,.29,.26,'#526e67',8);box(x+.5,.34,10.4,.20,.12,.23,'#809c7c');}
-  for(let x=3;x<35;x+=5){box(x,.4,4.45,.95,.7,.14,'#7c8d85');box(x,.38,8.50,.95,.7,.14,'#7c8d85');}
-  // Drips and algae above the moving canal; recurring lanterns mark the correct route.
-  for(let x=2;x<35;x+=6){for(let z of [2.2,10.8]){cone(x,2.15,z,.12,.68,'#4b7460',7);cone(x+.55,2.15,z,.08,.49,'#517d65',7);}}
-  for(let x=3;x<36;x+=6)torch(x,1.5);
-  for(const x of [5,17,28])model('barrel',x,0,8.3,.54,.54,.54);
-  for(const x of [8,20,31])model('stones',x,0,4.35,.64,.32,.48);
-  // DetailPlus placed stone rubble follows the canal banks without cluttering the walkway.
-  for(const [x,z] of [[5.1,3.85],[16.6,9.02],[27.8,4.0],[32.5,8.92]])model('stones',x,.01,z,.56,.30,.43);
-  // Brass-rimmed drainage channels and warm lamps distinguish the two mechanisms.
-  for(const x of [11.4,23.4]){
-   for(const z of [4.25,8.75]){box(x,.12,z,.82,.10,.19,'#9c9985');box(x,.17,z,.70,.035,.10,'#b8b2a0');}
-   cylinder(x,1.02,4.86,.23,.23,.13,'#bea16a',12);
-   cone(x,1.19,4.86,.13,.23,'#e0b56c',9);
-   sphere(x,1.39,4.86,.11,'#f4d695',9);
+  const world=engine.getWorld(),wet='#536a6c',ironDark='#42555b';
+  // Walls are only modelled along the actual winding walkways; dead ends are visibly solid stone.
+  for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
+   if(world.tiles[z][x]!=='H')continue;
+   const around=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
+   if(!around.some(([xx,zz])=>world.tiles[zz]?.[xx]==='s'))continue;
+   if((x+z)%3===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
+   else{box(x+.5,.82,z+.5,.99,1.64,.98,(x+z)%4===0?'#4c6061':'#536467');box(x+.5,1.72,z+.5,1.02,.12,1.02,'#818c87');}
+   if((x*7+z*5)%13===0){box(x+.5,.13,z+.5,.48,.14,.3,'#577b70');model('stones',x+.5,.01,z+.5,.49,.28,.44);}
   }
-  piece(30.5,5.5,'B','black',false);features(30.5,5.5,'B','black',false,'scholar');
-  box(33.5,.25,6.5,.9,.5,.4,'#a2a58f');box(34,.70,6.5,.16,.92,1.2,'#a8af9e');
-  for(const z of [4.4,8.5])box(33.2,.92,z,.45,1.76,.42,'#b0b3a3');
+  // Drain rims help distinguish real water tiles from walkable stone.
+  for(let z=2;z<world.height-2;z++)for(let x=2;x<world.width-2;x++){
+   if(world.tiles[z][x]!=='w')continue;
+   if(world.tiles[z][x-1]==='s'||world.tiles[z][x+1]==='s')
+    box(x+.5,.03,z+.5,.18,.065,.92,'#7b8780');
+  }
+  // The foul outlet pipe at the western spawn: a recognisable circular bore and iron rim.
+  const pipeX=1.55,pipeY=.95,pipeZ=15.5;
+  for(let i=0;i<16;i++){
+   const a=i*Math.PI/8,b=(i+1)*Math.PI/8;
+   const vertex=(r,t)=>[pipeX,pipeY+Math.sin(t)*r,pipeZ+Math.cos(t)*r];
+   if(tri){
+    tri(vertex(.61,a),vertex(.61,b),vertex(.43,b),'#8b9184');
+    tri(vertex(.61,a),vertex(.43,b),vertex(.43,a),'#8b9184');
+    tri(vertex(.42,a),vertex(.42,b),[pipeX-.05,pipeY,pipeZ],'#172d34');
+   }
+  }
+  for(const x of [1.55,2.0])cylinder(x,.06,15.5,.54,.54,.08,'#6c7978',14);
+  for(const [x,z] of [[5,15],[10,9],[18,8],[21,22],[30,8],[38,17]]){
+   box(x,.20,z,.51,.4,.51,'#515f5b');model('stones',x,.12,z,.64,.34,.54);
+   cylinder(x,.52,z,.07,.07,.47,'#a29b7c',9);
+   cone(x,1.04,z,.12,.25,'#d6a65b',8);sphere(x,1.21,z,.095,'#f5d492',8);
+  }
+  // Gate wheels can be operated from the corridor with E; never trigger on walking.
+  for(const [x,z,opened] of [[10,12,complete('sluice')],[18,18,complete('lantern')]]){
+   box(x+.48,.80,z+.44,.38,1.52,.34,wet);
+   cylinder(x+.50,1.10,z+.68,.54,.54,.14,'#ad986d',12);
+   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(x+.50+Math.cos(a)*.38,1.10+Math.sin(a)*.38,z+.78,.13,.13,.11,'#d5c085');}
+   if(!opened)box(x+.5,.72,z+.50,.83,1.42,.74,ironDark);
+  }
+  // The long-lost sewer creature has a distinct silhouette, luminous eyes and a ring of tendrils.
+  sphere(27.4,.55,22.4,.63,'#526f67',12);sphere(27.4,1.28,22.4,.49,'#718f80',12);
+  for(const x of [27.12,27.70]){sphere(x,1.43,22.84,.13,'#e6c178',10);sphere(x,1.44,22.96,.045,'#26353e',8);}
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(27.4+Math.cos(a)*.64,.24,22.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
+  for(const [x,z] of [[26.7,21.9],[28.2,22.1]])model('stones',x,0,z,.48,.28,.38);
+  // Portal to forest after the final PUZZLE -> Continue.
+  for(const x of [43.2,45.6]){model('wall',x,0,17.5,.82,2.55,.90);box(x,2.56,17.5,.87,.16,.93,'#a5aca2');}
+  box(44.4,2.60,17.5,2.6,.28,.84,'#a5aaa1');
+  box(44.4,.06,17.5,1.3,.11,1.0,complete('exit')?'#718c73':'#51646b');
+  for(const x of [39,42])model('barrel',x,0,18.75,.55,.67,.55);
+ }else if(scene==='forest'){
+  const world=engine.getWorld();
+  // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
+  for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
+   if(world.tiles[z][x]==='T'){
+    if((x*11+z*7)%12===0&&g.tree)g.tree(x+.5,z+.5);
+    if((x*3+z*5)%19===0)model('stones',x+.5,.01,z+.5,.64,.27,.55);
+   }
+  }
+  for(const [x,z] of [[5.5,10.9],[10.5,6.9],[19.4,12.9],[29.3,8.8]]){
+   cylinder(x,.05,z,.11,.13,.69,'#665e48',9);
+   cone(x,.79,z,.20,.29,'#ddae66',9);sphere(x,.97,z,.095,'#f5d18f',8);
+  }
+  model('barrel',12.4,0,8.35,.52,.61,.52);
+  model('stones',21.5,0,11.0,.84,.31,.71);
+  for(const x of [31.4,33.1]){box(x,.70,6.9,.17,1.40,.18,'#795d42');cone(x,1.58,6.9,.23,.29,'#a58b66',9);}
+  box(32.25,1.37,6.9,1.60,.17,.15,'#9d835d');
  }
 }
 function drawVillageProps(g){
