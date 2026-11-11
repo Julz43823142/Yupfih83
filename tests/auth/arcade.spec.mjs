@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 const base='http://localhost:8788';
-const games=['endgame-survivor','guess-the-elo','chess-memory','missing-piece','safe-square-rush','falling-board','queen-chase','chess-block-party'];
+const games=['endgame-survivor','guess-the-elo','chess-memory','safe-square-rush','falling-board','chess-block-party'];
 async function stubScores(page){
  await page.route('**/api/arcade**',async route=>{
   if(route.request().url().includes('/api/arcade-game'))return route.fulfill({json:{id:'PpwPOZMq',link:'https://lichess.org/PpwPOZMq',side:'white',elo:1650,moves:['e2e4','e7e5','g1f3','b8c6','f1c4','f8c5','d2d3','g8f6','c2c3','d7d6','e1g1','e8g8']}});
@@ -24,9 +24,9 @@ test('all playable chessboard modes load a stable board, SVGs and clock/score wi
  page.on('response',r=>{if(r.status()>=400&&/arcade|chess-board|chess-1.4/i.test(r.url()))network.push(r.status()+' '+r.url())});
  page.on('requestfailed',r=>network.push(r.url()+' '+r.failure()?.errorText));
  await page.goto(base+'/minigames.html');
- await expect(page.locator('.hub-card.live')).toHaveCount(10); // Knight Maze + nine playable arcade games.
+ await expect(page.locator('.hub-card.live')).toHaveCount(8); // Knight Maze + seven playable arcade games.
  const links=await page.locator('.hub-card.live').evaluateAll(cards=>cards.map(a=>new URL(a.href).pathname+new URL(a.href).search));
- expect(new Set(links).size).toBe(10);
+ expect(new Set(links).size).toBe(8);
  expect(links).toContain('/knight-maze.html');
  for(const game of games)expect(links).toContain('/arcade.html?game='+game);
  for(const game of games){
@@ -75,12 +75,7 @@ test('Block Party supports dragging pieces and right-mouse arrows; Falling Board
  expect(errors).toEqual([]);
 });
 
-test('Missing Piece is playable again and opens its first puzzle',async({page})=>{
- await stubScores(page);await page.goto(base+'/arcade.html?game=missing-piece');
- await expect(page.locator('#arcade-start')).toBeEnabled();
- await page.locator('#arcade-start').click();
- await expect(page.locator('#arcade-board .chess-piece').first()).toBeVisible();
-});
+test('Retired minigames show coming soon instead of opening',async({page})=>{await page.goto(base+'/minigames.html');await expect(page.locator('.hub-card.soon')).toHaveCount(2);});
 test('Guess the Elo reviews authentic-game-shaped moves, allows manual rating and reveals source afterwards',async({page})=>{
  await stubScores(page);await page.goto(base+'/arcade.html?game=guess-the-elo');
  await page.locator('#arcade-start').click();
