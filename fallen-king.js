@@ -11,7 +11,7 @@ function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
 function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
 function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:p.x,y:p.y,facing:p.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior)save();}}
+function move(dir){if(paused||dialogue||mapOpen)return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior){save();collectCosmetic();}}}
 function talk(){if(paused||mapOpen)return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
@@ -283,6 +283,18 @@ const cosmeticCatalog={
 const cosmeticDefaults={hat:'none',face:'none',cloak:'none',trim:'gold'};
 const cosmeticKey='fallen-king-cosmetics-v1';
 let cosmetics={...cosmeticDefaults};
+const foundKey='fallen-king-found-cosmetics-v1';
+let foundCosmetics=new Set();
+function loadFound(){try{const saved=JSON.parse(localStorage.getItem(foundKey)||'[]');if(Array.isArray(saved))foundCosmetics=new Set(saved.filter(id=>typeof id==='string'));}catch{}}
+function collectCosmetic(){
+ if(interior||!world?.collectibles)return;
+ const item=world.collectibles.find(item=>item.x===player.x&&item.y===player.y);
+ if(!item||foundCosmetics.has(item.slot+':'+item.id))return;
+ foundCosmetics.add(item.slot+':'+item.id);staticReady=false;
+ try{localStorage.setItem(foundKey,JSON.stringify([...foundCosmetics]));}catch{}
+ const hint=document.getElementById('fallen-pickup-hint');hint.textContent='Found: '+item.name+' · Open Menu → Customize character';hint.hidden=false;
+}
+
 function loadCosmetics(){try{const saved=JSON.parse(localStorage.getItem(cosmeticKey)||'{}');for(const slot of Object.keys(cosmeticCatalog))if(cosmeticCatalog[slot].some(([id])=>id===saved[slot]))cosmetics[slot]=saved[slot];}catch{}}
 function saveCosmetics(){try{localStorage.setItem(cosmeticKey,JSON.stringify(cosmetics));}catch{}}
 function cosmeticGeometry(x,z){
@@ -482,6 +494,14 @@ if(!staticReady){
  }
  for(const h of world.houses||[])building(h);
  villageProps();
+ for(const item of world.collectibles||[]){
+  // Small gold-trimmed treasure cases: walkable, discoverable, and never obstacles.
+  if(foundCosmetics.has(item.slot+':'+item.id))continue;
+  const x=item.x+.5,z=item.y+.5;
+  box(x,.04,z,.38,.20,.31,'#6d4933');
+  box(x,.25,z,.40,.09,.34,'#d1ac65');
+  box(x,.12,z+.18,.09,.08,.035,'#f5dc8b');
+ }
  for(const s of world.showcase||[]){
   // Raised stone plinths make the display visible against the plaza.
   const sx=s.x+.5,sz=s.y+.5;
@@ -561,6 +581,7 @@ function updateDoorHint(){
  const h=tile(tx,tz)==='D'?(world.houses||[]).find(h=>tx>=h.x&&tx<h.x+h.w&&tz>=h.y&&tz<h.y+h.h):null;
  hint.hidden=!h||mapOpen||paused||!!dialogue;
  if(h)hint.textContent=h.name==='The Bakery'?'E / Space · Enter the Bakery':'E / Space · Check '+h.name;
+ const pickup=document.getElementById('fallen-pickup-hint');if(pickup&&!pickup.hidden&&(!world.collectibles||!world.collectibles.some(item=>item.x===player.x&&item.y===player.y)))pickup.hidden=true;
 }
 document.getElementById('fallen-house-exit').addEventListener('click',leaveHouse);
 document.getElementById('fallen-menu-button').addEventListener('click',()=>togglePause(true));document.getElementById('fallen-continue').addEventListener('click',()=>togglePause(false));
@@ -572,7 +593,7 @@ function musicTick(){if(!musicOn||paused)return;try{audioCtx=audioCtx||new (wind
 document.getElementById('fallen-music-toggle').addEventListener('click',e=>{musicOn=!musicOn;e.currentTarget.textContent='Music: '+(musicOn?'On':'Off');e.currentTarget.setAttribute('aria-pressed',String(musicOn));if(musicOn){musicTick();musicTimer=setInterval(musicTick,420);}else{clearInterval(musicTimer);musicTimer=null;}});
 document.getElementById('fallen-save').addEventListener('click',save);document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};save();dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
-world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();setupWardrobe();
+world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
 player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;canvas.focus({preventScroll:true});requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();
