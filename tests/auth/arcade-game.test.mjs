@@ -1,3 +1,4 @@
+import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onRequestGet} from '../../functions/api/arcade-game.js';
