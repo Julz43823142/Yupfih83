@@ -355,7 +355,7 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  assert.equal(world.tiles[18][18],'s');assert.equal(world.tiles[26][32],'s');
  function path(start,end){const queue=[start],seen=new Set([start.join(',')]);for(const [x,y] of queue){if(x===end[0]&&y===end[1])return queue.length;for(const [dx,dz] of [[0,1],[0,-1],[1,0],[-1,0]]){const xx=x+dx,zz=y+dz,k=xx+','+zz;if(!seen.has(k)&&['s','p'].includes(world.tiles[zz]?.[xx])){seen.add(k);queue.push([xx,zz]);}}}return 0;}
  assert.ok(path([6,25],[18,18])>10);assert.ok(path([6,25],[49,38])>40);assert.ok(path([6,25],[76,25])>40);
- assert.equal(world.tiles[39][9],'s');assert.equal(world.tiles[4][24],'s'); // Actual dead ends
+ assert.equal(world.tiles[39][5],'s');assert.equal(world.tiles[4][24],'s'); // Actual dead ends
  const geometry={box(){},cylinder(){},cone(){},sphere(){},tri(){},piece(){},features(){},tree(){}};
  assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,2.7));
  player={x:48,y:38};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
@@ -500,4 +500,38 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(source,/Low, open royal bed/);
  assert.match(source,/The head pillow stays visible/);
  assert.match(source,/A SMALL, unmistakeable window/);
+});
+
+test('water network reaches the outlet and every blind side passage, with ladder exit and off-path forest spawn',()=>{
+ const els=new Map(),doc={getElementById(id){if(!els.has(id))els.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn},replaceChildren(...c){this.children=c},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return els.get(id)},addEventListener(){},createElement(){return{dataset:{},closest(){return this}}}};
+ const saved={scene:'sewer',step:12,flags:{cell:true},coins:[],position:{x:6,y:25,facing:'right'}};
+ const mem=new Map([['fallen-king-chapter-one-v2',JSON.stringify(saved)]]);
+ const store={getItem:k=>mem.get(k)||null,setItem:(k,v)=>mem.set(k,v)};
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],showcase:[],collectibles:[],spawn:{x:26,y:29}},p={x:26,y:29},lines=[];
+ const api={getWorld:()=>world,getPlayer:()=>p,setWorld:(w,np)=>{world=w;p={...np}},say:(name,text)=>lines.push([name,text]),enableSound(){},soundCue(){}};
+ const win={};new Function('window','document','localStorage','location','confirm',source)(win,doc,store,{},()=>true);
+ const game=win.FallenKingStory;game.start(api);
+ assert.equal(world.width,84);assert.equal(world.streamTiles[25*84+3]>0,true);
+ const destinations=[[5,39],[12,17],[23,12],[24,4],[41,17],[23,31],[40,46],[56,28],[56,5],[73,18],[70,36],[56,36],[76,25]];
+ for(const [x,z] of destinations){
+  assert.equal(world.tiles[z][x],'s','branch terminates on walkable stone '+x+','+z);
+  assert.ok(world.streamTiles[z*world.width+x]>0,'water reaches branch '+x+','+z);
+ }
+ assert.match(source,/for\(let y=\.35;y<=2\.75;y\+=\.30\)/);
+ assert.match(source,/box\(76\.5,y,25\.48,\.99,\.064,\.12/);
+ assert.doesNotMatch(source,/Portal to forest after the final PUZZLE/);
+ // The last puzzle is still required, but the creature remains skippable.
+ p={x:75,y:25};game.talk();
+ assert.equal(doc.getElementById('fallen-story-puzzle').hidden,false);
+ doc.getElementById('fallen-story-puzzle-continue').click();
+ assert.equal(world.width,36);assert.equal(world.height,19);
+ assert.equal(p.x,4);assert.equal(p.y,12);
+ assert.equal(world.tiles[p.y][p.x],'.');
+ assert.match(source,/The torches are stationed on grass OUTSIDE the walking path/);
+});
+test('king has two white-stone bands instead of high yellow neck rim',()=>{
+ assert.match(engine,/cylinder\(x,\.15,z,\.43,\.40,\.16,rim,16\)/);
+ assert.match(engine,/cylinder\(x,1\.28,z,\.40,\.39,\.14,light,16\)/);
+ assert.doesNotMatch(engine,/cylinder\(x,1\.53,z,\.41,\.34,\.13,'#c7a469'/);
+ assert.match(source,/if\(x>=11&&x<=13\)wall\(x\+\.5,15\.48,1,\.55\)/);
 });
