@@ -22,7 +22,7 @@ const instructions={
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
  'chess-block-party':'Each level announces a colour. Move your knight, bishop or rook onto a matching square before it is too late. Other colours collapse. Earn as many level points as you can in three minutes.',
- 'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across water channels, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
+ 'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across clockwork gaps, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
 
@@ -262,7 +262,7 @@ function setupLevel(){
  }else if(mode==='pawn-dash'){
   status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
-  import('./pawn-world.js?v=20261111-syntaxfix9').then(({createPawnWorld})=>{
+  import('./pawn-world.js?v=20261111-walnut10').then(({createPawnWorld})=>{
    if(!state||state.finished||mode!=='pawn-dash')return;
    pawnWorld=createPawnWorld({host:board.parentElement,seed:state.seed,onScore:n=>{if(!state?.finished)score(n)},onHit:()=>{if(!state?.finished){lose('An enemy chess piece caught you, or you stepped into the river.');paint()}},onStatus:message=>status(message),onPauseChange:paused=>{if(!state)return;if(paused)state.pausedAt=Date.now();else if(state.pausedAt){state.endsAt+=Date.now()-state.pausedAt;state.pausedAt=0}}});
   }).catch(error=>{board.hidden=false;console.error('Pawn Dash world startup failed:',error);status('Pawn Dash could not start: '+(error?.message||'Unknown error')+'. Please refresh and retry.')});
