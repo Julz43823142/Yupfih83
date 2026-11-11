@@ -36,7 +36,7 @@ function cellWorld(){const w=createWorld(25,16,'H');
  // Guard has a bed in the northern passage; no direct passage through the cell bars.
  w.spawn={x:12,y:9};w.music='prison';return w;}
 
-const sewerRoute=[[6,25],[18,25],[18,10],[32,10],[32,38],[49,38],[49,13],[64,13],[64,25],[76,25]];
+const sewerRoute=[[3,25],[6,25],[18,25],[18,10],[32,10],[32,38],[49,38],[49,13],[64,13],[64,25],[76,25]];
 function sewerWorld(){
  // Five-tile-wide stone passages in an expanded winding underground maze.
  const w=createWorld(84,53,'H'),radius=2;
@@ -49,22 +49,23 @@ function sewerWorld(){
   }
  }
  for(let i=1;i<sewerRoute.length;i++)hall(...sewerRoute[i-1],...sewerRoute[i]);
- // Exactly one tile wide, through the middle of each five-tile corridor.
- w.streamTiles=new Uint8Array(w.width*w.height);
- for(let i=1;i<sewerRoute.length;i++){
-  const [sx,sz]=sewerRoute[i-1],[ex,ez]=sewerRoute[i],dx=Math.sign(ex-sx),dz=Math.sign(ez-sz);
-  const flow=dx>0?1:dx<0?2:dz>0?3:4;
-  for(let x=sx,z=sz;;x+=dx,z+=dz){
-   w.streamTiles[z*w.width+x]=flow;
-   if(x===ex&&z===ez)break;
-  }
- }
- // Side tunnels deliberately finish in stone; the main route remains five across.
- const branches=[[[9,25],[9,39]],[[12,25],[12,17]],[[18,12],[23,12]],
+ // One continuous water network branches off through every dead-end passage.
+ const branches=[[[5,25],[5,39]],[[12,25],[12,17]],[[18,12],[23,12]],
  [[24,10],[24,4]],[[32,17],[41,17]],[[32,31],[23,31]],
  [[40,38],[40,46]],[[49,28],[56,28]],[[56,13],[56,5]],
  [[64,18],[73,18]],[[70,25],[70,36]],[[49,36],[56,36]]];
  for(const [start,end] of branches)hall(...start,...end);
+ w.streamTiles=new Uint8Array(w.width*w.height);
+ for(const route of [sewerRoute,...branches]){
+  for(let i=1;i<route.length;i++){
+   const [sx,sz]=route[i-1],[ex,ez]=route[i],dx=Math.sign(ex-sx),dz=Math.sign(ez-sz);
+   const flow=dx>0?1:dx<0?2:dz>0?3:4;
+   for(let x=sx,z=sz;;x+=dx,z+=dz){
+    w.streamTiles[z*w.width+x]=flow;
+    if(x===ex&&z===ez)break;
+   }
+  }
+ }
  // Remove unrelated water pockets against walls; the only stream is the centre line.
  // Open corridors throughout: there are NO puzzles or blocked floodgates before the creature and the exit.
  w.spawn={x:6,y:25};w.music='sewer';return w;
