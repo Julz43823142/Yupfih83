@@ -67,11 +67,22 @@ function sewerWorld(){
  w.spawn={x:6,y:25};w.music='sewer';return w;
 }
 function forestWorld(){
- const w=createWorld(36,19,'T');
+ // The path is a guide, not a fence: soft grassy ground is freely walkable.
+ // Only the outer rows of dense old trees and small tree clusters are solid.
+ const w=createWorld(36,19,'.');
+ for(let y=1;y<18;y++)for(let x=1;x<35;x++){
+  const forestEdge=x<=2||x>=33||y<=2||y>=16;
+  if(forestEdge)updateTile(w,x,y,'T');
+ }
  const carve=(a,b,c,d)=>{let x=a,z=b;const dx=Math.sign(c-a),dz=Math.sign(d-b);while(true){for(const ox of [0,1])for(const oz of [0,1])updateTile(w,x+ox,z+oz,'p');if(x===c&&z===d)break;x+=dx;z+=dz;}};
  const route=[[2,10],[8,10],[8,6],[16,6],[16,12],[25,12],[25,8],[33,8]];
  for(let i=1;i<route.length;i++)carve(...route[i-1],...route[i]);
- for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]]){for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)updateTile(w,x+dx,y+dz,'p');}
+ // Widely separated trees create landmarks without trapping Oliver on the road.
+ for(const [x,y] of [[6,4],[13,14],[20,4],[28,14]]){
+  for(const [dx,dz] of [[0,0],[1,0],[0,1]])if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'T');
+ }
+ for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
+  if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
  w.spawn={x:3,y:10};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
