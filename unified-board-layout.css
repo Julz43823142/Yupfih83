@@ -112,3 +112,23 @@ body{min-height:100vh}
 .analysis-controls-panel .analysis-arrow-toggle input:checked{background:#079ac1}
 .analysis-controls-panel .analysis-arrow-toggle input:checked::after{transform:translateX(18px)}
 .analysis-controls-panel .analysis-arrow-toggle input:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+/* Elo Flow: board-first desktop sizing, using available viewport width. */
+@media(min-width:1250px){
+ .play-page{width:min(1840px,calc(100% - 24px))!important}
+ .play-main-layout{grid-template-columns:minmax(0,1fr) minmax(0,340px)!important;gap:14px!important}
+ .play-game{grid-column:1!important;max-width:none!important;margin:0!important}
+ .play-selector{grid-column:2!important;max-height:calc(100vh - 110px)}
+ .play-layout{grid-template-columns:minmax(135px,165px) minmax(0,1fr)!important;gap:10px!important}
+ .play-board-card{padding:12px!important}
+ .tool-page:has(.analysis-three-column){width:min(1860px,calc(100% - 22px))!important}
+ .tool-page .tool-card:first-of-type>.analysis-three-column{
+  grid-template-columns:minmax(145px,170px) minmax(0,1.65fr) minmax(240px,.8fr)!important;gap:12px!important
+ }
+ .tool-page .tool-card:first-of-type{padding:16px!important}
+ .prep-analysis-layout{grid-template-columns:minmax(150px,195px) minmax(0,1.6fr) minmax(260px,.8fr)!important}
+ .maze-layout{grid-template-columns:minmax(145px,170px) minmax(0,1.7fr) minmax(230px,.8fr)!important}
+}
+@media(min-width:1100px) and (max-width:1249px){
+ .tool-page .tool-card:first-of-type>.analysis-three-column{grid-template-columns:150px minmax(0,1fr) 245px!important;gap:10px!important}
+}
