@@ -191,8 +191,8 @@ test('DetailPlus renders real mesh triangles, curved toilet and the same crown e
  for(const id of ['gate','wall','floor','table','barrel','chest','bed','stones'])assert.ok(counts[id]>0,'mesh '+id+' must contain triangles');
  const g={tri(a,b,c,color){points.push(...a,...b,...c);colors.push(color);},cylinder(){}};
  for(const id of Object.keys(counts))assert.equal(dp.draw(g,id,3,0,3,1.5,2,1),true);
- dp.crown(g,2,2,3,1);const firstColors=colors.slice(-172);
- dp.crown(g,7,2,8,.8);assert.deepEqual(colors.slice(-172),firstColors,'crown materials must remain identical');
+ const crownStart=colors.length;dp.crown(g,2,2,3,1);const firstColors=colors.slice(crownStart);
+ dp.crown(g,7,2,8,.8);assert.deepEqual(colors.slice(-firstColors.length),firstColors,'crown materials must remain identical');
  assert.ok(colors.includes('#8c263f'),'crown always has red velvet');
  const count=colors.length;dp.toilet(g,11,7);assert.ok(colors.length>count+100,'toilet must use curved mesh surfaces');
  assert.ok(points.every(Number.isFinite),'real GLB geometry must contain finite coordinates');
