@@ -224,7 +224,8 @@ test('prison readability: iron bars, clear cot, metal pail and preserved candle'
  assert.match(props,/Genuine forged-iron bars/);
  assert.doesNotMatch(props,/model\('gate'/);
  assert.match(props,/Narrow prison cot/);
- assert.doesNotMatch(props,/model\('bed'/);
+ assert.match(props,/function royalBed\(x,z\)/);
+ assert.match(props,/if\(!model\('bed',x,0,z/);
  assert.match(props,/small iron pail/);
  assert.match(props,/torch\(15\.3,6\.0\)/);
  assert.match(props,/for\(const x of \[6\.5,18\.5\]\)/);
