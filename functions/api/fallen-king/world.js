@@ -1,4 +1,4 @@
-import { requireAdmin, adminHeaders } from '../../lib/auth/admin-access.mjs';
+import { requireAdmin, adminHeaders } from '../../../lib/auth/admin-access.mjs';
 
 // The playable world is returned only after a fresh server-side admin role check.
 export async function onRequestGet({request,env}) {
