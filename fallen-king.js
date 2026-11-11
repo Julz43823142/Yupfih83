@@ -16,7 +16,7 @@ function talk(){if(paused||mapOpen)return;if(interior){if(player.y>=7&&player.fa
 const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
-const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/42.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
+const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/24.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;}';
 const frag='precision mediump float;varying vec3 col;void main(){gl_FragColor=vec4(pow(col,vec3(.88)),1.);}';
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
@@ -162,11 +162,11 @@ function piece(x,z,type,color,aldric=false){
   // Strong readable front: bright masonry faces, narrow ink joints and arched door.
   box(x-.17,1.19,z+.315,.10,.38,.065,light);
   box(x+.17,1.19,z+.315,.10,.38,.065,light);
-  box(x,1.19,z+.337,.15,.34,.065,ink);
-  sphere(x,1.46,z+.345,.075,ink,10);
-  box(x,1.56,z+.42,.58,.035,.04,'#c5a46c');
+  box(x,1.19,z+.405,.15,.34,.045,ink);
+  sphere(x,1.46,z+.445,.075,ink,10);
+  box(x,1.56,z+.465,.58,.035,.04,'#c5a46c');
   for(let row=0;row<3;row++)for(let side of [-1,1])
-   box(x+side*.22,1.25+row*.13,z+.346,.11,.018,.035,row===1?ink:light);
+   box(x+side*.22,1.25+row*.13,z+.405,.11,.018,.035,row===1?ink:light);
  }
  if(type==='B'){
   cylinder(x,1.00,z,.23,.31,.45,base,12);
@@ -249,12 +249,15 @@ function piece(x,z,type,color,aldric=false){
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
- hat:[['none','No hat'],['cap','Traveler cap'],['top','Top hat'],['wizard','Scholar hat'],['beret','Beret'],['crown','Golden circlet'],['hood','Hood'],['feather','Feathered hat'],['helmet','Knight helmet'],['chef','Chef hat'],['straw','Straw hat'],['pirate','Tricorn']],
- face:[['none','Clean shaven'],['mustache','Mustache'],['handlebar','Handlebar mustache'],['beard','Full beard'],['goatee','Goatee'],['eyepatch','Eye patch'],['glasses','Glasses'],['monocle','Monocle'],['freckles','Freckles']],
- cloak:[['none','No cloak'],['red','Crimson cape'],['blue','Royal blue cape'],['green','Forest cape'],['purple','Violet cape'],['black','Midnight cape'],['gold','Golden cape']],
- trim:[['gold','Gold trim'],['silver','Silver trim'],['red','Red trim'],['blue','Blue trim'],['green','Green trim'],['purple','Purple trim']]
+ hat:[['none','No hat'],['cap','Traveler cap'],['top','Top hat'],['wizard','Scholar hat'],['beret','Beret'],['crown','Golden circlet'],['hood','Hood'],['feather','Feathered hat'],['helmet','Knight helmet'],['chef','Chef hat'],['straw','Straw hat'],['pirate','Tricorn'],['bowler','Bowler hat'],['flat','Flat cap'],['bonnet','Bonnet'],['turban','Wrapped turban'],['cavalier','Cavalier hat'],['explorer','Explorer hat'],['hoodred','Crimson hood'],['hoodgreen','Forest hood'],['visor','Royal visor'],['wool','Wool beanie'],['fez','Fez'],['antlers','Woodland antlers'],['tiara','Silver tiara'],['goggles','Tinker goggles'],['sailor','Sailor cap']],
+ face:[['none','Clean shaven'],['mustache','Mustache'],['handlebar','Handlebar mustache'],['beard','Full beard'],['goatee','Goatee'],['eyepatch','Eye patch'],['glasses','Glasses'],['monocle','Monocle'],['freckles','Freckles'],['stubble','Stubble'],['braidbeard','Braided beard'],['walrus','Walrus mustache'],['sideburns','Sideburns'],['scar','Cheek scar'],['blush','Rosy cheeks'],['mask','Cloth mask'],['halfmask','Masquerade mask'],['bushy','Bushy eyebrows'],['goldglasses','Golden spectacles']],
+ cloak:[['none','No cloak'],['red','Crimson cape'],['blue','Royal blue cape'],['green','Forest cape'],['purple','Violet cape'],['black','Midnight cape'],['gold','Golden cape'],['cream','Cream cloak'],['teal','Teal cloak'],['rust','Rust cloak'],['rose','Rose cloak'],['silver','Silver cloak'],['brown','Leather mantle'],['striped','Striped cloak'],['white','Ivory cape'],['navy','Navy cloak'],['ochre','Ochre cape']],
+ trim:[['gold','Gold trim'],['silver','Silver trim'],['red','Red trim'],['blue','Blue trim'],['green','Green trim'],['purple','Purple trim'],['copper','Copper trim'],['black','Onyx trim'],['cream','Ivory trim'],['teal','Teal trim'],['orange','Amber trim'],['rose','Rose trim'],['brown','Leather trim']],
+ outfit:[['royal','Royal jacket'],['waistcoat','Waistcoat'],['tailcoat','Tailcoat'],['tunic','Knight tunic'],['apron','Baker apron'],['scholar','Scholar robes'],['leather','Leather jacket'],['uniform','Guard uniform'],['vest','Traveler vest'],['striped','Striped shirt'],['silk','Silk jacket'],['merchant','Merchant coat'],['patchwork','Patchwork tunic'],['blacksmith','Smith apron'],['embroidered','Embroidered coat'],['hunter','Hunter jacket']],
+ hair:[['none','No hair'],['short','Short hair'],['curly','Curly hair'],['swept','Swept hair'],['fringe','Long fringe'],['spiky','Spiky hair'],['bun','Hair bun'],['ponytail','Ponytail'],['braids','Twin braids'],['silver','Silver hair'],['auburn','Auburn hair'],['blond','Blond hair'],['black','Black hair'],['blue','Blue hair']],
+ belt:[['none','No belt'],['leather','Leather belt'],['gold','Gold buckle'],['satchel','Side satchel'],['pouch','Travel pouch'],['scroll','Scroll case'],['medallion','Medallion'],['chain','Silver chain'],['sash','Ceremonial sash'],['tools','Craftsman tools']]
 };
-const cosmeticDefaults={hat:'none',face:'none',cloak:'none',trim:'gold'};
+const cosmeticDefaults={hat:'none',face:'none',cloak:'none',trim:'gold',outfit:'royal',hair:'none',belt:'none'};
 const cosmeticKey='fallen-king-cosmetics-v1';
 let cosmetics={...cosmeticDefaults};
 const foundKey='fallen-king-found-cosmetics-v1';
@@ -272,10 +275,10 @@ function collectCosmetic(){
 function loadCosmetics(){try{const saved=JSON.parse(localStorage.getItem(cosmeticKey)||'{}');for(const slot of Object.keys(cosmeticCatalog))if(cosmeticCatalog[slot].some(([id])=>id===saved[slot]))cosmetics[slot]=saved[slot];}catch{}}
 function saveCosmetics(){try{localStorage.setItem(cosmeticKey,JSON.stringify(cosmetics));}catch{}}
 function cosmeticGeometry(x,z){
- const dark='#56463f',gold='#d9b36a',trim={gold:'#d9b36a',silver:'#b8c8d0',red:'#b75c58',blue:'#598aab',green:'#6c9b65',purple:'#a582b9'}[cosmetics.trim];
+ const dark='#56463f',gold='#d9b36a',trim={gold:'#d9b36a',silver:'#b8c8d0',red:'#b75c58',blue:'#598aab',green:'#6c9b65',purple:'#a582b9',copper:'#ad744b',black:'#293443',cream:'#eee0bd',teal:'#4a9292',orange:'#cf914d',rose:'#bd788b',brown:'#75513e'}[cosmetics.trim];
  // Back cape is drawn behind the shoulders and remains visible around both sides.
  if(cosmetics.cloak!=='none'){
-  const cloth={red:'#a94442',blue:'#416f9d',green:'#4e7954',purple:'#76558c',black:'#3c414d',gold:'#bb9147'}[cosmetics.cloak];
+  const cloth={red:'#a94442',blue:'#416f9d',green:'#4e7954',purple:'#76558c',black:'#3c414d',gold:'#bb9147',cream:'#e6d7b8',teal:'#438c8c',rust:'#9d5c3e',rose:'#b96c82',silver:'#9aadb9',brown:'#75523d',striped:'#688b80',white:'#f1e7d5',navy:'#344a6a',ochre:'#b39a43'}[cosmetics.cloak];
   box(x,.50,z-.29,.76,.72,.18,dark);
   box(x,.52,z-.32,.69,.68,.14,cloth);
   for(const side of [-1,1])box(x+side*.34,.61,z+.04,.13,.56,.18,cloth);
@@ -284,6 +287,34 @@ function cosmeticGeometry(x,z){
  if(cosmetics.trim!=='gold'){
   cylinder(x,.91,z,.255,.255,.075,trim,12);
   box(x,.70,z+.36,.22,.055,.06,trim);
+ }
+ // Distinctive outfits are drawn on the chest and sleeves without obscuring the face.
+ const outfitColors={royal:'#a67a54',waistcoat:'#5a8173',tailcoat:'#3e506a',tunic:'#8a6e9a',apron:'#e8d8b7',scholar:'#695d8b',leather:'#855d42',uniform:'#436b86',vest:'#69865b',striped:'#b4a26e',silk:'#a96d8b',merchant:'#856f51',patchwork:'#a67b56',blacksmith:'#716357',embroidered:'#476f6d',hunter:'#5a7450'};
+ if(cosmetics.outfit!=='royal'){
+  const cloth=outfitColors[cosmetics.outfit];
+  cylinder(x,.48,z,.30,.28,.48,cloth,12);
+  for(const side of [-1,1])box(x+side*.31,.61,z+.08,.15,.42,.25,cloth);
+  box(x,.76,z+.285,.12,.29,.055,trim);
+  if(cosmetics.outfit==='apron'||cosmetics.outfit==='blacksmith')box(x,.37,z+.30,.36,.43,.065,cosmetics.outfit==='apron'?'#f2e7cf':'#a98c70');
+  if(cosmetics.outfit==='striped'||cosmetics.outfit==='patchwork')for(let i=0;i<3;i++)box(x,.40+i*.14,z+.307,.42,.055,.025,i%2?trim:'#e4cdb1');
+  if(cosmetics.outfit==='tailcoat'||cosmetics.outfit==='scholar'||cosmetics.outfit==='merchant')box(x,.16,z-.32,.56,.54,.13,cloth);
+ }
+ const beltColor=cosmetics.belt==='gold'?gold:cosmetics.belt==='chain'?'#c2c8d0':'#74533f';
+ if(cosmetics.belt!=='none'){
+  cylinder(x,.52,z,.335,.335,.07,beltColor,12);
+  box(x,.52,z+.35,.12,.095,.035,cosmetics.belt==='gold'?gold:trim);
+  if(['satchel','pouch','scroll','tools'].includes(cosmetics.belt))box(x+.31,.37,z+.20,.20,.28,.18,beltColor);
+  if(cosmetics.belt==='medallion')sphere(x,.84,z+.34,.09,gold,10);
+  if(cosmetics.belt==='sash')box(x-.16,.65,z+.33,.13,.52,.045,trim);
+ }
+ const hair=cosmetics.hair;
+ if(hair!=='none'){
+  const hairColor={silver:'#d4d2c9',auburn:'#a46b48',blond:'#d8b86f',black:'#3c3c43',blue:'#5e86a8'}[hair]||'#78533d';
+  if(hair==='bun'||hair==='ponytail')sphere(x,2.03,z-.25,.20,hairColor,10);
+  else if(hair==='braids')for(const side of [-1,1])box(x+side*.30,1.80,z+.03,.11,.38,.11,hairColor);
+  else if(hair==='spiky')for(const side of [-1,0,1])cone(x+side*.19,1.99,z,.11,.26,hairColor,8);
+  else cylinder(x,1.97,z,.32,.30,.12,hairColor,12);
+  if(hair==='fringe'||hair==='swept')box(x-.11,1.91,z+.29,.27,.12,.10,hairColor);
  }
  const h=cosmetics.hat;
  if(h==='cap'||h==='beret'||h==='straw'){
@@ -300,6 +331,15 @@ function cosmeticGeometry(x,z){
  }else if(h==='crown'){
   cylinder(x,2.04,z,.34,.34,.11,dark,12);cylinder(x,2.07,z,.30,.30,.10,gold,12);
   for(let i=0;i<6;i++){const a=i*Math.PI/3;cone(x+Math.cos(a)*.27,2.12,z+Math.sin(a)*.27,.075,.23,gold,8);}
+ }else if(['bowler','flat','bonnet','turban','cavalier','explorer','hoodred','hoodgreen','visor','wool','fez','antlers','tiara','goggles','sailor'].includes(h)){
+  const c={bowler:'#3e434d',flat:'#89715b',bonnet:'#c9a5a4',turban:'#d8c69c',cavalier:'#574b68',explorer:'#9d8a5e',hoodred:'#a4514e',hoodgreen:'#4c7955',visor:'#8b9da5',wool:'#a76b5c',fez:'#b8504e',antlers:'#805e42',tiara:'#d3d9e2',goggles:'#7c6958',sailor:'#e6e5da'}[h];
+  cylinder(x,2.02,z,.31,.30,.15,c,12);
+  if(['bowler','cavalier','explorer','sailor'].includes(h))cylinder(x,2.02,z,.43,.43,.06,c,12);
+  if(h==='fez')cylinder(x,2.10,z,.24,.24,.30,c,12);
+  if(h==='antlers')for(const side of [-1,1])cone(x+side*.25,2.12,z,.09,.48,c,8);
+  if(h==='tiara')for(const side of [-1,0,1])cone(x+side*.20,2.13,z+.12,.07,.21,c,8);
+  if(h==='goggles')for(const side of [-1,1])cylinder(x+side*.16,2.04,z+.30,.11,.11,.05,'#d8c48b',10);
+  if(h==='hoodred'||h==='hoodgreen')box(x,1.90,z-.15,.66,.32,.33,c);
  }else if(h==='hood'){sphere(x,1.88,z-.08,.37,'#53596b',12);box(x,1.91,z+.26,.42,.14,.09,dark);}
  else if(h==='helmet'){cylinder(x,1.95,z,.35,.32,.23,'#8d969b',12);box(x,2.19,z,.09,.25,.47,trim);box(x,1.91,z+.36,.11,.24,.07,dark);}
  else if(h==='chef'){cylinder(x,2.04,z,.29,.29,.16,'#f4e9d5',12);sphere(x,2.25,z,.34,'#f4e9d5',12);}
@@ -316,6 +356,17 @@ function cosmeticGeometry(x,z){
   for(const side of [-1,1]){box(x+side*.11,1.84,z+.33,.18,.14,.06,dark);box(x+side*.11,1.85,z+.37,.12,.09,.03,'#b4c7c8');}
   box(x,1.85,z+.35,.10,.03,.05,dark);
  }else if(f==='monocle'){cylinder(x-.11,1.79,z+.32,.10,.10,.045,gold,10);box(x-.19,1.64,z+.34,.02,.22,.03,gold);}
+ else if(['stubble','braidbeard','walrus','sideburns','scar','blush','mask','halfmask','bushy','goldglasses'].includes(f)){
+  if(['stubble','braidbeard','walrus','sideburns'].includes(f)){
+   box(x,1.62,z+.33,f==='walrus'?.38:.28,f==='braidbeard'?.27:.08,.07,dark);
+   if(f==='sideburns')for(const side of [-1,1])box(x+side*.28,1.66,z+.15,.07,.32,.08,dark);
+  }
+  if(f==='scar')box(x+.18,1.76,z+.35,.04,.26,.035,'#b57d74');
+  if(f==='blush')for(const side of [-1,1])sphere(x+side*.21,1.70,z+.32,.055,'#cf9a8c',8);
+  if(f==='mask'||f==='halfmask')box(x,1.73,z+.34,.44,f==='mask'?.24:.15,.06,f==='mask'?'#607986':'#96749a');
+  if(f==='bushy')for(const side of [-1,1])box(x+side*.13,1.94,z+.34,.19,.055,.05,dark);
+  if(f==='goldglasses')for(const side of [-1,1])cylinder(x+side*.13,1.83,z+.32,.12,.12,.04,gold,10);
+ }
  else if(f==='freckles')for(const side of [-1,1])for(let i=0;i<3;i++)sphere(x+side*(.14+i*.025),1.70,z+.31,.017,'#a27967',6);
 }
 const wardrobePanel=document.getElementById('fallen-wardrobe');
@@ -339,7 +390,7 @@ function setupWardrobe(){
  grid.replaceChildren();
  for(const [slot,items] of Object.entries(cosmeticCatalog)){
   const field=document.createElement('label');
-  field.textContent={hat:'Hats & headwear',face:'Beards & accessories',cloak:'Capes & cloaks',trim:'Outfit accents'}[slot];
+  field.textContent={hat:'Hats & headwear',face:'Beards & accessories',cloak:'Capes & cloaks',trim:'Color accents',outfit:'Jackets & outfits',hair:'Hair styles',belt:'Belts & accessories'}[slot];
   const select=document.createElement('select');
   select.setAttribute('aria-label',field.textContent);
   for(const [id,name] of items){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}
