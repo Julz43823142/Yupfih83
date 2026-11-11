@@ -217,7 +217,7 @@ test('prison readability: iron bars, clear cot, metal pail and preserved candle'
  assert.doesNotMatch(props,/model\('gate'/);
  assert.match(props,/Narrow prison cot/);
  assert.doesNotMatch(props,/model\('bed'/);
- assert.match(props,/Metal pail rather than a large wooden barrel/);
+ assert.match(props,/small iron pail/);
  assert.match(props,/torch\(15\.3,6\.0\)/);
  assert.match(props,/for\(const x of \[4,10\]\)/);
  assert.match(props,/The gate is centred at x=12/);
