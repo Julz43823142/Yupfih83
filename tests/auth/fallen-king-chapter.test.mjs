@@ -144,3 +144,25 @@ test('detailed scene geometry and atmosphere render without changing story route
  assert.match(source,/function drawVillageProps\(g\)/);
  assert.match(source,/function drawEffects\(g,t\)/);
 });
+
+test('animated atmosphere receives the complete WebGL primitive API',()=>{
+ assert.match(engine,/drawEffects\?\.\(\{box,sphere,cylinder,cone\},t\)/);
+ assert.match(source,/const \{sphere,cone\}=g/);
+ const doc={getElementById:()=>({hidden:false,textContent:'',addEventListener(){},getContext(){return {fillRect(){},drawImage(){}};}}),addEventListener(){}};
+ const memory=new Map(),storage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)};
+ const window={};
+ let current={version:1,width:52,height:40,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:10,y:10}},player={x:10,y:10};
+ const engineApi={getWorld:()=>current,getPlayer:()=>player,setWorld:(w,p)=>{current=w;player=p;},say(){},enableSound(){},soundCue(){}};
+ new Function('window','document','localStorage','location','confirm',source)(window,doc,storage,{},()=>true);
+ window.FallenKingStory.start(engineApi);
+ // Intro flame: the formerly omitted cone primitive must be present and usable.
+ const calls={box(){},sphere(){},cylinder(){},cone(){}};
+ assert.doesNotThrow(()=>window.FallenKingStory.drawEffects(calls,2));
+ // Restored prison scene: repeat the same check without needing a browser.
+ const saved={scene:'cell',flags:{},coins:[],step:10,position:{x:7,y:7,facing:'right'}};
+ memory.set('fallen-king-chapter-one-v2',JSON.stringify(saved));
+ const next={};
+ new Function('window','document','localStorage','location','confirm',source)(next,doc,storage,{},()=>true);
+ next.FallenKingStory.start(engineApi);
+ assert.doesNotThrow(()=>next.FallenKingStory.drawEffects(calls,3));
+});
