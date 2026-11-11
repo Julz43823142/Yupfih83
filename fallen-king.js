@@ -132,7 +132,7 @@ function villageProps(){
 }
 function tree(x,z){cylinder(x,0,z,.16,.13,1.35,'#77583b',7);cone(x,1.0,z,.77,1.35,'#377d4e',7);cone(x,1.65,z,.61,1.15,'#4b9459',7);cone(x,2.18,z,.41,.79,'#5c9d61',7);}
 function pawnBody(x,z,color){
- const pale=color==='white',base=pale?'#e9ddc5':'#35435a',rim=pale?'#ad9b81':'#202a3a',light=pale?'#fff2d9':'#687991';
+ const pale=color==='white',base=pale?'#e9ddc5':'#68768a',rim=pale?'#ad9b81':'#303d50',light=pale?'#fff2d9':'#a0aec0';
  // Consistent turned-stone silhouette: foot, plinth, taper, neck, collar.
  cylinder(x,.055,z,.37,.37,.12,rim,12);
  cylinder(x,.18,z,.34,.29,.14,base,12);
@@ -143,7 +143,7 @@ function pawnBody(x,z,color){
 }
 function piece(x,z,type,color,aldric=false){
  const {base,rim,light}=pawnBody(x,z,color);
- const ink=color==='white'?'#786d64':'#20252c';
+ const ink=color==='white'?'#786d64':'#394453';
  if(type==='P'){
   cylinder(x,1.0,z,.19,.19,.11,base,12);
   sphere(x,1.31,z,.30,base,12);
@@ -152,26 +152,26 @@ function piece(x,z,type,color,aldric=false){
  if(type==='R'){
   // A squat stone keep: distinct dark masonry joints, arched front gate, battlements.
   cylinder(x,.96,z,.405,.405,.27,ink,12);
-  cylinder(x,.98,z,.36,.36,.22,'#746b66',12);
+  cylinder(x,.98,z,.36,.36,.22,base,12);
   cylinder(x,1.18,z,.375,.365,.47,ink,12);
   cylinder(x,1.20,z,.33,.30,.42,base,12);
   cylinder(x,1.60,z,.46,.46,.15,ink,12);
-  cylinder(x,1.61,z,.43,.43,.12,'#8d8279',12);
+  cylinder(x,1.61,z,.43,.43,.12,rim,12);
   cylinder(x,1.72,z,.37,.37,.14,ink,12);
   cylinder(x,1.73,z,.33,.33,.12,light,12);
   for(let i=0;i<8;i++){
    const a=i*Math.PI/4;
    box(x+Math.cos(a)*.35,1.825,z+Math.sin(a)*.35,.205,.29,.205,ink);
-   box(x+Math.cos(a)*.35,1.85,z+Math.sin(a)*.35,.16,.23,.16,i%2?'#81716c':'#d4c7b4');
+   box(x+Math.cos(a)*.35,1.85,z+Math.sin(a)*.35,.16,.23,.16,i%2?rim:light);
   }
   // Dark doorway and lintel face the camera, so it reads as a castle.
   box(x,1.01,z+.393,.29,.43,.045,ink);
-  box(x,1.03,z+.422,.22,.38,.055,'#514e50');
+  box(x,1.03,z+.422,.22,.38,.055,ink);
   sphere(x,1.37,z+.414,.145,ink,8);
-  sphere(x,1.37,z+.443,.11,'#514e50',8);
-  box(x,1.58,z+.347,.43,.045,.065,'#655e5b');
+  sphere(x,1.37,z+.443,.11,ink,8);
+  box(x,1.58,z+.347,.43,.045,.065,rim);
   for(let row=0;row<3;row++)for(let side of [-1,1])
-   box(x+side*.22,1.24+row*.17,z+.287,.12,.027,.06,'#81766e');
+   box(x+side*.22,1.24+row*.17,z+.287,.12,.027,.06,rim);
  }
  if(type==='B'){
   cylinder(x,1.00,z,.23,.31,.45,base,12);
@@ -182,45 +182,46 @@ function piece(x,z,type,color,aldric=false){
   sphere(x,2.06,z,.072,light,8);
  }
  if(type==='N'){
-  // A true horse profile, not a vertical stack of spheres.
+  // A true horse profile with readable light and dark materials.
   // Dark silhouette behind light planes gives the head visible 2.5D depth.
   cylinder(x,.94,z,.367,.317,.31,ink,12);
-  cylinder(x,.96,z,.35,.30,.30,'#4b4748',12);
+  cylinder(x,.96,z,.35,.30,.30,rim,12);
   box(x,1.15,z-.13,.565,.68,.465,ink);
-  box(x,1.18,z-.13,.55,.66,.45,'#4e4948');
+  box(x,1.18,z-.13,.55,.66,.45,rim);
   box(x,1.23,z+.05,.47,.635,.465,ink);
   box(x,1.25,z+.05,.45,.62,.44,base);
   box(x,1.59,z+.12,.54,.49,.48,ink);
-  box(x,1.61,z+.12,.52,.48,.46,'#615850');
+  box(x,1.61,z+.12,.52,.48,.46,base);
   box(x,1.65,z+.32,.47,.40,.47,ink);
   box(x,1.67,z+.32,.45,.38,.45,light);
   // Side cheek planes and a bold cheekbone define the direction of the head.
-  box(x-.215,1.56,z+.42,.06,.24,.32,'#4b4341');
-  box(x+.215,1.56,z+.42,.06,.24,.32,'#4b4341');
+  box(x-.215,1.56,z+.42,.06,.24,.32,rim);
+  box(x+.215,1.56,z+.42,.06,.24,.32,rim);
   // Projecting long muzzle with separate lower jaw and dark nose.
   box(x,1.50,z+.57,.42,.29,.46,ink);
   box(x,1.52,z+.57,.40,.27,.44,base);
   box(x,1.39,z+.76,.39,.145,.23,ink);
-  box(x,1.41,z+.76,.37,.13,.21,'#73685e');
+  box(x,1.41,z+.76,.37,.13,.21,rim);
   box(x,1.53,z+.81,.38,.13,.17,ink);
-  box(x,1.55,z+.81,.36,.11,.15,'#a99b88');
+  box(x,1.55,z+.81,.36,.11,.15,light);
   for(const side of [-1,1]){
    cone(x+side*.19,1.88,z+.08,.14,.36,ink,9);
    cone(x+side*.19,1.90,z+.08,.105,.29,'#b8a58b',9);
    cone(x+side*.19,1.96,z+.10,.055,.18,light,8);
    // Eye sockets with pale sclera, small pupils, no oversized cartoon stare.
-   sphere(x+side*.215,1.75,z+.475,.092,'#443f3f',9);
+   sphere(x+side*.215,1.75,z+.475,.092,ink,9);
    sphere(x+side*.215,1.75,z+.537,.058,'#f4ebdc',9);
-   sphere(x+side*.215,1.75,z+.586,.023,'#3b3335',7);
-   sphere(x+side*.11,1.55,z+.896,.025,'#403c3c',7);
+   sphere(x+side*.215,1.75,z+.586,.023,ink,7);
+   sphere(x+side*.11,1.55,z+.896,.025,ink,7);
   }
   for(let i=0;i<5;i++){
-   box(x,1.23+i*.13,z-.37,.36,.095,.13,i%2?'#443f40':'#62534e');
+   box(x,1.23+i*.13,z-.37,.36,.095,.13,i%2?ink:rim);
   }
   box(x,1.38,z+.53,.43,.045,.09,ink);
+  // Visible bridge and nostril separation, without filling the entire face black.
   box(x,1.56,z+.813,.35,.025,.035,ink);
-  box(x-.16,1.40,z+.77,.045,.17,.045,'#3b3535');
-  box(x+.16,1.40,z+.77,.045,.17,.045,'#3b3535');
+  box(x-.16,1.40,z+.77,.045,.17,.045,ink);
+  box(x+.16,1.40,z+.77,.045,.17,.045,ink);
  }
  if(type==='Q'){
   cylinder(x,1.02,z,.33,.27,.43,base,16);
@@ -241,13 +242,13 @@ function piece(x,z,type,color,aldric=false){
   cylinder(x,.97,z,.407,.347,.37,ink,16);
   cylinder(x,.99,z,.39,.33,.36,base,16);
   cylinder(x,1.30,z,.36,.47,.235,ink,16);
-  cylinder(x,1.32,z,.34,.45,.22,'#c2ad90',16);
+  cylinder(x,1.32,z,.34,.45,.22,light,16);
   cylinder(x,1.52,z,.435,.325,.175,ink,16);
-  cylinder(x,1.54,z,.42,.31,.16,'#806d5d',16);
+  cylinder(x,1.54,z,.42,.31,.16,rim,16);
   sphere(x,1.83,z,.312,ink,14);
   sphere(x,1.83,z+.022,.29,base,14);
   cylinder(x,1.55,z,.45,.45,.065,ink,16);
-  cylinder(x,1.58,z,.41,.41,.055,'#d2b78d',16);
+  cylinder(x,1.58,z,.41,.41,.055,light,16);
   if(aldric){
    // Aldric is still crownless; his cloak and contrasting royal collar identify him.
    cylinder(x,1.25,z,.465,.455,.14,ink,16);
@@ -344,19 +345,46 @@ function cosmeticGeometry(x,z){
  }else if(f==='monocle'){cylinder(x-.11,1.79,z+.32,.10,.10,.045,gold,10);box(x-.19,1.64,z+.34,.02,.22,.03,gold);}
  else if(f==='freckles')for(const side of [-1,1])for(let i=0;i<3;i++)sphere(x+side*(.14+i*.025),1.70,z+.31,.017,'#a27967',6);
 }
+const wardrobePanel=document.getElementById('fallen-wardrobe');
+const wardrobePreview=document.getElementById('fallen-wardrobe-preview');
+const wardrobeContext=wardrobePreview.getContext('2d',{alpha:false});
+function updateWardrobePreview(){
+ if(wardrobePanel.hidden||!world)return;
+ const w=canvas.width,h=canvas.height,aspect=w/Math.max(1,h);
+ const zoom=interior?(aspect<1?6.3:5.5):(aspect<1?5.6:5.0);
+ const unit=h/(2*zoom),px=w/2+(visual.x-cam.x)*unit;
+ const py=h/2+(visual.z-cam.z)*.93*unit;
+ const cropW=Math.max(1,unit*2.7),cropH=Math.max(1,unit*3.5);
+ const sx=px-cropW/2,sy=py-unit*2.45;
+ wardrobeContext.fillStyle='#c5b69a';
+ wardrobeContext.fillRect(0,0,wardrobePreview.width,wardrobePreview.height);
+ wardrobeContext.imageSmoothingEnabled=false;
+ wardrobeContext.drawImage(canvas,sx,sy,cropW,cropH,0,0,wardrobePreview.width,wardrobePreview.height);
+}
 function setupWardrobe(){
- const panel=document.getElementById('fallen-wardrobe'),grid=document.getElementById('fallen-wardrobe-grid');
+ const grid=document.getElementById('fallen-wardrobe-grid');
  grid.replaceChildren();
  for(const [slot,items] of Object.entries(cosmeticCatalog)){
-  const field=document.createElement('label');field.textContent={hat:'Headwear',face:'Face and beard',cloak:'Capes',trim:'Clothing accents'}[slot];
-  const select=document.createElement('select');select.setAttribute('aria-label',field.textContent);
+  const field=document.createElement('label');
+  field.textContent={hat:'Hats & headwear',face:'Beards & accessories',cloak:'Capes & cloaks',trim:'Outfit accents'}[slot];
+  const select=document.createElement('select');
+  select.setAttribute('aria-label',field.textContent);
   for(const [id,name] of items){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}
-  select.value=cosmetics[slot];select.addEventListener('change',()=>{cosmetics[slot]=select.value;saveCosmetics();});
+  select.value=cosmetics[slot];
+  select.addEventListener('change',()=>{cosmetics[slot]=select.value;saveCosmetics();draw(sceneTime);updateWardrobePreview();});
   field.append(select);grid.append(field);
  }
- document.getElementById('fallen-wardrobe-open').addEventListener('click',()=>{pause.hidden=true;panel.hidden=false;});
- document.getElementById('fallen-wardrobe-back').addEventListener('click',()=>{panel.hidden=true;pause.hidden=false;});
 }
+function openWardrobe(){
+ if(!world)return;
+ paused=true;pressed.clear();pause.hidden=true;wardrobePanel.hidden=false;
+ draw(sceneTime);updateWardrobePreview();
+}
+function closeWardrobe(){
+ wardrobePanel.hidden=true;pause.hidden=false;paused=true;
+}
+document.getElementById('fallen-wardrobe-open').addEventListener('click',openWardrobe);
+document.getElementById('fallen-wardrobe-back').addEventListener('click',closeWardrobe);
 
 const characterLooks={
  pip:{accent:'#cc8f4b',trim:'#f4cf83',face:'curious',outfit:'scarf'},
@@ -528,9 +556,9 @@ gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
 }
-function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);requestAnimationFrame(frame);}
-function togglePause(force){if(!world)return;if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!document.getElementById('fallen-wardrobe').hidden){document.getElementById('fallen-wardrobe').hidden=true;pause.hidden=false;return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=Math.min(1,dt*11);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=Math.min(1,dt*5);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=Math.max(7,Math.min(world.width-8,cam.x));cam.z=Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
+function togglePause(force){if(!world)return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
 for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
