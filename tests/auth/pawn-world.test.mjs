@@ -188,7 +188,7 @@ test('Mechanical Turk cabinet, thick rails, robot knight and clockwork waltz are
  assert.match(world,/function turkCabinet\(time\)/);
  assert.match(world,/turkCabinet\(time\)/);
  assert.match(world,/width\/11\.9/);
- assert.match(world,/edge-u\*\.48/);
+ assert.match(world,/edge-u\*\.64/);
  assert.match(art,/Readable side-profile mechanical horse/);
  assert.match(art,/Wide rectangular snout/);
  assert.match(audio,/Original mechanical waltz/);
