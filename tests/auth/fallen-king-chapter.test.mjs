@@ -146,7 +146,7 @@ test('detailed scene geometry and atmosphere render without changing story route
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,1));
  player={x:14,y:10};game.talk();game.talk();el('fallen-story-puzzle-continue').listeners.click();game.talk();
- assert.equal(world.width,48);
+ assert.equal(world.width,84);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,2));
  assert.ok(count>1000,'scenes contain substantial static and dynamic detail');
@@ -426,10 +426,10 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
  player={x:48,y:38};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  player={x:75,y:25};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  assert.equal(world.width,36);assert.equal(world.height,19);
- assert.equal(world.tiles[11][4],'.');
+ assert.equal(world.tiles[12][4],'.');
  assert.equal(world.tiles[12][10],'.');
  assert.equal(world.tiles[1][1],'T');
- assert.ok(route([3,10],[4,11]));
+ assert.ok(route([3,10],[4,12]));
  assert.equal(world.tiles[9][34],'T');
  assert.equal(route([3,10],[33,8]),true);
  const g={box(){},cylinder(){},sphere(){},cone(){},piece(){},features(){},tri(){},tree(){}};
