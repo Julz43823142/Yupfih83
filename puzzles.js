@@ -283,7 +283,8 @@ function decode(data){
    A ready board needs no network request, sorting or FEN validation at the moment
    the user solves the current puzzle. Prefetching never changes the active board. */
 let prefetchedPuzzle=null,prefetchToken=0,prefetchTimer=null;
-const nextTarget=(kind,count)=>kind==='sprint'?750+125*count:kind==='survival'?650+145*count:null;
+// Gentler opening ladder: many easy tactical wins before rating pressure ramps up.
+const nextTarget=(kind,count)=>kind==='sprint'?Math.min(2400,500+Math.round(58*Math.pow(count,1.12))):kind==='survival'?Math.min(2600,500+Math.round(65*Math.pow(count,1.13))):null;
 function clearPrefetch(){
  ++prefetchToken;
  prefetchedPuzzle=null;
@@ -339,7 +340,7 @@ async function load(kind=mode){
   if(generation!==requestId)return;
   position=p.position;solution=p.line;step=0;puzzle={...p,startFen:p.position.fen()};lastMove=p.setup;rememberPuzzle(p.id);
   seenPositions.add(p.puzzleKey);
-  if(kind==='sprint'||kind==='survival')lastChallengeRating=Math.max(lastChallengeRating,p.rating);
+  if(kind==='sprint'||kind==='survival')lastChallengeRating=0; // Do not force each next puzzle above the previous random rating.
   orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
   busy=false;ready=true;wrongSquare=null;arrows.length=0;highlights.clear();
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
@@ -650,7 +651,8 @@ async function updateRanking(id,mode){
   });
  }catch{list.replaceChildren();const li=document.createElement('li');li.className='rank-note';li.textContent='Rankings temporarily unavailable.';list.append(li)}
 }
-function refreshRankings(){updateRanking('puzzle-sprint-ranking','sprint');updateRanking('puzzle-survival-ranking','survival')}
+function refreshRankings(){updateRanking('puzzle-sprint-ranking',document.querySelector('[data-rank-duration][aria-pressed="true"]')?.dataset.rankDuration==='3'?'sprint3':'sprint5');updateRanking('puzzle-survival-ranking','survival')}
+document.querySelectorAll('[data-rank-duration]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-rank-duration]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));const link=document.getElementById('puzzle-sprint-top100');if(link)link.href='/puzzle-top100.html?mode=sprint'+button.dataset.rankDuration;refreshRankings()}));
 $('puzzle-submit-score').addEventListener('click',async()=>{
  if(!completedRun||completedRun.score<1)return;
  const sourceType=publishChoice(),nickname=sourceType==='account'?leaderboardUser.username:$('puzzle-nickname').value.trim(),label=$('puzzle-save-status'),button=$('puzzle-submit-score');
