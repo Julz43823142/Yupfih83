@@ -2,8 +2,6 @@ name: Publish current main to EloScanner production (protected release)
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/release-elo-flow-137.txt'
   workflow_dispatch:
     inputs:
       confirm:
@@ -37,7 +35,7 @@ jobs:
         run: npm run test:auth
       - name: Build current main
         run: npm run build
-      - name: Ensure Pawn Dash redesign is included in the production build
+      - name: Ensure Pawn Dash one-life Game Over is included in the production build
         run: |
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';
@@ -56,6 +54,8 @@ jobs:
              !world.includes('function playerSquare(')||!world.includes('function drawEnemy(')||
              !logic.includes('row>=750')||!logic.includes('row>=500')||!logic.includes('row>=100')||
              !page.includes('20261111-eloflow139')||
+             !world.includes('gameOverPanel')||!world.includes('showGameOver')||
+             !bundle.includes('showGameOver')||!bundle.includes('pawn-dash')||
              !bundle.includes('20261111-steam13'))
             throw Error('Pawn Dash redesign missing from build');
           NODE
@@ -127,6 +127,7 @@ jobs:
                  logic.includes('row>=750')&&logic.includes('row>=500')&&logic.includes('row>=100')&&
                  world.includes('function drawPawn(')&&world.includes('function scenery(')&&
                  page.includes('20261111-eloflow139')&&
+                 world.includes('gameOverPanel')&&world.includes('showGameOver')&&
                  config.registrationOpen===expected&&config.passkeyReady===true&&password.status===403){
                 console.log('LIVE: redesigned Pawn Dash published; registration preserved ('+expected+'); password signup blocked.');
                 process.exit(0);

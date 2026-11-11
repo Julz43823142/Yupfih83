@@ -179,7 +179,7 @@ function displayReview(){const wrap=$('arcade-review');if(!wrap||!runReview.leng
 function lose(message){
  if(!state||state.finished)return;
  recordReview('Mistake: '+message,false);flashFeedback('Incorrect!');
- state.lives--;status(message+' '+(state.lives>0?'Lives remaining: '+state.lives:'No lives left.'));
+ state.lives=mode==='pawn-dash'?0:state.lives-1;status(message+' '+(state.lives>0?'Lives remaining: '+state.lives:'No lives left.'));
  if(state.lives<=0){finish();return}
 }
 function nextLevel(){
@@ -662,6 +662,7 @@ function finish(){
  if(mode==='pawn-dash'){
   status('Game over. Final score: '+state.score+'.');
   pawnWorld?.showGameOver(state.score);
+  $('arcade-lives').textContent='0';
   return;
  }
  status('Run finished with '+state.score+' points. Review your moves and mistakes below.');reviewStep=Math.max(0,runReview.length-1);displayReview();
