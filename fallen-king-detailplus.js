@@ -123,5 +123,29 @@ function crown(g,x,y,z,s=1){
  for(let k=0;k<10;k++){const a=k*TAU/10,b=(k+1)*TAU/10;tri(point(a,.31,.19),point(b,.31,.19),point(a,.22,.42),velvet);tri(point(b,.31,.19),point(b,.22,.42),point(a,.22,.42),velvet);tri(point(a,.22,.42),point(b,.22,.42),point(a,.06,.49),'#a4314c');}
  for(let j=0;j<8;j++){const a=j*TAU/8;tri(point(a-.07,.42,.14),point(a,.45,.21),point(a+.07,.42,.14),ruby);tri(point(a-.07,.42,.14),point(a+.07,.42,.14),point(a,.45,.08),gem);}
 }
-window.FallenKingDetailPlus={draw,crown,has:id=>!!models[id]?.ready,stats:()=>Object.fromEntries(Object.entries(models).map(([id,m])=>[id,m.tris.length])),license:'Kenney CC0 1.0',version:1};
+// Rounded porcelain fixture mesh, carefully shaped to read as a toilet at small gameplay zoom.
+function toilet(g,x,z){
+ if(!g?.tri)return false;
+ const face=g.tri,N=22,TAU=Math.PI*2;
+ function ellipse(a,rx,rz,y,ox=0,oz=0){return [x+ox+Math.cos(a)*rx,y,z+oz+Math.sin(a)*rz];}
+ function band(a,b,c,d,color){face(a,b,c,color);face(a,c,d,color);}
+ function lathe(profiles,colors,oz=0){
+  for(let k=0;k<profiles.length-1;k++)for(let i=0;i<N;i++){
+   const a=TAU*i/N,b=TAU*(i+1)/N;
+   band(ellipse(a,profiles[k][0],profiles[k][1],profiles[k][2],0,oz),ellipse(b,profiles[k][0],profiles[k][1],profiles[k][2],0,oz),
+        ellipse(b,profiles[k+1][0],profiles[k+1][1],profiles[k+1][2],0,oz),ellipse(a,profiles[k+1][0],profiles[k+1][1],profiles[k+1][2],0,oz),colors[k%colors.length]);
+  }
+ }
+ lathe([[.22,.25,.08],[.29,.31,.28],[.40,.43,.48],[.47,.50,.60],[.48,.51,.67],[.40,.43,.72],[.29,.31,.72],[.25,.27,.62]],[ '#a5aea9','#bcc5be','#d3d7cf','#e8e8dd','#f0efe3','#d1d3c9','#667c7c'],.14);
+ for(let i=0;i<N;i++){const a=TAU*i/N,b=TAU*(i+1)/N;face(ellipse(a,.245,.26,.60,0,.14),ellipse(b,.245,.26,.60,0,.14),[x,.60,z+.14],'#38545a');}
+ // The porcelain cistern has bevelled/rounded corners rather than a plain cube.
+ function polygon(y,w,d,zz,cut){
+  return [[-w/2+cut,-d/2], [w/2-cut,-d/2],[w/2,-d/2+cut],[w/2,d/2-cut],[w/2-cut,d/2],[-w/2+cut,d/2],[-w/2,d/2-cut],[-w/2,-d/2+cut]].map(([xx,zz2])=>[x+xx,y,z+zz+zz2]);
+ }
+ const bottom=polygon(.25,.85,.48,-.40,.10),middle=polygon(.90,.89,.50,-.40,.12),top=polygon(1.04,.91,.54,-.40,.12);
+ for(let i=0;i<8;i++){const j=(i+1)%8;band(bottom[i],bottom[j],middle[j],middle[i],i%2?'#c5d0c9':'#b2beb8');band(middle[i],middle[j],top[j],top[i],i%2?'#d7dbd2':'#f0eee2');face([x,1.04,z-.40],top[i],top[j],'#e9e7dc');}
+ g.cylinder?.(x+.30,.98,z-.42,.075,.075,.07,'#8b806a',9);g.cylinder?.(x+.30,1.05,z-.42,.035,.035,.17,'#b7a777',7);
+ return true;
+}
+window.FallenKingDetailPlus={draw,crown,toilet,has:id=>!!models[id]?.ready,stats:()=>Object.fromEntries(Object.entries(models).map(([id,m])=>[id,m.tris.length])),license:'Kenney CC0 1.0',version:2};
 })();
