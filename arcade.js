@@ -95,6 +95,7 @@ const controls=attachChessBoardControls({
  repaint:()=>paint(),
  getArrows:()=>marks,getHighlights:()=>highlights
 });
+const memoryMeter=document.createElement('div');memoryMeter.className='arcade-memory-meter';memoryMeter.hidden=true;memoryMeter.setAttribute('role','progressbar');memoryMeter.setAttribute('aria-label','Time left to memorize pieces');memoryMeter.setAttribute('aria-valuemin','0');memoryMeter.setAttribute('aria-valuemax','100');memoryMeter.innerHTML='<span class="arcade-memory-meter-fill"></span><span class="arcade-memory-meter-label">Memorize</span>';board.parentElement.insertBefore(memoryMeter,board);
 function resetAnnotations(){marks.length=0;highlights.clear();selected=null}
 function drawAnnotations(){
  marksLayer.replaceChildren();
@@ -551,6 +552,10 @@ function tick(){
   lose('Too slow!');if(!state.finished){nextLevel();paint();}
  }else if(mode==='chess-block-party'&&state.phase==='playing'&&now>=state.levelUntil){
   lose('The other colours collapsed!');if(!state.finished){nextLevel();paint();}
+ }else if(mode==='chess-memory'&&state.phase==='preview'&&now<state.revealUntil){
+  const fraction=Math.max(0,(state.revealUntil-now)/state.previewDuration);
+  memoryMeter.querySelector('.arcade-memory-meter-fill').style.height=(fraction*100)+'%';
+  memoryMeter.setAttribute('aria-valuenow',String(Math.round(fraction*100)));
  }else if(mode==='chess-memory'&&state.phase==='preview'&&now>=state.revealUntil){
   resetAnnotations();state.phase='build';state.placed={};palette([
    ...['K','Q','R','B','N','P'].map(type=>({type,side:'player'})),
