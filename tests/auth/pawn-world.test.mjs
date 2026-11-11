@@ -141,11 +141,11 @@ test('Chess club has six five-skin categories, previews, one-coin pickup and syn
   assert.match(audio,new RegExp("kind==='"+kind+"'"));
 });
 
-test('Black-and-white board, original music and independent volume sliders',()=>{
+test('Bounded wooden chessboard, original music and independent volume sliders',()=>{
  const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
  const audio=readFileSync(new URL('../../pawn-sound.mjs',import.meta.url),'utf8');
- assert.match(world,/const base=dark\?'#262d39':'#f3ecdc'/);
- assert.match(world,/for\(let x=-10;x<=18;x\+\+\)/);
+ assert.match(world,/const base=dark\?'#68432e':'#b18b5c'/);
+ assert.match(world,/const x=edge===left\?edge-u\*\.28:edge/);
  assert.match(world,/pawn-audio-panel/);
  assert.match(world,/pawn-audio-slider/);
  assert.match(world,/eloscanner-pawn-audio-v1/);
@@ -165,4 +165,18 @@ test('Pawn Dash shipped JavaScript modules parse cleanly before deployment',asyn
   const result=spawnSync(process.execPath,['--check',path.pathname],{encoding:'utf8'});
   assert.equal(result.status,0,file+' has invalid JavaScript: '+result.stderr);
  }
+});
+
+test('Antique chess club board has no water visuals and piece art has distinctive profiles',()=>{
+ const world=readFileSync(new URL('../../pawn-world.js',import.meta.url),'utf8');
+ const art=readFileSync(new URL('../../pawn-piece-art.mjs',import.meta.url),'utf8');
+ assert.match(world,/animated brass clockwork/);
+ assert.match(world,/wooden drawbridge squares/);
+ assert.doesNotMatch(world,/addColorStop\(\.42,'#2f9db6'\)/);
+ assert.doesNotMatch(world,/for\(let x=-10;x<=18;x\+\+\)/);
+ assert.match(world,/const eased=progress\*progress\*\(3-2\*progress\)/);
+ for(const kind of ['pawn','bishop','knight','rook','queen','king'])
+  assert.match(art,new RegExp("kind==='"+kind+"'"));
+ assert.match(art,/horse profile/);
+ assert.match(art,/Layered turned-wood foot/);
 });
