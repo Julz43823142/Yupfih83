@@ -188,8 +188,8 @@ function drawProps(g){
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
  const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
  function wall(x,z,w=1,h=1.8){const dungeon=scene==='cell'||scene==='sewer'||scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene==='prison';if(dungeon&&model('wall',x,0,z,w,h,.86))return;box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
- function rails(a,b,z){if(dp?.has('gate')){for(let x=a+.46;x<b;x+=.91)model('gate',x,0,z,.89,2.04,.23);return;}box((a+b)/2,1.98,z,b-a,.14,.16,iron);box((a+b)/2,.18,z,b-a,.14,.16,iron);for(let x=a+.25;x<b;x+=.53)cylinder(x,.98,z,.067,.067,1.83,iron,7);}
- function bed(x,z){if(model('bed',x,.01,z,3.1,.90,1.65))return;box(x,.22,z,3.1,.40,1.65,wood);box(x,.53,z,2.95,.18,1.45,'#a5a79f');box(x-1,.67,z,.80,.12,1.23,ivory);box(x+.6,.66,z,1.4,.10,1.38,'#728894');for(const a of [-1.36,1.36])for(const b of [-.65,.65])box(x+a,.27,z+b,.16,.54,.17,'#5b4334');}
+ function rails(a,b,z){/* Genuine forged-iron bars, not Kenney's brown timber dungeon gates. */box((a+b)/2,1.98,z,b-a,.17,.19,'#303b40');box((a+b)/2,.14,z,b-a,.15,.19,'#27353a');for(let x=a+.20;x<b-.12;x+=.46){cylinder(x,.99,z,.052,.055,1.86,iron,10);sphere(x,1.95,z,.070,'#78878a',8);box(x,.20,z,.17,.10,.20,'#455257');}for(let x=a+.16;x<b;x+=1.85)box(x,1.03,z,.15,.11,.24,'#809195');}
+ function bed(x,z){/* Narrow prison cot: low iron legs, a pale mattress, a pillow and faded blue blanket. */for(const dx of [-1.35,1.35])for(const dz of [-.63,.63])cylinder(x+dx,.20,z+dz,.065,.065,.39,'#46535a',8);box(x,.31,z,2.95,.10,1.48,'#566166');box(x,.42,z,2.83,.15,1.37,'#c4bea9');box(x-.94,.53,z,.70,.13,1.12,'#e2ddc9');box(x+.55,.52,z,1.54,.09,1.28,'#6d8294');box(x+.52,.58,z+.56,1.5,.06,.10,'#8e9da1');}
  function toilet(x,z){if(dp?.toilet?.(g,x,z))return;box(x,.36,z-.3,.9,.7,.65,'#aeb4ae');cylinder(x,.57,z+.18,.5,.5,.22,ivory,12);cylinder(x,.7,z+.18,.35,.35,.06,'#becbca',12);cylinder(x,.73,z+.18,.21,.21,.06,'#416477',12);box(x,.87,z-.53,.77,.14,.15,ivory);box(x+.33,.77,z-.59,.10,.18,.12,'#ad9f78');}
  function torch(x,z){box(x,.84,z,.22,.36,.2,wood);cone(x,1.16,z,.15,.38,'#e5a94d',8);sphere(x,1.34,z,.12,'#ffe0a0',8);}
  function banner(x,z,c=royal){box(x,1.85,z,.65,1.48,.07,c);box(x,2.60,z,.77,.10,.13,brass);box(x,1.05,z,.70,.12,.13,brass);box(x,2.05,z+.06,.16,.18,.08,brass);}
@@ -238,23 +238,30 @@ function drawProps(g){
  if(scene==='cell'){
   // A solid enclosed room, a cell-block corridor BEHIND the bars and an overhead beam.
   for(let x=0;x<15;x++){wall(x+.5,.5,1,2.2);box(x+.5,2.25,.5,1,.2,.9,'#999b92');box(x+.5,.13,10.5,1,.26,.8,'#546269');}
-  // The far wall contains shadowed entrances to neighbouring cells along the corridor.
-  for(const x of [3,7,11]){box(x,1.2,.98,1.3,1.9,.17,'#26353e');rails(x-.52,x+.52,1.09);}
-  for(const x of [3,7,11]){box(x,2.60,1.6,.40,.45,2.3,'#7d8585');}
+  // Clear stone corridor behind the locked cell: two recessed neighbouring cells, with NO wooden doors.
+  for(const x of [4,10]){box(x,1.05,.96,1.48,1.72,.12,'#253139');box(x-.83,1.12,1.0,.18,2.16,.40,'#8a918d');box(x+.83,1.12,1.0,.18,2.16,.40,'#8a918d');rails(x-.64,x+.64,1.12);}
+  for(const x of [3,7,11]){box(x,2.45,1.72,.29,.32,2.30,'#727d7f');}
   for(let z=1;z<11;z++){wall(.5,z+.5,.8,2.1);wall(14.5,z+.5,.8,2.1);}
   for(let x=1;x<14;x++){box(x+.5,.07,1.35,1,.14,1.4,'#747e7b');if(x%2===0)box(x+.5,2.29,1.7,.18,.32,2.4,'#8c928c');}
   rails(1.1,13.9,2.15);
+  // One clearly recognizable locked cell door, with a lighter keyplate in the bars.
+  for(const z of [2.05,2.18])box(10.9,1.06,z,.26,.43,.09,'#b7a078');
+  box(10.90,1.07,2.25,.07,.13,.04,'#293b40');
   // Blue-tinted, iron-barred window set into the west wall.
   box(1,1.56,5.6,.16,.84,1.6,'#93b9bc');
   for(const z of [5.1,5.6,6.1])box(1.09,1.57,z,.16,.98,.07,iron);
   for(const y of [1.16,1.98])box(1.1,y,5.6,.16,.08,1.7,iron);
   bed(4.6,4.2);toilet(11.5,7.5);cylinder(11.5,.07,7.5,.70,.70,.11,'#73746d',12);
   box(12.5,.55,7.0,.22,1.1,.22,'#7c8382');box(12.2,1.08,7,.7,.15,.2,'#7c8382');
-  // Loose stone for the one hidden coin, a wooden bucket, chains and damp stains.
+  // Loose stone for the single hidden coin, a rusted metal pail, chains and damp stone.
   box(3,.12,8.7,.78,.20,.66,'#9a9688');box(3,.24,8.7,.36,.05,.35,'#b7b0a0');
-  if(!model('barrel',5.4,0,8.6,.72,.65,.72)){cylinder(5.4,.28,8.6,.31,.32,.52,'#665343',10);cylinder(5.4,.57,8.6,.35,.35,.08,'#b6a282',10);}
-  model('stones',3.0,0,8.7,.76,.24,.62);
-  for(const x of [7.3,7.6]){for(let y=.9;y<1.9;y+=.28)cylinder(x,y,10.04,.055,.055,.20,'#536069',7);}torch(13,1.45);
+  // Metal pail rather than a large wooden barrel obscuring the cell.
+  cylinder(5.4,.26,8.6,.27,.31,.52,'#66727a',12);cylinder(5.4,.54,8.6,.28,.28,.07,'#acb3ac',12);
+  cylinder(5.4,.57,8.6,.21,.21,.03,'#343e43',12);cylinder(5.4,.40,8.6,.34,.34,.035,'#adb1a7',12);
+  model('stones',3.0,0,8.7,.64,.16,.56);
+  for(const x of [7.3,7.6]){for(let y=.9;y<1.9;y+=.28)cylinder(x,y,10.04,.055,.055,.20,'#536069',7);}
+  // Keep the warm flame the player liked, seated on a stone wall sconce.
+  box(13.0,.95,1.56,.44,.12,.49,'#87928d');torch(13,1.45);
   box(12.5,1.05,2.35,.30,.46,.16,'#c4a26d');
  }else if(scene==='sewer'){
   // Long underground aqueduct: two open flowing channels, raised central stone walk, vaulted ribs and major sluice machinery.
