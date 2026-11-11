@@ -116,3 +116,31 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  chapter.talk();answer(1);assert.equal(world.tiles[19][45],'p');
  assert.ok(said.length>5);
 });
+
+test('detailed scene geometry and atmosphere render without changing story route',()=>{
+ const elements=new Map();
+ function el(id){if(!elements.has(id))elements.set(id,{
+  hidden:true,textContent:'',disabled:false,children:[],listeners:{},
+  addEventListener(k,fn){this.listeners[k]=fn;},replaceChildren(...c){this.children=c;},
+  getContext(){return {fillRect(){},drawImage(){},set fillStyle(v){},set imageSmoothingEnabled(v){}};},focus(){}});
+ return elements.get(id);}
+ const document={getElementById:el,addEventListener(){},createElement(){return {dataset:{},closest(){return this;}};}};
+ const stored=new Map(),localStorage={getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v),removeItem:k=>stored.delete(k)};
+ const window={};let world={width:52,height:40,version:5,tiles:Array(40).fill('.'.repeat(52)),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:26,y:29}},player={x:26,y:29},count=0;
+ const callbacks={box(){count++;},cylinder(){count++;},cone(){count++;},sphere(){count++;},piece(){count++;},features(){count++;},recliningKing(){count++;}};
+ const engine={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p};},say(){},enableSound(){},soundCue(){}};
+ new Function('window','document','localStorage','location','confirm',source)(window,document,localStorage,{reload(){}},()=>true);
+ const game=window.FallenKingStory;game.start(engine);
+ for(let i=0;i<10;i++){assert.doesNotThrow(()=>game.drawProps(callbacks));assert.doesNotThrow(()=>game.drawEffects(callbacks,i*.3));el('fallen-story-next').listeners.click();}
+ assert.equal(world.width,15);
+ assert.doesNotThrow(()=>game.drawProps(callbacks));
+ assert.doesNotThrow(()=>game.drawEffects(callbacks,1));
+ player={x:9,y:7};game.talk();game.talk();el('fallen-story-answers').listeners.click({target:el('fallen-story-answers').children[0]});game.talk();
+ assert.equal(world.width,36);
+ assert.doesNotThrow(()=>game.drawProps(callbacks));
+ assert.doesNotThrow(()=>game.drawEffects(callbacks,2));
+ assert.ok(count>1000,'scenes contain substantial static and dynamic detail');
+ assert.match(source,/function drawMicroDetail\(g,kind\)/);
+ assert.match(source,/function drawVillageProps\(g\)/);
+ assert.match(source,/function drawEffects\(g,t\)/);
+});
