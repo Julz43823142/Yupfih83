@@ -29,11 +29,11 @@ window.addEventListener('DOMContentLoaded',()=>{
  },3500);
 });
 </script>
-</head>
+<link rel="stylesheet" href="/chess-layout-fixes.css?v=143"></head>
 <body class="elo-unified-chess">
-<header class="navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
+<header class="navbar"><a class="brand" href="/"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a><div class="elo-page-nav"><span id="arcade-title">Chess Arcade</span></div></header>
 <main class="arcade-page">
-<div class="arcade-heading"><h1 id="arcade-title">Chess Arcade</h1><a class="arcade-other" href="/minigames.html">← All minigames</a></div><p id="arcade-description" class="arcade-description" hidden>Loading game…</p>
+<div class="arcade-heading"><a class="arcade-other" href="/minigames.html">← All minigames</a></div><p id="arcade-description" class="arcade-description" hidden>Loading game…</p>
 <div class="arcade-layout">
 <aside class="arcade-panel arcade-stats" aria-label="Game statistics"><h2>Game stats</h2>
 <div class="arcade-stat"><span>TIME LEFT</span><strong id="arcade-time">3:00</strong></div>

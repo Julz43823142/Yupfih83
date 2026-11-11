@@ -22,7 +22,7 @@ const instructions={
  'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
  'queen-chase':'Control the white police pieces and surround the escaping black queen. Only the queen moves for the computer. Capture it or trap every escape to score and start a harder round.',
- 'chess-block-party':'Reach the announced colour in at least two legal moves. Intermediate squares are safe; only running out of time costs a life.',
+ 'chess-block-party':'Reach the announced colour with legal chess moves. Score as soon as you land on the right colour; running out of time costs a life.',
  'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across clockwork gaps, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
@@ -261,7 +261,7 @@ function setupLevel(){
   state.block=blockPartyLevel(state.seed,state.level);
   state.pieces={[state.block.pos]:{type:state.block.type,side:'player'}};
   state.levelUntil=Date.now()+Math.round(state.block.seconds*1000);
-  status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! At least two moves required. Use your '+letters[state.block.type]+'.');
+  status('MOVE TO '+['RED','YELLOW','CYAN','GREEN','PURPLE','PINK','CREAM','ORANGE'][state.block.target]+'! Land on that colour to score. Use your '+letters[state.block.type]+'.');
  }else if(mode==='pawn-dash'){
   status('Welcome to Pawn Kingdom Chess Club! Hop across the board, collect 1 coin per token and browse Menu → Shop.');
   board.hidden=true;pawnWorld?.destroy();
@@ -395,7 +395,7 @@ async function loadRealEloGame(run){
  }catch(error){
   if(state!==run||state.finished)return;state.phase='waiting';choices.hidden=false;
   const retry=document.createElement('button');retry.textContent='Try another real game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
-  choices.replaceChildren(retry);status(error.message||'Could not load a real game.');
+  choices.replaceChildren(retry);status('No fresh rated game could be loaded. Try again in a moment.');
  }
 }
 function applyQueuedPremove(){
@@ -502,7 +502,7 @@ function play(f,t){
  if(mode==='chess-block-party'){
   const piece=state.pieces[f];delete state.pieces[f];state.pieces[t]=piece;state.block.pos=t;
   state.block.movesMade=(state.block.movesMade||0)+1;
-  if(state.block.palette[t]===state.block.target&&state.block.movesMade>=2){score(1);status('Correct colour!');nextLevel();}
+  if(state.block.palette[t]===state.block.target){score(1);status('Correct colour!');nextLevel();}
   else status('Keep moving toward the announced colour. '+state.block.movesMade+' move(s) made.');
   paint();return true;
  }

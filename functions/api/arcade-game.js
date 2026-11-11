@@ -42,7 +42,7 @@ async function lichessFallback({request}){
     }
     if(games.length>=4)break;
    }
-   if(!games.length)return fail(excluded);
+   if(!games.length){games=excluded.has(archived.id)?[]:[archived];}
    if(cache)try{await cache.put(cacheRequest,Response.json(games,{headers:{'Cache-Control':'public,max-age=600'}}))}catch{}
   }
   const choices=games.filter(g=>!excluded.has(g.id));
@@ -50,7 +50,11 @@ async function lichessFallback({request}){
   const game=choices[Math.floor(Math.random()*choices.length)];
   const side=Math.random()<.5?'white':'black';
   return reply({id:game.id,link:game.link,moves:game.moves,side,elo:side==='white'?game.whiteElo:game.blackElo});
- }catch{return fail(excluded)}
+ }catch{
+  if(excluded.has(archived.id))return fail(excluded);
+  const side=Math.random()<.5?'white':'black';
+  return reply({id:archived.id,link:archived.link,moves:archived.moves,side,elo:side==='white'?archived.whiteElo:archived.blackElo});
+ }
 }
 
 // Prefer Chess.com's documented public, read-only monthly game archives.
@@ -58,10 +62,10 @@ async function lichessFallback({request}){
 export async function onRequestGet({request}){
  const url=new URL(request.url),excluded=new Set((url.searchParams.get('exclude')||'').split(',').slice(0,35));
  try{
-  const names=['hikaru','gothamchess','ericrosen','chessbrah'];
+  const names=['hikaru','gothamchess','ericrosen','chessbrah','danielnaroditsky','penguingm1'];
   const now=new Date(),first=Math.floor(Math.random()*names.length),monthOffsets=[1,2,3,5,7,10,13,17];
   // Try distinct archived months and players, not one current-month sample.
-  for(let attempt=0;attempt<4;attempt++){
+  for(let attempt=0;attempt<6;attempt++){
    try{
    const player=names[(first+attempt)%names.length],monthOffset=monthOffsets[(Math.floor(Math.random()*monthOffsets.length)+attempt)%monthOffsets.length];
    const month=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthOffset,1));

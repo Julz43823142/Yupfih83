@@ -26,9 +26,9 @@ test('Guess the Elo serves real-game metadata, exact player rating and source li
   assert.ok(visited.some(link=>link.includes('/api/games/user/PublicChessPlayer')));
  }finally{globalThis.fetch=original}
 });
-test('Guess the Elo reports unavailable instead of repeating the same archived game',async()=>{
+test('Guess the Elo serves archived rated game once, but never repeats an excluded game',async()=>{
  const previous=globalThis.fetch;globalThis.fetch=async()=>new Response('Unavailable',{status:503});
- try{const r=await onRequestGet({request:new Request(url)});assert.equal(r.status,503);const game=await r.json();assert.match(game.error,/No new real game/)}
+ try{const first=await onRequestGet({request:new Request(url)});assert.equal(first.status,200);const game=await first.json();assert.equal(game.id,'PpwPOZMq');const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});assert.equal(r.status,503);const result=await r.json();assert.match(result.error,/No new real game/)}
  finally{globalThis.fetch=previous}
 });
 
