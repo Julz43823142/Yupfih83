@@ -433,7 +433,7 @@ function drawProps(g){
    if(!opened)box(x+.5,.72,z+.50,.83,1.42,.74,ironDark);
   }
   // The long-lost sewer creature has a distinct silhouette, luminous eyes and a ring of tendrils.
-  sphere(27.4,.55,22.4,.63,'#526f67',12);sphere(27.4,1.28,22.4,.49,'#718f80',12);
+  model('stones',27.4,.15,22.4,1.50,1.38,1.29);model('stones',27.38,1.13,22.4,1.02,.82,.93);
   for(const x of [27.12,27.70]){sphere(x,1.43,22.84,.13,'#e6c178',10);sphere(x,1.44,22.96,.045,'#26353e',8);}
   for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(27.4+Math.cos(a)*.64,.24,22.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
   for(const [x,z] of [[26.7,21.9],[28.2,22.1]])model('stones',x,0,z,.48,.28,.38);
@@ -564,6 +564,15 @@ function drawEffects(g,t){
    box(x,h,z,.29,.012,.045,'#8fbfbd');
   }
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
+  return;
+ }
+ if(scene==='forest'){
+  // Stationary fireflies brighten and dim smoothly along the woodland path.
+  for(let i=0;i<12;i++){
+   const x=4+i*2.47,z=7.4+Math.sin(i*1.88)*2.4;
+   const y=.86+.22*Math.sin(t*1.65+i*.87);
+   sphere(x,y,z,.036+.014*(.5+.5*Math.sin(t*2+i)),'#d6c78e',7);
+  }
   return;
  }
  if(scene!=='sewer')return;
