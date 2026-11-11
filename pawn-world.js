@@ -1,5 +1,5 @@
 import {paintChessPiece} from './pawn-piece-art.mjs';
-import {createPawnSound} from './pawn-sound.mjs?v=20261111-startup8';
+import {createPawnSound} from './pawn-sound.mjs?v=20261111-turk11';
 import {PIECE_ORDER,PIECE_LABELS,PAWN_SHOP,readPawnWallet,earnPawnCoins,buyPawnSkin,pawnCoinAt} from './pawn-shop.mjs';
 import {createPawnDashModel} from './pawn-world-logic.mjs';
 // Original EloScanner Pawn Dash: a chess-themed, perspective crossing game.
