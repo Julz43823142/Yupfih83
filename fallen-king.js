@@ -551,7 +551,7 @@ function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(aspect<1?6.3:5.7):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
  // Static geometry is regenerated on entering and leaving a room.
- if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)ground(x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing});}else{
+ if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,features,tree,recliningKing,tri});}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
   ground(x,z);
   if(tile(x,z)==='T')tree(x+.5,z+.5);
@@ -559,7 +559,7 @@ if(!staticReady){
  }
  for(const h of world.houses||[])building(h);
  villageProps();
- window.FallenKingStory?.drawVillageProps?.({box,cylinder,cone,sphere});
+ window.FallenKingStory?.drawVillageProps?.({box,cylinder,cone,sphere,tri});
  for(const item of world.collectibles||[]){
   // Small gold-trimmed treasure cases: walkable, discoverable, and never obstacles.
   if(foundCosmetics.has(item.slot+':'+item.id))continue;
@@ -587,6 +587,7 @@ window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone},t);
 for(const n of world.npcs){piece(n.x+.5,n.y+.5,n.piece,n.color,false);features(n.x+.5,n.y+.5,n.piece,n.color,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){const prisoner=window.FallenKingStory?.isPrisoner();const type=prisoner?'P':'K';piece(visual.x+.5,visual.z+.5,type,'white',!prisoner);features(visual.x+.5,visual.z+.5,type,'white',!prisoner,'aldric');if(prisoner){box(visual.x+.5,.60,visual.z+.30,.48,.43,.08,'#b8ab96');box(visual.x+.5,.35,visual.z+.38,.56,.10,.11,'#7c6e62');}else cosmeticGeometry(visual.x+.5,visual.z+.5);}
+const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
