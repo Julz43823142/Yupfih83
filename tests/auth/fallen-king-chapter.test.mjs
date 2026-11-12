@@ -371,7 +371,10 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  assert.ok(world.npcs.some(n=>/Bishop/.test(n.name)&&/joking/.test(n.lines[0])));
  assert.ok(world.npcs.some(n=>/Woodcutter/.test(n.name)));
  assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,1.8));
- player={x:32,y:8};game.talk();assert.equal(world.width,52);
+ player={x:27,y:10};game.talk();assert.equal(world.width,17);
+ player={x:8,y:5};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
+ player={x:8,y:11};game.talk();assert.equal(world.width,36);
+ player={x:33,y:8};game.talk();assert.equal(world.width,52);
  assert.doesNotThrow(()=>game.drawVillageProps(geometry));
 });
 
