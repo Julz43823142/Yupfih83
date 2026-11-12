@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "node scripts/build-site.mjs",
-    "test:auth": "node --test --test-concurrency=4 tests/auth/*.test.mjs",
+    "test:auth": "node --test --test-concurrency=4 --test-force-exit --test-timeout=120000 tests/auth/*.test.mjs",
     "auth:provision": "node scripts/provision-auth-user.mjs",
     "dev:auth": "node scripts/dev-auth.mjs",
     "auth:migrate:local": "wrangler d1 migrations apply AUTH_DB --local --config tests/auth/wrangler.jsonc",
