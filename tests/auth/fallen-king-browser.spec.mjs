@@ -33,44 +33,23 @@ test('Fallen King opens account slots, launches New Game and displays first intr
  console.log('CHECKPOINT intro visible');
  await expect(page.locator('#fallen-story-next')).toBeVisible();
  await expect(page.locator('#fallen-start-menu')).toBeHidden();
- const intro=await page.locator('#fallen-story-art').evaluate(e=>({w:e.width,h:e.height}));
- expect(intro).toEqual({w:960,h:720});
- // This panel contains baked-in English narration at the bottom. If the
- // image never decodes, the canvas remains a uniformly dark placeholder.
- await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
-  const p=c.getContext('2d').getImageData(480,630,1,1).data;
-  return Math.max(p[0],p[1],p[2]);
- }),{timeout:15000}).toBeGreaterThan(120);
- console.log('CHECKPOINT approved illustration visibly rendered');
- // The second step is the approved sleeping-Oliver illustration, not the
- // original placeholder SVG nor a duplicate text overlay.
- await page.locator('#fallen-story-next').click({timeout:8000});
- await expect(page.locator('#fallen-story-intro')).toHaveClass(/fallen-second-approved/);
- await expect(page.locator('#fallen-story-intro-speaker')).toBeHidden();
- await expect(page.locator('#fallen-story-intro-text')).toBeHidden();
- expect(await page.locator('#fallen-story-art').evaluate(c=>[c.width,c.height])).toEqual([960,640]);
- await expect.poll(()=>page.evaluate(
-  ()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/assets/fallen-king-intro/bedroom-second-towers.webp'))
- ),{timeout:10000}).toBe(true);
- await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
-  const p=c.getContext('2d').getImageData(480,545,1,1).data;
-  return Math.max(p[0],p[1],p[2]);
- }),{timeout:15000}).toBeGreaterThan(120);
- console.log('CHECKPOINT second approved illustration rendered');
- // The approved Edwin entrance image is the THIRD chapter frame.
- await page.locator('#fallen-story-next').click({timeout:8000});
- await expect(page.locator('#fallen-story-intro')).toHaveClass(/fallen-edwin-approved/);
- await expect(page.locator('#fallen-story-intro-speaker')).toBeHidden();
- await expect(page.locator('#fallen-story-intro-text')).toBeHidden();
- expect(await page.locator('#fallen-story-art').evaluate(c=>[c.width,c.height])).toEqual([960,640]);
- await expect.poll(()=>page.evaluate(
-  ()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/assets/fallen-king-intro/edwin-enters-approved.webp'))
- ),{timeout:10000}).toBe(true);
- await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
-  const p=c.getContext('2d').getImageData(480,545,1,1).data;
-  return Math.max(p[0],p[1],p[2]);
- }),{timeout:15000}).toBeGreaterThan(120);
- console.log('CHECKPOINT third approved Edwin illustration rendered');
+ // All five approved PNGs are embedded-captions cutscenes at their original resolution.
+ for(let n=1;n<=5;n++){
+  const intro=await page.locator('#fallen-story-art').evaluate(e=>({w:e.width,h:e.height}));
+  expect(intro).toEqual({w:1672,h:941});
+  await expect(page.locator('#fallen-story-intro')).toHaveClass(/fallen-five-approved/);
+  await expect(page.locator('#fallen-story-intro-speaker')).toBeHidden();
+  await expect(page.locator('#fallen-story-intro-text')).toBeHidden();
+  await expect.poll(()=>page.evaluate(number=>
+   performance.getEntriesByType('resource').some(r=>r.name.includes('/assets/fallen-king-intro/intro-'+number+'.png')),
+   n),{timeout:12000}).toBe(true);
+  await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
+   const p=c.getContext('2d').getImageData(1500,850,1,1).data;
+   return Math.max(p[0],p[1],p[2]);
+  }),{timeout:15000}).toBeGreaterThan(120);
+  console.log('CHECKPOINT original approved panel '+n+' loaded');
+  if(n<5)await page.locator('#fallen-story-next').click({timeout:8000});
+ }
  console.log('CHECKPOINT click skip');
  await page.locator('#fallen-story-skip').click({timeout:8000});
  await expect(page.locator('#fallen-story-intro')).toBeHidden();
