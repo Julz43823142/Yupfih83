@@ -41,3 +41,124 @@ body.elo-unified-chess .arcade-layout{align-items:start}
 }
 @media(max-width:580px){.elo-page-nav{display:none}.play-bot-tier summary small{white-space:normal}}
 @media(prefers-reduced-motion:reduce){.play-bot-tier .play-tier-drawer{transition:none}}
+
+
+/* Play Bots layout repair (2026-11-12).
+   Earlier theme layers reserve an empty grid track and assign the game to
+   track 2, pushing the board and bot list off-centre. This play-only override
+   establishes exactly two outer columns and explicit inner placements. */
+body.elo-unified-chess .play-page{
+  width:min(1340px,calc(100% - 32px))!important;
+  max-width:1340px!important;
+  margin:12px auto 60px!important;
+  display:block!important;
+}
+body.elo-unified-chess .play-page>.play-main-layout{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(270px,310px)!important;
+  gap:18px!important;
+  align-items:start!important;
+  width:100%!important;
+  min-width:0!important;
+}
+body.elo-unified-chess .play-main-layout>.play-game{
+  grid-column:1!important;
+  grid-row:1!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+}
+body.elo-unified-chess .play-main-layout>.play-selector{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:12px!important;
+  align-self:start!important;
+  box-sizing:border-box!important;
+  max-height:calc(100vh - 110px);
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+body.elo-unified-chess .play-game>.play-layout{
+  display:grid!important;
+  grid-template-columns:minmax(150px,175px) minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  justify-items:stretch!important;
+  justify-content:stretch!important;
+  gap:12px!important;
+  min-width:0!important;
+  width:100%!important;
+}
+body.elo-unified-chess .play-layout>.play-controls-panel{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+}
+body.elo-unified-chess .play-layout>.play-board-card{
+  grid-column:2!important;
+  grid-row:1!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:740px!important;
+  margin:0 auto!important;
+  padding:12px!important;
+}
+body.elo-unified-chess .play-layout>.play-panel{
+  grid-column:2!important;
+  grid-row:2!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:740px!important;
+  margin:0 auto!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bots{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bot{
+  min-width:0!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+@media(max-width:1199px){
+ body.elo-unified-chess .play-page{max-width:900px!important}
+ body.elo-unified-chess .play-page>.play-main-layout{
+  grid-template-columns:minmax(0,1fr)!important;
+  justify-items:stretch!important;
+ }
+ body.elo-unified-chess .play-main-layout>.play-game{
+  grid-column:1!important;grid-row:1!important;
+ }
+ body.elo-unified-chess .play-main-layout>.play-selector{
+  grid-column:1!important;grid-row:2!important;
+  max-height:none!important;overflow:visible!important;
+  width:100%!important;max-width:900px!important;
+ }
+ body.elo-unified-chess .play-selector .play-bot-tier .play-bots{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+ }
+}
+@media(max-width:700px){
+ body.elo-unified-chess .play-page{width:calc(100% - 20px)!important}
+ body.elo-unified-chess .play-game>.play-layout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ body.elo-unified-chess .play-layout>.play-board-card{
+  grid-column:1!important;grid-row:1!important;
+ }
+ body.elo-unified-chess .play-layout>.play-controls-panel{
+  grid-column:1!important;grid-row:2!important;
+ }
+ body.elo-unified-chess .play-layout>.play-panel{
+  grid-column:1!important;grid-row:3!important;
+ }
+ body.elo-unified-chess .play-selector .play-bot-tier .play-bots{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ }
+}
