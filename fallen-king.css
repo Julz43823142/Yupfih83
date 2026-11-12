@@ -183,3 +183,15 @@ html,body{width:100%;height:100%;overflow:hidden}
  max-height:70dvh!important;object-fit:contain!important;image-rendering:auto!important
 }
 #fallen-story-intro.fallen-edwin-approved .fallen-story-caption{padding:10px 18px;gap:8px}
+
+/* Five original Fallen King intro PNGs: preserve artwork, captions, 1672×941 ratio. */
+#fallen-story-intro.fallen-five-approved .fallen-story-cinematic h1,
+#fallen-story-intro.fallen-five-approved #fallen-story-intro-speaker,
+#fallen-story-intro.fallen-five-approved #fallen-story-intro-text{display:none!important}
+#fallen-story-intro.fallen-five-approved.fallen-five-missing-asset #fallen-story-intro-text{display:block!important}
+#fallen-story-intro.fallen-five-approved #fallen-story-art{
+ width:min(100%,1050px)!important;max-width:100%!important;
+ height:auto!important;aspect-ratio:1672/941!important;max-height:72dvh!important;
+ object-fit:contain!important;image-rendering:auto!important;align-self:center;
+}
+#fallen-story-intro.fallen-five-approved .fallen-story-caption{padding:10px 18px;gap:8px}
