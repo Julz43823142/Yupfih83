@@ -53,12 +53,26 @@ gl.uniform1i(visionLoc,0);let previousVisionKey='';
 const buffer=gl.createBuffer(),staticBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
 gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
 gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clearColor(.39,.56,.36,1);
-let vertices=[],staticCount=0,staticReady=false,renderErrorReported=false;
-// Bound CPU vertex arrays before copying them to WebGL buffers. This prevents
-// one dense room or a large sewer from exhausting the browser's heap.
-const MAX_VERTEX_FLOATS=1620000;
+let vertices=[],staticReady=false,staticGeometryBuilding=false,staticChunks=[],renderErrorReported=false;
+// Stream static geometry to multiple small GPU buffers rather than silently
+// discarding later objects (tower, gate, buildings) at a single vertex cap.
+// Limit the temporary CPU-side array to ~1 MB per batch.
+const MAX_VERTEX_FLOATS=180000;
+function clearStaticGeometry(){
+ for(const chunk of staticChunks)if(chunk.buffer!==staticBuffer)gl.deleteBuffer(chunk.buffer);
+ staticChunks=[];
+ staticReady=false;
+}
+function flushStaticChunk(){
+ if(!vertices.length)return;
+ const gpu=staticChunks.length?gl.createBuffer():staticBuffer;
+ gl.bindBuffer(gl.ARRAY_BUFFER,gpu);
+ gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
+ staticChunks.push({buffer:gpu,count:vertices.length/9});
+ vertices=[];
+}
 function rgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}
-function tri(a,b,c,color){if(vertices.length>=MAX_VERTEX_FLOATS)return;const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1,k=rgb(color);for(const p of [a,b,c])vertices.push(...p,n[0]/l,n[1]/l,n[2]/l,...k);}
+function tri(a,b,c,color){if(staticGeometryBuilding&&vertices.length+27>MAX_VERTEX_FLOATS)flushStaticChunk();const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1,k=rgb(color);for(const p of [a,b,c])vertices.push(...p,n[0]/l,n[1]/l,n[2]/l,...k);}
 function quad(a,b,c,d,color){tri(a,b,c,color);tri(a,c,d,color);}
 function box(x,y,z,w,h,d,color,roof){const x0=x-w/2,x1=x+w/2,z0=z-d/2,z1=z+d/2,y1=y+h;quad([x0,y,z0],[x1,y,z0],[x1,y1,z0],[x0,y1,z0],color);quad([x1,y,z0],[x1,y,z1],[x1,y1,z1],[x1,y1,z0],color);quad([x1,y,z1],[x0,y,z1],[x0,y1,z1],[x1,y1,z1],roof||color);quad([x0,y,z1],[x0,y,z0],[x0,y1,z0],[x0,y1,z1],color);quad([x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1],roof||color);}
 function cylinder(x,y,z,r0,r1,h,color,sides=12){for(let i=0;i<sides;i++){const a=i*2*Math.PI/sides,b=(i+1)*2*Math.PI/sides;const A=[x+Math.cos(a)*r0,y,z+Math.sin(a)*r0],B=[x+Math.cos(b)*r0,y,z+Math.sin(b)*r0],C=[x+Math.cos(b)*r1,y+h,z+Math.sin(b)*r1],D=[x+Math.cos(a)*r1,y+h,z+Math.sin(a)*r1];quad(A,B,C,D,color);tri([x,y+h,z],D,C,color);}}
@@ -684,6 +698,9 @@ function npcColor(n){const id=String(n.id||n.name||n.x+':'+n.y);let hash=2166136
 function draw(t){if(!world)return;const dpr=Math.min(window.devicePixelRatio||1,1.4),w=Math.round(canvas.clientWidth*dpr),h=Math.round(canvas.clientHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
 const aspect=w/Math.max(h,1),zoom=interior?(aspect<1?6.3:5.5):window.FallenKingStory?.isIntro()?(world.width>20?(aspect<1?8.3:7.3):(aspect<1?6.3:5.7)):(aspect<1?5.6:5.0);vertices=[];
 if(!staticReady){
+ // All floor and prop geometry is preserved in bounded GPU chunks.
+ staticGeometryBuilding=true;
+ try{
  // Static geometry is regenerated on entering and leaving a room.
  if(interior){drawBakeryInterior();}else if(window.FallenKingStory?.customScene()){for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++)window.FallenKingStory.drawGround({box,tri},x,z);window.FallenKingStory.drawProps({box,cylinder,cone,sphere,piece,oliver,features,tree,recliningKing,recliningPiece,tri});}else{
  for(let z=0;z<world.height;z++)for(let x=0;x<world.width;x++){
@@ -715,10 +732,10 @@ if(!staticReady){
   else {piece(sx,sz,s.piece,s.color,false);features(sx,sz,s.piece,s.color,false,'showcase');}
 }
 
- staticCount=vertices.length/9;
- gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
- gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
- staticReady=true;vertices=[];
+ flushStaticChunk();
+ staticReady=true;
+ }catch(error){clearStaticGeometry();throw error;}
+ finally{staticGeometryBuilding=false;vertices=[];}
 }
 window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
@@ -730,9 +747,11 @@ if(!window.FallenKingStory?.isIntro()){
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1,1);
-gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
+for(const chunk of staticChunks){
+ gl.bindBuffer(gl.ARRAY_BUFFER,chunk.buffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
- gl.drawArrays(gl.TRIANGLES,0,staticCount);
+ gl.drawArrays(gl.TRIANGLES,0,chunk.count);
+}
  gl.polygonOffset(-1,-1); // Keep moving chess models in front of coplanar background surfaces.
 gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.DYNAMIC_DRAW);
@@ -958,6 +977,6 @@ document.getElementById('fallen-save-cancel').addEventListener('click',()=>{save
 document.getElementById('fallen-save').addEventListener('click',()=>openSaveSlots());document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
 world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
-player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},resumeGameplay(){paused=false;mapOpen=false;dialogue=null;dialog.hidden=true;pressed.clear();canvas.focus({preventScroll:true});},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};previousVisionKey='';staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};await initializeSaveSlots();requestAnimationFrame(frame);
+player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},resumeGameplay(){paused=false;mapOpen=false;dialogue=null;dialog.hidden=true;pressed.clear();canvas.focus({preventScroll:true});},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};previousVisionKey='';clearStaticGeometry();dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){clearStaticGeometry();},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};await initializeSaveSlots();requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();
