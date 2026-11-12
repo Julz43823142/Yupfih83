@@ -11,6 +11,9 @@ const page=readFileSync(resolve(root,'fallen-king.html'),'utf8');
 const detail=readFileSync(resolve(root,'fallen-king-detailplus.js'),'utf8');
 const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8');
 
+// Surface the active test in CI before any synchronous renderer stalls.
+test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
+
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
  assert.doesNotThrow(()=>new Script(engine));
