@@ -599,7 +599,7 @@ function recliningKing(x,z){
  for(let i=from;i<vertices.length;i+=9){
   const px=vertices[i],py=vertices[i+1],pz=vertices[i+2];
   const nx=vertices[i+3],ny=vertices[i+4],nz=vertices[i+5];
-  vertices[i]=x+.86-py; // Head over the pillow on the left, feet to the right.
+  vertices[i]=x+.88-py; // Head visible on the mattress, feet to the right.
   vertices[i+1]=1.10+(pz-z); // Front face and eyes now face the ceiling, NOT the far wall.
   vertices[i+2]=z+(px-x);
   vertices[i+3]=-ny;vertices[i+4]=nz;vertices[i+5]=nx;
