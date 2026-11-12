@@ -169,7 +169,22 @@ function drawIntroImage(kind){
  const img=introArtwork[key]||(introArtwork[key]=typeof Image==='undefined'?{complete:false,naturalWidth:0,src:''}:new Image());
  if(img.complete&&img.naturalWidth){c.clearRect(0,0,canvas.width,canvas.height);c.drawImage(img,0,0,canvas.width,canvas.height);return;}
  c.fillStyle='#273944';c.fillRect(0,0,canvas.width,canvas.height);
- if(!img.src&&typeof Image!=='undefined'){img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':'.svg?v=1');}
+ if(!img.src&&typeof Image!=='undefined'){
+  img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};
+  img.onerror=()=>{
+   // If the approved AVIF cannot be decoded, use the existing first-scene SVG.
+   // Keep the Continue and Skip buttons available even if all images fail.
+   if(key==='bedroom-approved'&&!img.datasetFallback){
+    img.datasetFallback=true;
+    img.src='/assets/fallen-king-intro/bedroom.svg?v=1';
+   }else{
+    c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
+    c.fillStyle='#fff0c6';c.font='bold 32px Georgia,serif';
+    c.fillText('CHAPTER I — THE FALL',40,Math.round(canvas.height*.5));
+   }
+  };
+  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':'.svg?v=1');
+ }
 }
 function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
 function isIntro(){return scene==='intro';}
