@@ -161,8 +161,6 @@ function showIntro(){
   $('fallen-story-intro').classList?.remove(oldName);
  engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});
  $('fallen-story-intro-title').textContent=step.title;
- $('fallen-story-intro-speaker').textContent=step.speaker;
- $('fallen-story-intro-text').textContent=step.text;
  $('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';
  drawIntroImage(step.scene);
  persist();
@@ -205,7 +203,7 @@ function drawIntroImage(){
    c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
    c.fillStyle='#fff0c6';c.font='bold 34px Georgia,serif';
    c.fillText('THE FALLEN KING',70,Math.round(canvas.height/2));
-   // The original narration below the image remains visible if an asset has not yet been uploaded.
+   // Never show duplicate narration beneath the approved original artwork.
    $('fallen-story-intro').classList?.add('fallen-five-missing-asset');
   };
   img.src=path;
