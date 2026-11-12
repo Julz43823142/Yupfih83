@@ -22,7 +22,7 @@ const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},mer
 let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -87,6 +87,13 @@ function forestWorld(){
  }
  for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
   if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
+ // Two permanent Oliver statues flank the western forest path.
+ w.statues=[{x:8,y:5,crowned:false},{x:10,y:5,crowned:true}];
+ // Solid watchtower footprint: walls and roof outside, accessible only via its door.
+ for(let y=5;y<=9;y++)for(let x=25;x<=29;x++)updateTile(w,x,y,'H');
+ updateTile(w,27,9,'D');
+ // Gate is farther east, spanning four path tiles with two-tile passage width.
+ for(let y=7;y<=10;y++)for(let x=31;x<=32;x++)updateTile(w,x,y,'p');
  // Display all ten Oliver variants side by side on a dedicated section of forest path.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
  // Two compact rows keep all ten Oliver designs visible at once from the preview teleport.
@@ -96,7 +103,16 @@ function forestWorld(){
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
   {id:'forest-woodcutter',name:'Old Woodcutter',x:21,y:13,piece:'R',color:'black',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']}
  ];
- w.npcs.push({id:'watch-keeper',name:'Gatekeeper Rowan',x:27,y:7,piece:'R',color:'white',lines:['The key is in my chest but I forgot the password.']},{id:'watch-scout',name:'Watchpost Scout',x:29,y:7,piece:'P',color:'green',lines:['Ask Rowan about the gate.']});return w;}
+ w.npcs.push({id:'watch-keeper',name:'Gatekeeper Rowan',x:24,y:9,piece:'R',color:'white',lines:['The key is inside the watchtower. Enter through the door.']},{id:'watch-scout',name:'Watchpost Scout',x:30,y:11,piece:'P',color:'green',lines:['Ask Rowan about the gate.']});return w;}
+function watchtowerWorld(){
+ // Dedicated large interior, invisible until Oliver enters through the exterior door.
+ const w=createWorld(17,14,'s');
+ for(let x=1;x<16;x++){updateTile(w,x,1,'H');updateTile(w,x,12,'H');}
+ for(let y=1;y<=12;y++){updateTile(w,1,y,'H');updateTile(w,15,y,'H');}
+ updateTile(w,8,12,'D');
+ w.spawn={x:8,y:10};w.music='willowmere';
+ return w;
+}
 function villageWorld(){
  const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.filter(n=>n.id!=='pip').map(n=>({...n,lines:[...n.lines]}))};
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
@@ -106,7 +122,7 @@ function villageWorld(){
  // Oliver head studies now appear on the forest path.
  return w;
 }
-function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
+function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function teleport(destination){
  if(!engine||!['cell','sewer','forest','village'].includes(destination))return;
  activePuzzle=null;
@@ -115,7 +131,7 @@ function teleport(destination){
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
 }
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Open the barrier at the forest watchpost.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause-title');if(o&&h&&o.parentNode!==h.parentNode){h.parentNode.insertBefore(o,h);o.style.cssText='display:block;position:static;margin:0 auto 12px;padding:10px;border:1px solid #a49270;border-radius:6px;background:#202632;color:#e8d7ae;text-align:center;font-size:14px';}if(o){o.textContent='Objective: '+objective();o.hidden=scene==='intro';}const d=$('fallen-story-interact');if(d)d.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();document.querySelectorAll?.('[data-fallen-jump]')?.forEach(b=>b.addEventListener('click',()=>teleport(b.dataset.fallenJump)));chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
@@ -152,7 +168,7 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
 function beforeMove(x,y){
  if(scene==='cell')return x===16&&y===10;
  if(scene==='sewer')return x>=79&&y>=23&&y<=27;
- if(scene==='forest')return (!complete('watchChest')&&x>=30)||(x>=34&&y>=7&&y<=10);
+ if(scene==='forest')return (!complete('watchChest')&&x>=32&&y>=7&&y<=10)||(x>=34&&y>=7&&y<=10);
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
@@ -195,12 +211,17 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
  if(scene==='forest'){
-  if(near(p,27,9,3)&&!complete('watchChest')){if(!complete('watchAsked')){chapter.flags.watchAsked=true;persist();say('Gatekeeper Rowan','The barrier needs a key. I hid it in my chest, but forgot the password. Can you help?');}else openPuzzle('watchChest');return true;}
-   if(x>=31&&y>=7&&y<=11){
+  if(near(p,27,9,2)&&y>=9){setScene('watchtower',{x:8,y:10,facing:'up'});say('Oliver','Inside the watchtower. The key chest must be somewhere in this room.');return true;}
+   if(x>=33&&y>=7&&y<=11){
    setScene('village',{x:26,y:29,facing:'up'});
    say('Oliver','A village at last. Perhaps someone here will believe I am the king.');return true;
   }
   return false;
+ }
+ if(scene==='watchtower'){
+  if(near(p,8,4,3)&&!complete('watchChest')){if(!complete('watchAsked')){chapter.flags.watchAsked=true;persist();say('Oliver','The chest has a password lock. I should try to solve it.');}else openPuzzle('watchChest');return true;}
+  if(near(p,8,12,2)){setScene('forest',{x:27,y:11,facing:'down'});return true;}
+  return true;
  }
  if(scene==='village'){
   if(near(p,17,19,2)&&!complete('lumber')){openPuzzle('lumber');return true;}
@@ -215,7 +236,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  }
  return false;}
 function beforeHouse(){return false;}
-function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest';}
+function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest'||scene==='watchtower';}
 
 // Deliberate material pass: shared deterministic details on the ORIGINAL WebGL meshes.
 // Keep small details in static geometry; do not trigger puzzles or alter collision tiles.
@@ -284,6 +305,7 @@ function fieldOfView(){if(!engine)return null;if(scene==='sewer')return {enabled
 function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
+ if(scene==='watchtower'){g.box(x+.5,-.20,z+.5,1,.18,1,'#72716c');g.box(x+.5,-.018,z+.5,.96,.028,.96,(x+z)%2?'#999287':'#aaa294');return;}
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
  g.box(x+.5,-.20,z+.5,1,.19,1,base);
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
@@ -530,7 +552,8 @@ function drawProps(g){
   }
   box(76.5,.08,25.5,2.15,.15,1.50,'#637373');
   for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
- }else if(scene==='forest'){
+ }else if(scene==='watchtower'){drawWatchtowerInterior(g);return;}
+ if(scene==='forest'){
   const world=engine.getWorld();
   // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
   for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
@@ -546,17 +569,54 @@ function drawProps(g){
   }
   model('barrel',12.4,0,8.35,.52,.61,.52);
   model('stones',21.5,0,11.0,.84,.31,.71);
-  // Open-sided watchpost, two guards and the key chest.
-   for(const x of [25.5,29.5])for(const z of [5.4,9.3]){box(x,1.18,z,.32,2.36,.32,'#6c5039');box(x,2.41,z,.48,.17,.48,'#b69c72');}
-   box(27.5,.15,7.5,4.7,.18,4.5,'#8e816b');
-   for(const z of [5.2,9.55])box(27.5,1.4,z,4.6,.15,.13,'#977b54');
-   model('chest',26.2,.2,8.4,1.2,.85,.9);
-   for(const [x,z,c] of [[27.25,6.9,'white'],[29.05,6.9,'green']])piece(x,z,x<28?'R':'P',c,false);
-   for(const x of [25.6,29.4])box(x,2.56,7.4,.18,.20,4.4,'#5e423c');
-   for(const z of [5.3,9.45])box(27.5,2.56,z,4,.20,.18,'#825d48');
-   for(const z of [5.2,11.6]){box(30.15,.96,z,.32,1.92,.34,'#76583e');cone(30.15,2.12,z,.23,.29,'#a68a64',8);}
-   if(!complete('watchChest')){box(30.15,1.13,8.45,.27,.26,6.4,'#ab8252');box(30.15,1.27,8.45,.30,.07,6.35,'#d6b17a');}else box(30.15,2.02,5.7,.27,.27,4.65,'#ab8252');
+  // Fully enclosed watchtower: opaque stone walls, solid roof and visible closed door.
+  // Chest is NOT drawn outside; it exists only in the separate interior scene.
+  box(27.5,.07,7.5,5.3,.14,5.3,'#8a8273');
+  box(27.5,1.42,5.02,5.2,2.84,.34,'#777b7b');
+  box(25.02,1.42,7.5,.34,2.84,5.2,'#777b7b');
+  box(29.98,1.42,7.5,.34,2.84,5.2,'#777b7b');
+  box(26.0,1.42,9.98,2.25,2.84,.34,'#777b7b');
+  box(29.0,1.42,9.98,2.25,2.84,.34,'#777b7b');
+  box(27.5,2.43,9.98,.82,.80,.34,'#777b7b');
+  box(27.5,.99,10.19,1.22,1.98,.14,'#624a36');
+  box(27.89,1.0,10.30,.075,.075,.055,'#e2c276');
+  box(27.5,2.99,7.5,5.6,.22,5.6,'#515a5b');
+  box(27.5,3.20,7.5,5.95,.18,5.95,'#85847b');
+  for(const x of [25.25,29.75])for(const z of [5.25,9.75])box(x,3.36,z,.50,.35,.50,'#777b7b');
+  // Four-tile-high barrier, shifted right. Two road tiles remain the crossing.
+  for(const z of [6.6,11.4]){box(32.45,1.45,z,.42,2.90,.45,'#685541');cone(32.45,2.91,z,.27,.36,'#9a876b',8);}
+  if(!complete('watchChest')){
+   for(let i=0;i<4;i++){box(32.45,1.0,7.5+i,.25,.24,1.0,'#ae8350');box(32.45,1.24,7.5+i,.27,.07,1.0,'#d8b578');}
+  }else box(32.45,2.65,7.7,.25,.24,3.8,'#ae8350');
+  // Two Oliver statues: the canonical crownless model and its crowned counterpart.
+  for(const statue of world.statues||[]){
+   const sx=statue.x+.5,sz=statue.y+.5;
+   box(sx,.09,sz,1.25,.18,1.25,'#777773');
+   box(sx,.30,sz,1.12,.24,1.12,'#b9b2a2');
+   drawOliver(sx,sz);
+   if(statue.crowned){
+    cylinder(sx,2.08,sz,.305,.305,.12,'#c6a05c',14);
+    for(let i=0;i<7;i++){const angle=i*Math.PI*2/7;cone(sx+Math.cos(angle)*.27,2.15,sz+Math.sin(angle)*.27,.085,.23,'#e4c475',8);}
+   }
+  }
  }
+}
+// The interior is drawn only after an E interaction at the tower door.
+function drawWatchtowerInterior(g){
+ const {box,cylinder,sphere}=g;
+ const stone='#777b7b',trim='#ada89b';
+ for(let x=1;x<16;x++){box(x+.5,1.65,1.5,1,3.3,.7,stone);box(x+.5,1.65,12.5,1,3.3,.7,stone);}
+ for(let z=1;z<=12;z++){box(1.5,1.65,z+.5,.7,3.3,1,stone);box(15.5,1.65,z+.5,.7,3.3,1,stone);}
+ box(8.5,.06,6.5,12.8,.12,9.8,'#807e75');
+ for(let x=3;x<14;x+=3){box(x+.5,.025,6.5,.06,.04,9.4,trim);}
+ box(8.5,2.95,2.4,11.7,.15,.2,trim);
+ box(8.5,.62,4.5,2.5,1.2,1.6,'#71533d');
+ box(8.5,1.28,4.5,2.65,.13,1.7,'#c5a36b');
+ box(8.5,1.01,5.38,.38,.20,.12,'#d9b978');
+ for(const x of [3.7,13.2]){box(x,.56,6.0,1.4,1.12,2.2,'#604b39');box(x,1.15,6,1.5,.12,2.3,'#9b805c');}
+ for(const x of [4,13]){cylinder(x,.08,9.4,.14,.14,1.8,'#635344',10);sphere(x,1.94,9.4,.17,'#e8b971',10);}
+ box(8.5,1.25,12.19,1.3,2.5,.14,'#644b36');
+ box(8.9,1.1,12.29,.08,.08,.06,'#e1c17d');
 }
 function drawVillageProps(g){
  if(scene!=='village')return;
