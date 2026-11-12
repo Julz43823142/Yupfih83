@@ -857,15 +857,15 @@ async function beginGame(slot,continued){
   const payload=continued?await gameSaveRequest('GET',slot):null;
   if(continued&&!payload?.save)throw Error('Slot is empty.');
   window.FallenKingPendingSave=continued?payload.save:null;
+  // Reserve the slot before registering story listeners, so a failed network
+  // write never leaves the chapter running behind the start screen.
+  if(!continued){
+   const initial={chapter:{scene:'intro',flags:{},coins:[],step:0,position:null}};
+   await gameSaveRequest('PUT',slot,initial);
+   saveMetadata[slot]={savedAt:new Date().toISOString(),scene:'intro',step:0};
+  }
   activeSlot=slot;
   window.FallenKingStory?.start(window.FallenKingEngine);
-  // Creating a game reserves the selected account slot immediately.
-  if(!continued){
-   const initial=window.FallenKingStory?.exportSave();
-   if(!initial)throw Error('Unable to create an initial checkpoint.');
-   await gameSaveRequest('PUT',slot,initial);
-   saveMetadata[slot]={savedAt:new Date().toISOString(),scene:initial.chapter.scene,step:initial.chapter.step};
-  }
   startMenu.hidden=true;paused=false;
   document.getElementById('fallen-start-title').textContent='THE FALLEN KING';
   canvas.focus({preventScroll:true});
