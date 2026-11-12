@@ -5,7 +5,7 @@ const KEY='fallen-king-chapter-one-v2'; // Preserve existing chapter saves.
 const steps=[
  {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'In Aldemar, King Oliver slept in his royal bedchamber. His gold-and-ruby crown rested on a red-velvet cushion beside the bed.'},
  {scene:'bedroom',title:'THE ROYAL BEDCHAMBER',speaker:'Narrator',text:'The candles burned low. Outside the tall windows, the castle guards patrolled while Oliver slept.'},
- {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'Edwin was a blue pawn at court. Tired of always obeying orders, he secretly dreamed of wearing the crown himself.'},
+ {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'That night, as Edwin slept in his chambers, a shadow slipped inside the castle…'},
  {scene:'approach',title:'EDWIN THE PAWN',speaker:'Edwin',text:'They treat me as nothing but a pawn. Tonight I will change everything.'},
  {scene:'theft',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Still crownless, Edwin crept to the royal bed and stole Oliver’s crown from its cushion.'},
  {scene:'theft',title:'THE STOLEN CROWN',speaker:'Edwin',text:'The king is asleep. Nobody will know what happened.'},
@@ -172,18 +172,18 @@ function drawIntroImage(kind){
  if(!img.src&&typeof Image!=='undefined'){
   img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-towers':chapter.step===2?'edwin-enters-approved':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};
   img.onerror=()=>{
-   // If the approved AVIF cannot be decoded, use the existing first-scene SVG.
+   // Keep the approved Edwin panel; never substitute the old illustration.
    // Keep the Continue and Skip buttons available even if all images fail.
    if((key==='bedroom-approved'||key==='bedroom-second-towers'||key==='edwin-enters-approved')&&!img.datasetFallback){
     img.datasetFallback=true;
-    img.src=key==='bedroom-second-towers'?'/assets/fallen-king-intro/bedroom-second-approved.webp?v=1':key==='edwin-enters-approved'?'/assets/fallen-king-intro/approach.svg?v=1':'/assets/fallen-king-intro/bedroom.svg?v=1';
+    img.src=key==='bedroom-second-towers'?'/assets/fallen-king-intro/bedroom-second-approved.webp?v=1':key==='edwin-enters-approved'?'/assets/fallen-king-intro/edwin-enters-approved.webp?v=2':'/assets/fallen-king-intro/bedroom.svg?v=1';
    }else{
     c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
     c.fillStyle='#fff0c6';c.font='bold 32px Georgia,serif';
     c.fillText('CHAPTER I — THE FALL',40,Math.round(canvas.height*.5));
    }
   };
-  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':(key==='bedroom-second-towers'||key==='edwin-enters-approved')?'.webp?v=1':'.svg?v=1');
+  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':key==='edwin-enters-approved'?'.webp?v=2':key==='bedroom-second-towers'?'.webp?v=1':'.svg?v=1');
  }
 }
 function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
