@@ -88,8 +88,9 @@ function forestWorld(){
  for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
   if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
  // Display all ten Oliver variants side by side on a dedicated section of forest path.
- for(let x=8;x<=29;x++)for(let y=10;y<=11;y++)updateTile(w,x,y,'p');
- w.showcase=Array.from({length:10},(_,i)=>({x:9+i*2,y:10,piece:'K',color:'white',prototype:i+1}));
+ for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
+ // Two compact rows keep all ten Oliver designs visible at once from the preview teleport.
+ w.showcase=Array.from({length:10},(_,i)=>({x:13+(i%5)*2,y:i<5?9:11,piece:'K',color:'white',prototype:i+1}));
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -110,7 +111,7 @@ function teleport(destination){
  if(!engine||!['cell','sewer','forest','village'].includes(destination))return;
  activePuzzle=null;
  for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
- setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:4,y:12,facing:'right'}:{x:26,y:29,facing:'down'});
+ setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:{x:26,y:29,facing:'down'});
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
 }
 function say(name,...lines){engine.say(name,lines);}
