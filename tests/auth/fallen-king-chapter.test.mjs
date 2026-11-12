@@ -46,13 +46,20 @@ test('dialogue advances before story interaction, preventing soft-lock',()=>{
  assert.ok(dialogue>=0&&advance>dialogue&&story>advance);
  assert.match(engine,/dialog\.addEventListener\('click'/);
 });
-test('intro pictures reuse existing WebGL renderer and stage characters',()=>{
- assert.match(source,/function renderIntroFrame\(canvas\)/);
+test('six English-language comic illustrations replace overhead gameplay screenshots',()=>{
+ assert.match(source,/function renderIntroFrame\(\)/);
  assert.match(source,/function introWorld\(kind\)/);
- assert.match(source,/drawOliver\(8\.9,7\.0\)/);
+ assert.match(source,/drawIntroImage\(step\.scene\)/);
+ assert.match(source,/assets\/fallen-king-intro/);
+ assert.match(source,/introArtworkScenes=new Set\(\['bedroom','approach','theft','confrontation','arrest','prison'\]\)/);
  assert.match(engine,/window\.FallenKingStory\?\.renderIntroFrame\(canvas\)/);
  assert.match(source,/function isPrisoner\(\)/);
  assert.match(engine,/oliver\(visual\.x\+\.5,visual\.z\+\.5\)/);
+ for(const key of ['bedroom','approach','theft','confrontation','arrest','prison']){
+  const art=readFileSync(resolve(root,'assets/fallen-king-intro',key+'.svg'),'utf8');
+  assert.match(art,/<svg /);
+  assert.match(art,/THE |EDWIN|KING /);
+ }
  assert.doesNotMatch(source,/There was no spell/);
 });
 test('cell is furnished with realistic game geometry and toilet can be accessed nearby',()=>{
