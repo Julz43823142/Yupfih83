@@ -320,8 +320,8 @@ test('sewer water uses real joined triangles from the original WebGL renderer',(
 });
 
 test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer monster, forest and hidden map',()=>{
- assert.match(source,/scene:'confrontation'/);assert.match(source,/scene:'arrest'/);
- assert.match(source,/scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'That night, as Edwin slept in his chambers, a shadow slipped inside the castle/);
+ assert.match(source,/scene:'castle'/);assert.match(source,/scene:'arrest'/);
+ assert.match(source,/scene:'approach',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Edwin sneaks in and reaches for Oliver/);
  assert.match(source,/function edwin\(x,z,wearingCrown=false\)\{[\s\S]*?piece\(x,z,'P','blue'/);
  assert.match(source,/if\(kind==='arrest'\)/);
  assert.match(source,/for\(const x of \[6\.5,11\]\)/);
@@ -585,4 +585,11 @@ test('production build includes the approved AVIF intro picture',()=>{
  const build=readFileSync(resolve(root,'scripts/build-site.mjs'),'utf8');
  assert.match(build,/webp\|avif\|ico/);
  assert.match(source,/\.avif\?v=1/);
+});
+test('five approved intro panels play in fixed order at native matching dimensions',()=>{
+ assert.match(source,/canvas.width=1672;canvas.height=941/);
+ assert.match(source,/intro-'\+\(index\+1\)\+'\\.png/);
+ assert.match(source,/scene:'castle',title:'THE KINGDOM OF ALDEMAR'/);
+ assert.match(source,/scene:'prison',title:'THE KING IMPRISONED'/);
+ assert.match(source,/claiming that Oliver is a trespasser/);
 });
