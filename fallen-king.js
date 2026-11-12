@@ -261,52 +261,70 @@ function piece(x,z,type,color,aldric=false){
   }
  }
 }
-// Ten NEW bald Oliver head designs on the forest path. Shared body, clothing and palette.
+// Ten genuinely different bald Oliver facial structures: bone geometry, not scale presets.
+// Every model has the exact same body, costume, palette, height and no hair/crown.
 function oliverPrototype(x,z,n){
- const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',ink='#64544a';
- // Identical king body for all ten.
- cylinder(x,.10,z,.40,.40,.20,stone,20);
- cylinder(x,.22,z,.43,.42,.13,shade,20);
- cylinder(x,.45,z,.33,.40,.42,stone,20);
- cylinder(x,.83,z,.30,.33,.40,stone,20);
- cylinder(x,1.13,z,.34,.32,.24,stone,20);
- cylinder(x,1.30,z,.40,.39,.14,bright,20);
- cylinder(x,1.45,z,.28,.28,.18,stone,20);
- // Distinct bare skulls: round, broad, tall, square-jawed, tapered,
- // heavy-browed, narrow, low-domed, high-foreheaded and angular.
- const heads=[
-  [.29,.30,0,'round'],[.39,.27,-.015,'broad'],
-  [.245,.39,.075,'tall'],[.335,.30,-.025,'square'],
-  [.265,.33,.025,'taper'],[.355,.32,-.01,'brow'],
-  [.225,.36,.035,'narrow'],[.36,.245,-.06,'low'],
-  [.285,.40,.085,'high'],[.345,.345,.015,'angular']
- ];
- const [r,h,dy,kind]=heads[(n-1+10)%10];
- const cy=1.79+dy;
- // Multiple stacked solid forms give each head a different silhouette;
- // there are no hair, hats, crowns or other accessories.
- sphere(x,cy,z,r,stone,24);
- if(kind==='tall'||kind==='high'||kind==='narrow')
-  cylinder(x,cy-.12,z,r*.90,r*.87,h*.95,stone,20);
- if(kind==='square'||kind==='angular')
-  box(x,cy-.17,z+.035,r*1.68,.23,r*1.58,stone);
- if(kind==='taper')sphere(x,cy-.17,z+.06,r*.76,stone,20);
- if(kind==='broad')sphere(x,cy-.055,z,r*.94,stone,20);
- if(kind==='brow')box(x,cy+.08,z+r*.77,r*1.60,.065,.09,shade);
- if(kind==='low')sphere(x,cy-.085,z,r*.91,stone,20);
- if(kind==='angular')box(x,cy+.13,z,r*1.22,.10,r*1.34,bright);
- const spreads=[.105,.15,.085,.13,.09,.145,.075,.135,.10,.14];
- const eyeY=cy+[.005,-.015,.035,-.02,.025,-.025,.02,-.035,.04,.005][n-1];
- const front=z+r*.91;
- for(const side of [-1,1]){
-  const ex=x+side*spreads[n-1];
-  sphere(ex,eyeY,front,.044,bright,10);
-  sphere(ex,eyeY,front+.04,.022,ink,9);
-  box(ex,eyeY+.09,front,.095,.018,.025,shade);
+ const skin='#e9ddc5',light='#fff2d9',bone='#c9b89d',shadow='#ad9b81',ink='#64544a';
+ cylinder(x,.10,z,.40,.40,.20,skin,20);
+ cylinder(x,.22,z,.43,.42,.13,shadow,20);
+ cylinder(x,.45,z,.33,.40,.42,skin,20);
+ cylinder(x,.83,z,.30,.33,.40,skin,20);
+ cylinder(x,1.13,z,.34,.32,.24,skin,20);
+ cylinder(x,1.30,z,.40,.39,.14,light,20);
+ cylinder(x,1.45,z,.28,.28,.18,skin,20);
+ // Each sculpt has a different skull construction, jawbone, cheek planes and profile.
+ // Shared cranial scale avoids the old 'same head, different size' problem.
+ const c=1.82,front=z+.305;
+ const cheek=(side,dx,dy,depth=.12)=>sphere(x+side*dx,c+dy,z+.205,depth,bone,12);
+ const jaw=(side,dx,width,height=.16)=>box(x+side*dx,c-.23,z+.11,width,height,.29,skin);
+ const ear=(side,dx,y=c-.02)=>sphere(x+side*dx,y,z,.082,skin,12);
+ const brow=(side,dx,y,tilt=0)=>box(x+side*dx,y,z+.33,.145,.045+Math.abs(tilt),.075,shadow);
+ const eye=(side,dx,y=c+.015)=>{sphere(x+side*dx,y,z+.347,.043,light,10);sphere(x+side*dx,y,z+.382,.021,ink,9);};
+ const nose=(y,width,projection)=>{box(x,y,z+.335+projection*.28,width,.15,projection,skin);sphere(x,y-.075,z+.35+projection*.56,width*.58,bone,10);};
+ const mouth=(y,width)=>box(x,y,z+.358,width,.017,.029,ink);
+ // Central skull is common; the face below is built independently for each option.
+ sphere(x,c+.085,z,.315,skin,22);
+ switch(n){
+  case 1: // Roman: prominent aquiline nose, recessed cheeks, long squared chin
+   for(const side of [-1,1]){cheek(side,.22,-.075,.083);jaw(side,.205,.105,.24);ear(side,.323);brow(side,.112,c+.105);eye(side,.112);}
+   box(x,c-.285,z+.14,.25,.15,.31,skin);
+   nose(c-.065,.09,.25);sphere(x,c-.11,z+.49,.06,skin,12);mouth(c-.245,.14);break;
+  case 2: // Bulldog: broad mandible, bulging masseters, heavy overhanging brow
+   for(const side of [-1,1]){cheek(side,.235,-.13,.145);jaw(side,.225,.205,.28);ear(side,.345,c-.075);brow(side,.125,c+.145,-.03);eye(side,.125,c-.005);}
+   box(x,c-.30,z+.13,.43,.13,.32,skin);nose(c-.115,.14,.12);mouth(c-.275,.19);break;
+  case 3: // Scholar: pronounced temples, hollow cheekbones, pointed narrow chin
+   for(const side of [-1,1]){box(x+side*.235,c+.14,z,.115,.29,.32,skin);cheek(side,.175,-.09,.095);ear(side,.32,c+.02);brow(side,.108,c+.11);eye(side,.108,c+.015);}
+   sphere(x,c-.30,z+.18,.13,skin,16);nose(c-.09,.055,.18);mouth(c-.245,.09);break;
+  case 4: // Lantern jaw: sharp planar cheeks, angular protruding chin and jaw corners
+   for(const side of [-1,1]){box(x+side*.21,c-.145,z+.145,.18,.25,.32,skin);cheek(side,.225,-.025,.105);jaw(side,.225,.16,.19);ear(side,.335);brow(side,.12,c+.105);eye(side,.12);}
+   box(x,c-.33,z+.22,.26,.12,.29,skin);nose(c-.08,.075,.16);mouth(c-.27,.16);break;
+  case 5: // Heart face: high projecting cheekbones, very tapered V-shaped jaw
+   for(const side of [-1,1]){cheek(side,.225,-.055,.155);sphere(x+side*.13,c-.19,z+.16,.105,skin,12);ear(side,.325,c+.025);brow(side,.115,c+.13);eye(side,.115,c+.025);}
+   sphere(x,c-.32,z+.20,.075,skin,12);nose(c-.095,.06,.135);mouth(c-.235,.12);break;
+  case 6: // Neanderthal: projecting supraorbital ridge, deep-set eyes, strong muzzle
+   box(x,c+.17,z+.27,.57,.13,.22,bone);
+   for(const side of [-1,1]){cheek(side,.215,-.12,.125);jaw(side,.21,.15,.22);ear(side,.327,c-.045);eye(side,.13,c-.035);}
+   box(x,c-.17,z+.26,.35,.21,.23,skin);nose(c-.055,.14,.21);mouth(c-.285,.17);break;
+  case 7: // Gaunt: sunken cheeks, long narrow lower face, bony cheek ridges
+   for(const side of [-1,1]){box(x+side*.205,c+.07,z+.10,.09,.28,.29,skin);cheek(side,.19,-.065,.065);jaw(side,.14,.075,.33);ear(side,.315,c-.03);brow(side,.1,c+.115);eye(side,.1,c+.015);}
+   box(x,c-.37,z+.14,.15,.13,.25,skin);nose(c-.10,.065,.22);mouth(c-.30,.075);break;
+  case 8: // Flat-faced: wide flat midface, compact chin, prominent round cheek pads
+   for(const side of [-1,1]){cheek(side,.235,-.095,.16);jaw(side,.20,.16,.13);ear(side,.33,c-.04);brow(side,.13,c+.085);eye(side,.13,c-.005);}
+   box(x,c-.18,z+.205,.37,.20,.17,skin);sphere(x,c-.28,z+.16,.15,skin,12);nose(c-.12,.13,.065);mouth(c-.265,.20);break;
+  case 9: // Patrician: high frontal bone, pronounced nose bridge, delicate pointed jaw
+   box(x,c+.21,z+.18,.37,.19,.20,skin);
+   for(const side of [-1,1]){cheek(side,.19,-.055,.10);jaw(side,.155,.09,.20);ear(side,.32,c+.015);brow(side,.10,c+.08);eye(side,.10,c-.005);}
+   sphere(x,c-.29,z+.16,.105,skin,14);box(x,c+.025,z+.37,.075,.20,.13,skin);nose(c-.115,.07,.20);mouth(c-.255,.095);break;
+  default: // Weathered: asymmetric broken nose, offset cheekbones and uneven jaw
+   cheek(-1,.245,-.045,.155);cheek(1,.17,-.105,.08);
+   jaw(-1,.23,.17,.25);jaw(1,.19,.12,.19);
+   ear(-1,.34,c-.055);ear(1,.32,c+.015);
+   brow(-1,.12,c+.145);brow(1,.105,c+.075);
+   eye(-1,.12,c+.01);eye(1,.105,c-.035);
+   box(x+.035,c-.24,z+.15,.27,.20,.26,skin);
+   box(x+.045,c-.085,z+.40,.09,.18,.15,skin);
+   sphere(x+.08,c-.17,z+.465,.065,bone,10);mouth(c-.275,.14);
  }
- // Different nose and mouth proportions, without changing clothing.
- sphere(x,cy-.105,front+.035,[.035,.05,.027,.055,.032,.06,.025,.045,.03,.055][n-1],shade,10);
- box(x,cy-.20,front+.035,[.105,.14,.075,.16,.09,.13,.07,.15,.095,.12][n-1],.018,.025,ink);
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
