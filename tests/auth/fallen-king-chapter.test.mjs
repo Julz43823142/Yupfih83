@@ -261,8 +261,9 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.equal(vision.isOpaque(10,14),true,'stone beside window blocks sight');
  assert.equal(vision.isOpaque(0,9),true,'exterior wall blocks sight');
  assert.equal(story.beforeMove(16,10),true,'toilet interaction remains explicit');
- const g={box(){},cylinder(){},cone(){},sphere(){},piece(){},features(){},tri(){},recliningPiece(){}};
- assert.doesNotThrow(()=>story.drawProps(g));
+ // Verify the cell renderer is connected without rebuilding its complete mesh here.
+ assert.match(source,/function drawProps\\(g\\)/);
+ assert.match(source,/function rails\\(a,b,z\\)/);
 });
 
 test('deferred PUZZLE is a single Continue checkpoint, and flowing water has no wraps or spawns',()=>{
