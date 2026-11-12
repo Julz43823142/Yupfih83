@@ -152,7 +152,12 @@ function recoverHiddenIntro(){
  // enter the playable cell instead of trapping the player in intro input mode.
  if(scene!=='intro')return false;
  const overlay=$('fallen-story-intro');
- if(overlay&&!overlay.hidden)return false;
+ if(overlay&&!overlay.hidden){
+  // A CSS-hidden or detached cinematic must not leave the engine in the
+  // non-playable intro scene. The actual five-panel presentation is unchanged.
+  const visuallyHidden=typeof overlay.getClientRects==='function'&&overlay.getClientRects().length===0;
+  if(!visuallyHidden)return false;
+ }
  setScene('cell',{x:12,y:9,facing:'right'});
  return true;
 }
