@@ -581,3 +581,8 @@ test('black-screen recovery permits playing when cloud saves or intro art fail',
  assert.match(source,/bedroom\.svg\?v=1/);
  assert.match(page,/fallen-king-story\.js\?v=/);
 });
+test('production build includes the approved AVIF intro picture',()=>{
+ const build=readFileSync(resolve(root,'scripts/build-site.mjs'),'utf8');
+ assert.match(build,/webp\|avif\|ico/);
+ assert.match(source,/bedroom-approved\.avif\?v=1/);
+});
