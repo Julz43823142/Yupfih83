@@ -92,15 +92,14 @@ function forestWorld(){
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
   {id:'forest-woodcutter',name:'Old Woodcutter',x:21,y:13,piece:'R',color:'black',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']}
  ];
- w.npcs.push({id:'watch-keeper',name:'Gatekeeper Rowan',x:27,y:7,piece:'R',color:'white',lines:['The key is in my chest but I forgot the password.']},{id:'watch-scout',name:'Watchpost Scout',x:29,y:7,piece:'P',color:'green',lines:['Ask Rowan about the gate.']});return w;}
+  // Ten Oliver head studies in one straight row ON the forest path.\n for(let x=9;x<=30;x++)updateTile(w,x,10,'p');\n w.showcase=Array.from({length:10},(_,i)=>({x:10+i*2,y:10,piece:'K',color:'white',prototype:i+1}));\nw.npcs.push({id:'watch-keeper',name:'Gatekeeper Rowan',x:27,y:7,piece:'R',color:'white',lines:['The key is in my chest but I forgot the password.']},{id:'watch-scout',name:'Watchpost Scout',x:29,y:7,piece:'P',color:'green',lines:['Ask Rowan about the gate.']});return w;}
 function villageWorld(){
  const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.filter(n=>n.id!=='pip').map(n=>({...n,lines:[...n.lines]}))};
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
  w.spawn={x:26,y:29};
- // Keep the entire gallery in front of the player, away from the village stall.
- w.showcase=Array.from({length:10},(_,i)=>({x:20+i%5*3,y:i<5?31:35,piece:'K',color:'white',prototype:i+1}));
+ // Oliver head gallery has moved to the forest path.
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
