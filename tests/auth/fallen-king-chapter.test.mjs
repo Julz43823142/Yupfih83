@@ -553,3 +553,21 @@ test('king has two white-stone bands instead of high yellow neck rim',()=>{
  assert.doesNotMatch(engine,/cylinder\(x,1\.53,z,\.41,\.34,\.13,'#c7a469'/);
  assert.match(source,/if\(x>=11&&x<=13\)wall\(x\+\.5,15\.48,1,\.55\)/);
 });
+
+test('account save interface has three server-backed slots and no localStorage save fallback',()=>{
+ const api=readFileSync(resolve(root,'functions/api/fallen-king/saves.js'),'utf8');
+ for(const id of ['fallen-start-menu','fallen-start-slots','fallen-save-game','fallen-pause-slots','fallen-save-status'])
+  assert.match(page,new RegExp('id="'+id+'"'));
+ assert.match(engine,/const slots=\['A','B','C'\]/);
+ assert.match(engine,/async function initializeSaveSlots\(\)/);
+ assert.match(engine,/await gameSaveRequest\('PUT',slot,initial\)/);
+ assert.match(engine,/await gameSaveRequest\('PUT',slot,payload\)/);
+ assert.match(engine,/window\.FallenKingPendingSave=continued\?payload\.save:null/);
+ assert.match(source,/window\.FallenKingSlotSession/);
+ assert.match(source,/function exportSave\(\)/);
+ assert.match(api,/requireAdmin\(\{request,env\}\)/);
+ assert.match(api,/auth\.session\.user\.id/);
+ assert.match(api,/PRIMARY KEY\(user_id,slot\)/);
+ assert.match(api,/WHERE user_id=\? AND slot=\?/);
+ assert.match(api,/new Set\(\['A','B','C'\]\)/);
+});
