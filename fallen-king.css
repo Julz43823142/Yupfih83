@@ -173,3 +173,13 @@ html,body{width:100%;height:100%;overflow:hidden}
 
 /* Preserve the approved second comic illustration's native 3:2 framing. */
 #fallen-story-intro.fallen-second-approved #fallen-story-art{aspect-ratio:3/2!important;width:min(100%,960px)!important;height:auto!important;max-height:70dvh!important;object-fit:contain!important;image-rendering:auto!important}
+
+/* Approved Edwin Enters panel includes its own title, character label and narration. */
+#fallen-story-intro.fallen-edwin-approved .fallen-story-cinematic h1,
+#fallen-story-intro.fallen-edwin-approved #fallen-story-intro-speaker,
+#fallen-story-intro.fallen-edwin-approved #fallen-story-intro-text{display:none!important}
+#fallen-story-intro.fallen-edwin-approved #fallen-story-art{
+ aspect-ratio:3/2!important;width:min(100%,960px)!important;height:auto!important;
+ max-height:70dvh!important;object-fit:contain!important;image-rendering:auto!important
+}
+#fallen-story-intro.fallen-edwin-approved .fallen-story-caption{padding:10px 18px;gap:8px}
