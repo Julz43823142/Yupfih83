@@ -586,7 +586,13 @@ function ground(x,z){
   for(let i=0;i<3;i++){
    box(x+.19+i*.25,.017,z+.32+hash(x,z,i)*.32,.15,.012,.038,i===1?'#b9e1dc':'#9ecacb');
   }
-  if(n<.16){cylinder(x+.65,.025,z+.62,.13,.13,.025,'#69a979',7);sphere(x+.71,.08,z+.62,.055,'#ecc9d8',5);}
+  // Exactly three lily pads in the Willowmere pond, not random pads across the river.
+  if((x===7&&z===7)||(x===8&&z===6)||(x===9&&z===7)){
+   cylinder(x+.53,.031,z+.55,.31,.31,.022,'#5f9d65',14);
+   cylinder(x+.53,.053,z+.55,.23,.23,.024,'#8eb982',14);
+   box(x+.74,.064,z+.55,.22,.013,.065,'#468868');
+   if(x===8){sphere(x+.38,.10,z+.58,.075,'#efd5e5',9);sphere(x+.49,.13,z+.59,.058,'#f6e0ec',8);}
+  }
  }else if(!forest&&kind!=='H'&&kind!=='D'&&kind!=='F'){
   // Still grass: low-poly blades, small flowers and color variation.
   for(let i=0;i<3;i++){
