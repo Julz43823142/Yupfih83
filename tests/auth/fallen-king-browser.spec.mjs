@@ -42,6 +42,20 @@ test('Fallen King opens account slots, launches New Game and displays first intr
   return Math.max(p[0],p[1],p[2]);
  }),{timeout:15000}).toBeGreaterThan(120);
  console.log('CHECKPOINT approved illustration visibly rendered');
+ // The second step is the approved sleeping-Oliver illustration, not the
+ // original placeholder SVG nor a duplicate text overlay.
+ await page.locator('#fallen-story-next').click({timeout:8000});
+ await expect(page.locator('#fallen-story-intro')).toHaveClass(/fallen-first-approved/);
+ await expect(page.locator('#fallen-story-intro-speaker')).toBeHidden();
+ await expect(page.locator('#fallen-story-intro-text')).toBeHidden();
+ await expect.poll(()=>page.evaluate(
+  ()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/assets/fallen-king-intro/bedroom-second-approved.webp'))
+ ),{timeout:10000}).toBe(true);
+ await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
+  const p=c.getContext('2d').getImageData(480,630,1,1).data;
+  return Math.max(p[0],p[1],p[2]);
+ }),{timeout:15000}).toBeGreaterThan(120);
+ console.log('CHECKPOINT second approved illustration rendered');
  console.log('CHECKPOINT click skip');
  await page.locator('#fallen-story-skip').click({timeout:8000});
  await expect(page.locator('#fallen-story-intro')).toBeHidden();
