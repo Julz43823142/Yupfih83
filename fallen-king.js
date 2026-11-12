@@ -5,15 +5,36 @@ const dialog=document.getElementById('fallen-dialogue'),speaker=document.getElem
 const pause=document.getElementById('fallen-pause'),volume=document.getElementById('fallen-volume'),volumeValue=document.getElementById('fallen-volume-value');
 const storageKey='eloscanner-fallen-king-admin-preview-v1',dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},pressed=new Set(),solid=new Set(['T','H','w','F','D','X']);
 let interior=null,outdoorState=null,mapOpen=false,world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
-const tile=(x,z)=>world?.tiles[z]?.[x]||'T';
+const tile=(x,z)=>world?.tiles[Math.round(z)]?.[Math.round(x)]||'T';
 const hash=(x,z,n=0)=>{let h=Math.imul(x+31,73856093)^Math.imul(z+47,19349663)^Math.imul(n+3,83492791);h^=h>>>13;return (h>>>0)/4294967295;};
-function occupied(x,z){return world.npcs.some(n=>n.x===x&&n.y===z);}
-function canWalk(x,z){return x>=0&&z>=0&&x<world.width&&z<world.height&&!solid.has(tile(x,z))&&!occupied(x,z);}
-function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:p.x,y:p.y,facing:p.facing}));return true}catch{return false;}}
+function occupied(x,z){return (world.npcs||[]).some(n=>Math.hypot(n.x-x,n.y-z)<.66)||(world.blockers||[]).some(([bx,bz])=>Math.hypot(bx-x,bz-z)<.67);}
+function canWalk(x,z){
+ // Circle-footprint collision prevents slipping through corners of walls and furniture.
+ for(const [dx,dz] of [[0,0],[-.20,0],[.20,0],[0,-.20],[0,.20]]){
+  const px=x+dx,pz=z+dz,tx=Math.round(px),tz=Math.round(pz);
+  if(tx<0||tz<0||tx>=world.width||tz>=world.height||solid.has(tile(tx,tz))||occupied(px,pz)||window.FallenKingStory?.beforeMove(tx,tz))return false;
+ }
+ return true;
+}
+function save(){try{const w=outdoorState?.world||world,p=outdoorState?.player||player;localStorage.setItem(storageKey,JSON.stringify({version:w.version,x:Math.round(p.x),y:Math.round(p.y),facing:p.facing}));return true}catch{return false;}}
 function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');if(s?.version===world.version&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&canWalk(s.x,s.y))return s;}catch{}return world.spawn;}
-function move(dir){if(paused||dialogue||mapOpen||window.FallenKingStory?.blockedInput())return;const [dx,dz]=dirs[dir];player.facing=dir;const x=player.x+dx,z=player.y+dz;if(window.FallenKingStory?.beforeMove(x,z))return;if(interior&&x===6&&z===8){leaveHouse();return;}if(canWalk(x,z)){player.x=x;player.y=z;if(!interior){if(!window.FallenKingStory?.customScene())save();collectCosmetic();window.FallenKingStory?.afterMove();}}}
+function moveVector(dx,dz,dt){
+ if(paused||dialogue||mapOpen||window.FallenKingStory?.blockedInput()||(!dx&&!dz))return;
+ const length=Math.hypot(dx,dz),step=Math.min(.22,Math.max(0,dt)*4.5)/length;
+ const vx=dx*step,vz=dz*step;
+ player.facing=Math.abs(dx)>Math.abs(dz)?(dx>0?'right':'left'):(dz>0?'down':'up');
+ const oldX=Math.round(player.x),oldZ=Math.round(player.y);
+ // Slide along corners instead of freezing, with tile-accurate collision samples.
+ if(canWalk(player.x+vx,player.y))player.x+=vx;
+ if(canWalk(player.x,player.y+vz))player.y+=vz;
+ if(interior&&Math.round(player.x)===6&&Math.round(player.y)===8){leaveHouse();return;}
+ if(Math.round(player.x)!==oldX||Math.round(player.y)!==oldZ){
+  if(!interior){if(!window.FallenKingStory?.customScene())save();collectCosmetic();window.FallenKingStory?.afterMove();}
+ }
+}
+function move(dir,dt=.06){const [dx,dz]=dirs[dir];moveVector(dx,dz,dt);}
 function talk(){if(paused||mapOpen)return;if(dialogue){dialogue.i++;if(dialogue.i>=dialogue.npc.lines.length){dialogue=null;dialog.hidden=true;}else speech.textContent=dialogue.npc.lines[dialogue.i];return;}if(window.FallenKingStory?.talk())return;if(interior){if(player.y>=7&&player.facing==='down')leaveHouse();return;}
-const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>n.x===tx&&n.y===tz);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
+const [dx,dz]=dirs[player.facing],tx=Math.round(player.x+dx),tz=Math.round(player.y+dz);if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>Math.hypot(n.x-player.x,n.y-player.y)<1.55&&((n.x-player.x)*dx+(n.y-player.y)*dz)>-.2);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
 const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;varying vec2 worldPos;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/24.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;worldPos=p.xz;}';
@@ -320,7 +341,7 @@ let foundCosmetics=new Set();
 function loadFound(){try{const saved=JSON.parse(localStorage.getItem(foundKey)||'[]');if(Array.isArray(saved))foundCosmetics=new Set(saved.filter(id=>typeof id==='string'));}catch{}}
 function collectCosmetic(){
  if(interior||!world?.collectibles)return;
- const item=world.collectibles.find(item=>item.x===player.x&&item.y===player.y);
+ const item=world.collectibles.find(item=>item.x===Math.round(player.x)&&item.y===Math.round(player.y));
  if(!item||foundCosmetics.has(item.slot+':'+item.id))return;
  foundCosmetics.add(item.slot+':'+item.id);staticReady=false;
  try{localStorage.setItem(foundKey,JSON.stringify([...foundCosmetics]));}catch{}
@@ -709,12 +730,12 @@ gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
 gl.disable(gl.POLYGON_OFFSET_FILL);
 window.FallenKingStory?.renderIntroFrame(canvas);
 }
-function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused&&!window.FallenKingStory?.blockedInput()){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(dir&&!dialogue&&stepClock>.19){move(dir);stepClock=0;}const speed=1-Math.exp(-11*dt);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=1-Math.exp(-5*dt);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=world.width<=18?cam.x:Math.max(7,Math.min(world.width-8,cam.x));cam.z=world.height<=13?cam.z:Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
+function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused&&!window.FallenKingStory?.blockedInput()){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(!dialogue){let dx=(pressed.has('right')?1:0)-(pressed.has('left')?1:0),dz=(pressed.has('down')?1:0)-(pressed.has('up')?1:0);if(dx||dz)moveVector(dx,dz,dt);}const speed=1-Math.exp(-11*dt);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=1-Math.exp(-5*dt);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=world.width<=18?cam.x:Math.max(7,Math.min(world.width-8,cam.x));cam.z=world.height<=13?cam.z:Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
 function togglePause(force){if(!world||window.FallenKingStory?.blockedInput())return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
-document.addEventListener('keydown',e=>{if(window.FallenKingStory?.blockedInput())return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
+document.addEventListener('keydown',e=>{if(window.FallenKingStory?.blockedInput())return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir,.04);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
-for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
+for(const b of document.querySelectorAll('[data-dir]')){const dir=b.dataset.dir;b.addEventListener('pointerdown',e=>{if(paused||mapOpen)return;e.preventDefault();pressed.add(dir);move(dir,.04);});for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,()=>pressed.delete(dir));}
 document.querySelector('[data-action="talk"]').addEventListener('click',talk);dialog.addEventListener('click',()=>{if(!window.FallenKingStory?.blockedInput())talk();});
 
 const mapPanel=document.getElementById('fallen-map'),mapCanvas=document.getElementById('fallen-map-canvas');
@@ -758,11 +779,11 @@ function leaveHouse(){
 function updateDoorHint(){
  const hint=document.getElementById('fallen-door-hint');if(!hint||!world)return;if(window.FallenKingStory?.customScene()){hint.hidden=true;return;}
  if(interior){hint.hidden=!(player.y>=7&&!paused);if(!hint.hidden)hint.textContent='Walk south to the door · Leave Bakery';return;}
- const [dx,dz]=dirs[player.facing],tx=player.x+dx,tz=player.y+dz;
+ const [dx,dz]=dirs[player.facing],tx=Math.round(player.x+dx),tz=Math.round(player.y+dz);
  const h=tile(tx,tz)==='D'?(world.houses||[]).find(h=>tx>=h.x&&tx<h.x+h.w&&tz>=h.y&&tz<h.y+h.h):null;
  hint.hidden=!h||mapOpen||paused||!!dialogue;
  if(h)hint.textContent=h.name==='The Bakery'?'E / Space · Enter the Bakery':'E / Space · Check '+h.name;
- const pickup=document.getElementById('fallen-pickup-hint');if(pickup&&!pickup.hidden&&(!world.collectibles||!world.collectibles.some(item=>item.x===player.x&&item.y===player.y)))pickup.hidden=true;
+ const pickup=document.getElementById('fallen-pickup-hint');if(pickup&&!pickup.hidden&&(!world.collectibles||!world.collectibles.some(item=>item.x===Math.round(player.x)&&item.y===Math.round(player.y))))pickup.hidden=true;
 }
 document.getElementById('fallen-house-exit').addEventListener('click',leaveHouse);
 document.getElementById('fallen-menu-button').addEventListener('click',()=>togglePause(true));document.getElementById('fallen-continue').addEventListener('click',()=>togglePause(false));
