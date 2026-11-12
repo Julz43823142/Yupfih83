@@ -87,6 +87,9 @@ function forestWorld(){
  }
  for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
   if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
+ // Display all ten Oliver variants side by side on a dedicated section of forest path.
+ for(let x=8;x<=29;x++)for(let y=10;y<=11;y++)updateTile(w,x,y,'p');
+ w.showcase=Array.from({length:10},(_,i)=>({x:9+i*2,y:10,piece:'K',color:'white',prototype:i+1}));
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -99,8 +102,7 @@ function villageWorld(){
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
  w.spawn={x:26,y:29};
- // Keep the entire gallery in front of the player, away from the village stall.
- w.showcase=Array.from({length:10},(_,i)=>({x:20+i%5*3,y:i<5?31:35,piece:'K',color:'white',prototype:i+1}));
+ // Oliver head studies now appear on the forest path.
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
