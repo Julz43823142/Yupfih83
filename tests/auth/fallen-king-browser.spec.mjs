@@ -35,6 +35,13 @@ test('Fallen King opens account slots, launches New Game and displays first intr
  await expect(page.locator('#fallen-start-menu')).toBeHidden();
  const intro=await page.locator('#fallen-story-art').evaluate(e=>({w:e.width,h:e.height}));
  expect(intro).toEqual({w:960,h:720});
+ // This panel contains baked-in English narration at the bottom. If the
+ // image never decodes, the canvas remains a uniformly dark placeholder.
+ await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
+  const p=c.getContext('2d').getImageData(480,630,1,1).data;
+  return Math.max(p[0],p[1],p[2]);
+ }),{timeout:15000}).toBeGreaterThan(120);
+ console.log('CHECKPOINT approved illustration visibly rendered');
  console.log('CHECKPOINT click skip');
  await page.locator('#fallen-story-skip').click({timeout:8000});
  await expect(page.locator('#fallen-story-intro')).toBeHidden();
