@@ -144,11 +144,11 @@ test('chapter can be completed by E interactions without any random puzzle on mo
 test('detailed scene geometry and atmosphere remain wired to the playable route',()=>{
  // Geometry is exercised by the dedicated scene tests; do not rebuild the
  // full static world repeatedly in a chapter-flow regression test.
- assert.match(source,/function drawMicroDetail\\(g,kind\\)/);
- assert.match(source,/function drawVillageProps\\(g\\)/);
- assert.match(source,/function drawEffects\\(g,t\\)/);
- assert.match(source,/function drawEverydayDetails\\(g\\)/);
- assert.match(source,/if\\(scene!=='intro'\\)drawEverydayDetails\\(g\\)/);
+ assert.match(source,/function drawMicroDetail\(g,kind\)/);
+ assert.match(source,/function drawVillageProps\(g\)/);
+ assert.match(source,/function drawEffects\(g,t\)/);
+ assert.match(source,/function drawEverydayDetails\(g\)/);
+ assert.match(source,/if\(scene!=='intro'\)drawEverydayDetails\(g\)/);
 });
 
 test('animated atmosphere receives the complete WebGL primitive API',()=>{
@@ -262,8 +262,8 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.equal(vision.isOpaque(0,9),true,'exterior wall blocks sight');
  assert.equal(story.beforeMove(16,10),true,'toilet interaction remains explicit');
  // Verify the cell renderer is connected without rebuilding its complete mesh here.
- assert.match(source,/function drawProps\\(g\\)/);
- assert.match(source,/function rails\\(a,b,z\\)/);
+ assert.match(source,/function drawProps\(g\)/);
+ assert.match(source,/function rails\(a,b,z\)/);
 });
 
 test('deferred PUZZLE is a single Continue checkpoint, and flowing water has no wraps or spawns',()=>{
