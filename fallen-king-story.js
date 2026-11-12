@@ -73,9 +73,9 @@ function sewerWorld(){
 function forestWorld(){
  // The path is a guide, not a fence: soft grassy ground is freely walkable.
  // Only the outer rows of dense old trees and small tree clusters are solid.
- const w=createWorld(36,19,'.');
- for(let y=1;y<18;y++)for(let x=1;x<35;x++){
-  const forestEdge=x<=2||x>=33||y<=2||y>=16;
+ const w=createWorld(36,23,'.');
+ for(let y=1;y<22;y++)for(let x=1;x<35;x++){
+  const forestEdge=x<=2||x>=33||y<=1||y>=20;
   if(forestEdge)updateTile(w,x,y,'T');
  }
  const carve=(a,b,c,d)=>{let x=a,z=b;const dx=Math.sign(c-a),dz=Math.sign(d-b);while(true){for(const ox of [0,1])for(const oz of [0,1])updateTile(w,x+ox,z+oz,'p');if(x===c&&z===d)break;x+=dx;z+=dz;}};
@@ -87,18 +87,18 @@ function forestWorld(){
  }
  for(const [x,y] of [[5,13],[13,4],[19,15],[28,5]])for(let dz=0;dz<2;dz++)for(let dx=0;dx<2;dx++)
   if(w.tiles[y+dz]?.[x+dx]==='.')updateTile(w,x+dx,y+dz,'p');
- // Two permanent Oliver statues flank the western forest path.
- w.statues=[{x:8,y:5,crowned:false},{x:10,y:5,crowned:true}];
- // Solid watchtower footprint: walls and roof outside, accessible only via its door.
- for(let y=5;y<=9;y++)for(let x=25;x<=29;x++)updateTile(w,x,y,'H');
- updateTile(w,27,9,'D');
+ // The larger northern forest clearing gives the tower a distinct footprint.
+ // No prototype or statue displays remain on the playable forest map.
+ for(let y=2;y<=9;y++)for(let x=22;x<=31;x++)if(w.tiles[y]?.[x]==='T')updateTile(w,x,y,'.');
+ // Solid watchtower footprint, moved north; its south-facing door is the only entrance.
+ for(let y=3;y<=7;y++)for(let x=25;x<=29;x++)updateTile(w,x,y,'H');
+ updateTile(w,27,7,'D');
+ for(let y=8;y<=12;y++)for(let x=26;x<=28;x++)updateTile(w,x,y,'p');
  // Gate is farther east, spanning four path tiles with two-tile passage width.
- for(let y=3;y<=15;y++)for(let x=32;x<=33;x++)updateTile(w,x,y,'T');
+ for(let y=2;y<=19;y++)for(let x=32;x<=33;x++)updateTile(w,x,y,'T');
  for(let y=7;y<=10;y++)for(let x=31;x<=33;x++)updateTile(w,x,y,'p');
- // Display all ten Oliver variants side by side on a dedicated section of forest path.
+ // Keep the old footpath walkable without placing any display pedestals.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
- // Two compact rows keep all ten Oliver designs visible at once from the preview teleport.
- w.showcase=Array.from({length:10},(_,i)=>({x:13+(i%5)*2,y:i<5?9:11,piece:'K',color:'white',prototype:i+1}));
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -212,8 +212,8 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
  if(scene==='forest'){
-  if(near(p,27,9,2)&&y>=9){setScene('watchtower',{x:8,y:10,facing:'up'});say('Oliver','Inside the watchtower. The key chest must be somewhere in this room.');return true;}
-   if(x>=33&&y>=7&&y<=11){
+  if(near(p,27,7,2)&&y>=7&&y<=9){setScene('watchtower',{x:8,y:10,facing:'up'});say('Oliver','Inside the watchtower. The key chest must be somewhere in this room.');return true;}
+   if(complete('watchChest')&&x>=33&&y>=7&&y<=11){
    setScene('village',{x:26,y:29,facing:'up'});
    say('Oliver','A village at last. Perhaps someone here will believe I am the king.');return true;
   }
@@ -559,7 +559,7 @@ function drawProps(g){
   // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
   for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
    if(world.tiles[z][x]==='T'){
-    if(g.tree&&((x<=2||x>=33||z<=2||z>=16)?(x+z)%2===0:(x+z)%3===0))g.tree(x+.5,z+.5);
+    if(g.tree&&((x<=2||x>=33||z<=1||z>=20)?(x+z)%2===0:(x+z)%3===0))g.tree(x+.5,z+.5);
     if((x*3+z*5)%19===0)model('stones',x+.5,.01,z+.5,.64,.27,.55);
    }
   }
@@ -570,36 +570,76 @@ function drawProps(g){
   }
   model('barrel',12.4,0,8.35,.52,.61,.52);
   model('stones',21.5,0,11.0,.84,.31,.71);
-  // Fully enclosed watchtower: opaque stone walls, solid roof and visible closed door.
-  // Chest is NOT drawn outside; it exists only in the separate interior scene.
-  box(27.5,.07,7.5,5.3,.14,5.3,'#8a8273');
-  box(27.5,1.42,5.02,5.2,2.84,.34,'#777b7b');
-  box(25.02,1.42,7.5,.34,2.84,5.2,'#777b7b');
-  box(29.98,1.42,7.5,.34,2.84,5.2,'#777b7b');
-  box(26.0,1.42,9.98,2.25,2.84,.34,'#777b7b');
-  box(29.0,1.42,9.98,2.25,2.84,.34,'#777b7b');
-  box(27.5,2.43,9.98,.82,.80,.34,'#777b7b');
-  box(27.5,.99,10.19,1.22,1.98,.14,'#624a36');
-  box(27.89,1.0,10.30,.075,.075,.055,'#e2c276');
-  box(27.5,2.99,7.5,5.6,.22,5.6,'#515a5b');
-  box(27.5,3.20,7.5,5.95,.18,5.95,'#85847b');
-  for(const x of [25.25,29.75])for(const z of [5.25,9.75])box(x,3.36,z,.50,.35,.50,'#777b7b');
-  // Four-tile-high barrier, shifted right. Two road tiles remain the crossing.
-  for(const z of [6.6,11.4]){box(32.45,1.45,z,.42,2.90,.45,'#685541');cone(32.45,2.91,z,.27,.36,'#9a876b',8);}
-  if(!complete('watchChest')){
-   for(let i=0;i<4;i++){box(32.45,1.0,7.5+i,.25,.24,1.0,'#ae8350');box(32.45,1.24,7.5+i,.27,.07,1.0,'#d8b578');}
-  }else box(32.45,2.65,7.7,.25,.24,3.8,'#ae8350');
-  // Two Oliver statues: the canonical crownless model and its crowned counterpart.
-  for(const statue of world.statues||[]){
-   const sx=statue.x+.5,sz=statue.y+.5;
-   box(sx,.09,sz,1.25,.18,1.25,'#777773');
-   box(sx,.30,sz,1.12,.24,1.12,'#b9b2a2');
-   drawOliver(sx,sz);
-   if(statue.crowned){
-    cylinder(sx,2.08,sz,.305,.305,.12,'#c6a05c',14);
-    for(let i=0;i<7;i++){const angle=i*Math.PI*2/7;cone(sx+Math.cos(angle)*.27,2.15,sz+Math.sin(angle)*.27,.085,.23,'#e4c475',8);}
-   }
+  // North watchtower: same 5x5 footprint, but a tall fortified silhouette.
+  // Solid opaque walls, a crenellated parapet, narrow arrow slits and a real door.
+  const towerX=27.5,towerZ=5.5;
+  box(towerX,.09,towerZ,5.55,.18,5.55,'#77756f');
+  for(const [x,z,w,d] of [[towerX,3.1,5.3,.42],[towerX,7.9,5.3,.42],[25.1,towerZ,.42,5.3],[29.9,towerZ,.42,5.3]]){
+   // The south wall has an actual doorway rather than an open facade.
+   if(z===7.9){
+    box(26.0,2.45,z,2.20,4.9,d,'#787e80');
+    box(29.0,2.45,z,2.20,4.9,d,'#787e80');
+    box(towerX,4.30,z,1.15,1.30,d,'#787e80');
+   }else box(x,2.45,z,w,4.9,d,'#787e80');
   }
+  // Heavy stone courses and dressed corner quoins.
+  for(let h=.65;h<4.9;h+=.68){
+   for(const z of [3.12,7.88])for(const x of [25.75,26.85,28.15,29.25])
+    box(x,h,z,.95,.075,.045,'#a3a6a0');
+   for(const x of [25.12,29.88])for(const z of [3.9,5.2,6.5,7.3])
+    box(x,h,z,.045,.075,.78,'#a3a6a0');
+  }
+  for(const x of [25.2,29.8])for(const z of [3.2,7.8])
+   box(x,2.5,z,.54,5.0,.54,'#969994');
+  // Dark arrow slits give the tall facade a recognisable guard-tower appearance.
+  for(const x of [26.25,28.75]){
+   box(x,3.15,8.14,.12,.85,.035,'#202a30');
+   box(x,3.0,8.16,.38,.10,.04,'#202a30');
+  }
+  box(towerX,1.15,8.15,1.28,2.30,.16,'#654937');
+  for(const x of [27.05,27.40,27.75,28.05])box(x,1.16,8.24,.045,2.18,.03,'#967554');
+  box(27.91,1.06,8.29,.09,.11,.06,'#e4c17b');
+  box(towerX,4.99,towerZ,5.65,.23,5.65,'#555d61');
+  box(towerX,5.25,towerZ,5.9,.36,5.9,'#8f9490');
+  // Battlements, raised corner turrets and a dark peaked watch roof.
+  for(const x of [25.15,26.3,27.5,28.7,29.85])for(const z of [2.65,8.35])
+   box(x,5.72,z,.60,.92,.52,'#9da19c');
+  for(const z of [3.8,5.5,7.2])for(const x of [24.65,30.35])
+   box(x,5.72,z,.52,.92,.66,'#9da19c');
+  for(const x of [25.15,29.85])for(const z of [3.15,7.85]){
+   cylinder(x,5.70,z,.39,.39,1.45,'#737d80',10);
+   cone(x,6.75,z,.55,.82,'#454f58',10);
+  }
+  box(towerX,5.38,towerZ,3.85,.25,3.85,'#4a555d');
+  cone(towerX,6.43,towerZ,2.6,1.80,'#47515a',4);
+  // Red-and-white striped hinged road barrier, four tiles across.
+  for(const z of [7.0,11.15]){
+   box(32.45,1.05,z,.43,2.1,.44,'#a6a9a6');
+   box(32.45,1.98,z,.55,.20,.56,'#e5e5de');
+   sphere(32.45,2.16,z,.14,'#d14b42',10);
+  }
+  if(!complete('watchChest')){
+   for(let i=0;i<8;i++)box(32.45,1.45,7.25+i*.5,.34,.36,.50,i%2===0?'#d53935':'#f7f3e9');
+   box(32.45,1.45,9.0,.48,.13,3.95,'#424b50');
+  }else{
+   // Raised barrier after solving the chest; road is visually unobstructed.
+   for(let i=0;i<8;i++)box(32.45,2.45+i*.42,7.15,.34,.42,.40,i%2===0?'#d53935':'#f7f3e9');
+  }
+  // Oliver's crowned statue is intentionally not instantiated here.
+  // Its reusable mesh is retained in drawCrownedOliverForFuture().
+
+ }
+}
+// Retained for future scenes only: approved Oliver mesh plus his gold crown.
+// Do not call this function from the forest: all eleven displays were removed.
+function drawCrownedOliverForFuture(g,x,z){
+ const {oliver,cylinder,cone}=g;
+ if(!oliver)return;
+ oliver(x,z);
+ cylinder(x,2.08,z,.305,.305,.12,'#c6a05c',14);
+ for(let i=0;i<7;i++){
+  const angle=i*Math.PI*2/7;
+  cone(x+Math.cos(angle)*.27,2.15,z+Math.sin(angle)*.27,.085,.23,'#e4c475',8);
  }
 }
 // The interior is drawn only after an E interaction at the tower door.
