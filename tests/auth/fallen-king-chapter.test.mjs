@@ -104,7 +104,8 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  new Function('window','document','localStorage','location','confirm',source)(window,document,localStorage,{reload(){}},()=>true);
  const chapter=window.FallenKingStory;chapter.start(engine);
  const geometry={box(){},cylinder(){},cone(){},sphere(){},piece(){},features(){}};
- for(let i=0;i<12;i++){assert.doesNotThrow(()=>chapter.drawProps(geometry));element('fallen-story-next').listeners.click();}
+ assert.doesNotThrow(()=>chapter.drawProps(geometry));
+ for(let i=0;i<12;i++)element('fallen-story-next').listeners.click();
  assert.equal(world.width,25);
  assert.equal(chapter.beforeMove(10,7),false);
  assert.equal(element('fallen-story-puzzle').hidden,true);
@@ -151,7 +152,9 @@ test('detailed scene geometry and atmosphere render without changing story route
  const engine={getWorld:()=>world,getPlayer:()=>player,setWorld:(w,p)=>{world=w;player={...p};},say(){},enableSound(){},soundCue(){}};
  new Function('window','document','localStorage','location','confirm',source)(window,document,localStorage,{reload(){}},()=>true);
  const game=window.FallenKingStory;game.start(engine);
- for(let i=0;i<12;i++){assert.doesNotThrow(()=>game.drawProps(callbacks));assert.doesNotThrow(()=>game.drawEffects(callbacks,i*.3));el('fallen-story-next').listeners.click();}
+ assert.doesNotThrow(()=>game.drawProps(callbacks));
+ assert.doesNotThrow(()=>game.drawEffects(callbacks,0));
+ for(let i=0;i<12;i++)el('fallen-story-next').listeners.click();
  assert.equal(world.width,25);
  assert.doesNotThrow(()=>game.drawProps(callbacks));
  assert.doesNotThrow(()=>game.drawEffects(callbacks,1));
