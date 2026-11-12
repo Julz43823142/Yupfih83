@@ -93,7 +93,8 @@ function forestWorld(){
  for(let y=5;y<=9;y++)for(let x=25;x<=29;x++)updateTile(w,x,y,'H');
  updateTile(w,27,9,'D');
  // Gate is farther east, spanning four path tiles with two-tile passage width.
- for(let y=7;y<=10;y++)for(let x=31;x<=32;x++)updateTile(w,x,y,'p');
+ for(let y=3;y<=15;y++)for(let x=32;x<=33;x++)updateTile(w,x,y,'T');
+ for(let y=7;y<=10;y++)for(let x=31;x<=33;x++)updateTile(w,x,y,'p');
  // Display all ten Oliver variants side by side on a dedicated section of forest path.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
  // Two compact rows keep all ten Oliver designs visible at once from the preview teleport.
@@ -168,7 +169,7 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
 function beforeMove(x,y){
  if(scene==='cell')return x===16&&y===10;
  if(scene==='sewer')return x>=79&&y>=23&&y<=27;
- if(scene==='forest')return (!complete('watchChest')&&x>=32&&y>=7&&y<=10)||(x>=34&&y>=7&&y<=10);
+ if(scene==='forest')return (!complete('watchChest')&&x===32&&y>=7&&y<=10)||(x>=34&&y>=7&&y<=10);
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
