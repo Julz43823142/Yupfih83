@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Superseded pushes must not leave expensive test jobs running.
+concurrency:
+  group: security-performance-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
