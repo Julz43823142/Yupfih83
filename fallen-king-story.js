@@ -22,7 +22,7 @@ const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},mer
 let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -1049,5 +1049,11 @@ function drawEffects(g,t){
 
 }
 function drawFollowers(g){/* Pip is reserved for the second village, not Willowmere. */}
-window.FallenKingStory={start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
+// Snapshot is captured on explicit Save, not every movement step.
+function exportSave(){
+ if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};
+ chapter.scene=scene;
+ return {chapter:JSON.parse(JSON.stringify(chapter))};
+}
+window.FallenKingStory={exportSave,start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();
