@@ -156,6 +156,7 @@ function showIntro(){
  const canvas=$('fallen-story-art');
  canvas.width=1672;canvas.height=941;
  $('fallen-story-intro').classList?.add('fallen-five-approved');
+ $('fallen-story-intro').classList?.remove('fallen-five-missing-asset');
  for(const oldName of ['fallen-first-approved','fallen-second-approved','fallen-edwin-approved'])
   $('fallen-story-intro').classList?.remove(oldName);
  engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});
