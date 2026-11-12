@@ -399,7 +399,7 @@ function drawGround(g,x,z){
  if(isPalace){g.box(x+.5,.006,z+.5,.94,.017,.94,(x+z)%4===0?'#b5a083':'#a8967c');return;}
  if(scene==='sewer'&&tile==='s'){
   const stream=w.streamTiles?.[z*w.width+x]||0;
-  if(!window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))
+  if(true) // One low-cost flagstone mesh per sewer tile; avoid repeated GLB copies.
     g.box(x+.5,.005,z+.5,.96,.02,.96,'#596461');
   if(stream)g.box(x+.5,.025,z+.5,1.005,.017,1.005,'#426871');
   else if((x*7+z*3)%11===0)g.box(x+.5,.023,z+.5,.45,.009,.36,'#4c615d');
@@ -411,7 +411,7 @@ function drawGround(g,x,z){
  }
  // Keep the original flat flagstone floor in the prison; cloning a full GLB
  // on every tile can exhaust browser memory before Oliver can move.
- if(scene!=='cell'&&window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))return;
+ if(scene!=='cell'&&scene!=='sewer'&&window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))return;
  g.box(x+.5,.005,z+.5,.96,.02,.96,scene==='sewer'?'#6c7977':'#94958c');
 }
 // Small, fixed world ornaments: deterministic meshes, no new collision tiles.
@@ -648,7 +648,7 @@ function drawProps(g){
  const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
  if(scene!=='intro'&&scene!=='cell')drawEverydayDetails(g);
  const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
- const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>scene!=='cell'&&!!dp?.draw?.(g,id,x,y,z,w,h,d,rot);
+ const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>scene!=='cell'&&scene!=='sewer'&&!!dp?.draw?.(g,id,x,y,z,w,h,d,rot);
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
  const brass='#d6b46b',royal='#a3474f',azure='#517488',moss='#416c65';
  function wall(x,z,w=1,h=1.8){const dungeon=scene==='cell'||scene==='sewer'||scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene==='prison';if(dungeon&&model('wall',x,0,z,w,h,.86))return;box(x,h/2,z,w,h,.86,rock);box(x,h-.08,z,w,.15,.92,'#ada79a');box(x,h*.53,z,w,.08,.93,'#495960');}
