@@ -261,53 +261,54 @@ function piece(x,z,type,color,aldric=false){
   }
  }
 }
-// Ten crownless Oliver prototypes in the existing WebGL renderer.
-// Crownless Oliver gallery: five bald originals, five distinct hairstyles.
-// Shared silhouette has exactly two decorative stone rings: foot and under neck.
+// Ten bald Oliver head studies: identical stone king bodies, distinct head geometry only.
 function oliverPrototype(x,z,n){
  const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',ink='#64544a';
- const head=.30, hair=n>5, style=n-5;
+ // Shared body, pedestal and two stone rings for every variant.
  cylinder(x,.10,z,.40,.40,.20,stone,20);
- cylinder(x,.22,z,.43,.42,.13,shade,20); // Ring 1: foot
+ cylinder(x,.22,z,.43,.42,.13,shade,20);
  cylinder(x,.45,z,.33,.40,.42,stone,20);
  cylinder(x,.83,z,.30,.33,.40,stone,20);
  cylinder(x,1.13,z,.34,.32,.24,stone,20);
- cylinder(x,1.30,z,.40,.39,.14,bright,20); // Ring 2: below neck
+ cylinder(x,1.30,z,.40,.39,.14,bright,20);
  cylinder(x,1.45,z,.28,.28,.18,stone,20);
- sphere(x,1.81,z,head,stone,20);
+ // No hair, hats or crowns: only head proportions and facial anatomy change.
+ const shapes=[
+  [.30,1.00,1.00,.11,.056,.00], // classic round
+  [.34,.91,1.00,.12,.052,.00], // broad head
+  [.26,1.18,.96,.095,.048,.00], // tall narrow
+  [.32,1.00,.90,.13,.045,.00], // wide eyes
+  [.29,.93,1.10,.10,.058,.00], // deep head
+  [.35,1.05,.95,.135,.058,.00], // imposing
+  [.275,1.10,1.04,.10,.041,.00], // slender
+  [.31,.95,.96,.115,.062,.00], // compact
+  [.28,1.14,1.00,.12,.050,.00], // long face
+  [.33,1.04,1.07,.095,.060,.00] // full face
+ ];
+ const [r,sy,sz,spacing,eyeSize]=shapes[(n-1)%10];
+ const cy=1.81,front=z+r*sz*.91;
+ // Scaling only the vertices created for the head keeps the body untouched.
+ const from=vertices.length;
+ sphere(x,cy,z,r,stone,20);
+ for(let i=from;i<vertices.length;i+=9){
+  vertices[i+1]=cy+(vertices[i+1]-cy)*sy;
+  vertices[i+2]=z+(vertices[i+2]-z)*sz;
+ }
  for(const side of [-1,1]){
-  const ex=x+side*.11,ez=z+.275;
-  sphere(ex,1.83,ez,.056,'#fff6e8',10);
-  sphere(ex,1.83,ez+.052,.025,ink,9);
-  box(ex,1.94,ez+.012,.12,.022,.034,shade);
+  const ex=x+side*spacing;
+  sphere(ex,1.83,front+.009,eyeSize,'#fff6e8',10);
+  sphere(ex+(n===4?side*.014:0),1.83,front+.055,.022,ink,9);
+  const browY=1.94+(n===6?.035:0);
+  box(ex,browY,front+.024,.10+(n===8?.04:0),.022,.034,shade);
  }
- box(x,1.67,z+.296,.11,.019,.028,ink);
- if(hair){
-  const brown=['#68472e','#48352c','#86613d','#55483c','#aa8050'][style-1];
-  if(style===1){ // Short cropped hair
-   sphere(x,2.035,z-.015,.295,brown,16);
-   for(const side of [-1,1])box(x+side*.24,1.94,z,.085,.18,.23,brown);
-  }else if(style===2){ // Side-swept fringe
-   sphere(x,2.045,z-.035,.30,brown,16);
-   box(x-.10,2.00,z+.255,.34,.13,.12,brown);
-   box(x+.15,2.06,z+.21,.16,.075,.11,brown);
-  }else if(style===3){ // Curly hair
-   for(let i=0;i<9;i++){const a=i*Math.PI*2/9;sphere(x+Math.cos(a)*.21,2.045,z+Math.sin(a)*.20,.13,brown,10);}
-   for(const side of [-1,1])sphere(x+side*.23,1.94,z+.06,.11,brown,10);
-  }else if(style===4){ // Upright textured hair
-   sphere(x,2.035,z-.02,.285,brown,14);
-   for(let i=-2;i<=2;i++)cone(x+i*.105,2.15,z-.035,.09,.22,brown,9);
-  }else{ // Long parted hair
-   sphere(x,2.04,z-.04,.30,brown,16);
-   for(const side of [-1,1]){
-    box(x+side*.255,1.85,z-.02,.105,.37,.30,brown);
-    box(x+side*.11,2.00,z+.25,.17,.12,.09,brown);
-   }
-  }
- }
- // Visible numeric identity on the front of the pedestal.
- for(let i=0;i<(n<=5?n:n-5);i++)sphere(x+(i-((n<=5?n:n-5)-1)/2)*.105,.13,z+.415,.027,bright,8);
- if(hair)box(x,.31,z+.37,.30,.035,.045,shade);
+ if(n===3||n===9)box(x,1.66,front+.03,.075,.02,.026,ink);
+ else if(n===5||n===7)sphere(x,1.66,front+.03,.029,ink,8);
+ else box(x,1.67,front+.03,.11,.018,.028,ink);
+ // Small noses and cheek shapes differentiate heads without altering outfits.
+ if([2,6,9].includes(n))sphere(x,1.75,front+.035,.048,stone,9);
+ if([4,8,10].includes(n))for(const side of [-1,1])sphere(x+side*(spacing+.08),1.70,front-.01,.045,shade,9);
+ // Numbered markers on the identical plinths for comparing all ten.
+ for(let i=0;i<n;i++)sphere(x+(i-(n-1)/2)*.065,.13,z+.415,.018,bright,7);
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
