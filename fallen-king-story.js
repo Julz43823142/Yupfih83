@@ -99,7 +99,7 @@ function villageWorld(){
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
  w.spawn={x:26,y:29};
- w.showcase=Array.from({length:10},(_,i)=>({x:18+i%5*2,y:i<5?24:28,piece:'K',color:'white',prototype:i+1}));
+ w.showcase=Array.from({length:10},(_,i)=>({x:12+i%5*3,y:i<5?12:16,piece:'K',color:'white',prototype:i+1}));
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}

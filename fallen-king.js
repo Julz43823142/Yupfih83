@@ -262,34 +262,52 @@ function piece(x,z,type,color,aldric=false){
  }
 }
 // Ten crownless Oliver prototypes in the existing WebGL renderer.
+// Crownless Oliver gallery: five bald originals, five distinct hairstyles.
+// Shared silhouette has exactly two decorative stone rings: foot and under neck.
 function oliverPrototype(x,z,n){
- const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',dark='#786d64';
- const thick=[.37,.40,.43,.36,.46,.39,.42,.35,.45,.41][n-1];
- const head=[.29,.32,.27,.31,.28,.34,.30,.26,.33,.29][n-1];
- const body=[.34,.36,.39,.32,.41,.35,.38,.33,.40,.37][n-1];
- cylinder(x,.10,z,.39,.39,.20,shade,20);
- cylinder(x,.25,z,.39,.32,.16,stone,20);
- cylinder(x,.58,z,body,.27,.54,stone,20);
- cylinder(x,.87,z,thick,.34,.12,bright,20);
- cylinder(x,1.06,z,.36,.31,.30,stone,20);
- cylinder(x,1.25,z,.39,.36,.12,shade,20);
- cylinder(x,1.43,z,.27,.26,.25,stone,20);
- sphere(x,1.78,z,head,stone,20);
- if(n%2===0)cylinder(x,1.54,z,.29,.29,.075,bright,20);
- if(n===3||n===8)cylinder(x,.42,z,.33,.31,.13,shade,20);
- if(n===4||n===9)cylinder(x,1.04,z,.38,.38,.09,bright,20);
- if(n===5||n===10)cylinder(x,1.90,z,head*.87,head*.92,.075,bright,20);
- if(n===6||n===7)cylinder(x,1.33,z,.32,.30,.09,bright,20);
+ const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',ink='#64544a';
+ const head=.30, hair=n>5, style=n-5;
+ cylinder(x,.10,z,.40,.40,.20,stone,20);
+ cylinder(x,.22,z,.43,.42,.13,shade,20); // Ring 1: foot
+ cylinder(x,.45,z,.33,.40,.42,stone,20);
+ cylinder(x,.83,z,.30,.33,.40,stone,20);
+ cylinder(x,1.13,z,.34,.32,.24,stone,20);
+ cylinder(x,1.30,z,.40,.39,.14,bright,20); // Ring 2: below neck
+ cylinder(x,1.45,z,.28,.28,.18,stone,20);
+ sphere(x,1.81,z,head,stone,20);
  for(const side of [-1,1]){
-  const ex=x+side*.115,ez=z+head*.84;
-  sphere(ex,1.81,ez,.052,'#fff6e8',10);
-  sphere(ex,1.81,ez+.046,.026,dark,10);
-  box(ex,1.92,ez+.008,.115,.024,.035,shade);
+  const ex=x+side*.11,ez=z+.275;
+  sphere(ex,1.83,ez,.056,'#fff6e8',10);
+  sphere(ex,1.83,ez+.052,.025,ink,9);
+  box(ex,1.94,ez+.012,.12,.022,.034,shade);
  }
- box(x,1.66,z+head*.89,.12,.019,.028,dark);
- const count=n<=5?n:n-5;
- for(let i=0;i<count;i++)sphere(x+(i-(count-1)/2)*.115,.16,z+.397,.032,bright,8);
- if(n>5)box(x,.31,z+.337,.30,.035,.055,bright);
+ box(x,1.67,z+.296,.11,.019,.028,ink);
+ if(hair){
+  const brown=['#68472e','#48352c','#86613d','#55483c','#aa8050'][style-1];
+  if(style===1){ // Short cropped hair
+   sphere(x,2.035,z-.015,.295,brown,16);
+   for(const side of [-1,1])box(x+side*.24,1.94,z,.085,.18,.23,brown);
+  }else if(style===2){ // Side-swept fringe
+   sphere(x,2.045,z-.035,.30,brown,16);
+   box(x-.10,2.00,z+.255,.34,.13,.12,brown);
+   box(x+.15,2.06,z+.21,.16,.075,.11,brown);
+  }else if(style===3){ // Curly hair
+   for(let i=0;i<9;i++){const a=i*Math.PI*2/9;sphere(x+Math.cos(a)*.21,2.045,z+Math.sin(a)*.20,.13,brown,10);}
+   for(const side of [-1,1])sphere(x+side*.23,1.94,z+.06,.11,brown,10);
+  }else if(style===4){ // Upright textured hair
+   sphere(x,2.035,z-.02,.285,brown,14);
+   for(let i=-2;i<=2;i++)cone(x+i*.105,2.15,z-.035,.09,.22,brown,9);
+  }else{ // Long parted hair
+   sphere(x,2.04,z-.04,.30,brown,16);
+   for(const side of [-1,1]){
+    box(x+side*.255,1.85,z-.02,.105,.37,.30,brown);
+    box(x+side*.11,2.00,z+.25,.17,.12,.09,brown);
+   }
+  }
+ }
+ // Visible numeric identity on the front of the pedestal.
+ for(let i=0;i<(n<=5?n:n-5);i++)sphere(x+(i-((n<=5?n:n-5)-1)/2)*.105,.13,z+.415,.027,bright,8);
+ if(hair)box(x,.31,z+.37,.30,.035,.045,shade);
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
