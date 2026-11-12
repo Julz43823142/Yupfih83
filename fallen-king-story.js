@@ -399,8 +399,8 @@ function drawGround(g,x,z){
  if(isPalace){g.box(x+.5,.006,z+.5,.94,.017,.94,(x+z)%4===0?'#b5a083':'#a8967c');return;}
  if(scene==='sewer'&&tile==='s'){
   const stream=w.streamTiles?.[z*w.width+x]||0;
-  if(true) // One low-cost flagstone mesh per sewer tile; avoid repeated GLB copies.
-    g.box(x+.5,.005,z+.5,.96,.02,.96,'#596461');
+  // One low-cost flagstone mesh per sewer tile; avoid repeated GLB copies.
+  g.box(x+.5,.005,z+.5,.96,.02,.96,'#596461');
   if(stream)g.box(x+.5,.025,z+.5,1.005,.017,1.005,'#426871');
   else if((x*7+z*3)%11===0)g.box(x+.5,.023,z+.5,.45,.009,.36,'#4c615d');
   if((x*17+z*11)%139===0&&!stream){
