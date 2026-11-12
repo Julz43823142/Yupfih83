@@ -191,14 +191,14 @@ function drawIntroImage(){
  const path='/assets/fallen-king-intro/intro-'+(index+1)+'.png';
  const canvas=$('fallen-story-art'),c=canvas.getContext('2d');
  c.imageSmoothingEnabled=true;
- const img=introArtwork[path]||(introArtwork[path]=new Image());
+ const img=introArtwork[path]||(introArtwork[path]=typeof Image==='undefined'?{complete:false,naturalWidth:0,src:''}:new Image());
  if(img.complete&&img.naturalWidth){
   c.clearRect(0,0,canvas.width,canvas.height);
   c.drawImage(img,0,0,canvas.width,canvas.height);
   return;
  }
  c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
- if(!img.src){
+ if(!img.src&&typeof Image!=='undefined'){
   img.onload=()=>{if(scene==='intro'&&chapter.step===index)drawIntroImage();};
   img.onerror=()=>{
    if(scene!=='intro'||chapter.step!==index)return;
