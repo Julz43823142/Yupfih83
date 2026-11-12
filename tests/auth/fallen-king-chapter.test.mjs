@@ -22,11 +22,43 @@ test('gameplay continues rendering after one failed frame and hidden pause does 
  assert.equal((frame.match(/requestAnimationFrame\(frame\)/g)||[]).length,1,'one animation frame is queued per frame');
  assert.match(engine,/if\(paused&&pause\.hidden\)paused=false;if\(paused\|\|mapOpen\)return/);
 });
-test('prison retains simple geometry and the WebGL heap is bounded',()=>{
+test('static mesh streaming keeps every triangle and releases old GPU buffers',()=>{
+ const functions=engine.slice(engine.indexOf('function clearStaticGeometry(){'),engine.indexOf('function rgb('));
+ const triangle=engine.slice(engine.indexOf('function tri('),engine.indexOf('\nfunction quad('));
+ const uploads=[],deleted=[],gl={
+  ARRAY_BUFFER:34962,STATIC_DRAW:35044,
+  createBuffer:()=>({id:uploads.length+1}),
+  bindBuffer(){},
+  bufferData(_target,values){uploads.push(values.length);},
+  deleteBuffer(buffer){deleted.push(buffer);}
+ };
+ const simulate=new Function('gl','staticBuffer',\`
+  let vertices=[],staticReady=false,staticGeometryBuilding=true,staticChunks=[];
+  const MAX_VERTEX_FLOATS=81;
+  \${functions}
+  function rgb(){return [1,1,1];}
+  \${triangle}
+  for(let i=0;i<40;i++)tri([0,0,i],[1,0,i],[0,1,i],'#ffffff');
+  flushStaticChunk();
+  const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0),
+   chunkCount:staticChunks.length,largest:Math.max(...uploads)};
+  clearStaticGeometry();
+  return {...before,remaining:staticChunks.length};
+ \`);
+ const result=simulate(gl,{id:0});
+ assert.equal(result.triangles,40,'later scenery triangles must never disappear');
+ assert.ok(result.chunkCount>1);
+ assert.ok(result.largest<=81,'temporary CPU meshes stay bounded');
+ assert.equal(result.remaining,0);
+ assert.equal(deleted.length,result.chunkCount-1,'scene changes release extra GPU buffers');
+});
+test('prison remains simple, sewer texture survives, and the village is not truncated',()=>{
  assert.ok(source.includes("if(scene!=='intro'&&scene!=='cell')drawEverydayDetails(g);"));
- assert.ok(source.includes("if(scene!=='cell'&&scene!=='sewer'&&window.FallenKingDetailPlus?.draw"));
- assert.ok(engine.includes('const MAX_VERTEX_FLOATS=1620000;'));
- assert.ok(engine.includes('function tri(a,b,c,color){if(vertices.length>=MAX_VERTEX_FLOATS)return;'));
+ assert.ok(source.includes("if((x*7+z*11)%9!==0||!window.FallenKingDetailPlus?.draw?.(g,'floor'"));
+ assert.ok(engine.includes('const MAX_VERTEX_FLOATS=180000;'));
+ assert.ok(engine.includes('if(staticGeometryBuilding&&vertices.length+27>MAX_VERTEX_FLOATS)flushStaticChunk();'));
+ assert.ok(engine.includes('for(const chunk of staticChunks){'));
+ assert.ok(engine.includes('flushStaticChunk();'));
  assert.ok(engine.includes('renderErrorReported=true;'));
 });
 
