@@ -253,7 +253,7 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.equal(world.tiles[5][12],'H');assert.equal(world.tiles[9][6],'H');assert.equal(world.tiles[9][18],'H');
  assert.equal(world.tiles[3][12],'s');assert.equal(world.tiles[9][12],'s');assert.equal(world.tiles[14][12],'H');
  const vision=story.fieldOfView();
- assert.ok(vision.enabled);assert.ok(vision.radius>=12);
+ assert.ok(vision.enabled);assert.equal(vision.radius,6,'prison visibility stays limited to nearby cells');
  assert.equal(vision.isOpaque(12,5),false,'north iron bars transmit sight');
  assert.equal(vision.isOpaque(6,9),false,'west iron bars transmit sight');
  assert.equal(vision.isOpaque(18,9),false,'east iron bars transmit sight');
