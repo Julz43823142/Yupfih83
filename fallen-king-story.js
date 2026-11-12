@@ -327,6 +327,58 @@ function drawGround(g,x,z){
  if(window.FallenKingDetailPlus?.draw(g,'floor',x+.5,.005,z+.5,.99,.02,.99))return;
  g.box(x+.5,.005,z+.5,.96,.02,.96,scene==='sewer'?'#6c7977':'#94958c');
 }
+// Small, fixed world ornaments: deterministic meshes, no new collision tiles.
+function drawWildflowers(g,x,z,seed){
+ const {box,cone,sphere}=g;
+ for(let i=0;i<3;i++){
+  const ox=((seed*13+i*7)%17)/35-.24,oz=((seed*5+i*11)%19)/39-.24;
+  const h=.16+.055*((seed+i)%3),px=x+ox,pz=z+oz;
+  box(px,h/2,pz,.018,h,.018,'#54794e');
+  sphere(px,h+.03,pz,.060,['#e8c783','#d4b4d6','#f0e2ba','#aac9d8'][(seed+i)%4],7);
+ }
+}
+function drawWaypost(g,x,z,labelColor='#b69b6e'){
+ const {box,cone}=g;
+ box(x,.68,z,.15,1.36,.16,'#694e36');
+ cone(x,1.45,z,.20,.30,'#a48f69',8);
+ box(x,1.16,z,.85,.28,.13,'#83613e');
+ box(x,1.17,z+.072,.64,.085,.025,labelColor);
+ box(x,.30,z,.45,.08,.37,'#695d45');
+}
+function drawVillageDetails(g){
+ const {box,cylinder,cone,sphere}=g;
+ // Flower troughs, herb pots and a public waste basket along market edges.
+ for(const [x,z] of [[20.4,25.8],[34.5,25.6],[24.1,35.0],[32.8,34.1]]){
+  box(x,.23,z,1.20,.40,.46,'#775338');
+  box(x,.47,z,1.11,.09,.39,'#bb9667');
+  box(x,.53,z,1.01,.06,.30,'#3e6041');
+  for(let i=0;i<5;i++){const px=x-.43+i*.21;sphere(px,.65,z,.095,i%2?'#edca87':'#d49bb0',8);}
+ }
+ for(const [x,z] of [[19.8,32.0],[35.7,31.5],[22.2,22.4]]){
+  cylinder(x,.28,z,.32,.27,.55,'#aa9072',10);
+  cylinder(x,.56,z,.35,.35,.075,'#ceb296',10);
+  for(let i=0;i<4;i++)cone(x+Math.cos(i*1.57)*.12,.80,z+Math.sin(i*1.57)*.12,.15,.43,'#587856',7);
+ }
+ const tx=34.6,tz=28.8;
+ cylinder(tx,.39,tz,.32,.29,.73,'#665344',12);
+ cylinder(tx,.80,tz,.37,.37,.11,'#b29565',12);
+ cylinder(tx,.92,tz,.21,.21,.05,'#342c2a',12);
+ for(let i=0;i<7;i++){const a=i*2*Math.PI/7;box(tx+Math.cos(a)*.28,.40,tz+Math.sin(a)*.28,.045,.49,.055,'#ae946e');}
+ // Notice board and its wax-sealed notices, safely off the main square.
+ box(37.3,1.19,28.6,1.55,1.12,.16,'#725139');
+ box(37.3,1.19,28.72,1.35,.88,.04,'#c6b18b');
+ for(const [x,y] of [[36.9,1.35],[37.48,1.42],[37.16,.95]]){
+  box(x,y,28.75,.34,.32,.026,'#e9d8ae');
+  sphere(x+.10,y-.09,28.78,.038,'#a7463f',7);
+ }
+ for(const x of [36.6,38.0])box(x,.55,28.55,.12,1.1,.15,'#6f5945');
+ // Low-profile weeds and flowers never block walking or sight lines.
+ for(let i=0;i<36;i++){
+  const x=10+((i*23)%30)+.30,z=7+((i*17)%28)+.3;
+  if((x>16&&x<34&&z>19&&z<35)||(x>40&&z>16&&z<24))continue;
+  drawWildflowers(g,x,z,i);
+ }
+}
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
  const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
@@ -568,6 +620,34 @@ function drawProps(g){
    cylinder(x,.05,z,.11,.13,.69,'#665e48',9);
    cone(x,.79,z,.20,.29,'#ddae66',9);sphere(x,.97,z,.095,'#f5d18f',8);
   }
+  // Scattered woodland groundcover and small ruins in the enlarged north clearing.
+  for(let i=0;i<55;i++){
+   const x=3+((i*19)%29)+.32,z=2+((i*13)%18)+.3;
+   const tile=world.tiles[Math.floor(z)]?.[Math.floor(x)];
+   if(tile==='.'&&!(x>24&&x<31&&z<9))drawWildflowers(g,x,z,i);
+  }
+  for(const [x,z] of [[7.0,14.6],[16.4,3.5],[22.5,17.1],[30.0,17.2]]){
+   box(x,.10,z,.72,.18,.62,'#777e72');
+   box(x+.19,.24,z-.12,.40,.13,.31,'#9ba095');
+   for(let i=0;i<3;i++)cone(x-.20+i*.22,.24,z+.27,.11,.32,'#587558',7);
+  }
+  drawWaypost(g,9.5,12.9);
+  drawWaypost(g,30.2,12.9,'#d8c3a1');
+  // Watchtower forecourt: paving, flags, lanterns and stored supplies.
+  for(const x of [26.5,27.5,28.5])for(const z of [8.5,9.5])
+   box(x,.035,z,.90,.055,.92,(x+z)%2?'#a29c8f':'#bbb3a2');
+  for(const x of [24.6,30.5]){
+   cylinder(x,.72,8.4,.11,.12,1.42,'#725b45',9);
+   box(x,1.50,8.4,.32,.45,.30,'#5e6565');
+   sphere(x,1.51,8.4,.14,'#f1c987',9);
+   cone(x,1.82,8.4,.25,.27,'#424e56',8);
+  }
+  for(const x of [24.1,30.6])for(let i=0;i<2;i++)model('barrel',x,0,9.9+i*.68,.49,.57,.48);
+  for(const x of [26.2,28.8]){
+   cylinder(x,5.12,8.44,.052,.052,1.10,'#5b5e59',8);
+   box(x+.24,5.41,8.43,.47,.44,.04,'#9b4547');
+   box(x+.22,5.35,8.47,.40,.07,.026,'#dcc59d');
+  }
   model('barrel',12.4,0,8.35,.52,.61,.52);
   model('stones',21.5,0,11.0,.84,.31,.71);
   // North watchtower: same 5x5 footprint, but a tall fortified silhouette.
@@ -658,6 +738,13 @@ function drawWatchtowerInterior(g){
  for(const x of [4,13]){cylinder(x,.08,9.4,.14,.14,1.8,'#635344',10);sphere(x,1.94,9.4,.17,'#e8b971',10);}
  box(8.5,1.25,12.19,1.3,2.5,.14,'#644b36');
  box(8.9,1.1,12.29,.08,.08,.06,'#e1c17d');
+ // Worked stone, rug, wall lamps and orderly storage make the interior feel inhabited.
+ box(8.5,.125,8.3,3.1,.025,2.3,'#6c4b44');
+ box(8.5,.14,8.3,2.75,.01,1.95,'#af8867');
+ for(const x of [2.7,14.2]){box(x,1.77,8.8,.12,.56,.30,'#63513f');sphere(x,2.12,8.8,.14,'#f0bf79',9);}
+ for(const x of [3,13.7]){box(x,.35,3.0,1.2,.70,.68,'#625345');box(x,.75,3,1.28,.08,.76,'#aa8b65');}
+ for(let i=0;i<5;i++){box(3.2+i*.47,.12,10.7,.35,.24,.27,'#907a58');box(3.2+i*.47,.27,10.7,.32,.05,.28,'#c4a67e');}
+ for(let i=0;i<8;i++)box(2.0+i*1.75,2.45,1.87,.035,.035,.12,'#b9b8a7');
 }
 function drawVillageProps(g){
  if(scene!=='village')return;
@@ -665,6 +752,7 @@ function drawVillageProps(g){
  window.FallenKingDetailPlus?.draw?.(g,'barrel',41.3,0,17.7,.65,.68,.65);
  window.FallenKingDetailPlus?.draw?.(g,'chest',41.8,0,21.4,.92,.58,.68);
  // DetailPlus: an inhabited medieval market square, with readable stalls, barrels and civic stonework.
+ drawVillageDetails(g);
  const mdl=(id,x,y,z,w,h,d)=>window.FallenKingDetailPlus?.draw?.(g,id,x,y,z,w,h,d);
  for(const [x,z,canopy] of [[23.5,24.4,'#9e4e53'],[32.7,24.4,'#4b7882'],[30.7,33.2,'#bc9363']]){
   for(const ox of [-.80,.80])for(const oz of [-.55,.55])cylinder(x+ox,.06,z+oz,.065,.07,1.44,'#80644d',8);
