@@ -14,6 +14,14 @@ const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8
 // Surface the active test in CI before any synchronous renderer stalls.
 test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
+
+test('gameplay continues rendering after one failed frame and hidden pause does not trap movement',()=>{
+ const frame=engine.slice(engine.indexOf('function frame(ms){'),engine.indexOf('function togglePause(',engine.indexOf('function frame(ms){')));
+ assert.match(frame,/requestAnimationFrame\(frame\)/);
+ assert.match(frame,/catch\(error\)\{console\.error\('Fallen King frame failed/);
+ assert.equal((frame.match(/requestAnimationFrame\(frame\)/g)||[]).length,1,'one animation frame is queued per frame');
+ assert.match(engine,/if\(paused&&pause\.hidden\)paused=false;if\(paused\|\|mapOpen\)return/);
+});
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
  assert.doesNotThrow(()=>new Script(engine));
