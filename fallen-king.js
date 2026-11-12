@@ -176,7 +176,7 @@ function piece(x,z,type,color,aldric=false){
   box(x+.17,1.19,z+.315,.10,.38,.065,light);
   box(x,1.19,z+.405,.15,.34,.045,ink);
   sphere(x,1.46,z+.445,.075,ink,10);
-  box(x,1.56,z+.465,.58,.035,.04,'#c5a46c');
+  box(x,1.56,z+.487,.56,.032,.026,'#c5a46c');
   for(let row=0;row<3;row++)for(let side of [-1,1])
    box(x+side*.22,1.25+row*.13,z+.405,.11,.018,.035,row===1?ink:light);
  }
@@ -247,8 +247,8 @@ function piece(x,z,type,color,aldric=false){
   box(x+.22,1.27,z+.38,.07,.30,.05,rim);
   if(aldric){
    // True king, NO crown and NO wardrobe: a sculpted plain stone cap, not a pawn ball.
-   cylinder(x,1.99,z,.30,.26,.16,base,16);
-   sphere(x,2.07,z,.225,light,12);
+   // Short crownless king head and rounded brow.
+   cylinder(x,1.99,z,.255,.25,.075,base,16);sphere(x,1.995,z,.245,light,14);box(x,1.92,z+.235,.36,.08,.045,base);
    // Distinctive royal profile is in the broad torso and collar rather than an ornament.
   }else{
    cylinder(x,2.02,z,.31,.31,.15,'#765636',16);

@@ -17,12 +17,12 @@ const steps=[
  {scene:'prison',title:'THE SLEEPING GUARD',speaker:'Oliver',text:'The guard is sleeping in the corridor. I must find a way out and reclaim my crown.'}
 ]
 // Placeholder stages only. Actual questions, answers and hints are intentionally deferred.
-const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},merrick:{},lumber:{},ropes:{},bridge:{}};
+const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
 let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,1);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function restored(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -92,8 +92,7 @@ function forestWorld(){
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
   {id:'forest-woodcutter',name:'Old Woodcutter',x:21,y:13,piece:'R',color:'black',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']}
  ];
- return w;
-}
+ w.npcs.push({id:'watch-keeper',name:'Gatekeeper Rowan',x:27,y:7,piece:'R',color:'white',lines:['The key is in my chest but I forgot the password.']},{id:'watch-scout',name:'Watchpost Scout',x:29,y:7,piece:'P',color:'green',lines:['Ask Rowan about the gate.']});return w;}
 function villageWorld(){
  const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.filter(n=>n.id!=='pip').map(n=>({...n,lines:[...n.lines]}))};
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
@@ -103,8 +102,8 @@ function villageWorld(){
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit. The creature and its puzzle are optional (E).':'Escape into the forest (E).';if(scene==='forest')return 'Follow the woodland path toward Willowmere. Talk to the travellers with E.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
-function updateObjective(){$('fallen-story-objective').textContent=objective();$('fallen-story-objective').hidden=scene==='intro';const detail=$('fallen-story-interact');if(detail)detail.hidden=true;}
+function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Open the barrier at the forest watchpost.';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause-title');if(o&&h&&o.parentNode!==h.parentNode){h.parentNode.insertBefore(o,h);o.style.cssText='display:block;position:static;margin:0 auto 12px;padding:10px;border:1px solid #a49270;border-radius:6px;background:#202632;color:#e8d7ae;text-align:center;font-size:14px';}if(o){o.textContent='Objective: '+objective();o.hidden=scene==='intro';}const d=$('fallen-story-interact');if(d)d.hidden=true;}
 function start(api){engine=api;baseWorld=api.getWorld();chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
 function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
@@ -131,15 +130,16 @@ function continuePuzzle(){if(!activePuzzle)return;const id=activePuzzle;chapter.
  if(id==='exit')setScene('forest',{x:4,y:12,facing:'right'});
  else if(scene==='sewer')setScene('sewer',engine.getPlayer());
  else if(scene==='village')setScene('village',engine.getPlayer());
+ else if(scene==='forest')setScene('forest',engine.getPlayer());
  else persist();
- const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer. It lets me pass.',exit:'I climb the iron ladder and push the hatch open. Fresh woodland air!',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
+ const lines={cell:'The toilet drain is open. I can squeeze into the sewers.',sluice:'The first floodgate rises, revealing deeper tunnels.',lantern:'The second gate unlocks. The maze continues.',monster:'The strange creature finally has an answer.',watchChest:'Oh my god, thank you! I am opening the barrier now.',exit:'I climb the iron ladder and push the hatch open. Fresh woodland air!',merrick:'The bishop nods and lets Oliver pass.',lumber:'We have the timber needed for the bridge.',ropes:'The ropes are ready. Time to repair the bridge.',bridge:'The bridge is repaired. We can cross now.'};
  say('Oliver',lines[id]||'The way ahead is clear.');updateObjective();
 }
 // Movement never opens a puzzle. Controls and discoveries require an explicit E/Enter/Space action.
 function beforeMove(x,y){
  if(scene==='cell')return x===16&&y===10;
  if(scene==='sewer')return x>=79&&y>=23&&y<=27;
- if(scene==='forest')return x>=34&&y>=7&&y<=10;
+ if(scene==='forest')return (!complete('watchChest')&&x>=30)||(x>=34&&y>=7&&y<=10);
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
@@ -168,7 +168,9 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  if(scene==='sewer'){
   if(near(p,3,25,3)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
   // Floodgate checkpoints are removed entirely; this sewer is explored freely.
-  if(near(p,49,38,3)&&!complete('monster')){
+  if(near(p,23,31,2)){say('Strange Sewer Beast','GRRR.');return true;}
+   if(near(p,40,45,2)){if(!complete('sewerCoinFound')){chapter.flags.sewerCoinFound=true;chapter.coins.push('rubbish-heap-coin');$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;persist();say('Oliver','A hint coin hidden in the rubbish!');}else say('Oliver','Only rubbish remains.');return true;}
+   if(near(p,49,38,3)&&!complete('monster')){
    if(!complete('monsterIntroduced')){chapter.flags.monsterIntroduced=true;persist();say('Sewer Creature','I have lived in these filthy drains for years. One strange puzzle has defeated me every night. Can you help me?');}
    else openPuzzle('monster');
    return true;
@@ -180,7 +182,8 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
  if(scene==='forest'){
-  if(x>=31&&y>=7&&y<=11){
+  if(near(p,27,9,3)&&!complete('watchChest')){if(!complete('watchAsked')){chapter.flags.watchAsked=true;persist();say('Gatekeeper Rowan','The barrier needs a key. I hid it in my chest, but forgot the password. Can you help?');}else openPuzzle('watchChest');return true;}
+   if(x>=31&&y>=7&&y<=11){
    setScene('village',{x:26,y:29,facing:'up'});
    say('Oliver','A village at last. Perhaps someone here will believe I am the king.');return true;
   }
@@ -208,7 +211,7 @@ function drawMicroDetail(g,kind){
  const h=(x,z,n=0)=>{const k=Math.sin(x*127.1+z*311.7+n*74.7)*43758.5453;return k-Math.floor(k)};
  function flagStone(x,z,y=0,color='#8c9088'){box(x,y+.014,z,.88,.028,.89,color);box(x-.30,y+.032,z-.3,.16,.018,.12,'#b0aea0');}
  function rivet(x,y,z){sphere(x,y,z,.047,'#d2bb86',6);}
- function candle(x,z,y=.55){cylinder(x,y,z,.075,.075,.20,'#e9d5b6',8);cone(x,y+.14,z,.062,.16,'#e6a64f',7);sphere(x,y+.24,z,.055,'#f9d69a',6);}
+ function candle(x,z,y=.55){cylinder(x,y,z,.075,.075,.20,'#e9d5b6',8);box(x,y+.11,z,.025,.04,.025,'#403a36');}
  function book(x,z,c){box(x,.76,z,.36,.16,.53,c);box(x+.025,.85,z,.32,.035,.49,'#eadab8');box(x-.18,.77,z,.05,.17,.58,'#e4b978');}
  if(kind==='bedroom'||kind==='approach'||kind==='theft'){
   for(let x=2;x<17;x++)for(let z=2;z<11;z++)if(h(x,z)<.61)flagStone(x+.5,z+.5,.02,h(x,z,1)>.5?'#aa967d':'#b4a38e');
@@ -303,7 +306,8 @@ function drawProps(g){
   box(x-1.84,.28,z,.17,.55,2.22,'#765142');
   box(x-1.81,.83,z,.13,.22,2.08,'#a67858');
   box(x-1.80,.93,z,.16,.035,1.93,'#d2b277');
-  box(x-1.05,.66,z,.79,.17,1.47,'#e5dbc9'); // The head pillow stays visible.
+
+   // The pillow is removed so Oliver's head remains visible.
   box(x+.66,.67,z,1.61,.10,1.76,'#824e6b'); // Blanket covers feet, NOT the king's face.
   box(x+.65,.77,z-.73,1.58,.03,.10,'#d9bb84');
   box(x+.65,.77,z+.73,1.58,.03,.10,'#d9bb84');
@@ -348,7 +352,7 @@ function drawProps(g){
     for(const x of [2.5,16])torch(x,2.9);
     // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
     if(['bedroom','approach','theft'].includes(kind)){if(recliningKing)recliningKing(9,5);else drawOliver(8.0,5);}else drawOliver(8.9,7.0);
-    box(9.6,.88,5,.72,.10,1.26,'#8e5470');
+    box(9.6,.68,5,.72,.035,1.26,'#8e5470');
     if(kind==='approach')edwin(15.1,8.7);
     if(kind==='theft'){edwin(13.0,7.4);dp?.crown?.(g,12.55,1.65,7.0,.88);}
     if(kind==='confrontation')edwin(12.7,7.0,true);
@@ -394,7 +398,7 @@ function drawProps(g){
      box(x,.53,z+.44,.80,1.06,.92,'#798282');
      box(x,2.05,z+.44,.80,.58,.92,'#87908c');
      for(const zz of [z+.23,z+.63])cylinder(x,1.28,zz,.055,.056,.90,'#3f5057',9);
-     box(x,1.34,z+.44,.035,.46,.52,'#9aadb8'); // Readable blue daylight through the narrow spy window.
+     box(x,1.34,z+.44,.035,.46,.52,'#9aadb8');box(x,1.75,z+.44,.93,.07,.78,'#b6c1ba');for(const zz of [z+.25,z+.65])box(x,1.82,zz,.93,.075,.07,'#344951');
      box(x,1.05,z+.44,.90,.12,.95,'#b0b0a4');
      box(x,1.71,z+.44,.90,.12,.95,'#b0b0a4');
     }else{
@@ -438,7 +442,7 @@ function drawProps(g){
   // Stone jambs and a brighter blue inset make it immediately recognisable as a window, not a third door.
   box(12.5,.59,13.79,2.10,.06,.37,'#b4aea0');
   // Dark recess with a blue sky, distant castle towers and one bright moon.
-  box(12.5,1.27,14.35,1.90,.92,.12,'#1c3041');
+  box(12.5,1.27,14.35,1.90,.92,.12,'#1c3041');box(12.5,2.09,14.20,2.15,.13,.48,'#a6aba2');
   box(12.5,1.11,14.25,1.80,.25,.04,'#345367');
   sphere(12.98,1.56,14.20,.15,'#e7dfc3',12);
   for(const x of [11.85,12.38])box(x,1.13,14.20,.27,.38,.05,'#2a414b');
@@ -499,6 +503,10 @@ function drawProps(g){
   for(const x of [49.12,49.70]){sphere(x,1.43,38.84,.13,'#e6c178',10);sphere(x,1.44,38.96,.045,'#26353e',8);}
   for(let i=0;i<7;i++){const a=i*Math.PI*2/7;cone(49.4+Math.cos(a)*.64,.24,38.4+Math.sin(a)*.64,.14,.63,'#4f7771',7);}
   for(const [x,z] of [[48.7,37.9],[50.2,38.1]])model('stones',x,0,z,.48,.28,.38);
+   for(const [x,z,s] of [[23.4,31.5,.43],[23.08,31.34,.28],[23.74,31.44,.30]])sphere(x,.60,z,s,'#526b61',11);
+   for(const x of [23.24,23.58])sphere(x,1,31.9,.10,'#e7b675',9);
+   for(let i=0;i<5;i++)cone(23.4+(i-2)*.19,.86,31.15,.13,.48,'#41584d',7);
+   for(const [x,z,w] of [[40.3,45.3,1.25],[41,45.7,.95],[39.7,45.9,.80]]){model('stones',x,.02,z,w,.56,w*.86);box(x,.20,z+.25,w*.7,.13,w*.35,'#675c4a');}model('barrel',40.8,.04,45.9,.47,.42,.43);
   // The end of the sewer has a real iron LADDER to an overhead hatch: no arch or altar.
   box(76.5,2.97,25.5,2.00,.17,1.26,'#8a9695');
   box(76.5,2.76,25.5,1.52,.12,.92,'#1a3034');
@@ -525,8 +533,16 @@ function drawProps(g){
   }
   model('barrel',12.4,0,8.35,.52,.61,.52);
   model('stones',21.5,0,11.0,.84,.31,.71);
-  for(const x of [31.4,33.1]){box(x,.70,6.9,.17,1.40,.18,'#795d42');cone(x,1.58,6.9,.23,.29,'#a58b66',9);}
-  box(32.25,1.37,6.9,1.60,.17,.15,'#9d835d');
+  // Open-sided watchpost, two guards and the key chest.
+   for(const x of [25.5,29.5])for(const z of [5.4,9.3]){box(x,1.18,z,.32,2.36,.32,'#6c5039');box(x,2.41,z,.48,.17,.48,'#b69c72');}
+   box(27.5,.15,7.5,4.7,.18,4.5,'#8e816b');
+   for(const z of [5.2,9.55])box(27.5,1.4,z,4.6,.15,.13,'#977b54');
+   model('chest',26.2,.2,8.4,1.2,.85,.9);
+   for(const [x,z,c] of [[27.25,6.9,'white'],[29.05,6.9,'green']])piece(x,z,x<28?'R':'P',c,false);
+   for(const x of [25.6,29.4])box(x,2.56,7.4,.18,.20,4.4,'#5e423c');
+   for(const z of [5.3,9.45])box(27.5,2.56,z,4,.20,.18,'#825d48');
+   for(const z of [5.2,11.6]){box(30.15,.96,z,.32,1.92,.34,'#76583e');cone(30.15,2.12,z,.23,.29,'#a68a64',8);}
+   if(!complete('watchChest')){box(30.15,1.13,8.45,.27,.26,6.4,'#ab8252');box(30.15,1.27,8.45,.30,.07,6.35,'#d6b17a');}else box(30.15,2.02,5.7,.27,.27,4.65,'#ab8252');
  }
 }
 function drawVillageProps(g){
@@ -575,8 +591,7 @@ function drawVillageProps(g){
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.19,19.5,.40,.26,2.25,x%1<.45?'#b38c61':'#c19b70');
-   box(x+.3,.32,19.5,.08,.03,2.0,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.354,19.5,.07,.022,1.96,'#e1c28e');
   }
   for(const z of [18.3,20.7]){
    box(46.3,.49,z,4.9,.12,.17,'#b8a078');
@@ -599,9 +614,9 @@ function drawEffects(g,t){
   // Torchlight flickers and dust drifts through the prison and royal chambers.
   const kind=scene==='intro'?steps[Math.min(chapter.step,steps.length-1)].scene:'cell';
   const palace=kind!=='prison'&&kind!=='cell',lights=palace?[[2.5,2.9],[16,2.9]]:[[15.3,6.0]];
-  for(const [x,z] of lights){const wobble=Math.sin(t*9+x)*.047,glow=.11+Math.sin(t*4+x)*.025;
-   sphere(x,1.35+wobble,z,glow,'#f5d5a2',7);
-   cone(x,.98+wobble,z,.10,.19,'#e7ad5b',7);
+  if(palace)lights.push([1.7,2.3],[1.7,7.4]);
+   for(const [x,z] of lights){const wobble=Math.sin(t*9+x)*.047,glow=.11+Math.sin(t*4+x)*.025;
+   const y=x===1.7?2.30:1.35;sphere(x,y+wobble,z,glow,'#f5d5a2',7);cone(x,y-.26+wobble,z,.10,.19,'#e7ad5b',7);
   }
   if(scene==='cell'){
    // Three clear, floating Z glyphs above the sleeping rook; no UI image overlay.
