@@ -166,10 +166,10 @@ function drawIntroImage(kind){
  const key=introArtworkScenes.has(kind)?kind:'bedroom';
  const canvas=$('fallen-story-art'),c=canvas.getContext('2d');
  c.imageSmoothingEnabled=true;
- const img=introArtwork[key]||(introArtwork[key]=new Image());
+ const img=introArtwork[key]||(introArtwork[key]=typeof Image==='undefined'?{complete:false,naturalWidth:0,src:''}:new Image());
  if(img.complete&&img.naturalWidth){c.clearRect(0,0,640,360);c.drawImage(img,0,0,640,360);return;}
  c.fillStyle='#273944';c.fillRect(0,0,640,360);
- if(!img.src){img.onload=()=>{if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene===key)drawIntroImage(key);};img.src='/assets/fallen-king-intro/'+key+'.svg?v=1';}
+ if(!img.src&&typeof Image!=='undefined'){img.onload=()=>{if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene===key)drawIntroImage(key);};img.src='/assets/fallen-king-intro/'+key+'.svg?v=1';}
 }
 function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
 function isIntro(){return scene==='intro';}
