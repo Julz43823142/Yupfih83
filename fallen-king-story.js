@@ -68,6 +68,8 @@ function sewerWorld(){
  }
  // Remove unrelated water pockets against walls; the only stream is the centre line.
  // Open corridors throughout: there are NO puzzles or blocked floodgates before the creature and the exit.
+ // The sewer creatures have physical presence; Oliver can still interact from beside them.
+ w.blockers=[[49,38],[23,31],[40,45],[41,45]];
  w.spawn={x:6,y:25};w.music='sewer';return w;
 }
 function forestWorld(){
@@ -99,6 +101,7 @@ function forestWorld(){
  for(let y=7;y<=10;y++)for(let x=31;x<=33;x++)updateTile(w,x,y,'p');
  // Keep the old footpath walkable without placing any display pedestals.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
+ w.signs=[{x:9,y:13,text:'Willowmere Village lies east, beyond the watchtower. Keep to the marked path.'}];
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -111,6 +114,9 @@ function watchtowerWorld(){
  for(let x=1;x<16;x++){updateTile(w,x,1,'H');updateTile(w,x,12,'H');}
  for(let y=1;y<=12;y++){updateTile(w,1,y,'H');updateTile(w,15,y,'H');}
  updateTile(w,8,12,'D');
+ // The keeper is a solid, interactive rook; crates and the chest cannot be walked through.
+ w.npcs=[{id:'watchtower-keeper',name:'Tower Keeper',x:5,y:6,piece:'R',color:'white',lines:['The barrier key is locked in that chest.','I cannot open it: I do not know the code. Perhaps you can solve the lock.']}];
+ w.blockers=[[8,4],[3,6],[4,6],[13,6],[14,6],[3,10],[4,10],[5,10],[13,10],[14,10],[12,9],[13,9]];
  w.spawn={x:8,y:10};w.music='willowmere';
  return w;
 }
@@ -120,7 +126,13 @@ function villageWorld(){
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
  w.spawn={x:26,y:29};
- // Oliver head studies now appear on the forest path.
+ // The six older statue display pieces are retired from Willowmere.
+ w.showcase=[];
+ // Replace only their former grass pads with regular cobblestone.
+ for(const p of baseWorld.showcase||[])for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+  const x=p.x+dx,y=p.y+dz;
+  if(w.tiles[y]?.[x]==='g'||w.tiles[y]?.[x]==='f')updateTile(w,x,y,'p');
+ }
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
@@ -212,6 +224,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   say('Oliver','The tunnels twist in every direction. Many passages end in solid stone.');return true;
  }
  if(scene==='forest'){
+  if(near(p,9,13,2)){say('Wooden Sign','Willowmere Village → East. Follow the forest path to the watchtower and the gate.');return true;}
   if(near(p,27,7,2)&&y>=7&&y<=9){setScene('watchtower',{x:8,y:10,facing:'up'});say('Oliver','Inside the watchtower. The key chest must be somewhere in this room.');return true;}
    if(complete('watchChest')&&x>=33&&y>=7&&y<=11){
    setScene('village',{x:26,y:29,facing:'up'});
@@ -220,6 +233,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   return false;
  }
  if(scene==='watchtower'){
+  if(near(p,5,6,2)){say('Tower Keeper','The gate key is inside the locked chest. I do not know its code.','If you crack the code, you can raise the barrier outside.');return true;}
   if(near(p,8,4,3)&&!complete('watchChest')){if(!complete('watchAsked')){chapter.flags.watchAsked=true;persist();say('Oliver','The chest has a password lock. I should try to solve it.');}else openPuzzle('watchChest');return true;}
   if(near(p,8,12,2)){setScene('forest',{x:27,y:11,facing:'down'});return true;}
   return true;
@@ -508,8 +522,14 @@ function drawProps(g){
     if(['bedroom','approach'].includes(kind))dp?.crown?.(g,13.8,1.14,5.1,1.0);
     for(const x of [3.3,15.7]){box(x,1.28,1.33,1.45,2.30,.18,'#6f3d55');box(x,2.52,1.42,1.62,.14,.22,'#c7a265');}
     for(const x of [5.3,12.7]){box(x,1.55,11.25,1.45,1.36,.12,'#496c88');box(x,1.54,11.1,.12,1.38,.18,'#c6aa72');}
-    model('chest',4.7,0,9.2,1.05,.68,.72);
-    box(4.1,1.20,8,1.6,2.4,.14,'#b59c78');for(let k=0;k<4;k++)box(4.1+(k-1.5)*.32,1.28,8.09,.04,1.8,.06,'#d6c29c');
+    // A rear-wall bookcase reads clearly from the overhead camera.
+    box(4.1,1.50,1.72,2.1,2.85,.46,'#635343');
+    for(const y of [.53,1.15,1.77,2.39])box(4.1,y,2.0,2.0,.12,.52,'#ab8863');
+    for(let i=0;i<15;i++){
+     const x=3.27+(i%5)*.39,y=.68+Math.floor(i/5)*.62;
+     box(x,y,1.97,.21,.42,.27,['#775d56','#5d7480','#a58c65','#755e79'][i%4]);
+    }
+    // The confusing striped block below-left of the bed was removed.
     box(9,.11,8.7,7.3,.15,2.1,'#9c6a56');box(9,.19,8.7,6.7,.05,1.7,'#b89975');
     for(const x of [2.5,16])torch(x,2.9);
     // The real chess-piece mesh is reclined on the pillow, not replaced by a different drawing.
@@ -655,6 +675,32 @@ function drawProps(g){
    model('stones',x,.01,z,.75,.23,.62);
    box(x,.01,z+.25,.52,.012,.18,'#344e43');
   }
+  // Thin drainage pipes with collars, rusty runs and visibly cracked, dirty walls.
+  for(let z=2;z<world.height-2;z++)for(let x=2;x<world.width-2;x++){
+   if(world.tiles[z][x]!=='H'||![[x-1,z],[x+1,z],[x,z-1],[x,z+1]].some(([a,b])=>world.tiles[b]?.[a]==='s'))continue;
+   if((x*7+z*11)%9===0){
+    const front=world.tiles[z+1]?.[x]==='s';
+    box(x+.5,.95,z+(front?.96:.5),.075,1.60,.045,'#334a46');
+    box(x+.58,.47,z+(front?.99:.5),.10,.54,.052,'#263d37');
+    for(let n=0;n<3;n++)box(x+.23+n*.25,.21,z+(front?.99:.5),.20,.065,.05,'#465d4d');
+   }
+   if((x*5+z*3)%11===0){
+    const front=world.tiles[z+1]?.[x]==='s';
+    const zz=z+(front?1.035:.5);
+    box(x+.26,.73,zz,.035,.78,.04,'#2e4545');
+    box(x+.39,.49,zz,.28,.035,.04,'#283b3d');
+    box(x+.53,.29,zz,.035,.38,.04,'#2e4545');
+   }
+   if((x*11+z*19)%16===0){
+    box(x+.5,1.40,z+.5,.68,.24,.08,'#374f4e');
+    box(x+.5,.92,z+.5,.46,.18,.082,'#405b50');
+   }
+  }
+  for(const [px,pz] of [[10,25],[18,15],[33,29],[49,20],[64,23],[72,25]]){
+   // Slim floor pipes run along passage edges, leaving the walkway open.
+   box(px+.5,.075,pz+.91,1.6,.09,.11,'#71817c');
+   for(const dx of [-.5,.25])box(px+dx,.085,pz+.91,.12,.14,.16,'#a18e70');
+  }
   for(const [x,z] of [[13,27],[23,8],[37,39],[54,16],[70,27]]){
    model('barrel',x,.01,z,.44,.59,.44);
    box(x+.17,.02,z-.20,.33,.025,.47,'#526559');
@@ -706,6 +752,12 @@ function drawProps(g){
    box(x+.19,.24,z-.12,.40,.13,.31,'#9ba095');
    for(let i=0;i<3;i++)cone(x-.20+i*.22,.24,z+.27,.11,.32,'#587558',7);
   }
+  // A readable direction sign, oriented toward the overhead camera.
+  box(9.5,.78,13.5,.18,1.55,.18,'#644a34');
+  box(9.5,1.34,13.5,2.15,.57,.17,'#ad8b62');
+  box(9.5,1.35,13.60,1.96,.40,.04,'#dcc69c');
+  for(const dx of [-.75,-.40,-.05,.30])box(9.5+dx,1.37,13.64,.24,.06,.027,'#664b3a');
+  cone(10.27,1.37,13.65,.18,.20,'#795c43',4);
   drawWaypost(g,9.5,12.9);
   drawWaypost(g,30.2,12.9,'#d8c3a1');
   // Watchtower forecourt: paving, flags, lanterns and stored supplies.
@@ -942,8 +994,8 @@ function drawEffects(g,t){
  }
  if(scene==='forest'){
   // A handful of drifting butterfly silhouettes with smooth, looping wing motion.
-  for(let i=0;i<6;i++){
-   const x=5+i*4.3+.27*Math.sin(t*.55+i),z=13.5+Math.sin(i*1.7)*2.2;
+  for(let i=0;i<1;i++){
+   const x=12+.27*Math.sin(t*.55+i),z=13.5+Math.sin(i*1.7)*2.2;
    const y=.65+.13*Math.sin(t*1.4+i);
    const wings=.11+.035*Math.sin(t*9+i);
    sphere(x-wings,y,z,.075,i%2?'#d9b8d8':'#f2d389',6);
