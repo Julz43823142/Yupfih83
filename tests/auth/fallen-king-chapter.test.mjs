@@ -321,7 +321,7 @@ test('sewer water uses real joined triangles from the original WebGL renderer',(
 
 test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer monster, forest and hidden map',()=>{
  assert.match(source,/scene:'confrontation'/);assert.match(source,/scene:'arrest'/);
- assert.match(source,/Edwin was a blue pawn/);
+ assert.match(source,/scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'That night, as Edwin slept in his chambers, a shadow slipped inside the castle/);
  assert.match(source,/function edwin\(x,z,wearingCrown=false\)\{[\s\S]*?piece\(x,z,'P','blue'/);
  assert.match(source,/if\(kind==='arrest'\)/);
  assert.match(source,/for\(const x of \[6\.5,11\]\)/);
