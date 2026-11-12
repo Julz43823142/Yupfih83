@@ -261,6 +261,36 @@ function piece(x,z,type,color,aldric=false){
   }
  }
 }
+// Ten crownless Oliver prototypes in the existing WebGL renderer.
+function oliverPrototype(x,z,n){
+ const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',dark='#786d64';
+ const thick=[.37,.40,.43,.36,.46,.39,.42,.35,.45,.41][n-1];
+ const head=[.29,.32,.27,.31,.28,.34,.30,.26,.33,.29][n-1];
+ const body=[.34,.36,.39,.32,.41,.35,.38,.33,.40,.37][n-1];
+ cylinder(x,.10,z,.39,.39,.20,shade,20);
+ cylinder(x,.25,z,.39,.32,.16,stone,20);
+ cylinder(x,.58,z,body,.27,.54,stone,20);
+ cylinder(x,.87,z,thick,.34,.12,bright,20);
+ cylinder(x,1.06,z,.36,.31,.30,stone,20);
+ cylinder(x,1.25,z,.39,.36,.12,shade,20);
+ cylinder(x,1.43,z,.27,.26,.25,stone,20);
+ sphere(x,1.78,z,head,stone,20);
+ if(n%2===0)cylinder(x,1.54,z,.29,.29,.075,bright,20);
+ if(n===3||n===8)cylinder(x,.42,z,.33,.31,.13,shade,20);
+ if(n===4||n===9)cylinder(x,1.04,z,.38,.38,.09,bright,20);
+ if(n===5||n===10)cylinder(x,1.90,z,head*.87,head*.92,.075,bright,20);
+ if(n===6||n===7)cylinder(x,1.33,z,.32,.30,.09,bright,20);
+ for(const side of [-1,1]){
+  const ex=x+side*.115,ez=z+head*.84;
+  sphere(ex,1.81,ez,.052,'#fff6e8',10);
+  sphere(ex,1.81,ez+.046,.026,dark,10);
+  box(ex,1.92,ez+.008,.115,.024,.035,shade);
+ }
+ box(x,1.66,z+head*.89,.12,.019,.028,dark);
+ const count=n<=5?n:n-5;
+ for(let i=0;i<count;i++)sphere(x+(i-(count-1)/2)*.115,.16,z+.397,.032,bright,8);
+ if(n>5)box(x,.31,z+.337,.30,.035,.055,bright);
+}
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
  hat:[['none','No hat'],['cap','Traveler cap'],['top','Top hat'],['wizard','Scholar hat'],['beret','Beret'],['crown','Golden circlet'],['hood','Hood'],['feather','Feathered hat'],['helmet','Knight helmet'],['chef','Chef hat'],['straw','Straw hat'],['pirate','Tricorn'],['bowler','Bowler hat'],['flat','Flat cap'],['bonnet','Bonnet'],['turban','Wrapped turban'],['cavalier','Cavalier hat'],['explorer','Explorer hat'],['hoodred','Crimson hood'],['hoodgreen','Forest hood'],['visor','Royal visor'],['wool','Wool beanie'],['fez','Fez'],['antlers','Woodland antlers'],['tiara','Silver tiara'],['goggles','Tinker goggles'],['sailor','Sailor cap']],
@@ -635,8 +665,8 @@ if(!staticReady){
   box(sx,.14,sz,.91,.28,.91,'#776d66');
   box(sx,.33,sz,.84,.12,.84,'#d9c9ab');
   cylinder(sx,.40,sz,.45,.45,.13,'#b8a98c',12);
-  piece(sx,sz,s.piece,s.color,false);
-  features(sx,sz,s.piece,s.color,false,'showcase');
+  if(s.prototype)oliverPrototype(sx,sz,s.prototype);
+  else {piece(sx,sz,s.piece,s.color,false);features(sx,sz,s.piece,s.color,false,'showcase');}
 }
  }
  staticCount=vertices.length/9;
