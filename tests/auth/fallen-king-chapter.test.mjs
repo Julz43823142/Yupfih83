@@ -367,7 +367,9 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  player={x:48,y:38};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  player={x:75,y:25};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  assert.equal(world.width,36);
- assert.ok(path([3,10],[33,8])>20);
+ assert.ok(path([3,10],[24,12])>20,'forest road reaches the enclosed watchtower approach');
+ assert.equal(world.tiles[9][27],'D','watchtower has a door');
+ assert.equal(world.tiles[8][32],'p','gate has a marked crossing');
  assert.ok(world.npcs.some(n=>/Bishop/.test(n.name)&&/joking/.test(n.lines[0])));
  assert.ok(world.npcs.some(n=>/Woodcutter/.test(n.name)));
  assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,1.8));
@@ -393,7 +395,7 @@ test('rendering contract passes required geometry to every scene and frames the 
 
 test('Oliver matches his bare cinematic mesh in gameplay, Edwin remains visually distinct',()=>{
  assert.match(engine,/function oliver\(x,z\)\{/);
- assert.match(engine,/piece\(x,z,'K','white',true\)/);
+ assert.match(engine,/function oliver\(x,z\)\{[\s\S]*?oliverPrototype\(x,z,1\)/,'gameplay Oliver uses the approved crownless prototype');
  assert.match(engine,/recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
  assert.match(engine,/oliver\(visual\.x\+\.5,visual\.z\+\.5\)/);
  assert.match(source,/const drawOliver=\(x,z\)=>oliver\?oliver\(x,z\)/);
@@ -441,7 +443,7 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
 });
 
 test('royal intro, blue pawn, awake rook and spy windows all use consistent assets',()=>{
- assert.match(engine,/function oliver\(x,z\)\{[\s\S]*?piece\(x,z,'K','white',true\)/);
+ assert.match(engine,/function oliver\(x,z\)\{[\s\S]*?oliverPrototype\(x,z,1\)/);
  assert.match(engine,/function recliningKing\(x,z\)\{[\s\S]*?oliver\(x,z\)/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
