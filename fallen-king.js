@@ -630,9 +630,9 @@ function prepareVision(){
  previousVisionKey=key;
 }
 function oliver(x,z){
- // One consistently sculpted bare KING, both sleeping and playable, without his crown.
- piece(x,z,'K','white',true);
- for(const dx of [-.12,.12])sphere(x+dx,1.78,z+.31,.04,'#43505a',8);
+ // Approved forest-path design is now Oliver's canonical playable and cinematic model.
+ // Reuse the exact same mesh for gameplay, cutscenes and sleeping Oliver.
+ oliverPrototype(x,z,1);
 }
 function recliningKing(x,z){
  // Rotate the EXISTING king chess mesh onto his back so the same royal face points UP at the camera.
