@@ -115,7 +115,13 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(world.width,36);assert.equal(world.height,19);
  assert.ok(world.npcs.some(n=>n.id==='forest-traveller'));
  assert.ok(world.npcs.some(n=>n.id==='forest-woodcutter'));
- player={x:32,y:8};chapter.talk();assert.equal(world.width,52);
+ // The new enclosed watchtower requires entering through its door, opening the
+ // chest inside, and then crossing the unlocked four-tile barrier.
+ player={x:27,y:10};chapter.talk();assert.equal(world.width,17);
+ assert.equal(world.height,14);
+ player={x:8,y:5};chapter.talk();chapter.talk();answer();
+ player={x:8,y:11};chapter.talk();assert.equal(world.width,36);
+ player={x:33,y:8};chapter.talk();assert.equal(world.width,52);
  player={x:28,y:22};chapter.afterMove();
  player={x:17,y:20};chapter.talk();answer(2);
  player={x:16,y:29};chapter.talk();answer(2);
