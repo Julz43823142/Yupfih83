@@ -128,11 +128,18 @@ function villageWorld(){
  w.spawn={x:26,y:29};
  // The six older statue display pieces are retired from Willowmere.
  w.showcase=[];
- // Replace only their former grass pads with regular cobblestone.
- for(const p of baseWorld.showcase||[])for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
-  const x=p.x+dx,y=p.y+dz;
-  if(w.tiles[y]?.[x]==='g'||w.tiles[y]?.[x]==='f')updateTile(w,x,y,'p');
+ // Remove each retired showcase pedestal AND its X collision tile.
+ for(const p of baseWorld.showcase||[]){
+  updateTile(w,p.x,p.y,'p');
+  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+   const x=p.x+dx,y=p.y+dz;
+   if(w.tiles[y]?.[x]==='g'||w.tiles[y]?.[x]==='f')updateTile(w,x,y,'p');
+  }
  }
+ // Open a small natural access to the pond without clearing the entire woodland.
+ for(const [x,y] of [[6,9],[7,9],[8,9],[9,9],[10,9],[7,10],[8,10],[9,10]])if(w.tiles[y]?.[x]==='T')updateTile(w,x,y,'.');
+ // Larger market props are solid; small plants and floor details stay walkable.
+ w.blockers=[[31,29],[32,29]];
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[requested.y]?.[requested.x];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
@@ -428,7 +435,7 @@ function drawForestMicroDetails(g,world){
 function drawVillageSecondPass(g){
  const {box,cylinder,cone,sphere}=g;
  // A covered handcart with wooden wheels, crates and striped linen canopy.
- const x=39.2,z=32.6;
+ const x=31.3,z=28.9;
  box(x,.47,z,2.0,.16,1.05,'#936f4c');
  box(x,.62,z,1.85,.12,.95,'#ba9566');
  for(const wx of [x-.65,x+.65])for(const wz of [z-.59,z+.59]){
