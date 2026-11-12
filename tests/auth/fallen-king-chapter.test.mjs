@@ -46,12 +46,12 @@ test('dialogue advances before story interaction, preventing soft-lock',()=>{
  assert.ok(dialogue>=0&&advance>dialogue&&story>advance);
  assert.match(engine,/dialog\.addEventListener\('click'/);
 });
-test('six English-language comic illustrations replace overhead gameplay screenshots',()=>{
+test('five approved English-language cutscenes replace overhead gameplay screenshots',()=>{
  assert.match(source,/function renderIntroFrame\(\)/);
  assert.match(source,/function introWorld\(kind\)/);
  assert.match(source,/drawIntroImage\(step\.scene\)/);
  assert.match(source,/assets\/fallen-king-intro/);
- assert.match(source,/introArtworkScenes=new Set\(\['bedroom','approach','theft','confrontation','arrest','prison'\]\)/);
+ assert.match(source,/const introArtwork=\{\}/);
  assert.match(engine,/window\.FallenKingStory\?\.renderIntroFrame\(canvas\)/);
  assert.match(source,/function isPrisoner\(\)/);
  assert.match(engine,/oliver\(visual\.x\+\.5,visual\.z\+\.5\)/);
@@ -74,7 +74,7 @@ test('cell is furnished with realistic game geometry and toilet can be accessed 
 
 test('chapter scenes are distinct and restored hint coins are capped at two',()=>{
  assert.match(source,/scene:'approach'/);
- assert.match(source,/scene:'theft'/);
+ assert.match(source,/scene:'arrest'/);
  assert.match(source,/royal crown is kept on an obvious velvet-topped pedestal/);
  assert.match(source,/createWorld\(84,53,'H'\)/);
  assert.match(source,/function forestWorld\(\)/);
@@ -578,7 +578,7 @@ test('black-screen recovery permits playing when cloud saves or intro art fail',
  assert.match(engine,/displayStartSlots\(\)/);
  assert.match(engine,/saveMode==='local'/);
  assert.match(source,/img\.onerror=\(\)=>/);
- assert.match(source,/bedroom\.svg\?v=1/);
+ assert.match(source,/intro-/);
  assert.match(page,/fallen-king-story\.js\?v=/);
 });
 test('production build includes the approved AVIF intro picture',()=>{
