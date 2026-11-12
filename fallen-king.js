@@ -810,13 +810,38 @@ const saveChooser=document.getElementById('fallen-save-chooser');
 const saveStatus=document.getElementById('fallen-save-status');
 const slots=['A','B','C'];
 let saveMetadata={A:null,B:null,C:null},activeSlot=null,startingGame=false,savingGame=false;
+let saveMode='cloud';
+const localSlotCache=new Map();
+const localSlotKey=slot=>'fallen-king-emergency-save-v1:'+slot;
+function localSaveRequest(method,slot,payload){
+ const get=s=>{try{return JSON.parse(localStorage.getItem(localSlotKey(s))||'null');}catch{return localSlotCache.get(s)||null;}};
+ if(method==='PUT'){
+  const entry={save:payload,savedAt:new Date().toISOString()};
+  localSlotCache.set(slot,entry);
+  try{localStorage.setItem(localSlotKey(slot),JSON.stringify(entry));}catch{}
+  return {ok:true,slot};
+ }
+ if(slot){const item=get(slot);return item?{slot,save:item.save,savedAt:item.savedAt}:{slot,save:null};}
+ const items={};
+ for(const name of slots){
+  const item=get(name),c=item?.save?.chapter;
+  items[name]=c?{savedAt:item.savedAt,scene:c.scene,step:c.step}:null;
+ }
+ return {slots:items};
+}
 async function gameSaveRequest(method,slot,payload){
+ if(saveMode==='local')return localSaveRequest(method,slot,payload);
  const url='/api/fallen-king/saves'+(slot?'?slot='+slot:'');
  const response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
   headers:payload?{'Content-Type':'application/json'}:{},
   ...(payload?{body:JSON.stringify(payload)}:{})});
  if(!response.ok)throw Error('Account save request failed (HTTP '+response.status+').');
  return response.json();
+}
+function switchToLocalSaves(){
+ saveMode='local';
+ startStatus.textContent='Account saves unavailable. You can play with local saves on this device.';
+ return localSaveRequest('GET');
 }
 function slotDescription(letter){
  const info=saveMetadata[letter];
@@ -845,8 +870,10 @@ async function initializeSaveSlots(){
   saveMetadata=data.slots;
   displayStartSlots();startStatus.textContent='Select New Game or Continue.';
  }catch(error){
-  startStatus.textContent='Unable to access account saves. Refresh and try again.';
-  startSlots.replaceChildren();
+  // An unreachable save service must never lock a player out of the game.
+  const data=switchToLocalSaves();
+  saveMetadata=data.slots;
+  displayStartSlots();
  }
 }
 async function beginGame(slot,continued){
@@ -854,14 +881,23 @@ async function beginGame(slot,continued){
  if(!continued&&saveMetadata[slot]&&!confirm('Replace the save in Slot '+slot+' with a new game?'))return;
  startingGame=true;startStatus.textContent=continued?'Loading Slot '+slot+'…':'Starting Slot '+slot+'…';
  try{
-  const payload=continued?await gameSaveRequest('GET',slot):null;
+  let payload=null;
+  if(continued){
+   try{payload=await gameSaveRequest('GET',slot);}
+   catch(error){startStatus.textContent='Cloud load failed; please retry when your account saves are available.';throw error;}
+  }
   if(continued&&!payload?.save)throw Error('Slot is empty.');
   window.FallenKingPendingSave=continued?payload.save:null;
   // Reserve the slot before registering story listeners, so a failed network
   // write never leaves the chapter running behind the start screen.
   if(!continued){
    const initial={chapter:{scene:'intro',flags:{},coins:[],step:0,position:null}};
-   await gameSaveRequest('PUT',slot,initial);
+   try{await gameSaveRequest('PUT',slot,initial);}
+   catch(error){
+    // If the cloud database fails between menu load and New Game, keep game playable.
+    switchToLocalSaves();
+    await gameSaveRequest('PUT',slot,initial);
+   }
    saveMetadata[slot]={savedAt:new Date().toISOString(),scene:'intro',step:0};
   }
   activeSlot=slot;
@@ -893,9 +929,13 @@ async function writeSlot(slot){
  try{
   const payload=window.FallenKingStory?.exportSave();
   if(!payload)throw Error('No story progress to save.');
-  await gameSaveRequest('PUT',slot,payload);
+  try{await gameSaveRequest('PUT',slot,payload);}
+  catch(error){
+   switchToLocalSaves();
+   await gameSaveRequest('PUT',slot,payload);
+  }
   activeSlot=slot;saveMetadata[slot]={savedAt:new Date().toISOString().replace('Z',''),scene:payload.chapter.scene,step:payload.chapter.step};
-  displayPauseSlots();saveStatus.textContent='Saved to Slot '+slot+' on your account.';
+  displayPauseSlots();saveStatus.textContent='Saved to Slot '+slot+(saveMode==='local'?' on this device (account sync unavailable).':' on your account.');
  }catch(error){saveStatus.textContent='Save failed: '+error.message;}
  finally{savingGame=false;}
 }
