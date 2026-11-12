@@ -109,3 +109,6 @@ html,body{width:100%;height:100%;overflow:hidden}
 
 /* The map is not available until Oliver finds the map item in a later chapter. */
 #fallen-map-button[hidden]{display:none!important}
+
+/* Chapter One: crisp illustrated comic panels, never pixelated gameplay captures. */
+#fallen-story-art{image-rendering:auto!important;object-fit:contain;background:#292c3b}
