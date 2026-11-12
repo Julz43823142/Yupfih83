@@ -676,6 +676,9 @@ if(!staticReady){
   box(x,.25,z,.40,.09,.34,'#d1ac65');
   box(x,.12,z+.18,.09,.08,.035,'#f5dc8b');
  }
+
+ }
+ // Draw Oliver showcase for every outdoor scene, including custom forest scenes.
  for(const s of world.showcase||[]){
   // Raised stone plinths make the display visible against the plaza.
   const sx=s.x+.5,sz=s.y+.5;
@@ -685,7 +688,7 @@ if(!staticReady){
   if(s.prototype)oliverPrototype(sx,sz,s.prototype);
   else {piece(sx,sz,s.piece,s.color,false);features(sx,sz,s.piece,s.color,false,'showcase');}
 }
- }
+
  staticCount=vertices.length/9;
  gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
