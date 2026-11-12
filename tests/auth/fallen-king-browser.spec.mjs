@@ -57,6 +57,20 @@ test('Fallen King opens account slots, launches New Game and displays first intr
   return Math.max(p[0],p[1],p[2]);
  }),{timeout:15000}).toBeGreaterThan(120);
  console.log('CHECKPOINT second approved illustration rendered');
+ // The approved Edwin entrance image is the THIRD chapter frame.
+ await page.locator('#fallen-story-next').click({timeout:8000});
+ await expect(page.locator('#fallen-story-intro')).toHaveClass(/fallen-edwin-approved/);
+ await expect(page.locator('#fallen-story-intro-speaker')).toBeHidden();
+ await expect(page.locator('#fallen-story-intro-text')).toBeHidden();
+ expect(await page.locator('#fallen-story-art').evaluate(c=>[c.width,c.height])).toEqual([960,640]);
+ await expect.poll(()=>page.evaluate(
+  ()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/assets/fallen-king-intro/edwin-enters-approved.webp'))
+ ),{timeout:10000}).toBe(true);
+ await expect.poll(()=>page.locator('#fallen-story-art').evaluate(c=>{
+  const p=c.getContext('2d').getImageData(480,545,1,1).data;
+  return Math.max(p[0],p[1],p[2]);
+ }),{timeout:15000}).toBeGreaterThan(120);
+ console.log('CHECKPOINT third approved Edwin illustration rendered');
  console.log('CHECKPOINT click skip');
  await page.locator('#fallen-story-skip').click({timeout:8000});
  await expect(page.locator('#fallen-story-intro')).toBeHidden();
