@@ -3,19 +3,12 @@
 const $=id=>document.getElementById(id);
 const KEY='fallen-king-chapter-one-v2'; // Preserve existing chapter saves.
 const steps=[
- {scene:'bedroom',title:'THE NIGHT THE CROWN FELL',speaker:'Narrator',text:'In Aldemar, King Oliver slept in his royal bedchamber. His gold-and-ruby crown rested on a red-velvet cushion beside the bed.'},
- {scene:'bedroom',title:'THE ROYAL BEDCHAMBER',speaker:'Narrator',text:'The candles burned low. Outside the tall windows, the castle guards patrolled while Oliver slept.'},
- {scene:'approach',title:'EDWIN THE PAWN',speaker:'Narrator',text:'That night, as Edwin slept in his chambers, a shadow slipped inside the castle…'},
- {scene:'approach',title:'EDWIN THE PAWN',speaker:'Edwin',text:'They treat me as nothing but a pawn. Tonight I will change everything.'},
- {scene:'theft',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Still crownless, Edwin crept to the royal bed and stole Oliver’s crown from its cushion.'},
- {scene:'theft',title:'THE STOLEN CROWN',speaker:'Edwin',text:'The king is asleep. Nobody will know what happened.'},
- {scene:'confrontation',title:'THE FALSE KING',speaker:'Narrator',text:'Oliver woke to find Edwin standing in his bedchamber, the stolen crown now on the pawn’s head.'},
- {scene:'confrontation',title:'THE FALSE KING',speaker:'Edwin',text:'Guards! To the bedchamber! Seize this impostor. I am the true king of Aldemar!'},
- {scene:'arrest',title:'THE KING BETRAYED',speaker:'Narrator',text:'Two rook guards stormed the royal chamber. They believed the crown rather than their real king.'},
- {scene:'arrest',title:'THE KING BETRAYED',speaker:'Oliver',text:'That is Edwin, a pawn! He stole my crown! Please, I am King Oliver!'},
- {scene:'prison',title:'BENEATH THE CASTLE',speaker:'Narrator',text:'The two rooks dragged Oliver to the dungeon and locked him in the central cell between two other prisoners.'},
- {scene:'prison',title:'THE SLEEPING GUARD',speaker:'Oliver',text:'The guard is sleeping in the corridor. I must find a way out and reclaim my crown.'}
-]
+ {scene:'castle',title:'THE KINGDOM OF ALDEMAR',speaker:'Narrator',text:'King Oliver had ruled over the kingdom of Aldemar for many years.'},
+ {scene:'bedroom',title:'A PEACEFUL NIGHT',speaker:'Narrator',text:'King Oliver slept peacefully, unaware of the darkness that awaited him.'},
+ {scene:'approach',title:'THE STOLEN CROWN',speaker:'Narrator',text:'Edwin sneaks in and reaches for Oliver’s crown.'},
+ {scene:'arrest',title:'THE FALSE KING',speaker:'Narrator',text:'Edwin, now posing as the king, orders the guards to arrest Oliver and lock him away, claiming that Oliver is a trespasser.'},
+ {scene:'prison',title:'THE KING IMPRISONED',speaker:'Narrator',text:'Oliver was locked away, while Edwin took the throne.'}
+];
 // Placeholder stages only. Actual questions, answers and hints are intentionally deferred.
 const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
@@ -156,34 +149,65 @@ function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause
 function start(api){engine=api;baseWorld=api.getWorld();document.querySelectorAll?.('[data-fallen-jump]')?.forEach(b=>b.addEventListener('click',()=>teleport(b.dataset.fallenJump)));chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
 function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
-function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];$('fallen-story-art').width=chapter.step<=2?960:640;$('fallen-story-art').height=chapter.step===0?720:chapter.step===1||chapter.step===2?640:360;$('fallen-story-intro').classList?.toggle('fallen-first-approved',chapter.step<=1);$('fallen-story-intro').classList?.toggle('fallen-second-approved',chapter.step===1);$('fallen-story-intro').classList?.toggle('fallen-edwin-approved',chapter.step===2);engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
-function nextIntro(){if(scene!=='intro')return;engine.enableSound();if(chapter.step===0)engine.soundCue();chapter.step++;if(chapter.step>=steps.length){$('fallen-story-intro').hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');}else showIntro();}
-function introWorld(kind){if(kind==='prison')return cellWorld();const w=createWorld(18,12,'s');w.music=['theft','approach','confrontation','arrest'].includes(kind)?'theft':'palace';return w;}
-// Six illustrated, English-language story panels replace the overhead gameplay capture.
+function showIntro(){
+ scene='intro';
+ $('fallen-story-intro').hidden=false;
+ const step=steps[Math.min(chapter.step,steps.length-1)];
+ const canvas=$('fallen-story-art');
+ canvas.width=1672;canvas.height=941;
+ $('fallen-story-intro').classList?.add('fallen-five-approved');
+ for(const oldName of ['fallen-first-approved','fallen-second-approved','fallen-edwin-approved'])
+  $('fallen-story-intro').classList?.remove(oldName);
+ engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});
+ $('fallen-story-intro-title').textContent=step.title;
+ $('fallen-story-intro-speaker').textContent=step.speaker;
+ $('fallen-story-intro-text').textContent=step.text;
+ $('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';
+ drawIntroImage(step.scene);
+ persist();
+}
+function nextIntro(){
+ if(scene!=='intro')return;
+ engine.enableSound();
+ if(chapter.step===0)engine.soundCue();
+ chapter.step++;
+ if(chapter.step>=steps.length){
+  $('fallen-story-intro').hidden=true;
+  setScene('cell',{x:12,y:9,facing:'right'});
+  say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');
+ }else showIntro();
+}
+function introWorld(kind){
+ if(kind==='prison')return cellWorld();
+ const w=createWorld(18,12,'s');
+ w.music=['approach','arrest'].includes(kind)?'theft':'palace';
+ return w;
+}
+// The five artist-approved original PNGs are used unchanged; each embeds its own English caption.
 const introArtwork={};
-const introArtworkScenes=new Set(['bedroom','approach','theft','confrontation','arrest','prison']);
-function drawIntroImage(kind){
- const key=chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-towers':chapter.step===2?'edwin-enters-approved':introArtworkScenes.has(kind)?kind:'bedroom';
+function drawIntroImage(){
+ const index=Math.max(0,Math.min(chapter.step,4));
+ const path='/assets/fallen-king-intro/intro-'+(index+1)+'.png';
  const canvas=$('fallen-story-art'),c=canvas.getContext('2d');
  c.imageSmoothingEnabled=true;
- const img=introArtwork[key]||(introArtwork[key]=typeof Image==='undefined'?{complete:false,naturalWidth:0,src:''}:new Image());
- if(img.complete&&img.naturalWidth){c.clearRect(0,0,canvas.width,canvas.height);c.drawImage(img,0,0,canvas.width,canvas.height);return;}
- c.fillStyle='#273944';c.fillRect(0,0,canvas.width,canvas.height);
- if(!img.src&&typeof Image!=='undefined'){
-  img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-towers':chapter.step===2?'edwin-enters-approved':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};
+ const img=introArtwork[path]||(introArtwork[path]=new Image());
+ if(img.complete&&img.naturalWidth){
+  c.clearRect(0,0,canvas.width,canvas.height);
+  c.drawImage(img,0,0,canvas.width,canvas.height);
+  return;
+ }
+ c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
+ if(!img.src){
+  img.onload=()=>{if(scene==='intro'&&chapter.step===index)drawIntroImage();};
   img.onerror=()=>{
-   // Keep the approved Edwin panel; never substitute the old illustration.
-   // Keep the Continue and Skip buttons available even if all images fail.
-   if((key==='bedroom-approved'||key==='bedroom-second-towers'||key==='edwin-enters-approved')&&!img.datasetFallback){
-    img.datasetFallback=true;
-    img.src=key==='bedroom-second-towers'?'/assets/fallen-king-intro/bedroom-second-approved.webp?v=1':key==='edwin-enters-approved'?'/assets/fallen-king-intro/edwin-enters-approved.webp?v=2':'/assets/fallen-king-intro/bedroom.svg?v=1';
-   }else{
-    c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
-    c.fillStyle='#fff0c6';c.font='bold 32px Georgia,serif';
-    c.fillText('CHAPTER I — THE FALL',40,Math.round(canvas.height*.5));
-   }
+   if(scene!=='intro'||chapter.step!==index)return;
+   c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
+   c.fillStyle='#fff0c6';c.font='bold 34px Georgia,serif';
+   c.fillText('THE FALLEN KING',70,Math.round(canvas.height/2));
+   // The original narration below the image remains visible if an asset has not yet been uploaded.
+   $('fallen-story-intro').classList?.add('fallen-five-missing-asset');
   };
-  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':key==='edwin-enters-approved'?'.webp?v=2':key==='bedroom-second-towers'?'.webp?v=1':'.svg?v=1');
+  img.src=path;
  }
 }
 function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
