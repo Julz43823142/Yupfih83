@@ -32,19 +32,19 @@ test('static mesh streaming keeps every triangle and releases old GPU buffers',(
   bufferData(_target,values){uploads.push(values.length);},
   deleteBuffer(buffer){deleted.push(buffer);}
  };
- const simulate=new Function('gl','staticBuffer',\`
+ const simulate=new Function('gl','staticBuffer',`
   let vertices=[],staticReady=false,staticGeometryBuilding=true,staticChunks=[];
   const MAX_VERTEX_FLOATS=81;
-  \${functions}
+  ${functions}
   function rgb(){return [1,1,1];}
-  \${triangle}
+  ${triangle}
   for(let i=0;i<40;i++)tri([0,0,i],[1,0,i],[0,1,i],'#ffffff');
   flushStaticChunk();
   const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0),
    chunkCount:staticChunks.length,largest:Math.max(...uploads)};
   clearStaticGeometry();
   return {...before,remaining:staticChunks.length};
- \`);
+ `);
  const result=simulate(gl,{id:0});
  assert.equal(result.triangles,40,'later scenery triangles must never disappear');
  assert.ok(result.chunkCount>1);
