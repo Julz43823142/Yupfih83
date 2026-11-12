@@ -498,7 +498,7 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(engine,/vertices\[i\]=x\+\.88-py/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/Low, open royal bed/);
- assert.match(source,/Pillow removed/);
+ assert.match(source,/The pillow is removed so Oliver's head remains visible/);
  assert.match(source,/A SMALL, unmistakeable window/);
 });
 
