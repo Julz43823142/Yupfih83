@@ -386,7 +386,7 @@ function sightOpaque(x,z){if(scene!=='cell'&&scene!=='sewer')return false;const 
  if((x===6||x===18)&&z>=9&&z<=10)return false; // Sight only through each narrow spy window.
  if(z===14&&x===12)return false; // The small south-facing opening.
  return w.tiles[z]?.[x]==='H';}
-function fieldOfView(){if(!engine)return null;if(scene==='sewer')return {enabled:true,radius:10,isOpaque:sightOpaque};if(scene==='cell')return {enabled:true,radius:13,isOpaque:sightOpaque};return null;}
+function fieldOfView(){if(!engine)return null;if(scene==='sewer')return {enabled:true,radius:10,isOpaque:sightOpaque};if(scene==='cell')return {enabled:true,radius:6,isOpaque:sightOpaque};return null;}
 function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
