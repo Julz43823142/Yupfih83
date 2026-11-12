@@ -112,12 +112,12 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(world.tiles[26][32],'s');
  player={x:48,y:38};chapter.talk();chapter.talk();answer();
  player={x:75,y:25};chapter.talk();answer();
- assert.equal(world.width,36);assert.equal(world.height,19);
+ assert.equal(world.width,36);assert.equal(world.height,23);
  assert.ok(world.npcs.some(n=>n.id==='forest-traveller'));
  assert.ok(world.npcs.some(n=>n.id==='forest-woodcutter'));
  // The new enclosed watchtower requires entering through its door, opening the
  // chest inside, and then crossing the unlocked four-tile barrier.
- player={x:27,y:10};chapter.talk();assert.equal(world.width,17);
+ player={x:27,y:8};chapter.talk();assert.equal(world.width,17);
  assert.equal(world.height,14);
  player={x:8,y:5};chapter.talk();chapter.talk();answer();
  player={x:8,y:11};chapter.talk();assert.equal(world.width,36);
@@ -368,12 +368,12 @@ test('larger sewer maze remains navigable and the woodland path reaches the vill
  player={x:75,y:25};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  assert.equal(world.width,36);
  assert.ok(path([3,10],[24,12])>20,'forest road reaches the enclosed watchtower approach');
- assert.equal(world.tiles[9][27],'D','watchtower has a door');
+ assert.equal(world.tiles[7][27],'D','watchtower has a door');
  assert.equal(world.tiles[8][32],'p','gate has a marked crossing');
  assert.ok(world.npcs.some(n=>/Bishop/.test(n.name)&&/joking/.test(n.lines[0])));
  assert.ok(world.npcs.some(n=>/Woodcutter/.test(n.name)));
  assert.doesNotThrow(()=>game.drawProps(geometry));assert.doesNotThrow(()=>game.drawEffects(geometry,1.8));
- player={x:27,y:10};game.talk();assert.equal(world.width,17);
+ player={x:27,y:8};game.talk();assert.equal(world.width,17);
  player={x:8,y:5};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  player={x:8,y:11};game.talk();assert.equal(world.width,36);
  player={x:33,y:8};game.talk();assert.equal(world.width,52);
@@ -431,7 +431,7 @@ test('five-wide sewer maze and walkable forest are encoded in the actual collisi
  assert.ok(route([6,25],[49,38]));assert.ok(route([6,25],[76,25]));
  player={x:48,y:38};game.talk();game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
  player={x:75,y:25};game.talk();doc.getElementById('fallen-story-puzzle-continue').click();
- assert.equal(world.width,36);assert.equal(world.height,19);
+ assert.equal(world.width,36);assert.equal(world.height,23);
  assert.equal(world.tiles[12][4],'.');
  assert.equal(world.tiles[12][10],'.');
  assert.equal(world.tiles[1][1],'T');
@@ -535,7 +535,7 @@ test('water network reaches the outlet and every blind side passage, with ladder
  p={x:75,y:25};game.talk();
  assert.equal(doc.getElementById('fallen-story-puzzle').hidden,false);
  doc.getElementById('fallen-story-puzzle-continue').click();
- assert.equal(world.width,36);assert.equal(world.height,19);
+ assert.equal(world.width,36);assert.equal(world.height,23);
  assert.equal(p.x,4);assert.equal(p.y,12);
  assert.equal(world.tiles[p.y][p.x],'.');
  assert.match(source,/The torches are stationed on grass OUTSIDE the walking path/);
