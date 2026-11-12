@@ -141,6 +141,7 @@ function teleport(destination){
  activePuzzle=null;
  for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
  setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:{x:26,y:29,facing:'down'});
+ engine.resumeGameplay?.();
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
 }
 function say(name,...lines){engine.say(name,lines);}
