@@ -820,7 +820,7 @@ async function gameSaveRequest(method,slot,payload){
 }
 function slotDescription(letter){
  const info=saveMetadata[letter];
- return info?'Chapter One · '+info.scene+' · '+new Date(info.savedAt+'Z').toLocaleString():'Empty slot';
+ return info?'Chapter One · '+info.scene+' · '+new Date(info.savedAt.replace(' ','T')+(info.savedAt.endsWith('Z')?'':'Z')).toLocaleString():'Empty slot';
 }
 function buildSlotButton(label,action,disabled=false){
  const button=document.createElement('button');
@@ -859,6 +859,13 @@ async function beginGame(slot,continued){
   window.FallenKingPendingSave=continued?payload.save:null;
   activeSlot=slot;
   window.FallenKingStory?.start(window.FallenKingEngine);
+  // Creating a game reserves the selected account slot immediately.
+  if(!continued){
+   const initial=window.FallenKingStory?.exportSave();
+   if(!initial)throw Error('Unable to create an initial checkpoint.');
+   await gameSaveRequest('PUT',slot,initial);
+   saveMetadata[slot]={savedAt:new Date().toISOString(),scene:initial.chapter.scene,step:initial.chapter.step};
+  }
   startMenu.hidden=true;paused=false;
   document.getElementById('fallen-start-title').textContent='THE FALLEN KING';
   canvas.focus({preventScroll:true});
