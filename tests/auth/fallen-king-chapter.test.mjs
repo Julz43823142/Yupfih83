@@ -23,11 +23,11 @@ test('gameplay continues rendering after one failed frame and hidden pause does 
  assert.match(engine,/if\(paused&&pause\.hidden\)paused=false;if\(paused\|\|mapOpen\)return/);
 });
 test('prison retains simple geometry and the WebGL heap is bounded',()=>{
- assert.match(source,/if\\(scene!=='intro'&&scene!=='cell'\\)drawEverydayDetails\\(g\\)/);
- assert.match(source,/if\\(scene!=='cell'&&window\\.FallenKingDetailPlus\\?\\.draw/);
- assert.match(engine,/const MAX_VERTEX_FLOATS=3240000/);
- assert.match(engine,/function tri\\(a,b,c,color\\)\\{if\\(vertices\\.length>=MAX_VERTEX_FLOATS\\)return/);
- assert.match(engine,/renderErrorReported=true/);
+ assert.ok(source.includes("if(scene!=='intro'&&scene!=='cell')drawEverydayDetails(g);"));
+ assert.ok(source.includes("if(scene!=='cell'&&scene!=='sewer'&&window.FallenKingDetailPlus?.draw"));
+ assert.ok(engine.includes('const MAX_VERTEX_FLOATS=1620000;'));
+ assert.ok(engine.includes('function tri(a,b,c,color){if(vertices.length>=MAX_VERTEX_FLOATS)return;'));
+ assert.ok(engine.includes('renderErrorReported=true;'));
 });
 
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
