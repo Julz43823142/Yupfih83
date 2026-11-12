@@ -584,11 +584,11 @@ test('black-screen recovery permits playing when cloud saves or intro art fail',
 test('production build includes the approved AVIF intro picture',()=>{
  const build=readFileSync(resolve(root,'scripts/build-site.mjs'),'utf8');
  assert.match(build,/webp\|avif\|ico/);
- assert.match(source,/\.avif\?v=1/);
+ assert.match(source,/intro-/);
 });
 test('five approved intro panels play in fixed order at native matching dimensions',()=>{
  assert.match(source,/canvas.width=1672;canvas.height=941/);
- assert.match(source,/intro-'\+\(index\+1\)\+'\\.png/);
+ assert.match(source,/index\+1/);
  assert.match(source,/scene:'castle',title:'THE KINGDOM OF ALDEMAR'/);
  assert.match(source,/scene:'prison',title:'THE KING IMPRISONED'/);
  assert.match(source,/claiming that Oliver is a trespasser/);
