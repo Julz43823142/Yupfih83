@@ -379,6 +379,80 @@ function drawVillageDetails(g){
   drawWildflowers(g,x,z,i);
  }
 }
+// Second art pass: decorative meshes only; gameplay and collision tiles are unchanged.
+function drawForestMicroDetails(g,world){
+ const {box,cylinder,cone,sphere}=g;
+ // Ferns and tiny mushrooms occupy open grass away from the main paths.
+ for(let i=0;i<42;i++){
+  const x=3+((i*17)%28),z=2+((i*11)%17);
+  if(world.tiles[z]?.[x]!=='.'||(x>=24&&x<=30&&z<=10))continue;
+  const px=x+.48,pz=z+.46;
+  if(i%3===0){
+   cylinder(px,.065,pz,.045,.050,.13,'#e6dfb4',7);
+   sphere(px,.19,pz,.13,'#ae6659',9);
+   for(const [dx,dz] of [[-.07,0],[.07,0],[0,.06]])sphere(px+dx,.305,pz+dz,.029,'#f2dec8',6);
+  }else{
+   for(let n=0;n<4;n++){
+    const a=n*Math.PI/2+i*.7;
+    cone(px+Math.cos(a)*.095,.17,pz+Math.sin(a)*.095,.09,.34,n%2?'#577e51':'#6a915f',6);
+   }
+  }
+ }
+ // Fallen logs, moss and pale lichen at the forest's outer edges.
+ for(const [x,z] of [[5.6,17.4],[15.6,18.2],[21.8,2.5],[31.2,16.5]]){
+  cylinder(x,.22,z,.28,.32,.72,'#634f3a',9);
+  cylinder(x,.60,z,.24,.24,.06,'#ad9069',9);
+  for(let k=0;k<3;k++)sphere(x-.13+k*.13,.67,z+.08,.057,'#6b835b',7);
+ }
+ // A little stone trail marker near the village approach.
+ for(const [x,z] of [[29.6,14.7],[11.7,4.0]]){
+  box(x,.18,z,.60,.35,.52,'#777e72');
+  box(x,.48,z,.48,.29,.42,'#94988b');
+  box(x,.67,z,.56,.09,.46,'#b6b9a6');
+ }
+}
+function drawVillageSecondPass(g){
+ const {box,cylinder,cone,sphere}=g;
+ // A covered handcart with wooden wheels, crates and striped linen canopy.
+ const x=39.2,z=32.6;
+ box(x,.47,z,2.0,.16,1.05,'#936f4c');
+ box(x,.62,z,1.85,.12,.95,'#ba9566');
+ for(const wx of [x-.65,x+.65])for(const wz of [z-.59,z+.59]){
+  cylinder(wx,.35,wz,.23,.23,.12,'#4b4941',10);
+  cylinder(wx,.35,wz,.11,.11,.13,'#bba077',10);
+ }
+ for(const dx of [-.78,.78])for(const dz of [-.43,.43])box(x+dx,1.26,z+dz,.09,1.32,.09,'#75553b');
+ box(x,2.00,z,2.25,.17,1.45,'#b65a4a');
+ for(let i=0;i<6;i++)box(x-1+i*.40,2.105,z,.20,.018,1.38,'#eee0b7');
+ for(const [dx,dz] of [[-.51,-.10],[.23,.22],[.51,-.18]]){
+  box(x+dx,.83,z+dz,.43,.35,.34,'#95714c');
+  box(x+dx,.99,z+dz,.47,.05,.38,'#ceb18a');
+ }
+ // Barrel cluster, small signboards, puddles and stone edging around the streets.
+ for(const [bx,bz] of [[14.5,27.4],[35.8,35.5],[39.0,24.7]]){
+  cylinder(bx,.33,bz,.27,.30,.64,'#846043',10);
+  for(const y of [.14,.52])cylinder(bx,y,bz,.302,.302,.045,'#5a6464',10);
+  box(bx+.44,.27,bz,.45,.54,.43,'#a48158');
+  box(bx+.44,.55,bz,.50,.06,.47,'#c6a579');
+ }
+ for(const [px,pz] of [[16.3,30.4],[35.3,20.3],[40.5,34.5]]){
+  box(px,.013,pz,.82,.015,.49,'#637b77');
+  box(px+.1,.022,pz,.34,.005,.04,'#a8c7bb');
+ }
+ for(const [sx,sz] of [[19.3,34.6],[36.8,23.8],[25.0,16.6]]){
+  box(sx,.17,sz,1.30,.31,.24,'#9e9b8c');
+  box(sx,.33,sz,1.36,.05,.26,'#c2b8a4');
+ }
+ // Hanging strings of cloth pennants give market stalls stronger silhouettes.
+ for(const [px,pz] of [[23.5,24.4],[32.7,24.4],[30.7,33.2]]){
+  box(px,2.24,pz,.045,.045,2.6,'#756954');
+  for(let i=0;i<5;i++)cone(px,2.12,pz-1.1+i*.54,.10,.21,i%2?'#ead9ad':'#b15d55',4);
+ }
+ // A painted emblem and a dated stone foundation beside the common well.
+ box(27.3,.75,26.34,.58,.43,.045,'#a68962');
+ box(27.3,.78,26.38,.40,.055,.028,'#e5d1a0');
+ for(const dx of [-.17,.17])sphere(27.3+dx,.89,26.40,.045,'#5f6a66',7);
+}
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
  const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
@@ -620,6 +694,7 @@ function drawProps(g){
    cylinder(x,.05,z,.11,.13,.69,'#665e48',9);
    cone(x,.79,z,.20,.29,'#ddae66',9);sphere(x,.97,z,.095,'#f5d18f',8);
   }
+  drawForestMicroDetails(g,world);
   // Scattered woodland groundcover and small ruins in the enlarged north clearing.
   for(let i=0;i<55;i++){
    const x=3+((i*19)%29)+.32,z=2+((i*13)%18)+.3;
@@ -738,7 +813,20 @@ function drawWatchtowerInterior(g){
  for(const x of [4,13]){cylinder(x,.08,9.4,.14,.14,1.8,'#635344',10);sphere(x,1.94,9.4,.17,'#e8b971',10);}
  box(8.5,1.25,12.19,1.3,2.5,.14,'#644b36');
  box(8.9,1.1,12.29,.08,.08,.06,'#e1c17d');
- // Worked stone, rug, wall lamps and orderly storage make the interior feel inhabited.
+ // Banners, timber roof beams and a small guard's writing desk.
+ for(const x of [4.1,8.5,12.9]){
+  box(x,3.21,6.5,.22,.30,9.45,'#6a5b49');
+  box(x,3.30,6.5,.12,.10,9.5,'#b09367');
+ }
+ for(const x of [2.15,14.85]){
+  box(x,2.28,4.1,.08,1.10,.65,'#8d4248');
+  box(x,1.82,4.1,.095,.12,.65,'#c9ae7b');
+ }
+ box(12.6,.72,9.8,1.65,.12,.84,'#9d7955');
+ for(const x of [12.02,13.18])box(x,.38,9.8,.14,.68,.65,'#66513d');
+ box(12.46,.83,9.66,.48,.06,.35,'#e7d6ac');
+ cylinder(12.93,.87,9.51,.08,.08,.12,'#ae8962',9);
+  // Worked stone, rug, wall lamps and orderly storage make the interior feel inhabited.
  box(8.5,.125,8.3,3.1,.025,2.3,'#6c4b44');
  box(8.5,.14,8.3,2.75,.01,1.95,'#af8867');
  for(const x of [2.7,14.2]){box(x,1.77,8.8,.12,.56,.30,'#63513f');sphere(x,2.12,8.8,.14,'#f0bf79',9);}
@@ -753,6 +841,7 @@ function drawVillageProps(g){
  window.FallenKingDetailPlus?.draw?.(g,'chest',41.8,0,21.4,.92,.58,.68);
  // DetailPlus: an inhabited medieval market square, with readable stalls, barrels and civic stonework.
  drawVillageDetails(g);
+ drawVillageSecondPass(g);
  const mdl=(id,x,y,z,w,h,d)=>window.FallenKingDetailPlus?.draw?.(g,id,x,y,z,w,h,d);
  for(const [x,z,canopy] of [[23.5,24.4,'#9e4e53'],[32.7,24.4,'#4b7882'],[30.7,33.2,'#bc9363']]){
   for(const ox of [-.80,.80])for(const oz of [-.55,.55])cylinder(x+ox,.06,z+oz,.065,.07,1.44,'#80644d',8);
@@ -852,6 +941,15 @@ function drawEffects(g,t){
   return;
  }
  if(scene==='forest'){
+  // A handful of drifting butterfly silhouettes with smooth, looping wing motion.
+  for(let i=0;i<6;i++){
+   const x=5+i*4.3+.27*Math.sin(t*.55+i),z=13.5+Math.sin(i*1.7)*2.2;
+   const y=.65+.13*Math.sin(t*1.4+i);
+   const wings=.11+.035*Math.sin(t*9+i);
+   sphere(x-wings,y,z,.075,i%2?'#d9b8d8':'#f2d389',6);
+   sphere(x+wings,y,z,.075,i%2?'#d9b8d8':'#f2d389',6);
+   box(x,y,z,.022,.14,.035,'#585b46');
+  }
   // Stationary fireflies brighten and dim smoothly along the woodland path.
   for(let i=0;i<12;i++){
    const x=4+i*2.47,z=7.4+Math.sin(i*1.88)*2.4;
