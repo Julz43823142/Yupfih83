@@ -261,9 +261,10 @@ function piece(x,z,type,color,aldric=false){
   }
  }
 }
-// Ten bald Oliver head studies. All share precisely the same body and outfit.
+// Ten NEW bald Oliver head designs on the forest path. Shared body, clothing and palette.
 function oliverPrototype(x,z,n){
  const stone='#e9ddc5',shade='#ad9b81',bright='#fff2d9',ink='#64544a';
+ // Identical king body for all ten.
  cylinder(x,.10,z,.40,.40,.20,stone,20);
  cylinder(x,.22,z,.43,.42,.13,shade,20);
  cylinder(x,.45,z,.33,.40,.42,stone,20);
@@ -271,26 +272,41 @@ function oliverPrototype(x,z,n){
  cylinder(x,1.13,z,.34,.32,.24,stone,20);
  cylinder(x,1.30,z,.40,.39,.14,bright,20);
  cylinder(x,1.45,z,.28,.28,.18,stone,20);
- // Different bald head silhouettes: width, height, jaw, forehead and facial proportions.
- const shapes=[[.30,.30,0],[.36,.28,0],[.25,.35,0],[.33,.33,.05],[.28,.27,-.04],
-  [.38,.31,.03],[.27,.38,.02],[.34,.26,-.02],[.29,.34,.06],[.36,.36,-.03]];
- const [radius,height,offset]=shapes[n-1]||shapes[0];
- sphere(x,1.81+offset,z,radius,stone,20);
- if(n===3||n===7)cylinder(x,1.70+offset,z,radius*.83,radius*.9,.22,stone,16);
- if(n===4||n===9)box(x,1.70+offset,z+.16,radius*1.55,.18,.20,stone);
- if(n===6||n===10)sphere(x,1.66+offset,z+.12,radius*.79,stone,14);
- const eyeSpread=[.11,.14,.09,.13,.10,.15,.09,.12,.10,.14][n-1];
- const eyeY=1.83+offset+([0,.02,-.02,.01,.03,-.01,.02,-.03,.01,0][n-1]);
- const front=z+radius*.89;
+ // Distinct bare skulls: round, broad, tall, square-jawed, tapered,
+ // heavy-browed, narrow, low-domed, high-foreheaded and angular.
+ const heads=[
+  [.29,.30,0,'round'],[.39,.27,-.015,'broad'],
+  [.245,.39,.075,'tall'],[.335,.30,-.025,'square'],
+  [.265,.33,.025,'taper'],[.355,.32,-.01,'brow'],
+  [.225,.36,.035,'narrow'],[.36,.245,-.06,'low'],
+  [.285,.40,.085,'high'],[.345,.345,.015,'angular']
+ ];
+ const [r,h,dy,kind]=heads[(n-1+10)%10];
+ const cy=1.79+dy;
+ // Multiple stacked solid forms give each head a different silhouette;
+ // there are no hair, hats, crowns or other accessories.
+ sphere(x,cy,z,r,stone,24);
+ if(kind==='tall'||kind==='high'||kind==='narrow')
+  cylinder(x,cy-.12,z,r*.90,r*.87,h*.95,stone,20);
+ if(kind==='square'||kind==='angular')
+  box(x,cy-.17,z+.035,r*1.68,.23,r*1.58,stone);
+ if(kind==='taper')sphere(x,cy-.17,z+.06,r*.76,stone,20);
+ if(kind==='broad')sphere(x,cy-.055,z,r*.94,stone,20);
+ if(kind==='brow')box(x,cy+.08,z+r*.77,r*1.60,.065,.09,shade);
+ if(kind==='low')sphere(x,cy-.085,z,r*.91,stone,20);
+ if(kind==='angular')box(x,cy+.13,z,r*1.22,.10,r*1.34,bright);
+ const spreads=[.105,.15,.085,.13,.09,.145,.075,.135,.10,.14];
+ const eyeY=cy+[.005,-.015,.035,-.02,.025,-.025,.02,-.035,.04,.005][n-1];
+ const front=z+r*.91;
  for(const side of [-1,1]){
-  const ex=x+side*eyeSpread;
-  sphere(ex,eyeY,front,.052,'#fff6e8',10);
-  sphere(ex,eyeY,front+.045,.023,ink,9);
-  box(ex,eyeY+.105,front,.11,.022,.03,shade);
+  const ex=x+side*spreads[n-1];
+  sphere(ex,eyeY,front,.044,bright,10);
+  sphere(ex,eyeY,front+.04,.022,ink,9);
+  box(ex,eyeY+.09,front,.095,.018,.025,shade);
  }
- box(x,1.67+offset,front+.025,n===8?.16:.10,.02,.03,ink);
- // One small, consistent number marker per variant.
- for(let i=0;i<n;i++)sphere(x+(i-(n-1)/2)*.055,.13,z+.415,.017,bright,8);
+ // Different nose and mouth proportions, without changing clothing.
+ sphere(x,cy-.105,front+.035,[.035,.05,.027,.055,.032,.06,.025,.045,.03,.055][n-1],shade,10);
+ box(x,cy-.20,front+.035,[.105,.14,.075,.16,.09,.13,.07,.15,.095,.12][n-1],.018,.025,ink);
 }
 // Chess-piece characters remain sculptural; their identities come from faces and trims.
 const cosmeticCatalog={
