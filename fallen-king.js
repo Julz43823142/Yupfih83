@@ -737,7 +737,7 @@ gl.disable(gl.POLYGON_OFFSET_FILL);
 window.FallenKingStory?.renderIntroFrame(canvas);
 }
 function frame(ms){if(!world)return;const dt=Math.min((ms-last)/1000||0,.05);last=ms;if(!paused&&!window.FallenKingStory?.blockedInput()){sceneTime+=dt;stepClock+=dt;const dir=['up','down','left','right'].find(k=>pressed.has(k));if(!dialogue){let dx=(pressed.has('right')?1:0)-(pressed.has('left')?1:0),dz=(pressed.has('down')?1:0)-(pressed.has('up')?1:0);if(dx||dz)moveVector(dx,dz,dt);}const speed=1-Math.exp(-11*dt);visual.x+=(player.x-visual.x)*speed;visual.z+=(player.y-visual.z)*speed;const follow=1-Math.exp(-5*dt);cam.x+=(visual.x-cam.x)*follow;cam.z+=(visual.z-cam.z)*follow;if(interior){cam.x=5.5;cam.z=4.7;}else{cam.x=world.width<=18?cam.x:Math.max(7,Math.min(world.width-8,cam.x));cam.z=world.height<=13?cam.z:Math.max(6,Math.min(world.height-7,cam.z));}}updateDoorHint();draw(sceneTime);if(!wardrobePanel.hidden)updateWardrobePreview();requestAnimationFrame(frame);}
-function togglePause(force){if(!world||window.FallenKingStory?.blockedInput())return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
+function togglePause(force){if(!world||window.FallenKingStory?.blockedInput())return;if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen)closeMap();paused=typeof force==='boolean'?force:!paused;pause.hidden=!paused;if(!paused)saveChooser.hidden=true;pressed.clear();if(!paused)canvas.focus({preventScroll:true});}
 document.addEventListener('keydown',e=>{if(window.FallenKingStory?.blockedInput())return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();if(!wardrobePanel.hidden){closeWardrobe();return;}if(mapOpen){closeMap();return;}togglePause();return;}if(paused||mapOpen)return;const dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir){e.preventDefault();pressed.add(dir);if(!e.repeat){move(dir,.04);stepClock=0;}}else if(['e','enter',' '].includes(k)){e.preventDefault();if(!e.repeat)talk();}});
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),dir=({arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'})[k];if(dir)pressed.delete(dir);});
 window.addEventListener('blur',()=>pressed.clear());
@@ -800,9 +800,104 @@ const tunes={willowmere:{notes:[0,2,4,7,4,2,0,-1,0,4,7,9,7,4,2,-1],bass:[0,-5,-3
 function musicTick(){if(!musicOn||paused)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const tune=tunes[(window.FallenKingStory?.musicTheme()||world?.music||world?.town||'willowmere').toLowerCase()]||tunes.default;const i=musicStep++,when=audioCtx.currentTime+.02;function note(semi,duration,shape,level){const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type=shape;osc.frequency.value=tune.root*Math.pow(2,semi/12);gain.gain.setValueAtTime(.0001,when);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,Number(volume.value)/100*level),when+.025);gain.gain.exponentialRampToValueAtTime(.0001,when+duration);osc.connect(gain);gain.connect(audioCtx.destination);osc.start(when);osc.stop(when+duration+.02);}note(tune.notes[i%tune.notes.length],.34,'triangle',.07);if(i%4===0)note(tune.bass[(i/4)%tune.bass.length]-12,1.3,'sine',.045);}catch{}}
 function setMusic(enabled){musicOn=enabled;const b=document.getElementById('fallen-music-toggle');b.textContent='Music: '+(enabled?'On':'Off');b.setAttribute('aria-pressed',String(enabled));const introButton=document.getElementById('fallen-story-sound');if(introButton){introButton.textContent=enabled?'Sound: On':'Turn sound on';introButton.setAttribute('aria-pressed',String(enabled));}try{localStorage.setItem('fallen-king-music-enabled',enabled?'1':'0');}catch{}clearInterval(musicTimer);musicTimer=null;if(enabled){musicStep=0;musicTick();musicTimer=setInterval(musicTick,420);}}
 document.getElementById('fallen-music-toggle').addEventListener('click',()=>setMusic(!musicOn));document.getElementById('fallen-story-sound')?.addEventListener('click',()=>{setMusic(!musicOn);if(musicOn)window.FallenKingEngine?.soundCue();});
-document.getElementById('fallen-save').addEventListener('click',save);document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};save();dialogue=null;dialog.hidden=true;});
+
+// Account-scoped cloud saves. Never infer account identity from browser storage.
+const startMenu=document.getElementById('fallen-start-menu');
+const startStatus=document.getElementById('fallen-start-status');
+const startSlots=document.getElementById('fallen-start-slots');
+const pauseSlots=document.getElementById('fallen-pause-slots');
+const saveChooser=document.getElementById('fallen-save-chooser');
+const saveStatus=document.getElementById('fallen-save-status');
+const slots=['A','B','C'];
+let saveMetadata={A:null,B:null,C:null},activeSlot=null,startingGame=false,savingGame=false;
+async function gameSaveRequest(method,slot,payload){
+ const url='/api/fallen-king/saves'+(slot?'?slot='+slot:'');
+ const response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
+  headers:payload?{'Content-Type':'application/json'}:{},
+  ...(payload?{body:JSON.stringify(payload)}:{})});
+ if(!response.ok)throw Error('Account save request failed (HTTP '+response.status+').');
+ return response.json();
+}
+function slotDescription(letter){
+ const info=saveMetadata[letter];
+ return info?'Chapter One · '+info.scene+' · '+new Date(info.savedAt+'Z').toLocaleString():'Empty slot';
+}
+function buildSlotButton(label,action,disabled=false){
+ const button=document.createElement('button');
+ button.type='button';button.textContent=label;button.disabled=disabled;button.addEventListener('click',action);
+ return button;
+}
+function displayStartSlots(){
+ startSlots.replaceChildren();
+ for(const slot of slots){
+  const row=document.createElement('div');row.className='fallen-slot-row';
+  const info=document.createElement('span');info.textContent='Slot '+slot+' · '+slotDescription(slot);
+  const start=buildSlotButton('New Game',()=>beginGame(slot,false));
+  const resume=buildSlotButton('Continue',()=>beginGame(slot,true),!saveMetadata[slot]);
+  row.append(info,start,resume);startSlots.append(row);
+ }
+}
+async function initializeSaveSlots(){
+ paused=true;startMenu.hidden=false;startStatus.textContent='Loading account saves…';
+ window.FallenKingSlotSession=true;
+ try{
+  const data=await gameSaveRequest('GET');
+  saveMetadata=data.slots;
+  displayStartSlots();startStatus.textContent='Select New Game or Continue.';
+ }catch(error){
+  startStatus.textContent='Unable to access account saves. Refresh and try again.';
+  startSlots.replaceChildren();
+ }
+}
+async function beginGame(slot,continued){
+ if(startingGame||!slots.includes(slot))return;
+ if(!continued&&saveMetadata[slot]&&!confirm('Replace the save in Slot '+slot+' with a new game?'))return;
+ startingGame=true;startStatus.textContent=continued?'Loading Slot '+slot+'…':'Starting Slot '+slot+'…';
+ try{
+  const payload=continued?await gameSaveRequest('GET',slot):null;
+  if(continued&&!payload?.save)throw Error('Slot is empty.');
+  window.FallenKingPendingSave=continued?payload.save:null;
+  activeSlot=slot;
+  window.FallenKingStory?.start(window.FallenKingEngine);
+  startMenu.hidden=true;paused=false;
+  document.getElementById('fallen-start-title').textContent='THE FALLEN KING';
+  canvas.focus({preventScroll:true});
+ }catch(error){
+  startStatus.textContent='Could not start game: '+error.message;activeSlot=null;
+ }finally{startingGame=false;}
+}
+function displayPauseSlots(){
+ pauseSlots.replaceChildren();
+ for(const slot of slots){
+  const button=buildSlotButton('Slot '+slot+' · '+slotDescription(slot),()=>writeSlot(slot));
+  if(slot===activeSlot)button.textContent+=' · current';
+  pauseSlots.append(button);
+ }
+}
+function openSaveSlots(){
+ if(!activeSlot)return;
+ paused=true;pause.hidden=false;saveChooser.hidden=false;saveStatus.textContent='';
+ displayPauseSlots();pressed.clear();
+}
+async function writeSlot(slot){
+ if(savingGame||!activeSlot)return;
+ if(saveMetadata[slot]&&slot!==activeSlot&&!confirm('Overwrite Slot '+slot+'?'))return;
+ savingGame=true;saveStatus.textContent='Saving to Slot '+slot+'…';
+ try{
+  const payload=window.FallenKingStory?.exportSave();
+  if(!payload)throw Error('No story progress to save.');
+  await gameSaveRequest('PUT',slot,payload);
+  activeSlot=slot;saveMetadata[slot]={savedAt:new Date().toISOString().replace('Z',''),scene:payload.chapter.scene,step:payload.chapter.step};
+  displayPauseSlots();saveStatus.textContent='Saved to Slot '+slot+' on your account.';
+ }catch(error){saveStatus.textContent='Save failed: '+error.message;}
+ finally{savingGame=false;}
+}
+document.getElementById('fallen-save-game').addEventListener('click',openSaveSlots);
+document.getElementById('fallen-save-cancel').addEventListener('click',()=>{saveChooser.hidden=true;});
+
+document.getElementById('fallen-save').addEventListener('click',()=>openSaveSlots());document.getElementById('fallen-reset').addEventListener('click',()=>{player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};dialogue=null;dialog.hidden=true;});
 (async()=>{try{const response=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});if(!response.ok){gate.textContent=response.status===401?'Log in as an administrator to access this preview.':response.status===403?'Only EloScanner administrators can play this preview.':'The administrator preview is unavailable.';return;}
 world=await response.json();if(!Array.isArray(world.tiles)||world.tiles.length!==world.height)throw Error('Invalid world');loadCosmetics();loadFound();setupWardrobe();
-player={...load(),facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};previousVisionKey='';staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};window.FallenKingStory?.start(window.FallenKingEngine);canvas.focus({preventScroll:true});requestAnimationFrame(frame);
+player={...world.spawn,facing:'down'};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};gate.hidden=true;game.hidden=false;window.FallenKingEngine={enableSound(){if(!musicOn)setMusic(true);else{audioCtx?.resume?.();musicTick();}},soundCue(){if(!musicOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const now=audioCtx.currentTime,notes=[392,523.25,659.25,783.99,1046.50];for(let i=0;i<notes.length;i++){const start=now+i*.15,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?'sine':'triangle';o.frequency.value=notes[i];const v=Math.max(.0003,Number(volume.value)/100*.18);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(v,start+.035);g.gain.exponentialRampToValueAtTime(.0001,start+.46);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+.5);}}catch{}},setWorld(next,pos){world=next;player={...pos};visual={x:player.x,z:player.y};cam={x:player.x,z:player.y};previousVisionKey='';staticReady=false;dialogue=null;dialog.hidden=true;pressed.clear();},getWorld:()=>world,getPlayer:()=>player,invalidate(){staticReady=false;},say(name,lines){dialogue={npc:{name,lines},i:0};speaker.textContent=name;speech.textContent=lines[0];dialog.hidden=false;pressed.clear();},getInterior:()=>interior};await initializeSaveSlots();requestAnimationFrame(frame);
 }catch(e){console.error('Fallen King preview error',e);gate.textContent='Could not load the preview. Please retry later.';}})();
 })();
