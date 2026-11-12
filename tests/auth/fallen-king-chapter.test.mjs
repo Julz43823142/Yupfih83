@@ -571,3 +571,13 @@ test('account save interface has three server-backed slots and no localStorage s
  assert.match(api,/WHERE user_id=\? AND slot=\?/);
  assert.match(api,/new Set\(\['A','B','C'\]\)/);
 });
+
+test('black-screen recovery permits playing when cloud saves or intro art fail',()=>{
+ assert.match(engine,/function switchToLocalSaves\(\)/);
+ assert.match(engine,/const data=switchToLocalSaves\(\)/);
+ assert.match(engine,/displayStartSlots\(\)/);
+ assert.match(engine,/saveMode==='local'/);
+ assert.match(source,/img\.onerror=\(\)=>/);
+ assert.match(source,/bedroom\.svg\?v=1/);
+ assert.match(page,/fallen-king-story\.js\?v=/);
+});
