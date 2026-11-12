@@ -18,10 +18,18 @@ test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 test('gameplay continues rendering after one failed frame and hidden pause does not trap movement',()=>{
  const frame=engine.slice(engine.indexOf('function frame(ms){'),engine.indexOf('function togglePause(',engine.indexOf('function frame(ms){')));
  assert.match(frame,/requestAnimationFrame\(frame\)/);
- assert.match(frame,/catch\(error\)\{console\.error\('Fallen King frame failed/);
+ assert.match(frame,/catch\(error\)\{if\(!renderErrorReported\)console\.error\('Fallen King frame failed/);
  assert.equal((frame.match(/requestAnimationFrame\(frame\)/g)||[]).length,1,'one animation frame is queued per frame');
  assert.match(engine,/if\(paused&&pause\.hidden\)paused=false;if\(paused\|\|mapOpen\)return/);
 });
+test('prison retains simple geometry and the WebGL heap is bounded',()=>{
+ assert.match(source,/if\\(scene!=='intro'&&scene!=='cell'\\)drawEverydayDetails\\(g\\)/);
+ assert.match(source,/if\\(scene!=='cell'&&window\\.FallenKingDetailPlus\\?\\.draw/);
+ assert.match(engine,/const MAX_VERTEX_FLOATS=3240000/);
+ assert.match(engine,/function tri\\(a,b,c,color\\)\\{if\\(vertices\\.length>=MAX_VERTEX_FLOATS\\)return/);
+ assert.match(engine,/renderErrorReported=true/);
+});
+
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
  assert.doesNotThrow(()=>new Script(engine));
@@ -156,7 +164,7 @@ test('detailed scene geometry and atmosphere remain wired to the playable route'
  assert.match(source,/function drawVillageProps\(g\)/);
  assert.match(source,/function drawEffects\(g,t\)/);
  assert.match(source,/function drawEverydayDetails\(g\)/);
- assert.match(source,/if\(scene!=='intro'\)drawEverydayDetails\(g\)/);
+ assert.match(source,/if\(scene!=='intro'&&scene!=='cell'\)drawEverydayDetails\(g\)/);
 });
 
 test('animated atmosphere receives the complete WebGL primitive API',()=>{
