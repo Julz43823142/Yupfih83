@@ -65,14 +65,14 @@ test('cell is furnished with realistic game geometry and toilet can be accessed 
  assert.match(engine,/sewer:\{notes:/);
 });
 
-test('chapter scenes are distinct and the coin cap is one',()=>{
+test('chapter scenes are distinct and restored hint coins are capped at two',()=>{
  assert.match(source,/scene:'approach'/);
  assert.match(source,/scene:'theft'/);
  assert.match(source,/royal crown is kept on an obvious velvet-topped pedestal/);
  assert.match(source,/createWorld\(84,53,'H'\)/);
  assert.match(source,/function forestWorld\(\)/);
  assert.match(source,/function arch\(x,z\)/);
- assert.match(source,/v\.coins=v\.coins\.slice\(0,1\)/);
+ assert.match(source,/v\.coins=v\.coins\.slice\(0,2\)/);
  assert.match(source,/const coinSpots=\{cell:\[\[12,13\]\]\}/);
  assert.match(source,/if\(scene==='cell'\)return x===16&&y===10;/);
  const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n\}/)?.[0];
@@ -495,10 +495,10 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(engine,/const tone=npcColor\(n\)/);
  assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
  assert.match(engine,/gl\.polygonOffset\(-1,-1\)/);
- assert.match(engine,/vertices\[i\]=x\+\.86-py/);
+ assert.match(engine,/vertices\[i\]=x\+\.88-py/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/Low, open royal bed/);
- assert.match(source,/The head pillow stays visible/);
+ assert.match(source,/Pillow removed/);
  assert.match(source,/A SMALL, unmistakeable window/);
 });
 
