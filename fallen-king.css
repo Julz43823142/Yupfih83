@@ -170,3 +170,6 @@ html,body{width:100%;height:100%;overflow:hidden}
  #fallen-story-intro #fallen-story-skip{grid-column:2!important}
  #fallen-story-intro #fallen-story-sound{grid-column:1/-1!important}
 }
+
+/* Preserve the approved second comic illustration's native 3:2 framing. */
+#fallen-story-intro.fallen-second-approved #fallen-story-art{aspect-ratio:3/2!important;width:min(100%,960px)!important;height:auto!important;max-height:70dvh!important;object-fit:contain!important;image-rendering:auto!important}
