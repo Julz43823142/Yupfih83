@@ -523,8 +523,113 @@ function drawVillageSecondPass(g){
  box(27.3,.78,26.38,.40,.055,.028,'#e5d1a0');
  for(const dx of [-.17,.17])sphere(27.3+dx,.89,26.40,.045,'#5f6a66',7);
 }
+
+/* Small environmental storytelling details throughout playable areas.
+   Cosmetic static meshes only: no changes to collision, triggers, quests or the finished intro. */
+function drawEverydayDetails(g){
+ const {box,cylinder,cone,sphere}=g;
+ const hash=(x,z,n=0)=>{const v=Math.sin(x*71.3+z*149.7+n*39.1)*43758.5453;return v-Math.floor(v)};
+ if(scene==='cell'){
+  // Hairline mortar cracks and pale salt deposits on the rear wall.
+  for(let i=0;i<20;i++){
+   const x=1.65+(i*1.13)%21.3,y=.72+(i*7%11)*.13;
+   box(x,y,15.045,.27,.022,.031,'#485953');
+   box(x+.10,y-.11,15.05,.022,.23,.032,'#596965');
+  }
+  for(const [x,z] of [[2.6,13.7],[9.6,14.6],[15.8,13.8],[21.7,14.1]]){
+   box(x,.018,z,.48,.022,.33,'#63776b');
+   for(let i=0;i<3;i)sphere(x-.13+i*.13,.041,z+.09,.045,'#819287',6);
+  }
+  // Hinges and latch plates read as real hardware on the cell front.
+  for(const x of [6.12,7.13,10.94,13.02,17.85,18.88]){
+   box(x,1.55,5.34,.10,.36,.10,'#526369');
+   for(const y of [1.43,1.69])sphere(x,y,5.41,.029,'#a0a49a',6);
+  }
+  // Small discarded pebbles in corners, kept below foot height.
+  for(let i=0;i<15;i++){
+   const x=1.5+(i*13%22),z=i%2?14.52:6.14;
+   sphere(x,.075,z,.055+.02*(i%3),'#8a8b7d',7);
+  }
+ }else if(scene==='sewer'){
+  const w=engine?.getWorld?.();
+  if(!w)return;
+  // Mineral streaks and tiny rust spots appear on existing solid-wall tiles only.
+  for(let z=2;z<w.height-2;z+=3)for(let x=2;x<w.width-2;x+=3){
+   if(w.tiles[z]?.[x]!=='H')continue;
+   const nearWalk=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>w.tiles[z+dz]?.[x+dx]==='s');
+   if(!nearWalk||hash(x,z)<.38)continue;
+   const px=x+.50,pz=z+.50;
+   box(px,1.05,pz+.48,.055,.62,.028,'#405953');
+   box(px+.12,.61,pz+.48,.04,.28,.028,'#745e49');
+   sphere(px-.14,.14,pz+.33,.085,'#75847a',7);
+  }
+  // Flush surface scum and floating debris: no new obstacles in the water.
+  for(let z=2;z<w.height-2;z+=5)for(let x=2;x<w.width-2;x+=5){
+   if(w.tiles[z]?.[x]!=='w')continue;
+   box(x+.38,.049,z+.53,.22,.009,.07,'#66877e');
+   box(x+.72,.050,z+.40,.12,.008,.035,'#94a79a');
+  }
+ }else if(scene==='forest'){
+  const w=engine?.getWorld?.();
+  if(!w)return;
+  // Fallen leaves, seedpods and fern shoots only on natural ground.
+  for(let i=0;i<100;i++){
+   const x=2+(i*17%30),z=2+(i*23%18);
+   if(w.tiles[z]?.[x]!=='.')continue;
+   const px=x+.18+hash(x,z)*.61,pz=z+.20+hash(z,x)*.60;
+   box(px,.028,pz,.12,.012,.060,['#9a855b','#b39a67','#806c4a','#6f8059'][i%4]);
+   if(i%7===0){cone(px+.15,.12,pz-.10,.09,.22,'#537951',6);sphere(px+.15,.25,pz-.10,.04,'#7e9a69',6);}
+  }
+  // Small bracket fungi cling to tree-root edges rather than the road.
+  for(let i=0;i<16;i++){
+   const x=2+(i*11%31),z=2+(i*7%18);
+   if(w.tiles[z]?.[x]!=='T')continue;
+   sphere(x+.77,.16,z+.26,.105,'#c3ad82',7);
+   sphere(x+.77,.19,z+.26,.073,'#eee1bc',7);
+  }
+ }else if(scene==='watchtower'){
+  // Ink, folded records and wax seals on the guard's writing table.
+  box(12.40,.87,9.86,.43,.018,.28,'#e7d2a5');
+  box(12.54,.886,9.81,.15,.008,.025,'#78624c');
+  sphere(12.48,.91,9.99,.043,'#9f4942',7);
+  cylinder(12.04,.92,9.58,.075,.075,.12,'#494d4c',9);
+  // Wall joint variation, small rivets and repaired floor seams.
+  for(const z of [1.87,12.14])for(let i=0;i<13;i++){
+   const x=2.2+i*1.03;
+   box(x,1.05+(i%3)*.39,z,.38,.026,.034,'#95998f');
+   box(x+.18,1.18+(i%3)*.39,z,.026,.18,.035,'#676d6a');
+  }
+  for(const [x,z] of [[3.2,10.8],[13.8,10.9],[3.1,3.5]]){
+   box(x,.035,z,.39,.017,.26,'#77766b');
+   sphere(x+.15,.064,z-.08,.055,'#aea38b',6);
+  }
+ }else if(scene==='village'){
+  // Wear marks, loose cobbles, chalk traces and fallen leaves along paved square.
+  for(let i=0;i<62;i++){
+   const x=17+(i*13%22)+.25,z=19+(i*17%17)+.26;
+   if((x>25&&x<29&&z>25&&z<29)||(x>29&&x<34&&z>27&&z<31))continue;
+   const px=x+(hash(i,2)-.5)*.20,pz=z+(hash(i,7)-.5)*.20;
+   box(px,.024,pz,.15,.009,.10,i%3===0?'#c6bea8':'#8d9488');
+   if(i%5===0)box(px+.12,.035,pz-.11,.09,.008,.04,'#687b64');
+  }
+  // A few papers and rope loops at the edges of market stalls.
+  for(const [x,z] of [[22.95,24.4],[32.12,24.4],[30.2,33.2]]){
+   box(x,1.02,z,.31,.018,.24,'#e8d7ad');
+   box(x+.08,1.037,z-.04,.15,.006,.025,'#816d51');
+   cylinder(x-.38,.13,z+.78,.17,.17,.045,'#a79171',10);
+  }
+  // Window boxes and tiny shutters on existing perimeter buildings.
+  for(const [x,z] of [[12.3,9.2],[20.4,11.5],[38.4,10.8]]){
+   box(x,1.3,z,.62,.16,.25,'#815c43');
+   box(x,1.40,z,.53,.06,.19,'#4e704a');
+   for(let i=0;i<3;i)sphere(x-.19+i*.18,1.49,z,.07,'#d4a0a1',6);
+  }
+ }
+}
+
 function drawProps(g){
  const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
+ if(scene!=='intro')drawEverydayDetails(g);
  const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
  const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>!!dp?.draw?.(g,id,x,y,z,w,h,d,rot);
  const rock='#687076',iron='#253945',wood='#785943',ivory='#e7ddc8';
