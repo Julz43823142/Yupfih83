@@ -156,34 +156,34 @@ function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause
 function start(api){engine=api;baseWorld=api.getWorld();document.querySelectorAll?.('[data-fallen-jump]')?.forEach(b=>b.addEventListener('click',()=>teleport(b.dataset.fallenJump)));chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
 function blockedInput(){return scene==='intro'||!!activePuzzle;}
 function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
-function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];$('fallen-story-art').width=chapter.step<=1?960:640;$('fallen-story-art').height=chapter.step<=1?720:360;$('fallen-story-intro').classList?.toggle('fallen-first-approved',chapter.step<=1);engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
+function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];$('fallen-story-art').width=chapter.step<=1?960:640;$('fallen-story-art').height=chapter.step===0?720:chapter.step===1?640:360;$('fallen-story-intro').classList?.toggle('fallen-first-approved',chapter.step<=1);$('fallen-story-intro').classList?.toggle('fallen-second-approved',chapter.step===1);engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
 function nextIntro(){if(scene!=='intro')return;engine.enableSound();if(chapter.step===0)engine.soundCue();chapter.step++;if(chapter.step>=steps.length){$('fallen-story-intro').hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');}else showIntro();}
 function introWorld(kind){if(kind==='prison')return cellWorld();const w=createWorld(18,12,'s');w.music=['theft','approach','confrontation','arrest'].includes(kind)?'theft':'palace';return w;}
 // Six illustrated, English-language story panels replace the overhead gameplay capture.
 const introArtwork={};
 const introArtworkScenes=new Set(['bedroom','approach','theft','confrontation','arrest','prison']);
 function drawIntroImage(kind){
- const key=chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-approved':introArtworkScenes.has(kind)?kind:'bedroom';
+ const key=chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-towers':introArtworkScenes.has(kind)?kind:'bedroom';
  const canvas=$('fallen-story-art'),c=canvas.getContext('2d');
  c.imageSmoothingEnabled=true;
  const img=introArtwork[key]||(introArtwork[key]=typeof Image==='undefined'?{complete:false,naturalWidth:0,src:''}:new Image());
  if(img.complete&&img.naturalWidth){c.clearRect(0,0,canvas.width,canvas.height);c.drawImage(img,0,0,canvas.width,canvas.height);return;}
  c.fillStyle='#273944';c.fillRect(0,0,canvas.width,canvas.height);
  if(!img.src&&typeof Image!=='undefined'){
-  img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-approved':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};
+  img.onload=()=>{if(scene==='intro'&&(chapter.step===0?'bedroom-approved':chapter.step===1?'bedroom-second-towers':steps[Math.min(chapter.step,steps.length-1)].scene)===key)drawIntroImage(key);};
   img.onerror=()=>{
    // If the approved AVIF cannot be decoded, use the existing first-scene SVG.
    // Keep the Continue and Skip buttons available even if all images fail.
-   if((key==='bedroom-approved'||key==='bedroom-second-approved')&&!img.datasetFallback){
+   if((key==='bedroom-approved'||key==='bedroom-second-towers')&&!img.datasetFallback){
     img.datasetFallback=true;
-    img.src='/assets/fallen-king-intro/bedroom.svg?v=1';
+    img.src=key==='bedroom-second-towers'?'/assets/fallen-king-intro/bedroom-second-approved.webp?v=1':'/assets/fallen-king-intro/bedroom.svg?v=1';
    }else{
     c.fillStyle='#243747';c.fillRect(0,0,canvas.width,canvas.height);
     c.fillStyle='#fff0c6';c.font='bold 32px Georgia,serif';
     c.fillText('CHAPTER I — THE FALL',40,Math.round(canvas.height*.5));
    }
   };
-  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':key==='bedroom-second-approved'?'.webp?v=1':'.svg?v=1');
+  img.src='/assets/fallen-king-intro/'+key+(key==='bedroom-approved'?'.avif?v=1':key==='bedroom-second-towers'?'.webp?v=1':'.svg?v=1');
  }
 }
 function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
