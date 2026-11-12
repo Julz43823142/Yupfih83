@@ -159,8 +159,19 @@ function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e',
 function showIntro(){scene='intro';$('fallen-story-intro').hidden=false;const step=steps[Math.min(chapter.step,steps.length-1)];engine.setWorld(introWorld(step.scene),step.scene==='prison'?{x:12,y:7,facing:'down'}:{x:9,y:6,facing:'down'});$('fallen-story-intro-title').textContent=step.title;$('fallen-story-intro-speaker').textContent=step.speaker;$('fallen-story-intro-text').textContent=step.text;$('fallen-story-next').textContent=chapter.step===steps.length-1?'Begin escape →':'Continue →';drawIntroImage(step.scene);persist();}
 function nextIntro(){if(scene!=='intro')return;engine.enableSound();if(chapter.step===0)engine.soundCue();chapter.step++;if(chapter.step>=steps.length){$('fallen-story-intro').hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');}else showIntro();}
 function introWorld(kind){if(kind==='prison')return cellWorld();const w=createWorld(18,12,'s');w.music=['theft','approach','confrontation','arrest'].includes(kind)?'theft':'palace';return w;}
-function drawIntroImage(){const c=$('fallen-story-art').getContext('2d');c.fillStyle='#273944';c.fillRect(0,0,640,360);}
-function renderIntroFrame(canvas){if(scene!=='intro'||$('fallen-story-intro').hidden)return;const c=$('fallen-story-art').getContext('2d');c.imageSmoothingEnabled=false;try{c.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,640,360);}catch{}}
+// Six illustrated, English-language story panels replace the overhead gameplay capture.
+const introArtwork={};
+const introArtworkScenes=new Set(['bedroom','approach','theft','confrontation','arrest','prison']);
+function drawIntroImage(kind){
+ const key=introArtworkScenes.has(kind)?kind:'bedroom';
+ const canvas=$('fallen-story-art'),c=canvas.getContext('2d');
+ c.imageSmoothingEnabled=true;
+ const img=introArtwork[key]||(introArtwork[key]=new Image());
+ if(img.complete&&img.naturalWidth){c.clearRect(0,0,640,360);c.drawImage(img,0,0,640,360);return;}
+ c.fillStyle='#273944';c.fillRect(0,0,640,360);
+ if(!img.src){img.onload=()=>{if(scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene===key)drawIntroImage(key);};img.src='/assets/fallen-king-intro/'+key+'.svg?v=1';}
+}
+function renderIntroFrame(){/* Keep the dedicated comic artwork visible, not the top-down 3D world. */}
 function isIntro(){return scene==='intro';}
 function isPrisoner(){return scene==='cell'||scene==='sewer'||scene==='forest';}
 function hasMap(){return !!chapter?.flags?.mapFound;}
