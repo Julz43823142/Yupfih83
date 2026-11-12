@@ -56,7 +56,7 @@ gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clearColor(.39,.56,.36,1);
 let vertices=[],staticCount=0,staticReady=false,renderErrorReported=false;
 // Bound CPU vertex arrays before copying them to WebGL buffers. This prevents
 // one dense room or a large sewer from exhausting the browser's heap.
-const MAX_VERTEX_FLOATS=3240000;
+const MAX_VERTEX_FLOATS=1620000;
 function rgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}
 function tri(a,b,c,color){if(vertices.length>=MAX_VERTEX_FLOATS)return;const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1,k=rgb(color);for(const p of [a,b,c])vertices.push(...p,n[0]/l,n[1]/l,n[2]/l,...k);}
 function quad(a,b,c,d,color){tri(a,b,c,color);tri(a,c,d,color);}
