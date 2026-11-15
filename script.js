@@ -329,7 +329,7 @@ function realCharts(parent,data){
   if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and less reliable for small samples.");
   const help=add(parent,"div","period-explanation");
   const high=add(help,"p","");
-  add(high,"strong","period-high","Notable Performance period — ");
+  add(high,"strong","period-high",performanceLabel(data.priority)+" period — ");
   add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This period is highlighted for closer statistical analysis.");
   const context=add(help,"p","");
   add(context,"strong","period-context","Context — ");
@@ -577,7 +577,11 @@ function showMeasuredDuration(result) {
 function renderAdditionalInsights(panel,data){
   const charts=data.charts||{};
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
-  const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
+  const marked=Array.isArray(data.method3?.marked_periods)?[...data.method3.marked_periods]:[];
+  const selectedPeriod=data.method3?.selected;
+  if(selectedPeriod?.first_ended&&selectedPeriod?.last_ended&&!marked.some(p=>p.first_ended===selectedPeriod.first_ended&&p.last_ended===selectedPeriod.last_ended)){
+    marked.push({...selectedPeriod,priority:data.priority});
+  }
   sectionTitle(panel,"Additional Insights","Thinking-time patterns, clock pressure and rolling win rate.");
   const grid=add(panel,"div","timeline-grid");
   function combined(title,field,unit="",description=""){
