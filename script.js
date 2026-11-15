@@ -2,7 +2,8 @@ const PERFORMANCE_LABELS = Object.freeze({
   "LOW":"Within Typical Performance Range",
   "MODERATE":"Moderate Performance Variation",
   "HIGH":"Notable Performance",
-  "VERY HIGH":"Strongly Notable Performance"
+  "VERY HIGH":"Very Strong Statistical Deviation",
+  "INSUFFICIENT DATA":"Insufficient Data"
 });
 function performanceLabel(value){
   const key=String(value||"").toUpperCase().replace(/[-_]/g," ").trim();
@@ -115,7 +116,7 @@ function listRows(items, labelKey, valueKey) {
 }
 
 /* Fetch all publicly available monthly Chess.com archives only when All Time is requested.
-   The Fair Play review remains limited to its own 5,000-game analysis window. */
+   The Insights review remains limited to its own 5,000-game analysis window. */
 const careerHistoryCache = new Map();
 async function loadCareerRatings(username, onProgress) {
   const user = String(username || "").toLowerCase();
@@ -580,7 +581,21 @@ function renderReview(data) {
     add(left, "p", "v87-priority-finding", cleanedReasons[highlightedIndex]);
   }
   add(left, "p", "v87-muted", "Statistical review priority based on available game data.");
+  const levels=add(panel,"div","v87-performance-levels");
+  add(levels,"strong","","Performance levels");
+  const levelList=add(levels,"ol","");
+  for(const [key,name] of [["INSUFFICIENT DATA","Insufficient Data"],["LOW","Within Typical Performance Range"],["MODERATE","Moderate Performance Range"],["HIGH","Notable Performance"],["VERY HIGH","Very Strong Statistical Deviation"]]){
+    const item=add(levelList,"li","",name);
+    if(key===String(data.priority||"").toUpperCase()){
+      item.style.fontWeight="800";
+      item.setAttribute("aria-current","true");
+      item.append(document.createTextNode(" (current result)"));
+    }
+  }
+  add(levels,"p","v87-muted","These levels describe statistical performance variation, not evidence of misconduct. The Review Index is a heuristic indicator, not a probability.");
   const stats = add(panel, "div", "v87-metrics");
+  const indexValue=Number(data.review_index);
+  metric(stats, "REVIEW INDEX", Number.isInteger(indexValue)&&indexValue>=0&&indexValue<=99&&data.review_index!==null ? indexValue+"/99" : "Unavailable");
   metric(stats, "REVIEW CONFIDENCE", data.confidence);
   metric(stats, "GAMES REVIEWED", number(data.games, 0));
   metric(stats, "TIME CONTROLS", "Rapid · Blitz · Bullet");
@@ -678,16 +693,16 @@ function renderPlayer(profile, stats, username) {
   for(const box of Object.values(boxes))ratings.append(box);
   loadRatingSparklines(profile.username||username,boxes);
 }
-// Original Fair Play v87 Python runs inside a browser Web Worker (WebAssembly).
+// Original Insights v87 Python runs inside a browser Web Worker (WebAssembly).
 // No GitHub workflow or status polling is involved.
 function analyzeOnVisitorDevice(username){
   return new Promise((resolve,reject)=>{
     if(typeof Worker==="undefined"||typeof WebAssembly==="undefined"){
-      reject(new Error("This browser does not support on-device Fair Play analysis."));
+      reject(new Error("This browser does not support on-device Insights analysis."));
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261103-local-v87-15min-5");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261115-insights-index-1");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
