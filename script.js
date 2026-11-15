@@ -233,8 +233,9 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
     node("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#29405a","stroke-width":1});
     node("text",{x:L-12,y:yy+5,"text-anchor":"end",fill:"#9bb1c6","font-size":14},`${number(v,0)}${unit}`);
   }
-  for(let i=0;i<=4;i++){const value=xmin+(xmax-xmin)*i/4;
-    node("text",{x:x(value),y:H-22,"text-anchor":"middle",fill:"#9bb1c6","font-size":14},String(Math.round(value)));}
+  for(let i=0;i<=4;i++){const value=xmin+(xmax-xmin)*i/4,xx=x(value);
+    node("line",{x1:xx,y1:H-B,x2:xx,y2:H-B+6,stroke:"#9bb1c6","stroke-width":1});
+    node("text",{x:xx,y:H-22,"text-anchor":"middle",fill:"#9bb1c6","font-size":14},String(Math.round(value)));}
   node("text",{x:(W+L-R)/2,y:H-3,"text-anchor":"middle",fill:"#9bb1c6","font-size":13},"Game number (chronological · per time class)");
   // Draw a finding in its own control and calendar-matched context in every
   // other visible control. A chart's x-axis is game number within each control.
