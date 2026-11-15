@@ -823,7 +823,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261115-insights-index-1");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261115-insights-report-2");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
