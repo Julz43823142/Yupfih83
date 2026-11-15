@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261115-insights-index-1";
+const REVISION = "20261115-insights-report-2";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
