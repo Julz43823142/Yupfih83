@@ -187,7 +187,23 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
   const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
   const data = series.flatMap(({key,label,rows}) => rows.filter(r => Number.isFinite(r?.[field]))
     .map((r,i) => ({...r,control:key,label,position:Number.isFinite(r.game)?r.game:i+1})));
-  if(!data.length) return empty(parent,"Choose at least one time control");
+  if(!data.length){
+    const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
+    svg.classList.add("timeline-svg");svg.setAttribute("viewBox","0 0 1340 365");
+    svg.setAttribute("role","img");svg.setAttribute("aria-label","Empty chart with zero observations");
+    parent.appendChild(svg);
+    for(let i=0;i<=4;i++){
+      const y=32+i*70;
+      const line=document.createElementNS(ns,"line");
+      for(const [k,v] of Object.entries({x1:76,y1:y,x2:1312,y2:y,stroke:"#29405a","stroke-width":1}))line.setAttribute(k,v);
+      svg.appendChild(line);
+      const label=document.createElementNS(ns,"text");
+      for(const [k,v] of Object.entries({x:64,y:y+5,"text-anchor":"end",fill:"#9bb1c6","font-size":14}))label.setAttribute(k,v);
+      label.textContent="0"+unit;svg.appendChild(label);
+    }
+    add(parent,"p","timeline-footnote","No time controls selected · 0 observations");
+    return;
+  }
   const W=1340,H=365,L=76,R=28,T=32,B=53;
   const xs=data.map(r=>r.position),xmin=Math.min(1,...xs),xmax=Math.max(...xs);
   const values=data.flatMap(r=>[r[field],compareField?r[compareField]:null,overlayField?r[overlayField]:null].filter(Number.isFinite));
@@ -309,7 +325,7 @@ function realCharts(parent,data){
   for(const kind of ["rapid","blitz","bullet"]){
     if(Array.isArray(data.charts?.[kind]))data.charts[kind]=withPerGameScores(data.charts[kind]);
   }
-  sectionTitle(parent,"Game-by-game analysis","Select any combination of Rapid, Blitz and Bullet to compare.");
+  sectionTitle(parent,"Game-by-game analysis");
   if(Number(data.games)<20)add(parent,"p","v87-sample-warning","Small sample: only "+number(data.games,0)+" games were reviewed. These charts are descriptive and less reliable for small samples.");
   const help=add(parent,"div","period-explanation");
   const high=add(help,"p","");
@@ -317,7 +333,7 @@ function realCharts(parent,data){
   add(high,"span","","A stretch of games with results unusually above Elo expectations that passed statistical checks. This period is highlighted for closer statistical analysis.");
   const context=add(help,"p","");
   add(context,"strong","period-context","Context — ");
-  add(context,"span","","Games from other time controls played during the same calendar period. The purple area is shown for comparison, not as an additional HIGH finding.");
+  add(context,"span","","Games from other time controls played during the same calendar period. The purple area is shown for comparison, not as an additional performance finding.");
   const grid=add(parent,"div","timeline-grid");
   const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
   const selected=data.method3?.selected;
@@ -386,7 +402,7 @@ function realCharts(parent,data){
           field==="median_think_seconds"?"timing_mean_30":null;
         timelineChart(plot,active,field,unit,compare,overlays,smoothing);
       }
-      else empty(plot,"Select Rapid, Blitz or Bullet to show the chart");
+      else timelineChart(plot,[],field,unit);
       for(const [key,btn] of buttons){const on=selected.has(key);
         btn.disabled=careerMode?!careerData.charts[key]?.length:!available.some(([name])=>name===key);
         btn.classList.toggle("is-active",on);btn.setAttribute("aria-pressed",String(on));}
@@ -558,122 +574,51 @@ function showMeasuredDuration(result) {
   target.hidden=false;
 }
 
-function renderDiscordEquivalentReport(panel,data){
-  const groups=["rapid","blitz","bullet"];
+function renderAdditionalInsights(panel,data){
   const charts=data.charts||{};
-  const method=data.method3||{};
-  const selected=method.selected||{};
-  const marked=Array.isArray(method.marked_periods)?method.marked_periods:[];
-  sectionTitle(panel,"Nine-part Insights report","The same nine reporting topics as Discord, with interactive charts and supporting evidence. Missing observations are shown as unavailable, never estimated.");
+  const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
+  const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
+  sectionTitle(panel,"Additional Insights","Thinking-time patterns, clock pressure and rolling win rate.");
   const grid=add(panel,"div","timeline-grid");
-  function chart(title,subtitle){
+  function combined(title,field,unit="",description=""){
     const card=add(grid,"article","timeline-card");
     add(card,"h4","",title);
-    add(card,"p","v87-muted",subtitle);
-    return add(card,"div","timeline-plot");
-  }
-  function plot(plotNode,kind,field,unit="",compare=null,overlays=marked){
-    const rows=Array.isArray(charts[kind])?charts[kind]:[];
-    if(!rows.some(row=>Number.isFinite(row[field]))){empty(plotNode,"No eligible observations for this chart");return;}
-    timelineChart(plotNode,[{key:kind,label:kind[0].toUpperCase()+kind.slice(1),rows}],field,unit,compare,overlays);
-  }
-  for(const kind of groups){
-    const p=chart((kind[0].toUpperCase()+kind.slice(1))+" — game history","Official Accuracy, ratings, results and clock observations for this time class.");
-    const sub=add(p,"div","discord-equivalent-charts");
-    for(const [field,label,unit,compare] of [["official_accuracy","Official Accuracy","%",null],["player_elo","Player rating","",null],["rolling_observed","Observed vs Elo expected","%","rolling_expected"],["median_think_seconds","Median thinking time","s",null]]){
-      const block=add(sub,"div","discord-equivalent-subchart");
-      add(block,"h5","",label);
-      plot(block,kind,field,unit,compare);
-    }
-  }
-  {
-    const p=chart("Selected chronological period","The same selected time control, dates, evidence and comparison context as Discord.");
-    if(!selected.time_class)empty(p,"No selected chronological period");
-    else{
-      add(p,"p","v87-muted",String(selected.time_class).toUpperCase()+" · "+number(selected.games,0)+" games · "+String(selected.first_ended||"")+" – "+String(selected.last_ended||""));
-      const res=selected.results||{};
-      const stats=add(p,"div","v87-metrics");
-      for(const [label,value] of [["Expected points",res.expected_points],["Scored points",res.actual_points],["Score excess",res.score_excess],["Standardized residual",res.standardized_residual]])metric(stats,label,typeof value==="number"?number(value,2):"Unavailable");
-      plot(p,selected.time_class,"official_accuracy","%",null,[]);
-      plot(p,selected.time_class,"rolling_observed","%","rolling_expected",[]);
-    }
-  }
-  {
-    const p=chart("Rolling results history","Observed and Elo-expected points across chronological games.");
-    for(const kind of groups){
-      const block=add(p,"div","discord-equivalent-subchart");
-      add(block,"h5","",kind.toUpperCase());
-      plot(block,kind,"rolling_observed","%","rolling_expected");
-    }
-  }
-  {
-    const p=chart("Opening choices and changes","Observed opening frequencies; descriptive context, not scoring evidence.");
-    const entries=[];
-    for(const kind of groups)for(const group of (data.opening_summary?.[kind]||[]))for(const choice of (group.choices||[]))
-      entries.push({label:kind+" · "+group.group+" · "+choice.name,value:Number(choice.games)});
-    entries.sort((a,b)=>b.value-a.value);
-    if(entries.length)bars(p,entries.slice(0,12));
-    else empty(p,"Opening information unavailable");
-    if(method.opening_shift)add(p,"p","v87-muted","Selected-period opening change: "+JSON.stringify(method.opening_shift));
-  }
-  {
-    const p=chart("Accuracy frequency and timing","Published Accuracy coverage and PGN-derived thinking time.");
-    const freq=method.accuracy_frequency;
-    if(freq&&typeof freq==="object"){
-      const detail=add(p,"details","");
-      add(detail,"summary","","Accuracy frequency diagnostics");
-      add(detail,"pre","v87-muted",JSON.stringify(freq,null,2));
-    }
-    for(const kind of groups){
-      const block=add(p,"div","discord-equivalent-subchart");
-      add(block,"h5","",kind.toUpperCase()+" · timing");
-      plot(block,kind,"median_think_seconds","s");
-    }
-  }
-  {
-    const p=chart("Ratings and pooled win rate","Ratings by time class and pooled 50-game rolling win rate; draws do not count as wins.");
-    for(const kind of groups){
-      const block=add(p,"div","discord-equivalent-subchart");
-      add(block,"h5","",kind.toUpperCase()+" · rating");
-      plot(block,kind,"player_elo");
-    }
-    const wins=Array.isArray(data.rolling_winrate)?data.rolling_winrate:[];
-    const block=add(p,"div","discord-equivalent-subchart");
-    add(block,"h5","","Pooled rolling win rate");
-    if(wins.some(x=>Number.isFinite(x.win_rate)))timelineChart(block,[{key:"all",label:"Rapid + Blitz + Bullet",rows:wins}],"win_rate","%");
-    else empty(block,"Not enough completed games for a rolling win rate");
-  }
-  {
-    const p=chart("Clock pressure and game phases","Observed thinking time under clock pressure and in early, middle and late moves; descriptive only.");
-    for(const kind of groups){
-      const block=add(p,"div","discord-equivalent-subchart");
-      add(block,"h5","",kind.toUpperCase()+" · clock pressure ratio");
-      plot(block,kind,"pressure_ratio");
-      for(const [field,label] of [["early_think_seconds","Early moves"],["middle_think_seconds","Middle moves"],["late_think_seconds","Late moves"]]){
-        const phase=add(p,"div","discord-equivalent-subchart");
-        add(phase,"h5","",kind.toUpperCase()+" · "+label);
-        plot(phase,kind,field,"s");
+    if(description)add(card,"p","v87-muted",description);
+    const plot=add(card,"div","timeline-plot");
+    const controls=add(card,"div","timeline-controls");
+    controls.setAttribute("role","group");
+    controls.setAttribute("aria-label",title+" · visible time controls");
+    const available=groups.filter(([key])=>Array.isArray(charts[key])&&charts[key].some(r=>Number.isFinite(r?.[field])));
+    const chosen=new Set(available.length?[available[0][0]]:[]);
+    const buttons=new Map();
+    function draw(){
+      plot.replaceChildren();
+      const active=groups.filter(([key])=>chosen.has(key)).map(([key,label])=>({key,label,rows:charts[key]||[]}));
+      timelineChart(plot,active,field,unit,null,marked);
+      for(const [key,btn] of buttons){
+        const on=chosen.has(key);btn.classList.toggle("is-active",on);btn.setAttribute("aria-pressed",String(on));
       }
     }
+    for(const [key,label] of groups){
+      const btn=add(controls,"button","timeline-control",label);btn.type="button";
+      btn.disabled=!available.some(([name])=>name===key);
+      btn.title=btn.disabled?"No observations for "+label:"Toggle "+label;
+      btn.addEventListener("click",()=>{if(chosen.has(key))chosen.delete(key);else chosen.add(key);draw();});
+      buttons.set(key,btn);
+    }
+    draw();
   }
-  sectionTitle(panel,"Discord report details","Review boundaries, reliability, coverage and contextual diagnostics.");
-  const details=add(panel,"div","discord-equivalent-details");
-  const sections=[
-    ["Selected period",selected],["Earlier vs recent history",method.history_changes],
-    ["History search and safeguards",{searched_windows:method.searched_windows,blocks_checked:method.blocks_checked,segments_checked:method.segments_checked,period_guard_counts:method.period_guard_counts,selected_high_effect_screen:method.selected_high_effect_screen}],
-    ["Rating reliability",method.rating_reliability],["Data quality",method.data_quality],
-    ["Earlier Accuracy reference",selected.accuracy],["Accuracy search guard",selected.accuracy_search_guard],
-    ["Opponent groups",method.subject?.opponent_groups],["Other time controls in selected dates",method.period_context],
-    ["Accuracy frequency",method.accuracy_frequency],["Additional observations",method.manual_review_observations],
-    ["Method and limitations",{method:method.method,limits:method.limits,accuracy_role:method.accuracy_role,period_scope:method.period_scope}]
-  ];
-  for(const [name,value] of sections){
-    const section=add(details,"details","discord-equivalent-detail");
-    add(section,"summary","",name);
-    const body=add(section,"pre","v87-muted",value==null?"Unavailable":JSON.stringify(value,null,2));
-    body.style.whiteSpace="pre-wrap";
-    body.style.overflowWrap="anywhere";
-  }
+  combined("Clock pressure ratio","pressure_ratio","","Observed clock-pressure changes across games.");
+  combined("Early moves · thinking time","early_think_seconds","s");
+  combined("Middle moves · thinking time","middle_think_seconds","s");
+  combined("Late moves · thinking time","late_think_seconds","s");
+  const wins=Array.isArray(data.rolling_winrate)?data.rolling_winrate:[];
+  const winCard=add(grid,"article","timeline-card");
+  add(winCard,"h4","","Pooled rolling win rate");
+  add(winCard,"p","v87-muted","Rapid, Blitz and Bullet combined · 50-game rolling window.");
+  const winPlot=add(winCard,"div","timeline-plot");
+  if(wins.some(r=>Number.isFinite(r.win_rate)))timelineChart(winPlot,[{key:"rapid",label:"Combined games",rows:wins}],"win_rate","%");
+  else timelineChart(winPlot,[],"win_rate","%");
   add(panel,"p","v87-note","Automated statistical screening only. These charts and the Review Index are not evidence of cheating.");
 }
 
@@ -700,11 +645,11 @@ function renderReview(data) {
   if (highlightedIndex !== -1) {
     add(left, "p", "v87-priority-finding", cleanedReasons[highlightedIndex]);
   }
-  add(left, "p", "v87-muted", "Statistical review priority based on available game data.");
+  
   const levels=add(panel,"div","v87-performance-levels");
   add(levels,"strong","","Performance levels");
   const levelList=add(levels,"ol","");
-  for(const [key,name] of [["INSUFFICIENT DATA","Insufficient Data"],["LOW","Within Typical Performance Range"],["MODERATE","Moderate Performance Range"],["HIGH","Notable Performance"],["VERY HIGH","Very Strong Statistical Deviation"]]){
+  for(const [key,name] of [["VERY HIGH","Very Strong Statistical Deviation"],["HIGH","Notable Performance"],["MODERATE","Moderate Performance Variation"],["LOW","Within Typical Performance Range"],["INSUFFICIENT DATA","Insufficient Data"]]){
     const item=add(levelList,"li","",name);
     if(key===String(data.priority||"").toUpperCase()){
       item.style.fontWeight="800";
@@ -791,7 +736,7 @@ function renderReview(data) {
       String(shift.during||"")+" → "+String(shift.after||"")+
       ". Opening changes can have many explanations.");
   }
-  renderDiscordEquivalentReport(panel,data);
+  renderAdditionalInsights(panel,data);
   const foot = add(panel, "p", "v87-note",
     "Charts summarize patterns in the available game data.");
 }
