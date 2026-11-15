@@ -1,11 +1,11 @@
-/* EloScanner Fair Play v87 — on-device Python/WASM Web Worker.
+/* EloScanner Insights v87 — on-device Python/WASM Web Worker.
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261103-local-v87-15min-5";
+const REVISION = "20261115-insights-report-2";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
-  "fairplay_method3.py", "fairplay_method3_coverage.py",
+  "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
   "fairplay_method3_windows.py", "fairplay_method3_reliability.py",
   "fairplay_method3_accuracy_frequency.py", "fairplay_method3_review_triage.py",
   "fairplay_method3_history.py", "fairplay_method3_context.py",
@@ -25,10 +25,10 @@ function progress(message, phase = "preparing") {
   self.postMessage({type:"progress",progress:String(message),phase});
 }
 async function preparePython() {
-  progress("Loading Fair Play v87 on your device…","preparing");
+  progress("Loading Insights v87 on your device…","preparing");
   importScripts(PYODIDE_URL+"pyodide.js");
   const py = await self.loadPyodide({indexURL:PYODIDE_URL});
-  progress("Loading the original Fair Play calculations…","dependencies");
+  progress("Loading the original Insights calculations…","dependencies");
   const files = await Promise.all(PYTHON_FILES.map(async path => {
     const response = await fetch("/client-v87/"+path+"?v="+REVISION,{cache:"force-cache"});
     if(!response.ok)throw Error("Missing local analysis module: "+path);
@@ -137,14 +137,14 @@ async function run(username){
   while(index<months.length&&candidates<5300)await nextArchive();
   const py=await runtime;
   for(let attempt=0;attempt<=months.length;attempt++){
-    progress("Calculating the original Fair Play v87 report locally…","analyzing");
+    progress("Calculating the original Insights v87 report locally…","analyzing");
     py.FS.writeFile("/home/pyodide/v87-input.json",JSON.stringify(input),{encoding:"utf8"});
     py.globals.set("v87_target",name);
     try{
       py.runPython("browser_adapter.run(v87_target)");
       const report=JSON.parse(py.FS.readFile("/home/pyodide/v87-result.json",{encoding:"utf8"}));
       if(report.version!=="fairplay-v87-review-reliability"||report.username!==name)
-        throw Error("Unexpected local Fair Play output.");
+        throw Error("Unexpected local Insights output.");
       self.postMessage({type:"complete",result:report});
       return;
     }catch(error){

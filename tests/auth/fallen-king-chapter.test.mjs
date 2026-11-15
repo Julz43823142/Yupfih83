@@ -32,7 +32,7 @@ test('static mesh streaming keeps every triangle and releases old GPU buffers',(
   bufferData(_target,values){uploads.push(values.length);},
   deleteBuffer(buffer){deleted.push(buffer);}
  };
- const simulate=new Function('gl','staticBuffer',`
+ const simulate=new Function('gl','staticBuffer','uploads',`
   let vertices=[],staticReady=false,staticGeometryBuilding=true,staticChunks=[];
   const MAX_VERTEX_FLOATS=81;
   ${functions}
@@ -40,12 +40,12 @@ test('static mesh streaming keeps every triangle and releases old GPU buffers',(
   ${triangle}
   for(let i=0;i<40;i++)tri([0,0,i],[1,0,i],[0,1,i],'#ffffff');
   flushStaticChunk();
-  const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0),
+  const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0)/3,
    chunkCount:staticChunks.length,largest:Math.max(...uploads)};
   clearStaticGeometry();
   return {...before,remaining:staticChunks.length};
  `);
- const result=simulate(gl,{id:0});
+ const result=simulate(gl,{id:0},uploads);
  assert.equal(result.triangles,40,'later scenery triangles must never disappear');
  assert.ok(result.chunkCount>1);
  assert.ok(result.largest<=81,'temporary CPU meshes stay bounded');
