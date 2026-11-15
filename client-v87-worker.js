@@ -144,7 +144,7 @@ async function run(username){
       py.runPython("browser_adapter.run(v87_target)");
       const report=JSON.parse(py.FS.readFile("/home/pyodide/v87-result.json",{encoding:"utf8"}));
       if(report.version!=="fairplay-v87-review-reliability"||report.username!==name)
-        throw Error("Unexpected local Fair Play output.");
+        throw Error("Unexpected local Insights output.");
       self.postMessage({type:"complete",result:report});
       return;
     }catch(error){
