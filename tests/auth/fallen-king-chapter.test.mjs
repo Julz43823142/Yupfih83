@@ -40,7 +40,7 @@ test('static mesh streaming keeps every triangle and releases old GPU buffers',(
   ${triangle}
   for(let i=0;i<40;i++)tri([0,0,i],[1,0,i],[0,1,i],'#ffffff');
   flushStaticChunk();
-  const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0),
+  const before={triangles:staticChunks.reduce((n,c)=>n+c.count,0)/3,
    chunkCount:staticChunks.length,largest:Math.max(...uploads)};
   clearStaticGeometry();
   return {...before,remaining:staticChunks.length};
