@@ -4,6 +4,7 @@ import math
 import os
 
 from fairplay_method3 import review, observations
+from fairplay_deviation_display import suspicion_score
 
 
 def clean(value, depth=0):
@@ -101,6 +102,7 @@ def main():
         "username": result.username,
         "priority": result.priority,
         "confidence": result.confidence,
+        "review_index": suspicion_score(result),
         "games": len(result.games),
         "elapsed_seconds": clean(result.elapsed),
         "selected_games": result.selected_games,
