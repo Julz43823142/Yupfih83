@@ -43,6 +43,7 @@
   const me=session?.user?.username?.toLowerCase()===data.username.toLowerCase();
   if(me){
    el('profile-edit').hidden=false;
+   const ownAvatar=el('profile-avatar');ownAvatar.setAttribute('role','link');ownAvatar.tabIndex=0;ownAvatar.title='Change profile photo';ownAvatar.setAttribute('aria-label','Change your profile photo');ownAvatar.classList.add('editable-avatar');ownAvatar.addEventListener('click',()=>{location.href='/account.html#account-settings'});ownAvatar.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='/account.html#account-settings'}});
    if(data.role==='admin'){
     const dashboard=document.createElement('a');dashboard.href='/admin.html';dashboard.className='profile-edit';dashboard.textContent='Admin dashboard';
     el('profile-edit').after(dashboard);
