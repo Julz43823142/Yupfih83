@@ -32,7 +32,26 @@
       section.append(a);
     }
   }
-  const renderAccount = user => { render(user); renderMobileMenu(user); };
+  // Mark the current destination consistently across the homepage menu,
+  // tool menus and pages that render their navigation dynamically.
+  function markCurrentMenuItem() {
+    const path = location.pathname.replace(/\/$/, '') || '/';
+    const aliases = {
+      '/opening-explorer.html': '/analysis.html',
+      '/puzzle-top100.html': '/puzzles.html',
+      '/knight-maze.html': '/minigames.html'
+    };
+    const activePath = aliases[path] || path;
+    for (const menu of header.querySelectorAll('.mobile-chess-menu nav, .elo-global-menu nav')) {
+      for (const link of menu.querySelectorAll('a[href]')) {
+        const target = new URL(link.getAttribute('href'), location.origin).pathname.replace(/\/$/, '') || '/';
+        const current = target === activePath;
+        if (current) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      }
+    }
+  }
+  const renderAccount = user => { render(user); renderMobileMenu(user); markCurrentMenuItem(); };
   renderAccount(null);
   // One shared request per page, no polling, no session token in browser storage.
   window.eloAccountSession = fetch('/api/auth/get-session', { credentials: 'same-origin', cache: 'no-store' })
