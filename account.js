@@ -85,7 +85,10 @@
   const photoInput = byId('profile-photo-input');
   const photoSave = byId('profile-photo-save');
   const avatarButton = byId('account-avatar');
-  avatarButton.addEventListener('click', () => photoInput.click());
+  const photoDialog = byId('profile-photo-dialog');
+  avatarButton.addEventListener('click', () => { setPhotoStatus(''); photoDialog.showModal(); });
+  byId('profile-photo-choose').addEventListener('click', () => photoInput.click());
+  byId('profile-photo-close').addEventListener('click', () => photoDialog.close());
   function setPhotoStatus(text) { byId('profile-photo-status').textContent = text; }
   photoInput.addEventListener('change', async () => {
     pendingPhoto = null; photoSave.disabled = true;
@@ -109,7 +112,7 @@
       photoSave.disabled = false;
       setPhotoStatus('Saving your photo…');
       await savePhoto(pendingPhoto);
-    } catch { setPhotoStatus('Could not read this image. Try another picture.'); }
+    } catch (error) { setPhotoStatus(error?.message || 'Could not read this image. Try another picture.'); }
   });
   async function savePhoto(image) {
     if (!currentUser) { setPhotoStatus('Please sign in first.'); return; }
@@ -119,6 +122,7 @@
       if (!result.success) throw new Error(result.message || 'Could not save photo.');
       showUser({...currentUser,image:result.image});
       setPhotoStatus(image ? 'Profile photo saved.' : 'Profile photo removed.');
+      photoDialog.close();
       pendingPhoto = null; photoInput.value = '';
     } catch (error) { setPhotoStatus(error.message || 'Could not save photo.'); }
     finally { photoSave.disabled = !pendingPhoto; }
