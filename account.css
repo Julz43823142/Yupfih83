@@ -86,3 +86,6 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .profile-photo-dialog .profile-photo-actions{margin:18px 0}
 .profile-photo-dialog button{background:#1b4258;color:#e6f6ff;border:1px solid #5686a1;border-radius:9px;cursor:pointer;padding:11px 14px}
 .profile-photo-dialog button:hover{background:#245875}
+
+/* Current page indication is consistent on every mobile navigation menu. */
+.mobile-chess-menu nav a[aria-current="page"],.elo-global-menu nav a[aria-current="page"]{background:#247da5!important;border-color:#74e8ff!important;border-left:5px solid #8cf2ff!important;color:#fff!important;box-shadow:inset 3px 0 #8cf2ff!important;font-weight:800!important}
