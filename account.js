@@ -80,7 +80,50 @@
       // Fail closed: never offer password removal when its safety status is unavailable.
     }
   }
+  let currentUser = null;
+  let pendingPhoto = null;
+  const photoInput = byId('profile-photo-input');
+  const photoSave = byId('profile-photo-save');
+  function setPhotoStatus(text) { byId('profile-photo-status').textContent = text; }
+  photoInput.addEventListener('change', async () => {
+    pendingPhoto = null; photoSave.disabled = true;
+    const file = photoInput.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      setPhotoStatus('Choose a JPEG, PNG or WebP under 8 MB.'); return;
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 128;
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff'; context.fillRect(0,0,128,128);
+      const scale = Math.max(128/bitmap.width,128/bitmap.height);
+      const width=bitmap.width*scale,height=bitmap.height*scale;
+      context.drawImage(bitmap,(128-width)/2,(128-height)/2,width,height);
+      bitmap.close();
+      pendingPhoto = canvas.toDataURL('image/jpeg',0.7);
+      if (pendingPhoto.length > 45000) throw new Error('Image could not be compressed enough.');
+      photoSave.disabled = false;
+      setPhotoStatus('Photo ready. Select Save photo.');
+    } catch { setPhotoStatus('Could not read this image. Try another picture.'); }
+  });
+  async function savePhoto(image) {
+    if (!currentUser) { setPhotoStatus('Please sign in first.'); return; }
+    photoSave.disabled = true;
+    try {
+      const result = await post('profile-photo', {image});
+      if (!result.success) throw new Error(result.message || 'Could not save photo.');
+      showUser({...currentUser,image:result.image});
+      setPhotoStatus(image ? 'Profile photo saved.' : 'Profile photo removed.');
+      pendingPhoto = null; photoInput.value = '';
+    } catch (error) { setPhotoStatus(error.message || 'Could not save photo.'); }
+    finally { photoSave.disabled = !pendingPhoto; }
+  }
+  photoSave.addEventListener('click', () => { if(pendingPhoto) void savePhoto(pendingPhoto); });
+  byId('profile-photo-remove').addEventListener('click', () => void savePhoto(null));
   function showUser(user) {
+    currentUser = user;
     byId('registration-panel').hidden = true;
     byId('login-panel').hidden = !!user;
     byId('profile-panel').hidden = !user;
@@ -88,7 +131,10 @@
     if (user) {
       byId('profile-username').textContent = user.username;
       byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
-      byId('account-avatar').textContent = user.username.slice(0, 2).toUpperCase();
+      const avatar = byId('account-avatar');
+      avatar.textContent = user.image ? '' : user.username.slice(0, 2).toUpperCase();
+      avatar.style.backgroundImage = user.image ? 'url("' + user.image + '")' : '';
+      avatar.classList.toggle('has-photo', !!user.image);
       byId('profile-created').textContent = `Member since ${new Date(user.createdAt).toLocaleDateString()}`;
     }
     if (!user) { byId('password-form').reset(); byId('delete-form').reset(); }

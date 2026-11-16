@@ -68,3 +68,6 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 .account-settings-group>.account-section-intro{font-size:13px;color:#a5c5d6;margin:0 10px 12px}
 .account-settings-group .account-card{margin:10px 0 16px;padding:22px}
 @media(max-width:600px){.account-settings-group{padding:0 9px}.account-settings-group .account-card{padding:18px 13px}}
+
+/* Account profile photo */
+.account-avatar.has-photo{background-size:cover;background-position:center;color:transparent}.profile-photo-settings input[type=file]{display:block;max-width:100%;margin:12px 0}.profile-photo-actions{display:flex;flex-wrap:wrap;gap:10px}.profile-photo-actions button{padding:10px 14px}
