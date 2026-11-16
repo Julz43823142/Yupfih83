@@ -1,0 +1,57 @@
+name: Refresh static example player reports
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-example-reports.yml'
+      - 'scripts/generate-example-reports.py'
+      - 'client-v87/**'
+  schedule:
+    - cron: '15 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-example-reports
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install v87 data collector
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Calculate genuine reports and insights
+        run: python scripts/generate-example-reports.py
+      - name: Validate report snapshots
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for slug,user in [('magnus-carlsen','magnuscarlsen'),('hikaru-nakamura','hikaru')]:
+              data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
+              assert data['schema']==1 and data['username']==user
+              assert data['report']['version']=='fairplay-v87-review-reliability'
+              assert data['report']['username']==user and data['report']['games']>0
+              assert isinstance(data['insights'],list) and len(data['insights'])>0
+              print(slug,data['report']['games'],'games reviewed')
+          PY
+      - name: Publish static snapshots only after both succeed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/example-reports/magnus-carlsen.json assets/example-reports/hikaru-nakamura.json
+          if ! git diff --cached --quiet; then
+            git commit -m "179"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
