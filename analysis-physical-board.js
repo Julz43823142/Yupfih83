@@ -5,6 +5,17 @@ const palette=root.querySelector(".physical-palette");
 const status=root.querySelector(".physical-status");
 const pieces={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘",P:"♙",k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
 let squares=Array(64).fill(""),chosen="P",flipped=false;
+window.addEventListener('elo-scanner-placement',event=>{
+  const placement=event.detail?.placement;
+  if(typeof placement!=='string')return;
+  const ranks=placement.split('/');
+  if(ranks.length!==8)return;
+  const next=[];
+  for(const rank of ranks){for(const char of rank){if(/[1-8]/.test(char))next.push(...Array(Number(char)).fill(''));else if(pieces[char])next.push(char);else return;}}
+  if(next.length!==64)return;
+  squares=next;draw();root.open=true;
+  status.textContent='Recognized pieces loaded for review. Correct any squares, then analyze.';
+});
 function draw(){
   board.replaceChildren();
   for(let visual=0;visual<64;visual++){
