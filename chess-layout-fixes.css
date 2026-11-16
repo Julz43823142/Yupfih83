@@ -162,3 +162,57 @@ body.elo-unified-chess .play-selector .play-bot-tier .play-bot{
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
  }
 }
+
+/* 177: Bot library follows the board on desktop, with readable cards and no
+   nested scroll container. Override legacy three-column and sidebar rules. */
+body.elo-unified-chess .play-page>.play-main-layout{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:32px!important;
+  justify-items:center!important;
+}
+body.elo-unified-chess .play-main-layout>.play-game{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:min(100%,900px)!important;
+  max-width:900px!important;
+  margin-inline:auto!important;
+}
+body.elo-unified-chess .play-main-layout>.play-selector{
+  grid-column:1!important;
+  grid-row:2!important;
+  width:min(100%,1050px)!important;
+  max-width:1050px!important;
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:22px!important;
+  margin:0 auto!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bots{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:16px!important;
+  padding:12px 16px 20px!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bot{
+  min-height:120px!important;
+  padding:16px!important;
+  gap:12px!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-avatar{
+  width:58px!important;
+  height:58px!important;
+  font-size:34px!important;
+}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info strong{font-size:16px!important}
+body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info small{font-size:14px!important}
+@media(max-width:700px){
+  body.elo-unified-chess .play-page>.play-main-layout{gap:20px!important}
+  body.elo-unified-chess .play-main-layout>.play-selector{padding:12px!important}
+  body.elo-unified-chess .play-selector .play-bot-tier .play-bots{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:8px!important}
+  body.elo-unified-chess .play-selector .play-bot-tier .play-bot{min-height:100px!important;padding:9px!important;gap:6px!important}
+  body.elo-unified-chess .play-selector .play-bot-tier .play-avatar{width:44px!important;height:44px!important;font-size:27px!important}
+  body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info strong{font-size:13px!important}
+  body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info small{font-size:12px!important}
+}
