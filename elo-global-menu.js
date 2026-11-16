@@ -29,7 +29,7 @@
  if(current){
   document.body.dataset.activeTool=current.textContent.toLowerCase().replace(/\s+/g,'-');
   summary.setAttribute('aria-label','Open navigatiemenu. Current page: '+current.textContent);
-  caption.textContent='Menu · '+current.textContent;
+  caption.textContent='Menu';
  }
  details.append(summary,nav);header.append(details);
  document.addEventListener('pointerdown',e=>{if(details.open&&!details.contains(e.target))details.open=false});
