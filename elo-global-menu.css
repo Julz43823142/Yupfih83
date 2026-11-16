@@ -21,3 +21,19 @@ body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#227fa5!
 body.elo-subpage .elo-global-menu:has(a[aria-current="page"]) summary{background:#175b7d!important;border-color:#69dff4!important;color:#e4faff!important;box-shadow:inset 3px 0 #7ceeff,0 0 12px #32a9cf30!important}
 body.elo-subpage .elo-global-menu nav a[aria-current="page"]{background:#247da5!important;border-color:#74e8ff!important;color:#fff!important;box-shadow:inset 4px 0 #8cf2ff!important}
 body.elo-subpage .elo-global-menu summary{min-width:145px}
+
+/* 178: Unmissable current-page indication, including after account re-render. */
+body.elo-subpage .elo-global-menu nav a.elo-menu-active,
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]{
+ background:#2a91be!important;
+ border:2px solid #a2f5ff!important;
+ color:#fff!important;
+ font-weight:900!important;
+ box-shadow:inset 5px 0 #bcffff,0 0 0 1px #52b8d7!important;
+}
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]::after{
+ content:"✓ Current";float:right;font-size:11px;color:#d3fbff;margin-left:8px;
+}
+body.elo-subpage .elo-global-menu:has(.elo-menu-active) summary{
+ background:#195e7d!important;border-color:#8eeefe!important;
+}
