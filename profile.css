@@ -31,3 +31,5 @@
 
 /* Uploaded avatars on public profiles and member directory. */
 .profile-avatar.has-photo,.member-avatar.has-photo{background-size:cover;background-position:center;background-repeat:no-repeat;color:transparent}
+
+.profile-avatar.editable-avatar{cursor:pointer;outline-offset:4px}.profile-avatar.editable-avatar:hover,.profile-avatar.editable-avatar:focus-visible{outline:3px solid #8bdbe8}
