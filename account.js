@@ -132,6 +132,7 @@
     byId('profile-panel').hidden = !user;
     byId('passkey-profile-panel').hidden = !(user && config?.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
     if (user) {
+      if (location.hash === '#account-settings') byId('account-settings').open = true;
       byId('profile-username').textContent = user.username;
       byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
       const avatar = byId('account-avatar');
