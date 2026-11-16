@@ -65,6 +65,7 @@ def generate(username,slug):
     if report.get('version')!='fairplay-v87-review-reliability' or report.get('username')!=username.lower() or report.get('games',0)<1:
         raise RuntimeError('Incomplete or invalid v87 report: '+username)
     with requests.Session() as session:
+        session.headers.update({'User-Agent':'EloScanner/1.0 (public example reports; eloscanner.com)'})
         base='https://api.chess.com/pub/player/'+username.lower()
         profile=read_json(session,base)
         stats=read_json(session,base+'/stats')
