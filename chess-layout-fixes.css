@@ -263,3 +263,15 @@ body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info small{font-s
   gap:12px!important;
  }
 }
+
+/* Visible bot chooser shortcut even when the roster begins below the fold. */
+body.elo-unified-chess .play-bots-jump{
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:7px 10px;border-radius:9px;border:1px solid #60cce9;
+ background:#174b65;color:#dcfaff;text-decoration:none;
+ font:700 12px system-ui,sans-serif;white-space:nowrap;
+}
+body.elo-unified-chess .play-bots-jump:hover,
+body.elo-unified-chess .play-bots-jump:focus-visible{background:#24779b}
+body.elo-unified-chess #play-bot-list{scroll-margin-top:95px}
+@media(max-width:460px){body.elo-unified-chess .play-board-top{flex-wrap:wrap}}
