@@ -216,3 +216,62 @@ body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info small{font-s
   body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info strong{font-size:13px!important}
   body.elo-unified-chess .play-selector .play-bot-tier .play-bot-info small{font-size:12px!important}
 }
+
+/* 178: Wide desktop Play layout: generous controls | board | bot chat/moves.
+   The complete bot roster remains below the game, without nested scrolling. */
+@media(min-width:1050px){
+ body.elo-unified-chess .play-page{
+  width:min(1520px,calc(100% - 40px))!important;
+  max-width:1520px!important;
+ }
+ body.elo-unified-chess .play-main-layout>.play-game{
+  width:100%!important;max-width:1450px!important;
+ }
+ body.elo-unified-chess .play-game>.play-layout{
+  display:grid!important;
+  grid-template-columns:minmax(190px,225px) minmax(0,720px) minmax(245px,310px)!important;
+  grid-template-rows:auto!important;
+  gap:20px!important;
+  align-items:start!important;
+  justify-content:center!important;
+ }
+ body.elo-unified-chess .play-layout>.play-controls-panel{
+  grid-column:1!important;grid-row:1!important;padding:18px!important;
+ }
+ body.elo-unified-chess .play-layout>.play-board-card{
+  grid-column:2!important;grid-row:1!important;
+  width:100%!important;max-width:720px!important;
+ }
+ body.elo-unified-chess .play-layout>.play-panel{
+  grid-column:3!important;grid-row:1!important;
+  width:100%!important;max-width:none!important;
+  margin:0!important;padding:16px!important;
+ }
+ body.elo-unified-chess .play-controls-panel h2{font-size:20px!important;margin-bottom:18px!important}
+ body.elo-unified-chess .play-side-toolbar{gap:12px!important}
+ body.elo-unified-chess .play-side-toolbar button{
+  min-height:46px!important;padding:11px 12px!important;
+  font-size:14px!important;line-height:1.3!important;
+ }
+ body.elo-unified-chess .play-main-layout>.play-selector{
+  width:min(100%,1200px)!important;max-width:1200px!important;
+ }
+}
+@media(min-width:1050px) and (max-width:1230px){
+ body.elo-unified-chess .play-game>.play-layout{
+  grid-template-columns:minmax(165px,185px) minmax(0,1fr) minmax(210px,245px)!important;
+  gap:12px!important;
+ }
+}
+
+/* Visible bot chooser shortcut even when the roster begins below the fold. */
+body.elo-unified-chess .play-bots-jump{
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:7px 10px;border-radius:9px;border:1px solid #60cce9;
+ background:#174b65;color:#dcfaff;text-decoration:none;
+ font:700 12px system-ui,sans-serif;white-space:nowrap;
+}
+body.elo-unified-chess .play-bots-jump:hover,
+body.elo-unified-chess .play-bots-jump:focus-visible{background:#24779b}
+body.elo-unified-chess #play-bot-list{scroll-margin-top:95px}
+@media(max-width:460px){body.elo-unified-chess .play-board-top{flex-wrap:wrap}}

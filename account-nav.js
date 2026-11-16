@@ -35,17 +35,18 @@
   // Mark the current destination consistently across the homepage menu,
   // tool menus and pages that render their navigation dynamically.
   function markCurrentMenuItem() {
-    const path = location.pathname.replace(/\/$/, '') || '/';
-    const aliases = {
-      '/opening-explorer.html': '/analysis.html',
-      '/puzzle-top100.html': '/puzzles.html',
-      '/knight-maze.html': '/minigames.html'
+    const normalize = raw => {
+      const path = raw.toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '') || '/';
+      return path === '/index' || path === '/index.html' ? '/' : path.replace(/\.html$/, '');
     };
+    const aliases = {'/opening-explorer':'/analysis','/puzzle-top100':'/puzzles','/knight-maze':'/minigames'};
+    const path = normalize(location.pathname);
     const activePath = aliases[path] || path;
     for (const menu of header.querySelectorAll('.mobile-chess-menu nav, .elo-global-menu nav')) {
       for (const link of menu.querySelectorAll('a[href]')) {
-        const target = new URL(link.getAttribute('href'), location.origin).pathname.replace(/\/$/, '') || '/';
-        const current = target === activePath;
+        const targetPath = normalize(new URL(link.getAttribute('href'), location.origin).pathname);
+        const current = targetPath === activePath;
+        link.classList.toggle('elo-menu-active', current);
         if (current) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
       }

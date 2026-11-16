@@ -14,7 +14,7 @@ export async function onRequest({request,env}){
  try{
  if(route==='directory'&&request.method==='GET'){
   const capped=await limit(env,request,'directory',40,60000);if(capped)return capped;
-  const results=await db.prepare('SELECT u.username,CASE WHEN p.seen_at>? THEN 1 ELSE 0 END AS online FROM "user" u LEFT JOIN online_presence p ON p.user_id=u.id WHERE u.username IS NOT NULL ORDER BY u.createdAt DESC LIMIT 100').bind(t-90000).all();
+  const results=await db.prepare('SELECT u.username,CASE WHEN p.seen_at>? THEN 1 ELSE 0 END AS online,p.seen_at AS lastSeen FROM "user" u LEFT JOIN online_presence p ON p.user_id=u.id WHERE u.username IS NOT NULL ORDER BY u.createdAt DESC LIMIT 100').bind(t-90000).all();
   return reply({members:results.results||[]});
  }
  if(route==='status'&&request.method==='GET'){
