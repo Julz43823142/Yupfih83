@@ -6,7 +6,7 @@
   const data=await memberRes.json(),directory=presenceRes.ok?(await presenceRes.json()).members||[]:[];
   const presence=new Map(directory.map(m=>[m.username.toLowerCase(),m]));
   // Relative durations work in every timezone; local timestamps are available on hover.
-  const relative=new Intl.RelativeTimeFormat(navigator.language||'en',{numeric:'auto'});
+  const relative=new Intl.RelativeTimeFormat(navigator.language||'en',{numeric:'always'});
   function lastSeen(value){
    if(value===null||value===undefined)return null;
    const timestamp=Number(value);
