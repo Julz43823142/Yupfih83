@@ -11,7 +11,6 @@ import requests
 ROOT=Path(__file__).resolve().parents[1]
 OUTPUT=ROOT/'assets'/'example-reports'
 USERS={'MagnusCarlsen':'magnus-carlsen','Hikaru':'hikaru-nakamura'}
-DRAWS={'agreed','repetition','stalemate','insufficient','50move','timevsinsufficient'}
 
 def read_json(session,url):
     for attempt in range(5):
@@ -27,34 +26,22 @@ def read_json(session,url):
             time.sleep(min(20,2**attempt*2))
     raise RuntimeError('Chess.com unavailable')
 
-def fetch_insights(session,username):
-    base='https://api.chess.com/pub/player/'+username.lower()
-    archives=read_json(session,base+'/games/archives').get('archives',[])
+def report_insights(report):
+    """Use the same verified games already included in the v87 export.
+    Avoid downloading thousands of archives a second time.
+    """
     rows=[]
-    for address in reversed(archives):
-        if not address.startswith(base+'/games/'):continue
-        try:
-            monthly=read_json(session,address)
-        except requests.RequestException:
-            continue
-        for game in monthly.get('games',[]):
-            if game.get('rules')!='chess':continue
-            white=(game.get('white') or {}).get('username','').lower()==username.lower()
-            black=(game.get('black') or {}).get('username','').lower()==username.lower()
-            if not (white or black):continue
-            own=game['white' if white else 'black']
-            opponent=game['black' if white else 'white']
-            own_result=own.get('result')
-            outcome='win' if own_result=='win' else 'draw' if own_result in DRAWS else 'loss' if opponent.get('result')=='win' else None
-            if outcome is None:continue
-            rows.append({'result':outcome,'color':'White' if white else 'Black',
-                         'tc':game.get('time_class') or 'other',
-                         'date':game.get('end_time') or 0,
-                         'rating':own.get('rating') if isinstance(own.get('rating'),int) else None})
-        if len(rows)>=5500:break
-        time.sleep(.5)
-    rows.sort(key=lambda g:g['date'],reverse=True)
-    return rows[:5000]
+    for kind in ('rapid','blitz','bullet'):
+        for game in report.get('charts',{}).get(kind,[]):
+            score=game.get('actual_score')
+            if score not in (0,50,100):continue
+            ended=game.get('ended')
+            if not isinstance(ended,(int,float)) or ended<=0:continue
+            rows.append({'result':{0:'loss',50:'draw',100:'win'}[score],
+                         'color':'Unknown','tc':kind,'date':ended,
+                         'rating':game.get('player_elo')})
+    return sorted(rows,key=lambda g:g['date'],reverse=True)
+
 
 def generate(username,slug):
     print('Generating '+username,flush=True)
@@ -69,8 +56,8 @@ def generate(username,slug):
         base='https://api.chess.com/pub/player/'+username.lower()
         profile=read_json(session,base)
         stats=read_json(session,base+'/stats')
-        insights=fetch_insights(session,username)
-    if not insights:raise RuntimeError('No trustworthy game insights for '+username)
+        insights=report_insights(report)
+    if not insights:raise RuntimeError('No valid report observations for '+username)
     OUTPUT.mkdir(parents=True,exist_ok=True)
     payload={'schema':1,'username':username.lower(),
              'generatedAt':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
