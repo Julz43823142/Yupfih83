@@ -84,6 +84,8 @@
   let pendingPhoto = null;
   const photoInput = byId('profile-photo-input');
   const photoSave = byId('profile-photo-save');
+  const avatarButton = byId('account-avatar');
+  avatarButton.addEventListener('click', () => photoInput.click());
   function setPhotoStatus(text) { byId('profile-photo-status').textContent = text; }
   photoInput.addEventListener('change', async () => {
     pendingPhoto = null; photoSave.disabled = true;
@@ -105,7 +107,8 @@
       pendingPhoto = canvas.toDataURL('image/jpeg',0.7);
       if (pendingPhoto.length > 45000) throw new Error('Image could not be compressed enough.');
       photoSave.disabled = false;
-      setPhotoStatus('Photo ready. Select Save photo.');
+      setPhotoStatus('Saving your photo…');
+      await savePhoto(pendingPhoto);
     } catch { setPhotoStatus('Could not read this image. Try another picture.'); }
   });
   async function savePhoto(image) {
@@ -129,6 +132,7 @@
     byId('profile-panel').hidden = !user;
     byId('passkey-profile-panel').hidden = !(user && config?.passkeyReady && window.eloPasskey && window.PublicKeyCredential);
     if (user) {
+      if (location.hash === '#account-settings') byId('account-settings').open = true;
       byId('profile-username').textContent = user.username;
       byId('profile-link').href = '/profile/' + encodeURIComponent(user.username);
       const avatar = byId('account-avatar');

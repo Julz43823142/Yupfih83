@@ -28,6 +28,7 @@ test('same account migrates from password to passkey and logs in via WebAuthn', 
     await page.locator('#password').fill('Local-test-only-orchard-57931!');
     await page.getByRole('button', { name: 'Log in', exact: true }).click();
     await expect(page.locator('#profile-username')).toHaveText('local_tester', { timeout: 30000 });
+    await page.locator('#account-settings > summary').click();
     await expect(page.locator('#passkey-profile-panel')).toBeVisible();
     const initialSession = await page.request.get(base + '/api/auth/get-session');
     const originalUserId = (await initialSession.json()).user.id;

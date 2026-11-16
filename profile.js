@@ -33,7 +33,7 @@
   const data=await get('/api/profile/'+encodeURIComponent(name));
   const display=data.username[0].toUpperCase()+data.username.slice(1),base='/profile/'+encodeURIComponent(data.username);
   document.title=(section?sections[section]+' · ':'')+display+' · EloScanner';
-  el('profile-name').textContent=display;el('profile-avatar').textContent=display.slice(0,2).toUpperCase();
+  el('profile-name').textContent=display;const avatar=el('profile-avatar');avatar.textContent=data.image?'':display.slice(0,2).toUpperCase();if(data.image){avatar.style.backgroundImage='url("'+data.image+'")';avatar.classList.add('has-photo');}
   if(data.role==='admin'){const badge=document.createElement('span');badge.className='profile-admin-badge';badge.textContent='Admin';el('profile-name').after(badge)}
   const date=new Date(data.joinedAt);el('profile-joined').textContent='Joined '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}));
   for(const [id,slug] of Object.entries({'profile-friends':'friend-list','chess-rating-link':'chess-rating','puzzle-rating-link':'puzzle-rating','records-link':'personal-records','history-link':'game-history','records-panel-link':'personal-records'}))el(id).href=base+'/'+slug;
@@ -43,6 +43,7 @@
   const me=session?.user?.username?.toLowerCase()===data.username.toLowerCase();
   if(me){
    el('profile-edit').hidden=false;
+   const ownAvatar=el('profile-avatar');ownAvatar.setAttribute('role','link');ownAvatar.tabIndex=0;ownAvatar.title='Change profile photo';ownAvatar.setAttribute('aria-label','Change your profile photo');ownAvatar.classList.add('editable-avatar');ownAvatar.addEventListener('click',()=>{location.href='/account.html#account-settings'});ownAvatar.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='/account.html#account-settings'}});
    if(data.role==='admin'){
     const dashboard=document.createElement('a');dashboard.href='/admin.html';dashboard.className='profile-edit';dashboard.textContent='Admin dashboard';
     el('profile-edit').after(dashboard);

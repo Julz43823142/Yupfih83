@@ -10,7 +10,7 @@
   for(const member of data.members){
    const row=document.createElement('div');row.className='member-row';
    const a=document.createElement('a');a.className='member-item';a.href='/profile/'+encodeURIComponent(member.username);
-   const avatar=document.createElement('span');avatar.className='member-avatar';avatar.textContent=member.username.slice(0,2).toUpperCase();
+   const avatar=document.createElement('span');avatar.className='member-avatar';avatar.textContent=member.image?'':member.username.slice(0,2).toUpperCase();if(member.image){avatar.style.backgroundImage='url("'+member.image+'")';avatar.classList.add('has-photo');}
    const info=document.createElement('span');const title=document.createElement('strong');title.textContent=member.username;
    const date=document.createElement('small'),joined=new Date(member.joinedAt);date.textContent='Joined '+(Number.isNaN(joined.getTime())?'date unknown':joined.toLocaleDateString());
    const activity=document.createElement('small');const active=online.get(member.username.toLowerCase());

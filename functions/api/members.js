@@ -9,8 +9,8 @@ export async function onRequestGet({request,env}) {
   if(!await rateLimit(env,request,'public-members',30,60000))return Response.json({message:'Too many requests.'},{status:429,headers:{...headers,'Retry-After':'60'}});
  }catch{return Response.json({message:'Member directory unavailable.'},{status:503,headers});}
  try{
-  const rows=await env.AUTH_DB.prepare('SELECT username, createdAt FROM "user" WHERE username IS NOT NULL ORDER BY createdAt DESC LIMIT 100').all();
+  const rows=await env.AUTH_DB.prepare('SELECT username, createdAt, image FROM "user" WHERE username IS NOT NULL ORDER BY createdAt DESC LIMIT 100').all();
   const count=await env.AUTH_DB.prepare('SELECT COUNT(*) AS total FROM "user" WHERE username IS NOT NULL').first();
-  return Response.json({members:(rows.results||[]).map(row=>({username:row.username,joinedAt:row.createdAt})),total:count?.total||0},{headers});
+  return Response.json({members:(rows.results||[]).map(row=>({username:row.username,joinedAt:row.createdAt,image:typeof row.image==='string'&&row.image.startsWith('data:image/jpeg;base64,')&&row.image.length<=45000?row.image:null})),total:count?.total||0},{headers});
  }catch{return Response.json({message:'Member directory unavailable.'},{status:503,headers});}
 }
