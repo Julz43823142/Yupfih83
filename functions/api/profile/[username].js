@@ -7,6 +7,6 @@ export async function onRequestGet({params,env}) {
  try {
   const row=await env.AUTH_DB.prepare('SELECT u.username, u.createdAt, u.image, COALESCE(r.role, \'member\') AS role FROM "user" u LEFT JOIN auth_member_role r ON r.userId=u.id WHERE lower(u.username)=lower(?) LIMIT 1').bind(name).first();
   if(!row)return Response.json({message:'Profile not found'},{status:404,headers});
-  return Response.json({username:row.username,joinedAt:row.createdAt,role:row.role==='admin'?'admin':'member',image:typeof row.image==='string'&&/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(row.image)?row.image:null},{headers});
+  return Response.json({username:row.username,joinedAt:row.createdAt,role:row.role==='admin'?'admin':'member',image:typeof row.image==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(row.image)?row.image:null},{headers});
  }catch{return Response.json({message:'Profiles unavailable'},{status:503,headers});}
 }
