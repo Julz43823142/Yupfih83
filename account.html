@@ -8,14 +8,14 @@
 <link rel="icon" href="/favicon-horse.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css?v=20261104-dark">
 <link rel="stylesheet" href="/elo-global-menu.css?v=4-current">
-<link rel="stylesheet" href="/account.css?v=7-settings-photo">
+<link rel="stylesheet" href="/account.css?v=8-avatar-fix">
 <script src="/elo-global-menu.js?v=4-current" defer></script>
 <script src="/account-nav.js?v=3-profile-links" defer></script>
 <script src="/passkey-client.js?v=1" defer></script>
 <script src="/phone-signup-qr.js?v=1" defer></script>
 <script src="/phone-account-qr.js?v=1" defer></script>
 <script src="/vendor/qrcode/qrcode.js?v=1" defer></script>
-<script src="/account.js?v=20-settings-photo" defer></script>
+<script src="/account.js?v=21-avatar-fix" defer></script>
 </head>
 <body>
 <header class="navbar"><a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a></header>
@@ -81,7 +81,8 @@
   </section>
   <section id="profile-panel" hidden>
 <div class="account-card account-identity"><button id="account-avatar" class="account-avatar account-avatar-button" type="button" aria-label="Change profile photo" title="Change profile photo"></button><div><h2 id="profile-username"></h2><p id="profile-created"></p><a id="profile-link" class="account-link" href="/account.html">View public profile →</a></div><button id="sign-out" class="account-secondary" type="button">Log out</button></div>
-    <details id="account-settings" class="account-settings-group"><summary>Account settings</summary><p class="account-section-intro">Profile photo, passkeys, passwords, devices and account management.</p><h3 class="account-subheading">Passkeys &amp; account recovery</h3>
+    <dialog id="profile-photo-dialog" class="profile-photo-dialog" aria-labelledby="profile-photo-title"><h2 id="profile-photo-title">Profile photo</h2><p>Choose a photo or remove your current photo.</p><input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp"><div class="profile-photo-actions"><button id="profile-photo-choose" type="button">Choose photo</button><button id="profile-photo-remove" type="button">Remove photo</button><button id="profile-photo-close" type="button">Cancel</button></div><button id="profile-photo-save" type="button" hidden disabled>Save photo</button><p id="profile-photo-status" role="status" aria-live="polite"></p></dialog>
+    <details id="account-settings" class="account-settings-group"><summary>Account settings</summary><p class="account-section-intro">Passkeys, passwords, devices and account management.</p><h3 class="account-subheading">Passkeys &amp; account recovery</h3>
     <div id="passkey-profile-panel" class="account-card" hidden><h2>Passkeys</h2><p>Sign in with your phone, computer or security key. You may need to confirm your password to add a passkey.</p><div id="passkey-phone-enroll-handoff" hidden><p>To add a phone passkey without Windows Hello, open this account on your phone and sign in as the same user. Scan with your phone's camera:</p><div id="passkey-phone-enroll-qr" class="phone-signup-qr"></div><a id="passkey-phone-enroll-link" class="account-link" href="/account.html">Open this account on your phone</a><p class="account-note">This QR contains only the website address. It does not sign in or transfer a session.</p></div><form id="passkey-enrollment-form"><label for="passkey-confirm-password">Confirm your current password</label><input id="passkey-confirm-password" type="password" autocomplete="current-password" maxlength="128" required><button type="submit" class="account-primary">Create passkey</button></form><p id="passkey-count" class="account-note" role="status" aria-live="polite">Checking registered passkeys…</p><p class="account-note">Add a backup passkey before disabling passwords. Use your device screen lock, fingerprint or face recognition.</p></div>
     <div id="phone-transfer-panel" class="account-card" hidden>
       <h2>Replace primary phone</h2>
@@ -126,8 +127,7 @@
       </form>
       <p class="account-note">Changing your password signs out your other sessions.</p>
     </div>
-    <h3 class="account-subheading">Profile photo &amp; devices</h3>    <div class="account-card profile-photo-settings"><h2>Profile photo</h2><p class="account-note">You can also click your avatar above to change it.</p><p>Choose a picture for your EloScanner account. JPEG, PNG or WebP; your browser resizes it automatically.</p><input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp"><div class="profile-photo-actions"><button id="profile-photo-save" type="button" disabled>Save photo</button><button id="profile-photo-remove" type="button">Remove photo</button></div><p id="profile-photo-status" class="account-note" role="status" aria-live="polite"></p></div>
-    <div class="account-card"><h2>Signed-in devices</h2><p>Using a shared device or worried about an old session? Sign out everywhere, including this device.</p><button id="sign-out-all" class="account-secondary" type="button">Log out on all devices</button></div>
+    <h3 class="account-subheading">Devices &amp; account</h3>    <div class="account-card"><h2>Signed-in devices</h2><p>Using a shared device or worried about an old session? Sign out everywhere, including this device.</p><button id="sign-out-all" class="account-secondary" type="button">Log out on all devices</button></div>
     <div class="account-card"><h2>Delete account</h2><p>This permanently deletes your account and its login sessions. It cannot be undone. Separately submitted public leaderboard entries are not linked to this account.</p>
       <form id="delete-form"><label for="delete-password">Confirm your current password</label><input id="delete-password" name="password" type="password" autocomplete="current-password" maxlength="128" required><button class="account-danger" type="submit">Delete my account</button></form>
       <form id="delete-passkey-account-form" hidden><p>To delete a passwordless account, sign out and sign in with a passkey, then return here within two minutes.</p><label class="account-check"><input id="passkey-delete-understood" type="checkbox" required> I understand this permanently deletes my EloScanner account.</label><button class="account-danger" type="submit">Delete passkey-only account</button></form>
