@@ -71,3 +71,6 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 
 /* Account profile photo */
 .account-avatar.has-photo{background-size:cover;background-position:center;color:transparent}.profile-photo-settings input[type=file]{display:block;max-width:100%;margin:12px 0}.profile-photo-actions{display:flex;flex-wrap:wrap;gap:10px}.profile-photo-actions button{padding:10px 14px}
+
+/* Clickable avatar replaces the separate photo upload box. */
+.account-avatar-button{border:2px solid #65cde2;cursor:pointer;font:700 15px system-ui;position:relative;overflow:hidden}.account-avatar-button:hover,.account-avatar-button:focus-visible{outline:3px solid #91e6f5;outline-offset:3px}.account-avatar-button:after{content:'✎';position:absolute;right:0;bottom:0;background:#113449;color:white;border-radius:50%;font-size:12px;width:19px;height:19px;display:grid;place-items:center}.profile-photo-settings input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.profile-photo-settings #profile-photo-save{display:none}
