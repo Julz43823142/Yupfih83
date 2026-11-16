@@ -233,24 +233,28 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
     node("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#29405a","stroke-width":1});
     node("text",{x:L-12,y:yy+5,"text-anchor":"end",fill:"#9bb1c6","font-size":14},`${number(v,0)}${unit}`);
   }
-  for(let i=0;i<=4;i++){const value=xmin+(xmax-xmin)*i/4;
-    node("text",{x:x(value),y:H-22,"text-anchor":"middle",fill:"#9bb1c6","font-size":14},String(Math.round(value)));}
+  for(let i=0;i<=4;i++){const value=xmin+(xmax-xmin)*i/4,xx=x(value);
+    node("line",{x1:xx,y1:H-B,x2:xx,y2:H-B+6,stroke:"#9bb1c6","stroke-width":1});
+    node("text",{x:xx,y:H-22,"text-anchor":"middle",fill:"#9bb1c6","font-size":14},String(Math.round(value)));}
   node("text",{x:(W+L-R)/2,y:H-3,"text-anchor":"middle",fill:"#9bb1c6","font-size":13},"Game number (chronological · per time class)");
-  // Cross-control context uses the same dates, mapped onto each class's game numbers.
+  // Draw a finding in its own control and calendar-matched context in every
+  // other visible control. A chart's x-axis is game number within each control.
   for(const period of periods){
-    const related=series.filter(s=>s.key===period.time_class);
-    for(const line of related){
-      const points=line.rows.filter(r=>Number.isFinite(r.ended)&&Number.isFinite(r.game));
+    const first=Number(period.first_ended),last=Number(period.last_ended);
+    if(!Number.isFinite(first)||!Number.isFinite(last)||first>last)continue;
+    for(const line of series){
+      const points=line.rows.filter(r=>Number.isFinite(r.ended)&&Number.isFinite(r.game))
+        .sort((a,b)=>a.game-b.game);
       if(!points.length)continue;
-      const start=points.find(r=>r.ended>=period.first_ended);
-      const end=[...points].reverse().find(r=>r.ended<=period.last_ended);
-      if(!start||!end||end.game<start.game)continue;
-      const px=Math.max(L,x(start.game)),right=Math.min(W-R,x(end.game));
-      if(right<=px)continue;
+      const within=points.filter(r=>r.ended>=first&&r.ended<=last);
+      if(!within.length)continue; // No games in this control during the period.
+      const px=Math.max(L,x(within[0].game)-3),right=Math.min(W-R,x(within[within.length-1].game)+3);
+      const isContext=line.key!==period.time_class;
       const priority=String(period.priority||"").toUpperCase();
-      const shade=period.context?"#ad82ff":priority==="VERY HIGH"?"#f05c70":priority==="HIGH"?"#f59b52":priority==="MODERATE"?"#f4d06f":"#5fbf93";
-      node("rect",{x:px,y:T,width:right-px,height:H-T-B,fill:shade,"fill-opacity":".16",stroke:shade,"stroke-width":1.6});
-      node("text",{x:px+5,y:T+15,fill:shade,"font-size":13,"font-weight":700},period.context?"Context":performanceLabel(priority));
+      const shade=isContext?"#ad82ff":priority==="VERY HIGH"?"#f05c70":priority==="HIGH"?"#f59b52":priority==="MODERATE"?"#f4d06f":"#5fbf93";
+      const label=isContext?"Context · "+line.label:performanceLabel(priority);
+      node("rect",{x:px,y:T,width:Math.max(6,right-px),height:H-T-B,fill:shade,"fill-opacity":".16",stroke:shade,"stroke-width":1.6});
+      node("text",{x:Math.min(px+5,W-R-8),y:T+15,fill:shade,"font-size":13,"font-weight":700},label);
     }
   }
   const targets=[];
@@ -321,6 +325,18 @@ function timelineChart(parent, series, field, unit, compareField = null, periods
   svg.addEventListener("pointerleave",()=>{tooltip.hidden=true;focus.style.display="none";});
   add(parent,"p","timeline-footnote",data.length+" sampled observations · game-number axis · hover or tap for exact values");
 }
+function reviewPeriods(data){
+  const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
+  const selected=data.method3?.selected;
+  const significant=p=>["MODERATE","HIGH","VERY HIGH"].includes(String(p.priority||"").toUpperCase());
+  if(Number(data.games)<20)return [];
+  const periods=marked.filter(p=>significant(p)&&Number.isFinite(Number(p.first_ended))&&Number.isFinite(Number(p.last_ended)))
+    .map(p=>({...p}));
+  if(selected?.first_ended&&selected?.last_ended&&significant({priority:data.priority})&&
+     !periods.some(p=>p.time_class===selected.time_class&&p.first_ended===selected.first_ended&&p.last_ended===selected.last_ended))
+    periods.push({...selected,priority:data.priority});
+  return periods;
+}
 function realCharts(parent,data){
   for(const kind of ["rapid","blitz","bullet"]){
     if(Array.isArray(data.charts?.[kind]))data.charts[kind]=withPerGameScores(data.charts[kind]);
@@ -335,18 +351,7 @@ function realCharts(parent,data){
   add(context,"strong","period-context","Context — ");
   add(context,"span","","Games from other time controls played during the same calendar period. The purple area is shown for comparison, not as an additional performance finding.");
   const grid=add(parent,"div","timeline-grid");
-  const marked=Array.isArray(data.method3?.marked_periods)?data.method3.marked_periods:[];
-  const selected=data.method3?.selected;
-  const significant=p=>["MODERATE","HIGH","VERY HIGH"].includes(String(p.priority||"").toUpperCase());
-  const enoughGames=Number(data.games)>=20;
-  const allPeriods=enoughGames?marked.filter(significant).map(p=>({...p,context:false})):[];
-  if(enoughGames&&selected?.first_ended&&selected?.last_ended&&["MODERATE","HIGH","VERY HIGH"].includes(String(data.priority||"").toUpperCase())&&!allPeriods.some(p=>p.first_ended===selected.first_ended&&p.last_ended===selected.last_ended))
-    allPeriods.push({...selected,priority:data.priority,context:false});
-  if(enoughGames&&selected?.first_ended&&selected?.last_ended&&["MODERATE","HIGH","VERY HIGH"].includes(String(data.priority||"").toUpperCase()))
-    for(const kind of ["rapid","blitz","bullet"]){
-      if(kind!==selected.time_class)allPeriods.push({time_class:kind,
-        first_ended:selected.first_ended,last_ended:selected.last_ended,context:true});
-    }
+  const allPeriods=reviewPeriods(data);
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
   const measures=[
     ["rolling_observed","Rolling 10-game expected / observed points","%","rolling_expected"],
@@ -577,11 +582,7 @@ function showMeasuredDuration(result) {
 function renderAdditionalInsights(panel,data){
   const charts=data.charts||{};
   const groups=[["rapid","Rapid"],["blitz","Blitz"],["bullet","Bullet"]];
-  const marked=Array.isArray(data.method3?.marked_periods)?[...data.method3.marked_periods]:[];
-  const selectedPeriod=data.method3?.selected;
-  if(selectedPeriod?.first_ended&&selectedPeriod?.last_ended&&!marked.some(p=>p.first_ended===selectedPeriod.first_ended&&p.last_ended===selectedPeriod.last_ended)){
-    marked.push({...selectedPeriod,priority:data.priority});
-  }
+  const marked=reviewPeriods(data);
   sectionTitle(panel,"Additional Insights","Thinking-time patterns, clock pressure and rolling win rate.");
   const grid=add(panel,"div","timeline-grid");
   function combined(title,field,unit="",description=""){
