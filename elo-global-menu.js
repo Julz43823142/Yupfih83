@@ -12,11 +12,21 @@
  for(const d of ['M4 7h16','M4 12h16','M4 17h16']){const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',d);svg.append(p)}
  const caption=document.createElement('span');caption.textContent='Menu';summary.append(svg,caption);
  const nav=document.createElement('nav');nav.setAttribute('aria-label','Chess Tools');
- const path=location.pathname.replace(/\/$/,'')||'/';
- const currentSection=path==='/play.html'?'Play':path==='/analysis.html'||path==='/opening-explorer.html'?'Analyse':path==='/player-prep.html'?'Player Prep':path==='/puzzles.html'||path==='/puzzle-top100.html'?'Puzzels':path==='/minigames.html'||path==='/knight-maze.html'?'Mini Games':path==='/'?'Home':null;
+ // Accept both /play and /play.html, mixed-case URLs, and trailing slashes.
+ const normalize=raw=>{
+  const path=raw.toLowerCase().replace(/\\/g,'/').replace(/\/+$/,'')||'/';
+  return path==='/'||path==='/index'||path==='/index.html'?'/':path.replace(/\.html$/,'');
+ };
+ const sectionForPath={
+  '/':'Home','/play':'Play','/analysis':'Analyse','/opening-explorer':'Analyse',
+  '/player-prep':'Player Prep','/puzzles':'Puzzels','/puzzle-top100':'Puzzels',
+  '/minigames':'Mini Games','/knight-maze':'Mini Games'
+ };
+ const currentSection=sectionForPath[normalize(location.pathname)]||null;
  routes.forEach(([name,href])=>{
   const a=document.createElement('a');a.textContent=name;a.href=href;
   if(name===currentSection){
+   a.classList.add('elo-menu-active');
    a.setAttribute('aria-current','page');
    a.style.setProperty('background','#247da5','important');
    a.style.setProperty('border-color','#74e8ff','important');
