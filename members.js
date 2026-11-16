@@ -33,7 +33,7 @@
    const memberPresence=presence.get(member.username.toLowerCase());
    const active=!!memberPresence?.online;
    const seen=lastSeen(memberPresence?.lastSeen);
-   activity.textContent=active?'● Online':'○ Offline'+(seen?' · Last Seen '+seen:'');
+   activity.textContent=active?'● Online':'○ Offline · Last Seen '+(seen||'unknown');
    activity.style.color=active?'#4fe0a0':'#aab7c0';
    if(!active&&seen){
     const date=new Date(Number(memberPresence.lastSeen));
