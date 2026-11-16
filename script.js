@@ -839,7 +839,30 @@ document.querySelectorAll(".sample-button[data-username]").forEach(example => {
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
- requestAnimationFrame(()=>form.requestSubmit());
+ // Real, precomputed v87 data is served as a same-origin static preset.
+ // If the snapshot has not been published yet, retain the full local review.
+ const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
+ const loadPreset=async()=>{
+  const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"force-cache"});
+  if(!response.ok)throw Error("Example snapshot unavailable.");
+  const preset=await response.json();
+  if(preset.schema!==1||preset.username!==exampleUsername.toLowerCase()
+   ||preset.report?.version!=="fairplay-v87-review-reliability"
+   ||preset.report.username!==exampleUsername.toLowerCase()
+   ||!(Number(preset.report.games)>0)||!preset.profile||!preset.stats
+   ||!Array.isArray(preset.insights))throw Error("Invalid example snapshot.");
+  playerCard.replaceChildren();
+  renderPlayer(preset.profile,preset.stats,exampleUsername);
+  results.classList.remove("hidden");
+  renderReview(preset.report);
+  statusText.textContent="Precomputed example report · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
+   ". This snapshot is not a live analysis.";
+  window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
+   detail:{username:exampleUsername.toLowerCase(),games:preset.insights}
+  }));
+  results.scrollIntoView({behavior:"instant",block:"start"});
+ };
+ loadPreset().catch(()=>form.requestSubmit());
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -960,9 +983,14 @@ async function load(user){
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
 }
 form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
+window.addEventListener('elo-example-preset-ready',event=>{
+ const {username,games}=event.detail||{};
+ if(typeof username!=='string'||!Array.isArray(games))return;
+ ++generation;render(username,games,0,0);
+});
 
 const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
-else if(document.body.dataset.examplePlayer)load(document.body.dataset.examplePlayer.toLowerCase());
+// Example pages wait for a preset-ready event or the fallback form submission.
 })();
 

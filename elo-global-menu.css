@@ -31,9 +31,19 @@ body.elo-subpage .elo-global-menu nav a[aria-current="page"]{
  font-weight:900!important;
  box-shadow:inset 5px 0 #bcffff,0 0 0 1px #52b8d7!important;
 }
-body.elo-subpage .elo-global-menu nav a[aria-current="page"]::after{
- content:"✓ Current";float:right;font-size:11px;color:#d3fbff;margin-left:8px;
-}
 body.elo-subpage .elo-global-menu:has(.elo-menu-active) summary{
  background:#195e7d!important;border-color:#8eeefe!important;
 }
+
+/* 179: A quiet closed menu; only the active item INSIDE the open menu stands out. */
+body.elo-subpage .elo-global-menu summary,
+body.elo-subpage .elo-global-menu:has(a[aria-current="page"]) summary,
+body.elo-subpage .elo-global-menu:has(.elo-menu-active) summary{
+ background:#102d44!important;border:1px solid #39718e!important;
+ color:#effaff!important;box-shadow:none!important;min-width:115px!important;
+}
+body.elo-subpage .elo-global-menu[open] summary,
+body.elo-subpage .elo-global-menu[open]:has(.elo-menu-active) summary{
+ background:#164965!important;border-color:#38dce9!important;box-shadow:none!important;
+}
+body.elo-subpage .elo-global-menu nav a[aria-current="page"]::after{content:none!important}
