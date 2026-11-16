@@ -29,8 +29,12 @@ scanButton.addEventListener("click",async()=>{
     });
     const result=await recognizer.recognize(imageFile);
     if(!result){report("No chessboard found. Try a sharper, straight-on image.");return}
-    if(!result.reliable){report("Board detected, but piece recognition is uncertain. Try a clearer screenshot. No position was imported.");return}
     const {placement}=resolveOrientation(result.placement);
+    window.dispatchEvent(new CustomEvent("elo-scanner-placement",{detail:{placement}}));
+    if(!result.reliable){
+      report("Recognition is uncertain. A draft position is open in the editor below. Check every piece before analyzing; nothing was imported automatically.");
+      return;
+    }
     const fen=placementToFen(placement,side.value);
     const fenTab=document.querySelector('[data-mode="fen"]');
     const value=document.getElementById("import-value");
@@ -38,10 +42,11 @@ scanButton.addEventListener("click",async()=>{
     fenTab.click();
     value.value=fen;
     value.dispatchEvent(new Event("input",{bubbles:true}));
-    report("Position recognized. Check the pieces and side to move, then select Load to analyze. Castling and en-passant rights cannot be inferred from a picture.");
+    report("Position recognized and opened in analysis. The editable board below also contains the result for corrections. Verify pieces, side to move and castling rights.");
     document.getElementById("load")?.click();
   }catch(error){
     console.error("Photo recognition failed",error);
-    report("Image recognition could not start. Check your connection and try again, or paste a FEN manually.");
+    report("Automatic scanning is unavailable. Use the editable 64-square board below to enter the position manually.");
+    document.getElementById("physical-board-editor").open=true;
   }finally{scanButton.disabled=!imageFile}
 });
