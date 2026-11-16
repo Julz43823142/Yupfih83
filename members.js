@@ -6,7 +6,7 @@
   const data=await memberRes.json(),directory=presenceRes.ok?(await presenceRes.json()).members||[]:[];
   const presence=new Map(directory.map(m=>[m.username.toLowerCase(),m]));
   // Relative durations work in every timezone; local timestamps are available on hover.
-  const relative=new Intl.RelativeTimeFormat(navigator.language||'en',{numeric:'always'});
+  const relative=new Intl.RelativeTimeFormat('en',{numeric:'always'});
   function lastSeen(value){
    if(value===null||value===undefined)return null;
    const timestamp=Number(value);
@@ -37,7 +37,7 @@
    activity.style.color=active?'#4fe0a0':'#aab7c0';
    if(!active&&seen){
     const date=new Date(Number(memberPresence.lastSeen));
-    activity.title='Last online: '+date.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});
+    activity.title='Last online: '+date.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
    }
    info.append(title,date,activity);a.append(avatar,info);
    const challenge=document.createElement('a');challenge.className='member-challenge';challenge.textContent='Challenge';challenge.href='/online.html?challenge='+encodeURIComponent(member.username);
