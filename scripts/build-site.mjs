@@ -19,7 +19,10 @@ export function protectHTML(html) {
     if (/\bsrc\s*=/i.test(match[1]) || !match[2].trim()) continue;
     hashes.push(`'sha256-${createHash('sha256').update(match[2].replace(/\r\n?/g, '\n')).digest('base64')}'`);
   }
-  const policy = `script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com ${[...new Set(hashes)].join(' ')}; script-src-attr 'none'; worker-src 'self'; object-src 'none'; base-uri 'self'`;
+  // Only the chess scanner page may load its version-pinned, browser-side ML runtime.
+  // Other pages retain the strict same-origin script policy.
+  const scanner = html.includes('src="/analysis-photo-import.js?');
+  const policy = `script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''} ${[...new Set(hashes)].join(' ')}; script-src-attr 'none'; connect-src 'self' ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''}; worker-src 'self' ${scanner ? 'blob:' : ''}; object-src 'none'; base-uri 'self'`;
   return html.replace(/<head\b[^>]*>/i, head => `${head}\n<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 }
 
