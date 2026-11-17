@@ -253,8 +253,8 @@ function observatoryWorld(){
 }
 function skyglassInteriorWorld(){
  const w=createWorld(60,52,'.');
- for(let y=1;y<51;y++)for(let x=1;x<59;x++)if(x<=2||x>=57||y<=2||y>=49)updateTile(w,x,y,'T');
- // A generous marble forecourt, ring-shaped galleries and two wing gardens.
+ for(let y=1;y<51;y++)for(let x=1;x<59;x++)if(x<=2||x>=57||y<=2||y>=49)updateTile(w,x,y,'H');
+ // Abbey interior: timber and stone scriptorium with a clear central aisle.
  for(let y=7;y<=45;y++)for(let x=8;x<=51;x++)
   if(((x-30)/24)**2+((y-27)/22)**2<1.1)updateTile(w,x,y,'p');
  for(let y=12;y<=40;y++)for(let x=14;x<=46;x++)
@@ -263,12 +263,12 @@ function skyglassInteriorWorld(){
  for(let x=25;x<=35;x++)for(let y=7;y<=16;y++)updateTile(w,x,y,'s');
  w.spawn={x:30,y:46};w.music='willowmere';
  w.npcs=[
-  {id:'skyglass-curator',name:'Abbess Sable',x:25,y:25,piece:'B',color:'white',lines:['Welcome to the Abbey of Skyglass, refuge of the royal chroniclers.','Edwin demanded every record of the royal seal. One ledger survived beneath the star chart.']},
-  {id:'skyglass-mechanic',name:'Brother Orin',x:42,y:29,piece:'R',color:'orange',lines:['You opened the Willowmere bridge? We can finally receive supplies again.','Our brass armillary and ancient astrolabes may yet reveal the truth.']},
+  {id:'skyglass-curator',name:'Abbess Sable',x:25,y:25,piece:'B',color:'white',lines:['Welcome to the Abbey of Skyglass, refuge of the royal chroniclers.','Edwin demanded every record of the royal seal. One royal ledger survived in the northern scriptorium.']},
+  {id:'skyglass-mechanic',name:'Brother Orin',x:42,y:29,piece:'R',color:'orange',lines:['You opened the Willowmere bridge? We can finally receive supplies again.','The abbey scribes studied the heavens with ancient charts, not machines.']},
   {id:'skyglass-apprentice',name:'Novice Faye',x:17,y:35,piece:'P',color:'blue',lines:['The abbey library holds the oldest sky charts in Aldemar!','The royal ledger rests in the northern scriptorium.']},
   {id:'skyglass-archivist',name:'Scribe Noa',x:36,y:16,piece:'B',color:'purple',lines:['The old manuscripts record the stars, but the royal books reveal the throne.','Look for the forged mark in the coronation ledger.']}
  ];
- w.blockerRects=[{x:30.5,z:11.2,w:5,d:3.4},{x:18.5,z:20,w:2.4,d:2.1},{x:41.5,z:20,w:2.4,d:2.1},{x:30.5,z:29,w:4,d:4},...[[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.96,d:.96}))];
+ w.blockerRects=[{x:30,z:11.2,w:4.9,d:2.5},{x:30,z:29,w:2.1,d:1.6},...[[19,18],[41,18],[19,29],[41,29],[19,39],[41,39],[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.88,d:.88}))];
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='hill'?hillWorld():next==='ruins'?ruinsWorld():next==='observatory'?observatoryWorld():next==='skyglassInterior'?skyglassInteriorWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
@@ -290,7 +290,7 @@ function objective(){
  if(scene==='hill')return 'Follow the winding hillside path to Skyglass Abbey.';
  if(scene==='ruins')return complete('ruinInscription')?'Explore the old sanctuary or return north to the forest fork.':'Explore the old ruins and examine the engraved altar (E).';
  if(scene==='observatory')return 'Skyglass Abbey: approach the great oak door and press E to enter.';
- if(scene==='skyglassInterior')return complete('skyglassLedger')?'The royal seal was forged. Explore the great star hall.':'Examine the royal ledger in the northern scriptorium (E).';
+ if(scene==='skyglassInterior')return complete('skyglassLedger')?'The royal seal was forged. Explore the abbey scriptorium.':'Examine the royal ledger in the northern scriptorium (E).';
  if(!complete('bridge'))return 'Press E at the east bridge to repair it and reopen the road.';
  return 'Cross the repaired bridge and continue east to begin Chapter Two.';
 }
@@ -646,8 +646,9 @@ function drawGround(g,x,z){
  if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
   const path=tile==='p'||tile==='s',woodland=scene==='ridge'||scene==='hill'||scene==='observatory',ruin=scene==='ruins';
   const base=path?(ruin?'#827762':woodland?'#7c7563':'#737d7b'):(ruin?'#465b45':woodland?'#375742':'#3e5457');
-  g.box(x+.5,-.20,z+.5,1,.18,1,base);
-  g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?(ruin?'#9c9276':'#b1aca0'):'#827c67'):(ruin?'#5a7557':woodland?'#47694e':'#536c69'));
+  // Single solid floor tile: no coplanar base/inlay to shimmer.
+  const floorTone=scene==='skyglassInterior'?(path?(tile==='s'?'#b39c77':'#9d8566'):'#84725b'):path?(tile==='s'?(ruin?'#9c9276':'#b1aca0'):'#827c67'):(ruin?'#5a7557':woodland?'#47694e':'#536c69');
+  g.box(x+.5,-.052,z+.5,1,.104,1,floorTone);
   return;
  }
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
