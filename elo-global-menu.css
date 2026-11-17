@@ -47,3 +47,47 @@ body.elo-subpage .elo-global-menu[open]:has(.elo-menu-active) summary{
  background:#164965!important;border-color:#38dce9!important;box-shadow:none!important;
 }
 body.elo-subpage .elo-global-menu nav a[aria-current="page"]::after{content:none!important}
+
+/* 185: Account actions inside tool-page dropdowns must keep their tiles.
+   The outer nav-a rules must not erase nested account-link borders. */
+body.elo-subpage .elo-global-menu nav .elo-mobile-account-links{
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:7px!important;
+ margin:0 0 8px!important;
+ padding:0 0 10px!important;
+ border-bottom:1px solid #315b75!important;
+}
+body.elo-subpage .elo-global-menu nav .elo-mobile-account-links a{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ min-width:0!important;
+ padding:11px 8px!important;
+ border:1px solid #397e9b!important;
+ border-radius:9px!important;
+ background:#153e56!important;
+ color:#e5faff!important;
+ font:700 13px system-ui,sans-serif!important;
+ text-decoration:none!important;
+ text-align:center!important;
+ box-shadow:none!important;
+}
+body.elo-subpage .elo-global-menu nav .elo-mobile-account-links a:last-child{
+ background:#207b9b!important;
+ border-color:#67d8e9!important;
+}
+body.elo-subpage .elo-global-menu nav .elo-mobile-account-links:has(.elo-mobile-account-user){
+ grid-template-columns:minmax(0,1fr)!important;
+}
+/* Clear but restrained current-page selection (slightly stronger than 184). */
+body.elo-subpage .elo-global-menu nav > a[aria-current="page"],
+body.elo-subpage .elo-global-menu nav > a.elo-menu-active{
+ background:#246784!important;
+ border:1px solid #66afc6!important;
+ border-left:3px solid #82c9da!important;
+ border-radius:9px!important;
+ color:#f2fbff!important;
+ font-weight:800!important;
+ box-shadow:none!important;
+}
