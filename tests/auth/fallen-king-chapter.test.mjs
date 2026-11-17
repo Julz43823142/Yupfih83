@@ -15,18 +15,14 @@ const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8
 test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
 
-test('chapter two transitions and artwork stay connected without changing the original village',()=>{
- assert.match(source,/function ridgeWorld\(\)/);
- assert.match(source,/function observatoryWorld\(\)/);
- assert.match(page,/Are you sure you want to continue\?/);
- assert.match(page,/fallen-story-chapter-yes/);
- assert.match(source,/function advanceChapterTwo\(\)/);
- assert.match(source,/if\(scene==='ridge'&&p\.y<=4/);
- assert.match(source,/if\(scene==='observatory'\)/);
- assert.match(source,/chapter\.flags\.bridge=true/);
+test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
+ for(const name of ['ridgeWorld','hillWorld','ruinsWorld','observatoryWorld'])assert.ok(source.includes('function '+name+'('),name+' world is wired');
+ assert.match(source,/if\(scene==='village'&&complete\('bridge'\)&&p\.x>=50/);
+ assert.match(source,/if\(scene==='ridge'\)/);
+ assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
- assert.match(source,/scene==='ridge'\|\|scene==='observatory'/);
- assert.match(source,/scene==='ridge'\|\|scene==='observatory'\)/);
+ assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
+ assert.match(page,/fallen-king-story\.js\?v=57/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
@@ -253,16 +249,27 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(world.tiles[19][50],'p','the exit road must cross the old outer tree border');
  assert.equal(world.tiles[19][51],'p','the path must remain visible at the map edge');
  assert.equal(chapter.beforeMove(45,19),false);
- // A continued step east asks for confirmation and loads the uphill route.
- player={x:49.5,y:19,facing:'right'};chapter.afterMove();
- assert.equal(element('fallen-story-chapter-confirm').hidden,false);
- element('fallen-story-chapter-yes').listeners.click();
- assert.equal(world.width,30);assert.equal(world.height,45);
- assert.ok(world.npcs.some(n=>n.id==='ridge-pilgrim'));
- player={x:15,y:3,facing:'up'};chapter.afterMove();
- assert.equal(world.width,35);assert.equal(world.height,27);
+ // No modal or E: walking off the east edge starts a freely explorable fork.
+ player={x:50.2,y:19,facing:'right'};chapter.afterMove();
+ assert.equal(world.width,45);assert.equal(world.height,41);
+ assert.ok(world.npcs.some(n=>n.id==='fork-traveller'));
+ assert.equal(world.tiles[4][20],'X','cave approach is blocked by boulders');
+ assert.equal(world.tiles[20][24],'p','east branch is walkable');
+ // The south branch leads to a fully explorable separate ruin.
+ player={x:11,y:38,facing:'down'};chapter.afterMove();
+ assert.equal(world.width,36);assert.equal(world.height,32);
+ assert.ok(world.npcs.some(n=>n.id==='ruins-scholar'));
+ player={x:18,y:24,facing:'down'};assert.equal(chapter.talk(),true);
+ assert.equal(chapter.exportSave().chapter.flags.ruinInscription,true);
+ player={x:18,y:2,facing:'up'};chapter.afterMove();
+ assert.equal(world.width,45);
+ // Right branch climbs the hill to the enormous Skyglass grounds.
+ player={x:42.2,y:20,facing:'right'};chapter.afterMove();
+ assert.equal(world.width,46);assert.equal(world.height,36);
+ player={x:43.2,y:5,facing:'right'};chapter.afterMove();
+ assert.equal(world.width,60);assert.equal(world.height,52);
  assert.ok(world.npcs.some(n=>n.id==='skyglass-curator'));
- player={x:17,y:8};assert.equal(chapter.talk(),true);
+ player={x:30,y:11};assert.equal(chapter.talk(),true);
  assert.equal(chapter.exportSave().chapter.flags.skyglassLedger,true);
  assert.equal(chapter.exportSave().chapter.scene,'observatory');
  assert.ok(said.length>5);

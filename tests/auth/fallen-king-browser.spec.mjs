@@ -73,19 +73,36 @@ test('Fallen King opens account slots, launches New Game and displays first intr
  await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().tiles[19][51])).toBe('p');
  await page.evaluate(()=>{
   const e=window.FallenKingEngine;
-  e.setWorld(e.getWorld(),{x:49.5,y:19,facing:'right'});
+  e.setWorld(e.getWorld(),{x:50.2,y:19,facing:'right'});
   window.FallenKingStory.afterMove();
  });
- await expect(page.locator('#fallen-story-chapter-confirm')).toBeVisible();
- await page.locator('#fallen-story-chapter-yes').click();
- await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(30);
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(45);
+ await expect(page.locator('#fallen-story-chapter-confirm')).toBeHidden();
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().tiles[4][20])).toBe('X');
+ await page.waitForTimeout(450);
+ // South route enters and leaves the ruins, then east route climbs to Skyglass.
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:11,y:38,facing:'down'});
+  window.FallenKingStory.afterMove();
+ });
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(36);
  await page.waitForTimeout(450);
  await page.evaluate(()=>{
   const e=window.FallenKingEngine;
-  e.setWorld(e.getWorld(),{x:15,y:3,facing:'up'});
+  e.setWorld(e.getWorld(),{x:18,y:2,facing:'up'});
+  window.FallenKingStory.afterMove();
+  e.setWorld(e.getWorld(),{x:42.2,y:20,facing:'right'});
   window.FallenKingStory.afterMove();
  });
- await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(35);
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(46);
+ await page.waitForTimeout(450);
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:43.2,y:5,facing:'right'});
+  window.FallenKingStory.afterMove();
+ });
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(60);
  await page.waitForTimeout(700);
  expect(renderErrors).toEqual([]);
  expect(errors).toEqual([]);
