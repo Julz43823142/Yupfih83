@@ -1,4 +1,5 @@
 import {Chess} from './vendor/chess/chess-1.4.0.mjs';
+import {updateMaterial} from './chess-material.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js';
 import {appendChessArrow} from './chess-board-arrows.js';
 import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from './arcade-rules.mjs';
@@ -166,6 +167,9 @@ function paint(){
  if(state&&mode==='chess-block-party'&&state.phase==='playing'){
   $('arcade-status').style.borderLeft='5px solid '+COLORS[state.block.target];
  }else $('arcade-status').style.borderLeft='';
+ if(mode==='guess-the-elo'&&state?.eloView){
+  updateMaterial(board,state.eloView.fen(),{moves:state.eloMoves?.slice(0,state.eloIndex)||[]});
+ }
  drawAnnotations();
 }
 function status(text){$('arcade-status').textContent=text}

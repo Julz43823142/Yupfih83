@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {materialSnapshot,renderMaterialInline} from './chess-material.mjs';
 const $=id=>document.getElementById(id),api='/api/online/',squares=new Map();
 let id='',secret='',side='w',state=null,selected=null,selectedMoves=[],game=new Chess(),busy=false,serverOffset=0;
 let liveSocket=null,liveConnected=false,liveRetryAt=0,previewBoard=null;
@@ -101,6 +102,20 @@ function render(){if(!state)return;
  }
  lastHighlights=legal;paintedSelected=selected;
  $('online-top-name').textContent=(side==='w'?state.black:state.white)||'Waiting for opponent…';$('online-bottom-name').textContent=(side==='w'?state.white:state.black)||'You';
+ // Keep captured pieces aligned with the current position and saved moves.
+ let recorded=null;
+ if(!previewBoard){
+  try{
+   const replay=new Chess();recorded=[];
+   for(const notation of state.moves||[]){
+    const move=replay.move(notation);if(!move)throw Error('Invalid history');
+    recorded.push(move);
+   }
+  }catch{recorded=null}
+ }
+ const material=materialSnapshot(game.fen(),{moves:recorded});
+ renderMaterialInline($('online-top-material'),side==='w'?'b':'w',material);
+ renderMaterialInline($('online-bottom-material'),side==='w'?'w':'b',material);
  $('online-moves').textContent=state.moves.map((m,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+m).join(' ');
  $('online-resign').hidden=state.status!=='active';
  $('online-new-game').hidden=state.status!=='finished';

@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {materialSnapshot,renderMaterialInline} from './chess-material.mjs';
 import {createOpeningIntegration} from './opening-integration.js?v=7';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
@@ -90,26 +91,40 @@ function makePlayerStrip(side){
  const elo=document.createElement('span');elo.className='analysis-player-elo';
  const clock=document.createElement('span');clock.className='analysis-player-clock';
  clock.setAttribute('aria-live','off');
- identity.append(avatar,name,elo);root.append(identity,clock);
- return {root,avatar,name,elo,clock};
+ const material=document.createElement('span');material.className='analysis-material-summary';
+ identity.append(avatar,name,elo,material);root.append(identity,clock);
+ return {root,avatar,name,elo,clock,material};
 }
 const blackStrip=makePlayerStrip('black');
 const whiteStrip=makePlayerStrip('white');
 boardLayout.prepend(blackStrip.root);
 boardLayout.append(whiteStrip.root);
 function updatePlayerStrips(){
- // Player identities and clocks belong to a completed Game Review only.
+ // Captures and material are useful for every position, including before
+ // Game Review finishes. Recorded clocks remain review-only.
  const visible=reviewResults.length>0;
  boardLayout.classList.toggle('has-reviewed-players',visible);
- blackStrip.root.hidden=!visible;
- whiteStrip.root.hidden=!visible;
- if(!visible)return;
+ boardLayout.classList.toggle('analysis-flipped',analysisFlipped);
+ blackStrip.root.hidden=false;
+ whiteStrip.root.hidden=false;
+ let recordedMoves=null;
+ try{
+  const replay=new Chess(history[0]);recordedMoves=[];
+  for(const move of sanMoves.slice(0,cursor)){
+   const played=replay.move(move);
+   if(!played)throw Error('Missing saved move');
+   recordedMoves.push(played);
+  }
+ }catch{recordedMoves=null}
+ const position=materialSnapshot(history[cursor],{moves:recordedMoves});
  const active=history[cursor]?.split(' ')[1]||'w';
  for(const [side,strip] of [['black',blackStrip],['white',whiteStrip]]){
   const id=side==='black'?'b':'w',meta=playerMeta[side];
   strip.avatar.textContent=(meta.name.trim()[0]||side[0]).toUpperCase();
   strip.name.textContent=meta.name;
   strip.elo.textContent=meta.elo?'('+meta.elo+')':'';
+  renderMaterialInline(strip.material,id,position);
+  strip.clock.hidden=!visible;
   strip.clock.textContent=formatClock(positionClocks[cursor]?.[id]??null);
   strip.clock.classList.toggle('is-active',active===id);
   strip.clock.classList.toggle('has-time',positionClocks[cursor]?.[id]!=null);

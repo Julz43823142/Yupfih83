@@ -1,0 +1,73 @@
+/* Shared Chess.com-style material strips and one board scale. */
+:root{--elo-shared-board-size:700px}
+body.elo-unified-chess :is(.arcade-board-wrap,.play-board-card,.puzzle-board-card,.maze-game,.prep-board-row,.analysis-board-column){max-width:calc(var(--elo-shared-board-size) + 40px)!important}
+body.elo-unified-chess :is(.arcade-board-wrap,.play-board-card,.puzzle-board-card,.maze-game){width:100%;margin-inline:auto}
+body.elo-unified-chess :is(.arcade-board,#play-board,#puzzle-board,#maze-board,.prep-board-row #board,.analysis-board-column #board){
+ width:100%!important;max-width:var(--elo-shared-board-size)!important;
+ aspect-ratio:1/1!important;box-sizing:border-box!important
+}
+body.elo-unified-chess .arcade-board-wrap{max-width:var(--elo-shared-board-size)!important}
+body.elo-unified-chess .arcade-board{overflow:visible!important}
+body.elo-unified-chess :is(.arcade-board,.chess-board,#play-board,#puzzle-board,#maze-board) .chess-piece{
+ width:90%!important;height:90%!important;max-width:90%!important;max-height:90%!important;
+ object-fit:contain!important;pointer-events:none!important;user-select:none!important
+}
+.elo-material-strip{
+ position:absolute!important;display:flex;align-items:center;gap:6px;
+ box-sizing:border-box;min-width:0;height:24px!important;max-height:24px;
+ overflow:hidden;white-space:nowrap;z-index:20;pointer-events:none;
+ color:#ebf5ff;font:600 12px/1.3 Inter,system-ui,sans-serif
+}
+.elo-material-name{flex:none;font-weight:800;min-width:35px}
+.elo-material-captures{display:inline-flex;gap:0;align-items:center;min-width:0;overflow:hidden}
+.elo-material-captures img{width:19px;height:19px;object-fit:contain;flex:0 0 19px;margin-right:-3px}
+.elo-material-lead{font-weight:850;color:#f3f9ff;font-variant-numeric:tabular-nums}
+.elo-material-remaining{color:#a4bfd3;font-size:11px;margin-left:auto}
+@media(max-width:520px){
+ .elo-material-strip{font-size:11px;gap:4px}
+ .elo-material-captures img{width:15px;height:15px;flex-basis:15px}
+ .elo-material-remaining{font-size:10px}
+}
+/* The strips are positioned alongside their real board, not inside the
+   64-square grid, so neither squares nor drag/drop hit targets are changed. */
+
+/* Analysis already has player/clock rows; show captured material in those rows. */
+.analysis-material-summary{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap;font-size:12px}
+.analysis-material-summary .elo-material-captures{display:inline-flex}
+.analysis-material-summary .elo-material-remaining{margin-left:4px}
+.tool-page .analysis-player-clock[hidden]{display:none!important}
+.tool-page .board-with-eval.analysis-flipped .analysis-player-black{grid-row:3!important}
+.tool-page .board-with-eval.analysis-flipped .analysis-player-white{grid-row:1!important}
+@media(max-width:600px){
+ .analysis-material-summary .elo-material-remaining{display:none}
+ .analysis-player-identity{gap:4px}
+}
+
+/* Live chess and Opening Explorer use the same 700px board as Guess the Elo. */
+.online-page #online-board,.opening-layout .opening-board{
+ width:100%!important;max-width:var(--elo-shared-board-size)!important;
+ aspect-ratio:1/1!important;margin-inline:auto!important;box-sizing:border-box!important
+}
+.online-page .online-players{width:100%;max-width:var(--elo-shared-board-size);margin-inline:auto;align-items:center;min-width:0}
+.elo-material-inline,.elo-opening-material{
+ display:inline-flex;align-items:center;gap:5px;min-width:0;
+ font:600 12px/1.25 Inter,system-ui,sans-serif;color:#e8f5ff
+}
+.elo-opening-material{display:flex;width:min(100%,var(--elo-shared-board-size));margin:8px auto;padding:2px 4px}
+.elo-material-inline .elo-material-captures,.elo-opening-material .elo-material-captures{
+ display:inline-flex;gap:0;align-items:center;min-width:0;overflow:hidden
+}
+.elo-material-inline .elo-material-captures img,.elo-opening-material .elo-material-captures img{
+ width:18px;height:18px;object-fit:contain;flex:0 0 18px;margin-right:-3px
+}
+.elo-material-inline .elo-material-remaining,.elo-opening-material .elo-material-remaining{
+ margin-left:5px;color:#a6c4d8;white-space:nowrap
+}
+.online-page .online-players>strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.online-page .online-players .elo-material-inline{flex:1 1 auto}
+.online-page .online-players strong[id$="-clock"]{flex:none}
+@media(max-width:480px){
+ .elo-material-inline .elo-material-remaining{display:none}
+ .online-page .online-players{gap:5px}
+ .online-page .online-players>strong{font-size:13px}
+}

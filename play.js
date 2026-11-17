@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {updateMaterial} from './chess-material.mjs';
 import {attachPlayBotControls} from './play-bot-controls.mjs?v=2-multi-premoves';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 const $=id=>document.getElementById(id),board=$('play-board');
@@ -122,6 +123,7 @@ function paint(){
   if(orientation==='black')svg.style.transform='rotate(180deg)';
   board.append(svg);
  }
+ updateMaterial(board,chess.fen(),{flipped:orientation==='black',moves:chess.history({verbose:true})});
  $('play-side').textContent=(chess.turn()==='w'?'White':'Black')+' to move';
  const history=chess.history(),lines=[];for(let i=0;i<history.length;i+=2)lines.push((i/2+1)+'. '+history[i]+(history[i+1]?' '+history[i+1]:''));
  $('play-history').textContent=lines.join('   ')||'No moves yet.';

@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {materialSnapshot,renderMaterialInline} from './chess-material.mjs';
 import {fetchOpeningStats} from './opening-stats-client.js?v=5';
 const $=id=>document.getElementById(id),game=new Chess(),line=[],board=$('opening-board');
 let catalog=[],currentResults=[],chosen=null,fetchIndex=0,controller=null;
@@ -22,6 +23,9 @@ function describeOpening(name){
 function setTheory(name){
  const out=$('opening-theory-text');if(out)out.textContent=describeOpening(name);
 }
+const topMaterial=document.createElement('div'),bottomMaterial=document.createElement('div');
+topMaterial.className='elo-opening-material';bottomMaterial.className='elo-opening-material';
+board.before(topMaterial);board.after(bottomMaterial);
 function draw(){
  board.replaceChildren();
  const matrix=game.board();for(let r=0;r<8;r++)for(let f=0;f<8;f++){
@@ -39,6 +43,9 @@ function draw(){
   if(piece){const img=document.createElement('img');img.src='/vendor/pieces/cburnett/'+piece.color+piece.type.toUpperCase()+'.svg';img.alt=piece.color+' '+piece.type;img.onerror=()=>{img.remove();sq.textContent=glyph[piece.color==='w'?piece.type.toUpperCase():piece.type]};sq.append(img)}
   board.append(sq);
  }
+ const material=materialSnapshot(game.fen(),{moves:game.history({verbose:true})});
+ renderMaterialInline(topMaterial,'b',material);
+ renderMaterialInline(bottomMaterial,'w',material);
  $('opening-back').disabled=line.length===0;
  $('opening-move-counter').textContent='Move '+Math.ceil(line.length/2);
  $('board-opening-name').textContent=line.length?'Position after '+line[line.length-1]:'Starting position';
