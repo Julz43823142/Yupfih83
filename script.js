@@ -886,11 +886,15 @@ form.addEventListener("submit", async event => {
   playerCard.replaceChildren();
   try {
     const encoded = encodeURIComponent(username);
-    const [profile, stats] = await Promise.all([
-      getJSON("https://api.chess.com/pub/player/" + encoded),
-      getJSON("https://api.chess.com/pub/player/" + encoded + "/stats")
-    ]);
-    renderPlayer(profile, stats, username);
+    // Show a useful player preview as soon as the public profile arrives.
+    // Rating stats are optional and must not block the full game scan.
+    const profile = await getJSON("https://api.chess.com/pub/player/" + encoded);
+    renderPlayer(profile, {}, username, {preset:true});
+    void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
+      if(usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
+      playerCard.replaceChildren();
+      renderPlayer(profile, stats, username);
+    }).catch(error=>console.warn("Optional player ratings unavailable:",error));
     let panel = document.getElementById("v87-review");
     if (!panel) {
       panel = add(results, "section", "v87-review");
@@ -904,7 +908,7 @@ form.addEventListener("submit", async event => {
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
-      statusText.textContent = "Profile loaded, but the analysis could not finish.";
+      statusText.textContent = "Player preview loaded, but the analysis could not finish.";
     }
   } catch (error) {
     statusText.textContent = error.message;
