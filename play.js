@@ -423,7 +423,7 @@ function showBotStartIntro(){
  if(!card)return;
  let overlay=document.getElementById('play-start-intro');
  if(!overlay){overlay=document.createElement('div');overlay.id='play-start-intro';overlay.className='play-start-intro';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');card.append(overlay);}
- const botName=(names[botLevel]||'Computer bot').replace(/ \\(\\d+\\)$/,'');
+ const botName=(names[botLevel]||'Computer bot').replace(/ \(\d+\)$/,'');
  const botRating=botLevel==='lars'?'Maximum strength':(ratings[botLevel]||'—')+' Elo';
  overlay.replaceChildren();
  const heading=document.createElement('strong');heading.textContent='Game started';
