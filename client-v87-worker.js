@@ -104,6 +104,9 @@ async function run(username){
     throw Error("Chess.com could not verify this player.");
   if(!manifest||!Array.isArray(manifest.archives))
     throw Error("No public Chess.com game archives are available.");
+  // The worker has already verified the Chess.com player. Reuse its profile
+  // in the UI instead of triggering redundant, rate-limit-prone API requests.
+  self.postMessage({type:"profile",profile});
   const pattern=new RegExp("^https://api\\.chess\\.com/pub/player/"+name+"/games/[0-9]{4}/(0[1-9]|1[0-2])$","i");
   const months=[...new Set(manifest.archives.filter(url=>typeof url==="string"&&pattern.test(url)))]
     .sort().reverse().slice(0,240);
