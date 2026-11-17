@@ -74,8 +74,8 @@ test('Magnus example renders real Chess.com master-game aggregates without inven
  assert.equal(profile.profile.title,'GM');
  assert.match(script,/async function showMagnusPublicProfile\(\)/);
  assert.match(script,/await showMagnusPublicProfile\(\)/);
- assert.match(script,/renderPlayer\(publicData\.profile,\{\}, "MagnusCarlsen",\{preset:true\}\)/);
- assert.match(script,/Chess\.com does not publish game archives/);
+ assert.ok(script.includes('renderPlayer(publicData.profile,{},"MagnusCarlsen",{preset:true})'));
+ assert.ok(script.includes("masters-games-database"));
  assert.match(script,/insights\.hidden=true/);
  const css=readFileSync(new URL('style.css',root),'utf8');
  assert.match(css,/body\[data-example-player\] \.sample-section\{display:block!important\}/);
@@ -92,8 +92,8 @@ test('Magnus saved master-games report has independently sourced games, colors, 
  assert.equal(masters.outcomes.winPercent+masters.outcomes.drawPercent+masters.outcomes.lossPercent,100);
  assert.equal(masters.openings.white.length,5);
  assert.equal(masters.openings.black.length,5);
- assert.match(script,/magnus-carlsen-master-games\\.json/);
- assert.match(script,/masters\\.games\\.toLocaleString/);
+ assert.ok(script.includes("magnus-carlsen-master-games.json"));
+ assert.ok(script.includes("masters.games.toLocaleString"));
  assert.match(script,/Most played openings/);
  assert.match(script,/move accuracy, time-control splits and a 5,000-game v87 review are not claimed/);
 });
