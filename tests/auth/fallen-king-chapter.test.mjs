@@ -22,7 +22,7 @@ test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
  assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
- assert.match(page,/fallen-king-story\.js\?v=58/);
+ assert.match(page,/fallen-king-story\.js\?v=59/);
 });
 test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wired',()=>{
  assert.match(engine,/woodBridgeTile\?\.\(x,z\)/);
@@ -33,6 +33,18 @@ test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wir
  }
  assert.match(source,/setScene\('skyglassInterior',\{x:30,y:46/);
  assert.match(source,/setScene\('observatory',\{x:17,y:20/);
+});
+test('medieval Skyglass Abbey, ancient stone arches and scenic map boundaries remain implemented',()=>{
+ assert.match(page,/Skyglass Abbey · buiten/);
+ assert.match(page,/Skyglass Abbey · binnen/);
+ assert.match(source,/Abbess Sable/);
+ assert.match(source,/Stonehenge-like sanctuary/);
+ assert.match(source,/medieval stone abbey/i);
+ assert.match(source,/armillary sphere outside/);
+ assert.match(source,/scriptorium bookcases/i);
+ assert.match(source,/previous blank green world edge/);
+ assert.match(source,/if\(gate\(x,z\)\)continue/);
+ assert.match(source,/for\(const \[ax,bx,z\] of/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
