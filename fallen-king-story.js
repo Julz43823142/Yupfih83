@@ -1250,6 +1250,24 @@ function drawProps(g){
   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)
    if(scene!=='skyglassInterior'&&isTree(x,z)&&((x<=3||z<=3||x>=w.width-4||z>=w.height-4)||(x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
   const rock=(x,z,scale=1)=>{box(x,.12*scale,z,.74*scale,.24*scale,.64*scale,'#737f79');box(x,.29*scale,z,.50*scale,.10*scale,.47*scale,'#9ca59a');};
+  // The previous blank green world edge is now an actual scenic barrier.
+  // Keep the connected gates open at map transitions.
+  const gate=(x,z)=>scene==='ridge'&&((x<=1&&z>=17&&z<=23)||(x>=w.width-2&&z>=17&&z<=23)||(z>=w.height-2&&x>=8&&x<=14))
+   ||scene==='hill'&&((x<=1&&z>=26&&z<=33)||(x>=w.width-2&&z<=8))
+   ||scene==='ruins'&&z<=1&&x>=14&&x<=22
+   ||scene==='observatory'&&z>=w.height-2&&x>=13&&x<=21
+   ||scene==='skyglassInterior'&&z>=w.height-2&&x>=25&&x<=35;
+  if(scene!=='skyglassInterior')for(let z=0;z<w.height;z++)for(let x=0;x<w.width;x++){
+   if(x!==0&&x!==w.width-1&&z!==0&&z!==w.height-1)continue;
+   if(gate(x,z))continue;
+   const wx=x+.5,wz=z+.5,k=(x*7+z*13)%4;
+   // Tall, dark foliage and irregular rocks hide the abrupt tile edge.
+   if(k!==0)g.tree?.(wx,wz);
+   else{
+    box(wx,.14,wz,.94,.28,.89,scene==='hill'?'#696c63':'#515e51');
+    cone(wx,.34,wz,.52,1.10,scene==='hill'?'#8e8b76':'#526c53',8);
+   }
+  }
   const lamp=(x,z,blue=false)=>{
    cylinder(x,.06,z,.085,.09,1.2,'#735e48',9);
    box(x,1.31,z,.24,.18,.24,'#b59c69');
