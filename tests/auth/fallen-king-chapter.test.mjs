@@ -579,7 +579,7 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(source,/function drawFollowers\(g\)\{\/\* Pip is reserved/);
  assert.match(engine,/const npcPalette=\['white','black','blue','red','green','purple','orange'\]/);
  assert.match(engine,/Math\.imul\(hash\^id\.charCodeAt\(i\),16777619\)/);
- assert.match(engine,/const tone=npcColor\(n\)/);
+ assert.match(engine,/const tone=\(n\.id==='watch-keeper'\|\|n\.id==='watchtower-keeper'\)\?n\.color:npcColor\(n\)/);
  assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
  assert.match(engine,/gl\.polygonOffset\(0,0\)/);
  assert.match(engine,/vertices\[i\]=x\+\.88-py/);
