@@ -744,7 +744,7 @@ function renderReview(data) {
   const foot = add(panel, "p", "v87-note",
     "Charts summarize patterns in the available game data.");
 }
-function renderPlayer(profile, stats, username) {
+function renderPlayer(profile, stats, username, options = {}) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
     const avatar = add(header, "img", "player-avatar");
@@ -759,9 +759,10 @@ function renderPlayer(profile, stats, username) {
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   const ratings = add(playerCard, "div", "rating-grid");
-  const boxes={bullet:ratingBox("BULLET",stats.chess_bullet?.last?.rating),blitz:ratingBox("BLITZ",stats.chess_blitz?.last?.rating),rapid:ratingBox("RAPID",stats.chess_rapid?.last?.rating)};
+  const prefix=options.platform==="lichess"?"LICHESS ":"";
+  const boxes={bullet:ratingBox(prefix+"BULLET",stats.chess_bullet?.last?.rating),blitz:ratingBox(prefix+"BLITZ",stats.chess_blitz?.last?.rating),rapid:ratingBox(prefix+"RAPID",stats.chess_rapid?.last?.rating)};
   for(const box of Object.values(boxes))ratings.append(box);
-  loadRatingSparklines(profile.username||username,boxes);
+  if(!options.preset)loadRatingSparklines(profile.username||username,boxes);
 }
 // Original Insights v87 Python runs inside a browser Web Worker (WebAssembly).
 // No GitHub workflow or status polling is involved.
@@ -848,15 +849,23 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
   const preset=await response.json();
   if(preset.schema!==1||preset.username!==exampleUsername.toLowerCase()
    ||preset.report?.version!=="fairplay-v87-review-reliability"
-   ||preset.report.username!==exampleUsername.toLowerCase()
+   ||preset.report.username!==(preset.source?.account||exampleUsername).toLowerCase()
    ||!(Number(preset.report.games)>0)||!preset.profile||!preset.stats
    ||!Array.isArray(preset.insights))throw Error("Invalid example snapshot.");
   playerCard.replaceChildren();
-  renderPlayer(preset.profile,preset.stats,exampleUsername);
+  renderPlayer(preset.profile,preset.stats,exampleUsername,{preset:true,platform:preset.source?.platform});
   results.classList.remove("hidden");
   renderReview(preset.report);
-  statusText.textContent="Precomputed example report · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
-   ". This snapshot is not a live analysis.";
+  const origin=preset.source?.platform==="lichess"?"Lichess @"+preset.source.account+" (Magnus Carlsen); not Chess.com data":"Chess.com @"+exampleUsername;
+  statusText.textContent="Precomputed example report · "+origin+" · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
+   ". No live analysis.";
+  if(preset.source?.platform==="lichess"){
+   const notice=document.createElement("p");
+   notice.className="v87-warning";
+   notice.textContent="Magnus sample uses authentic public Lichess games from @"+preset.source.account+". Lichess ratings are not Chess.com ratings.";
+   const panel=document.getElementById("v87-review");
+   if(panel)panel.prepend(notice);
+  }
   window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
    detail:{username:exampleUsername.toLowerCase(),games:preset.insights}
   }));
