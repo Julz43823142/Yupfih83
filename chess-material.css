@@ -1,0 +1,32 @@
+/* Shared Chess.com-style material strips and one board scale. */
+:root{--elo-shared-board-size:700px}
+body.elo-unified-chess :is(.arcade-board-wrap,.play-board-card,.puzzle-board-card,.maze-game,.prep-board-row,.analysis-board-column){max-width:calc(var(--elo-shared-board-size) + 40px)!important}
+body.elo-unified-chess :is(.arcade-board-wrap,.play-board-card,.puzzle-board-card,.maze-game){width:100%;margin-inline:auto}
+body.elo-unified-chess :is(.arcade-board,#play-board,#puzzle-board,#maze-board,.prep-board-row #board,.analysis-board-column #board){
+ width:100%!important;max-width:var(--elo-shared-board-size)!important;
+ aspect-ratio:1/1!important;box-sizing:border-box!important
+}
+body.elo-unified-chess .arcade-board-wrap{max-width:var(--elo-shared-board-size)!important}
+body.elo-unified-chess .arcade-board{overflow:visible!important}
+body.elo-unified-chess :is(.arcade-board,.chess-board,#play-board,#puzzle-board,#maze-board) .chess-piece{
+ width:90%!important;height:90%!important;max-width:90%!important;max-height:90%!important;
+ object-fit:contain!important;pointer-events:none!important;user-select:none!important
+}
+.elo-material-strip{
+ position:absolute!important;display:flex;align-items:center;gap:6px;
+ box-sizing:border-box;min-width:0;height:24px!important;max-height:24px;
+ overflow:hidden;white-space:nowrap;z-index:20;pointer-events:none;
+ color:#ebf5ff;font:600 12px/1.3 Inter,system-ui,sans-serif
+}
+.elo-material-name{flex:none;font-weight:800;min-width:35px}
+.elo-material-captures{display:inline-flex;gap:0;align-items:center;min-width:0;overflow:hidden}
+.elo-material-captures img{width:19px;height:19px;object-fit:contain;flex:0 0 19px;margin-right:-3px}
+.elo-material-lead{font-weight:850;color:#f3f9ff;font-variant-numeric:tabular-nums}
+.elo-material-remaining{color:#a4bfd3;font-size:11px;margin-left:auto}
+@media(max-width:520px){
+ .elo-material-strip{font-size:11px;gap:4px}
+ .elo-material-captures img{width:15px;height:15px;flex-basis:15px}
+ .elo-material-remaining{font-size:10px}
+}
+/* The strips are positioned alongside their real board, not inside the
+   64-square grid, so neither squares nor drag/drop hit targets are changed. */
