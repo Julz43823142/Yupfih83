@@ -136,3 +136,20 @@ header.navbar .mobile-chess-menu nav > a.elo-menu-active{
  font-weight:800!important;
  box-shadow:none!important;
 }
+
+/* 186: Same active tile on Home and all tool pages.
+   Placed last to override the earlier generic tool-link tile rule. */
+@media(max-width:1099px){
+ header.navbar .mobile-chess-menu nav > a[aria-current="page"],
+ header.navbar .mobile-chess-menu nav > a.elo-menu-active,
+ body.elo-subpage header.navbar .elo-global-menu nav > a[aria-current="page"],
+ body.elo-subpage header.navbar .elo-global-menu nav > a.elo-menu-active{
+  background:#246784!important;
+  border:1px solid #66afc6!important;
+  border-left:3px solid #82c9da!important;
+  border-radius:9px!important;
+  color:#f2fbff!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+ }
+}
