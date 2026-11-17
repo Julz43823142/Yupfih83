@@ -104,9 +104,19 @@ function updatePlayerStrips(){
  // Game Review finishes. Recorded clocks remain review-only.
  const visible=reviewResults.length>0;
  boardLayout.classList.toggle('has-reviewed-players',visible);
+ boardLayout.classList.toggle('analysis-flipped',analysisFlipped);
  blackStrip.root.hidden=false;
  whiteStrip.root.hidden=false;
- const position=materialSnapshot(history[cursor]);
+ let recordedMoves=null;
+ try{
+  const replay=new Chess(history[0]);recordedMoves=[];
+  for(const move of sanMoves.slice(0,cursor)){
+   const played=replay.move(move);
+   if(!played)throw Error('Missing saved move');
+   recordedMoves.push(played);
+  }
+ }catch{recordedMoves=null}
+ const position=materialSnapshot(history[cursor],{moves:recordedMoves});
  const active=history[cursor]?.split(' ')[1]||'w';
  for(const [side,strip] of [['black',blackStrip],['white',whiteStrip]]){
   const id=side==='black'?'b':'w',meta=playerMeta[side];
