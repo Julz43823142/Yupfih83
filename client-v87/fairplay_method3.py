@@ -5,6 +5,7 @@ not a population norm. Result HIGH is moderator workload priority, not gameplay
 confirmation. Labels and account status never enter this computation.
 """
 from dataclasses import replace
+import os
 from math import isfinite
 import time
 
@@ -45,13 +46,14 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
         profile=api.get(target,profile=True)
         if not isinstance(profile,dict) or username(profile.get('username',''))!=target:
             raise ReviewError('The public profile cannot be verified.')
-        collection=replace(config,max_games=LIMIT,history_games=LIMIT,primary_engine_games=LIMIT)
+        sample_limit=min(LIMIT,max(50,int(os.environ.get('ELO_EXAMPLE_MAX_GAMES',str(LIMIT)))))
+        collection=replace(config,max_games=sample_limit,history_games=sample_limit,primary_engine_games=sample_limit)
         games,skipped,partial=collect_games(api,target,progress,collection,
             include_unrated=True,include_latest_fifty_short=True,
-            include_recent_all_short_count=LIMIT,time_classes={'rapid','blitz','bullet'},
+            include_recent_all_short_count=sample_limit,time_classes={'rapid','blitz','bullet'},
             progress_detail=True)
         check_deadline(deadline)
-        games=sorted((g for g in games if type(g.rated) is bool),key=lambda g:(g.ended,g.identity))[-LIMIT:]
+        games=sorted((g for g in games if type(g.rated) is bool),key=lambda g:(g.ended,g.identity))[-sample_limit:]
         if not games:raise ReviewError('No eligible live games were found.')
         from fairplay_method3_coverage import ChronologyCoverage
         collection_status=getattr(api,'fairplay_collection_coverage',None) or {}
