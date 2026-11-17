@@ -122,8 +122,8 @@ function building(h){
  for(const wx of [x-1.30,x+1.30]){
   box(wx,1.37,face+.10,.91,.95,.13,'#7b5840');
   box(wx,1.40,face+.20,.70,.73,.10,'#608e9e');
-  box(wx,1.40,face+.29,.08,.72,.06,'#f0dfb9');
-  box(wx,1.40,face+.29,.70,.075,.06,'#f0dfb9');
+  box(wx,1.40,face+.35,.08,.72,.045,'#f0dfb9');
+  box(wx,1.40,face+.35,.70,.075,.045,'#f0dfb9');
   box(wx, .88,face+.16,1.05,.11,.22,'#dfc79f');
   // Flower boxes provide details without additional animation.
   box(wx,.76,face+.30,.91,.16,.29,'#93684b');
@@ -642,12 +642,27 @@ function fountain(x,z){
 // Transform the original 2.5D chess-piece mesh to depict sleeping Oliver without new art.
 // Rotate a genuine chess mesh on its side for the guard sleeping in the corridor.
 function recliningPiece(x,z,type,color){
- const from=vertices.length;
- piece(x,z,type,color,false);features(x,z,type,color,false,'guard');
- for(let i=from;i<vertices.length;i+=9){
-  const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
-  vertices[i]=x+dy-.9;vertices[i+1]=.48+dx*.18;
-  vertices[i+3]=ny;vertices[i+4]=nx;
+ // Keep every mesh triangle together before rotating: a static GPU chunk flush
+ // must not leave part of the guard standing upright on the mattress.
+ const previous=vertices;
+ vertices=[];
+ let posed;
+ try{
+  piece(x,z,type,color,false);
+  features(x,z,type,color,false,'guard');
+  for(let i=0;i<vertices.length;i+=9){
+   const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4],nz=vertices[i+5];
+   vertices[i]=x+dy-1.05;
+   vertices[i+1]=.91-dx;
+   vertices[i+3]=ny;
+   vertices[i+4]=-nx;
+   vertices[i+5]=nz;
+  }
+  posed=vertices;
+ }finally{vertices=previous;}
+ for(let i=0;i<posed.length;i+=27){
+  if(staticGeometryBuilding&&vertices.length+27>MAX_VERTEX_FLOATS)flushStaticChunk();
+  for(let j=i;j<i+27;j++)vertices.push(posed[j]);
  }
 }
 function prepareVision(){
