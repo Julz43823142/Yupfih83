@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261115-insights-report-2";
+const REVISION = "20261117-insights-backfill-194";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -117,7 +117,7 @@ async function run(username){
     lastArchiveRequest=Date.now();
     const url=months[index++];
     const suffix=url.slice(prefix.length);
-    progress("Downloading game archive "+index+"/"+months.length+"…","collecting");
+    progress("Checking Chess.com archives "+index+"/"+months.length+" · "+candidates+" raw eligible candidates (target: 5,000 parsed games)…","collecting");
     try{
       const body=await chessJSON(url);
       input.archives[suffix]=body;
@@ -145,6 +145,30 @@ async function run(username){
       const report=JSON.parse(py.FS.readFile("/home/pyodide/v87-result.json",{encoding:"utf8"}));
       if(report.version!=="fairplay-v87-review-reliability"||report.username!==name)
         throw Error("Unexpected local Insights output.");
+      // A raw archive count is NOT the number of successfully parsed v87 games.
+      // In particular, 5,300 downloaded games may yield far fewer than 5,000
+      // eligible standard games. Never publish a short review prematurely when
+      // older Chess.com months have not yet been inspected.
+      if(report.games<5000&&index<months.length){
+        const accepted=Number(report.games)||0;
+        const previousIndex=index;
+        const previousCandidates=candidates;
+        // Pull another substantial batch before re-running expensive Pyodide.
+        // Scale with the observed eligibility ratio; cap each batch so the
+        // progress display keeps moving even for accounts with sparse PGNs.
+        const fraction=Math.max(0.05,accepted/Math.max(1,candidates));
+        const desiredAdditional=Math.min(25000,Math.max(5000,
+          Math.ceil((5000-accepted)/fraction)));
+        const target=candidates+desiredAdditional;
+        progress("Review parsed "+accepted+" / 5,000 games. Checking older Chess.com archives…","collecting");
+        while(index<months.length&&candidates<target)await nextArchive();
+        if(index===previousIndex||candidates===previousCandidates&&index<months.length)
+          progress("Some monthly archives have no eligible games; continuing the search…","collecting");
+        continue;
+      }
+      report.archive_months_checked=index;
+      report.archive_months_available=months.length;
+      report.source_platform="chess.com";
       self.postMessage({type:"complete",result:report});
       return;
     }catch(error){
