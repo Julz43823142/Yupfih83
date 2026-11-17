@@ -775,7 +775,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261115-insights-report-2");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261117-backfill-194");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
@@ -792,6 +792,13 @@ function analyzeOnVisitorDevice(username){
       if(data.type==="progress"){
         reviewProgressStage=data.phase||"analyzing";
         showReviewProgress(data.progress||"Analyzing locally on your device…",reviewProgressStage);
+        return;
+      }
+      if(data.type==="profile"){
+        if(!settled&&String(data.profile?.username||"").toLowerCase()===username.toLowerCase()){
+          playerCard.replaceChildren();
+          renderPlayer(data.profile,{},username,{preset:true});
+        }
         return;
       }
       if(data.type==="complete"){
@@ -819,13 +826,15 @@ async function runReview(username,requestId){
  if(requestId!==activeReviewSerial)return;
  renderReview(report);
 
- statusText.textContent="Analysis complete on your device.";
+ statusText.textContent="Chess.com analysis complete: "+report.games+
+   " of up to 5,000 eligible games reviewed"+
+   (report.games<5000?" · "+report.archive_months_checked+"/"+report.archive_months_available+" available archive months checked.":".");
 }
 // Example reports must start immediately on the existing homepage.
 // Changing only the URL hash does NOT reload the document or submit the form.
 const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
 const exampleProfileRequests=new Map();
-for(const username of ["MagnusCarlsen","Hikaru"]){
+if(!document.body.dataset.examplePlayer)for(const username of ["MagnusCarlsen","Hikaru"]){
   // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
   const profileRequest=getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
   exampleProfileRequests.set(username.toLowerCase(),profileRequest);
@@ -838,10 +847,6 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
     }
   }).catch(()=>{});
 }
-// Example reports are ordinary links to /?analyze=Username, which guarantees
-// that the load-time analysis boot path runs on every click (including on mobile).
-// Example pages render an already completed v87 report. They never start a
-// second scan; the snapshot was produced by the regular v87 Python runner.
 // Example pages MUST run the same live Chess.com 5,000-game v87 review as the
 // homepage. Old preset files were limited snapshots with the wrong game coverage.
 const exampleUsername=document.body.dataset.examplePlayer;
@@ -868,6 +873,34 @@ form.addEventListener("submit", async event => {
   add(preview,"h3","player-name","@"+username+" · Loading player profile…");
   const reportPreview=document.getElementById("v87-review");
   if(reportPreview)reportPreview.replaceChildren(add(document.createElement("div"),"p","v87-warning","Collecting public games for @"+username+" (up to 5,000 available games)…"));
+  // Start the example's v87 worker immediately. Its verified Chess.com profile
+  // arrives on the worker message channel; no separate profile/stats request
+  // may hold up or rate-limit the full 5,000-game review.
+  if(activeExample){
+    placeExampleCardsNearOverview();
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+    try{
+      await runReview(username,requestId);
+      if(requestId!==activeReviewSerial)return;
+      const extra=document.getElementById("insights-embedded");
+      if(extra)extra.replaceChildren();
+    }catch(error){
+      if(requestId!==activeReviewSerial)return;
+      stopReviewProgress();
+      const panel=document.getElementById("v87-review");
+      if(panel){
+        panel.replaceChildren();
+        add(panel,"p","v87-warning","Chess.com review unavailable: "+error.message);
+      }
+      statusText.textContent="Chess.com review unavailable: "+error.message+" Please retry.";
+    }finally{
+      if(requestId===activeReviewSerial){
+        button.disabled=false;
+        button.textContent="Analyze Player";
+      }
+    }
+    return;
+  }
   try {
     const encoded = encodeURIComponent(username);
     // Show a useful player preview as soon as the public profile arrives.
