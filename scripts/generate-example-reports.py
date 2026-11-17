@@ -66,7 +66,7 @@ def generate(username,slug):
     if isinstance(report.get('method3'),dict):
         report['method3'].pop('subject',None)
     OUTPUT.mkdir(parents=True,exist_ok=True)
-    payload={'schema':2,'username':username.lower(),'source':source,
+    payload={'schema':3,'username':username.lower(),'source':source,
              'generatedAt':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
              'profile':profile,'stats':stats,'report':report,'insights':insights}
     target=OUTPUT/(slug+'.json')
