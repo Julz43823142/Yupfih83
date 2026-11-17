@@ -51,6 +51,14 @@ jobs:
           from pathlib import Path
           for slug, account in [('hikaru-nakamura', 'hikaru'), ('magnus-carlsen', 'magnuscarlsen')]:
               path=Path('assets/example-reports-v2')/(slug+'.json')
+              if not path.exists() and account == 'magnuscarlsen':
+                  marker=json.loads(Path('assets/example-reports-v2/magnus-carlsen-unavailable.json').read_text())
+                  assert marker['source']=={'platform':'chess.com','account':account}
+                  assert marker['available'] is False
+                  assert marker['reason']=='no_public_archives'
+                  assert marker['actualGames']==0
+                  print('Magnus: verified Chess.com public archives unavailable; no fabricated report')
+                  continue
               saved=json.loads(path.read_text())
               assert saved['source']=={'platform':'chess.com','account':account}
               assert saved['report']['username']==account
@@ -66,7 +74,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/example-reports-v2/hikaru-nakamura.json assets/example-reports-v2/magnus-carlsen.json
+          git add assets/example-reports-v2/hikaru-nakamura.json assets/example-reports-v2/magnus-carlsen*.json
           git diff --cached --quiet && exit 0
           git commit -m 'Publish verified Chess.com 5000-game example reports'
           git push origin HEAD:"$BRANCH"
