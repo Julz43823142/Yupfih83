@@ -843,7 +843,7 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
 // Example pages render an already completed v87 report. They never start a
 // second scan; the snapshot was produced by the regular v87 Python runner.
 // Example pages MUST run the same live Chess.com 5,000-game v87 review as the
-// homepage. Old preset files were limited snapshots (and Magnus was Lichess).
+// homepage. Old preset files were limited snapshots with the wrong game coverage.
 const exampleUsername=document.body.dataset.examplePlayer;
 const activeExample=exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru";
 if(activeExample){
