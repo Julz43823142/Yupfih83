@@ -79,7 +79,7 @@ test('forest sign displays Willowmere Village East and crates have real collisio
 test('sewer walls are continuous at corners and bridge trim is above the planks',()=>{
  assert.ok(source.includes('for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)'));
  assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
- assert.ok(source.includes("box(x+.3,.455,19.5"));
+ assert.ok(source.includes("box(x+.3,.485,19.5"));
 });
 test('dark sewer uses distance haze only outside the untouched cinematic intro',()=>{
  assert.ok(engine.includes('uniform float sewerMood'));
