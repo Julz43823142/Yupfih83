@@ -935,7 +935,9 @@ form.addEventListener("submit", async event => {
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
-      statusText.textContent = "Player preview loaded, but the analysis could not finish.";
+      statusText.textContent = "Full analysis unavailable. Loading simpler public-game statistics instead.";
+      if(exampleAccounts.has(username.toLowerCase()))
+        window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
   } catch (error) {
     statusText.textContent = error.name==="AbortError"?"Chess.com did not respond. Retry the player analysis.":error.message;
@@ -1016,9 +1018,11 @@ async function load(user){
    // Show usable insights early, even if a complete multi-month load is still in progress.
    if((i+1)%3===0||i===urls.length-1||games.length>=5000){
     games.sort((a,b)=>b.date-a.date);
+    if(games.length>5000)games.length=5000;
     render(user,games,i+1,failed);
     if(i<urls.length-1&&games.length<5000)target.prepend(node('p','insights-intro','Loading recent games: '+games.length+' / 5,000 · '+(i+1)+' months checked'));
    }
+   if(games.length>=5000)break;
   }
   if(!urls.length)render(user,[],0,0);
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
