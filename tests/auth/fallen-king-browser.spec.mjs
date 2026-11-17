@@ -4,8 +4,8 @@ test.use({ launchOptions: { args: ['--enable-webgl','--use-gl=angle','--use-angl
 
 test('Fallen King opens account slots, launches New Game and displays first intro', async ({page}) => {
  test.setTimeout(45000);
- const errors=[];
- page.on('console',msg=>{if(msg.type()==='error')console.log('BROWSER CONSOLE',msg.text());});
+ const errors=[],renderErrors=[];
+ page.on('console',msg=>{if(msg.type()==='error'){console.log('BROWSER CONSOLE',msg.text());if(msg.text().includes('Fallen King frame failed'))renderErrors.push(msg.text());}});
  page.on('requestfailed',req=>{if(/fallen-king/.test(req.url()))console.log('FAILED REQUEST',req.url(),req.failure()?.errorText);});
  page.on('pageerror',err=>errors.push(err.message));
  const base='http://localhost:8788';
@@ -53,7 +53,14 @@ test('Fallen King opens account slots, launches New Game and displays first intr
  console.log('CHECKPOINT click skip');
  await page.locator('#fallen-story-skip').click({timeout:8000});
  await expect(page.locator('#fallen-story-intro')).toBeHidden();
- await expect(page.locator('#fallen-dialogue')).toBeVisible({timeout:10000});
+ // Skip must enter the playable cell without leaving the overlay or a blocking dialogue.
+ await expect(page.locator('#fallen-dialogue')).toBeHidden();
+ await expect(page.locator('#fallen-story-puzzle')).toBeHidden();
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingStory?.blockedInput()),{timeout:10000}).toBe(false);
+ // A renderer error is emitted to console (caught by the animation loop), not pageerror.
+ await page.waitForTimeout(800);
+ expect(errors).toEqual([]);
+ expect(renderErrors).toEqual([]);
  console.log('CHECKPOINT gameplay playable');
  expect(errors).toEqual([]);
 });
