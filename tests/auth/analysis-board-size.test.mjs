@@ -7,7 +7,7 @@ const css=readFileSync(new URL('analysis-board-size-201.css',root),'utf8');
 const html=readFileSync(new URL('analysis.html',root),'utf8');
 
 test('Analysis loads the board-size fix after shared material styles',()=>{
- const material=html.lastIndexOf('/chess-material.css?v=200');
+ const material=html.lastIndexOf('/chess-material.css?v=202-no-totals');
  const size=html.lastIndexOf('/analysis-board-size-201.css?v=201');
  assert.ok(material>=0&&size>material);
  assert.ok(size<html.lastIndexOf('</head>'));
