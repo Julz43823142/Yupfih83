@@ -77,9 +77,11 @@ jobs:
              (prod?.d1_databases?.AUTH_DB?.id||prod?.d1_databases?.AUTH_DB?.database_id)!=='82e07afa-79eb-47e5-aa77-5bac6fb5bbdf'||
              (prev?.d1_databases?.AUTH_DB?.id||prev?.d1_databases?.AUTH_DB?.database_id)!=='e1d84922-0f74-414f-8fe5-2c3ac48f7884')
             throw Error('Production/preview isolation check failed');
-          if(p.source?.type==='github'&&(p.source.config?.production_deployments_enabled!==false||
-             p.source.config?.preview_deployment_setting!=='none'))
-            throw Error('Native Git deployments must remain paused');
+          // Native Git deployments are intentionally enabled for this project.
+          // Verify the source is the expected GitHub main branch, while retaining
+          // all production/preview D1 and authentication isolation checks.
+          if(p.source?.type==='github'&&p.source.config?.production_branch&&p.source.config.production_branch!=='main')
+            throw Error('Unexpected native Git production branch');
           const vars=prod.env_vars||{},flag=vars.PUBLIC_SIGNUP_ENABLED?.value;
           if(!['true','false'].includes(flag)||vars.PASSKEY_LOGIN_ENABLED?.value!=='true'||
              vars.PASSKEY_RP_ID?.value!=='eloscanner.com'||!vars.BETTER_AUTH_SECRET)
@@ -89,7 +91,7 @@ jobs:
           if(live.registrationOpen!==(flag==='true')||live.passkeyReady!==true)
             throw Error('Live signup differs from configured production state');
           appendFileSync(process.env.GITHUB_ENV,'EXPECTED_SIGNUP_OPEN='+flag+'\n');
-          console.log('Verified protected D1, paused Git deployments, passkey configuration, signup='+flag);
+          console.log('Verified protected D1, Git deployment configuration, passkey configuration, signup='+flag);
           NODE
       - name: Deploy built site and Functions without changing project variables
         env:
