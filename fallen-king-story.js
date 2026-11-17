@@ -244,7 +244,7 @@ function observatoryWorld(){
  for(let y=1;y<29;y++)for(let x=1;x<35;x++)if(x<=2||x>=33||y<=2||y>=27)updateTile(w,x,y,'T');
  carveRoad(w,[[17,28],[17,19],[17,16]],3);
  for(let y=5;y<=16;y++)for(let x=9;x<=25;x++)updateTile(w,x,y,'H');
- for(let x=15;x<=19;x++)for(let y=15;y<=17;y++)updateTile(w,x,y,'p');
+ for(let x=15;x<=19;x++)for(let y=17;y<=19;y++)updateTile(w,x,y,'p');
  // Exterior door is visible and accessible through the front steps.
  updateTile(w,17,16,'D');
  w.spawn={x:17,y:25};w.music='willowmere';
