@@ -21,7 +21,7 @@ test('homepage and both example pages contain direct, working cross-navigation',
    assert.ok(page.includes('href="/example-'+target+'.html" data-username="'+name+'"'),
     slug+' must navigate to '+target);
   }
-  assert.ok(page.includes('script.js?v=193-chesscom-5000-examples'));
+  assert.ok(page.includes('script.js?v=194-verified-5000-review'));
   assert.ok(!page.includes('location.replace('));
  }
 });
