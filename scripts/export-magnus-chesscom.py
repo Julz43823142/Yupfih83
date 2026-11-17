@@ -31,7 +31,6 @@ class ChessComMonthlyFallback(PubAPI):
             now=datetime.now(timezone.utc)
             months=[]
             for offset in range(72):
-                year=now.year-(now.month-1-offset<0 and (offset-now.month)//12+1 or 0)
                 absolute=now.year*12+(now.month-1)-offset
                 y,m=divmod(absolute,12)
                 if y<2010:break
