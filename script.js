@@ -864,7 +864,19 @@ async function openSavedExample(){
   statusText.textContent="Opening saved Chess.com report…";
   try{
     const response=await fetch("/assets/example-reports-v2/"+slug+".json",{cache:"force-cache"});
-    if(!response.ok)throw Error("The 5,000-game report has not been published yet.");
+    if(!response.ok){
+      if(account==="magnuscarlsen"){
+        const unavailable=await fetch("/assets/example-reports-v2/magnus-carlsen-unavailable.json",{cache:"force-cache"});
+        if(unavailable.ok){
+          const marker=await unavailable.json();
+          if(marker.source?.platform==="chess.com"&&marker.source?.account===account&&
+             marker.available===false&&marker.reason==="no_public_archives"){
+            throw Error("Chess.com publishes no public game archives for @MagnusCarlsen. A verified 5,000-game report cannot be generated for this account.");
+          }
+        }
+      }
+      throw Error("The 5,000-game report has not been published yet.");
+    }
     const saved=await response.json();
     if(saved.schema!==2||saved.username!==account||saved.source?.platform!=="chess.com"||
        saved.source?.account!==account||saved.profile?.username?.toLowerCase()!==account||
