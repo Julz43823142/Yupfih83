@@ -16,7 +16,7 @@ const freshChapter=()=>({scene:'intro',flags:{},coins:[],step:0,position:null});
 let engine=null,baseWorld=null,scene='intro',chapter=freshChapter(),activePuzzle=null,storyHandlersBound=false,exitPromptArmed=true;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{chapter.coins=[];if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','ridge','hill','ruins','observatory','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return freshChapter();}
+function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','ridge','hill','ruins','observatory','skyglassInterior','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return freshChapter();}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -198,7 +198,7 @@ function ridgeWorld(){
  w.npcs=[
   {id:'fork-traveller',name:'Mira the Pilgrim',x:9,y:23,piece:'B',color:'purple',lines:['The Willowmere bridge is open again? Wonderful!','At the fork, north is a sealed cave, south the old ruins, and east the Skyglass hill road.']},
   {id:'fork-merchant',name:'Holloway',x:25,y:23,piece:'P',color:'green',lines:['The ruins below the forest are open to explorers.','They say the observatory above the hill holds a record Edwin wants destroyed.']},
-  {id:'fork-cartographer',name:'Cartographer Elin',x:17,y:16,piece:'N',color:'blue',lines:['North: Hidden Cave. East: Skyglass Observatory. South: Old Ruins.','The northern cave needs a stonebreaking tool; nobody has found one yet.']}
+  {id:'fork-cartographer',name:'Cartographer Elin',x:17,y:16,piece:'N',color:'blue',lines:['North: Hidden Cave. East: Skyglass Observatory. South: Old Ruins.','I tried exploring the northern path, but the stones are impossible to pass.']}
  ];
  w.blockerRects=[{x:17.5,z:21,w:.30,d:.30},{x:28.5,z:17.4,w:.6,d:.55}];
  return w;
@@ -235,10 +235,23 @@ function ruinsWorld(){
   {id:'ruins-scholar',name:'Scholar Vela',x:21,y:19,piece:'B',color:'green',lines:['This sanctuary predates the kingdom of Aldemar.','Look at the weathered engravings. Someone scratched a crown into the stone long ago.']},
   {id:'ruins-wanderer',name:'Wandering Knight',x:12,y:20,piece:'N',color:'white',lines:['Most travellers hurry to Skyglass. I prefer places that remember the past.','There may be more to these ruins than we can see today.']}
  ];
- w.blockerRects=[{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3}];
+ w.blockerRects=[{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3},...[[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24],[10,17],[26,17],[7,13],[28,13],[7,21],[28,21]].map(([x,z])=>({x,z,w:.72,d:.72}))];
  return w;
 }
 function observatoryWorld(){
+ // Outside view: a compact, unmistakable stone observatory with a real door.
+ const w=createWorld(36,30,'.');
+ for(let y=1;y<29;y++)for(let x=1;x<35;x++)if(x<=2||x>=33||y<=2||y>=27)updateTile(w,x,y,'T');
+ carveRoad(w,[[17,28],[17,19],[17,16]],3);
+ for(let y=5;y<=16;y++)for(let x=9;x<=25;x++)updateTile(w,x,y,'H');
+ for(let x=15;x<=19;x++)for(let y=15;y<=17;y++)updateTile(w,x,y,'p');
+ // Exterior door is visible and accessible through the front steps.
+ updateTile(w,17,16,'D');
+ w.spawn={x:17,y:25};w.music='willowmere';
+ w.npcs=[{id:'skyglass-greeter',name:'Skyglass Caretaker',x:24,y:20,piece:'B',color:'white',lines:['Welcome to Skyglass. The observatory has been closed for years.','You can enter through the old front door. The great star hall is inside.']}];
+ return w;
+}
+function skyglassInteriorWorld(){
  const w=createWorld(60,52,'.');
  for(let y=1;y<51;y++)for(let x=1;x<59;x++)if(x<=2||x>=57||y<=2||y>=49)updateTile(w,x,y,'T');
  // A generous marble forecourt, ring-shaped galleries and two wing gardens.
@@ -258,12 +271,12 @@ function observatoryWorld(){
  w.blockerRects=[{x:30.5,z:11.2,w:5,d:3.4},{x:18.5,z:20,w:2.4,d:2.1},{x:41.5,z:20,w:2.4,d:2.1},{x:30.5,z:29,w:4,d:4}];
  return w;
 }
-function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='hill'?hillWorld():next==='ruins'?ruinsWorld():next==='observatory'?observatoryWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
+function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='hill'?hillWorld():next==='ruins'?ruinsWorld():next==='observatory'?observatoryWorld():next==='skyglassInterior'?skyglassInteriorWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
 function teleport(destination){
- if(!engine||!['cell','sewer','forest','village','ridge','hill','ruins','observatory'].includes(destination))return;
+ if(!engine||!['cell','sewer','forest','village','ridge','hill','ruins','observatory','skyglassInterior'].includes(destination))return;
  activePuzzle=null;exitPromptArmed=true;
  for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-story-chapter-confirm','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
- setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:destination==='ridge'?{x:4,y:20,facing:'right'}:destination==='hill'?{x:3,y:29,facing:'right'}:destination==='ruins'?{x:18,y:4,facing:'down'}:destination==='observatory'?{x:30,y:46,facing:'up'}:{x:26,y:29,facing:'down'});
+ setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:destination==='ridge'?{x:4,y:20,facing:'right'}:destination==='hill'?{x:3,y:29,facing:'right'}:destination==='ruins'?{x:18,y:4,facing:'down'}:destination==='observatory'?{x:17,y:25,facing:'up'}:destination==='skyglassInterior'?{x:30,y:46,facing:'up'}:{x:26,y:29,facing:'down'});
  engine.resumeGameplay?.();
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
 }
@@ -273,10 +286,11 @@ function objective(){
  if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';
  if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';
  if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';
- if(scene==='ridge')return 'Chapter Two: Follow the signpost. North: sealed cave, east: Skyglass Hill, south: old ruins.';
+ if(scene==='ridge')return 'Chapter Two: Follow the woodland crossroads to the cave, Skyglass Hill or old ruins.';
  if(scene==='hill')return 'Follow the winding uphill path to Skyglass Observatory.';
  if(scene==='ruins')return complete('ruinInscription')?'Explore the old sanctuary or return north to the forest fork.':'Explore the old ruins and examine the engraved altar (E).';
- if(scene==='observatory')return complete('skyglassLedger')?'Chapter Two: The royal seal was forged. Investigate Skyglass Observatory.':'Chapter Two: Examine the brass star chart on the northern terrace (E).';
+ if(scene==='observatory')return 'Skyglass Observatory: approach the front entrance and press E to enter.';
+ if(scene==='skyglassInterior')return complete('skyglassLedger')?'The royal seal was forged. Explore the great star hall.':'Examine the royal ledger in the northern gallery (E).';
  if(!complete('bridge'))return 'Press E at the east bridge to repair it and reopen the road.';
  return 'Cross the repaired bridge and continue east to begin Chapter Two.';
 }
@@ -460,10 +474,10 @@ function afterMove(){const p=engine.getPlayer();
  }
  if(scene==='hill'){
   if(p.x<=2&&p.y>=26&&p.y<=33){setScene('ridge',{x:39,y:20,facing:'left'});return;}
-  if(p.x>=43&&p.y<=8){setScene('observatory',{x:30,y:46,facing:'up'});return;}
+  if(p.x>=43&&p.y<=8){setScene('observatory',{x:17,y:25,facing:'up'});return;}
  }
  if(scene==='ruins'&&p.y<=2&&p.x>=14&&p.x<=22){setScene('ridge',{x:11,y:34,facing:'up'});return;}
- if(scene==='observatory'&&p.y>=49&&p.x>=25&&p.x<=35){setScene('hill',{x:40,y:6,facing:'left'});return;}
+ if(scene==='observatory'&&p.y>=27&&p.x>=13&&p.x<=21){setScene('hill',{x:40,y:6,facing:'left'});return;}
  persist();updateObjective();
 }
 function near(p,x,y,r=2){return Math.abs(p.x-x)+Math.abs(p.y-y)<=r;}
@@ -515,8 +529,8 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   return true;
  }
  if(scene==='ridge'){
-  if(y<=9&&x>=16&&x<=24){say('Oliver','The cave entrance is buried under heavy stone. I will need a special tool to clear it.');return true;}
-  if(near(p,17,20,3)){say('Woodland Signpost','NORTH: Hidden Cave (Blocked)','EAST: Skyglass Observatory via Hill Road','SOUTH: Old Ruins');return true;}
+  if(y<=9&&x>=16&&x<=24){say('Oliver','The cave entrance is buried under heavy stone. I cannot get inside right now.');return true;}
+  if(near(p,17,20,3)){say('Woodland Signpost','NORTH: Hidden Cave','EAST: Skyglass Observatory via Hill Road','SOUTH: Old Ruins');return true;}
   return false;
  }
  if(scene==='hill'){
@@ -532,6 +546,11 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   return false;
  }
  if(scene==='observatory'){
+  if(near(p,17,16,3)){setScene('skyglassInterior',{x:30,y:46,facing:'up'});say('Oliver','The old doors creak open. The Skyglass Observatory is far larger inside than it appears.');return true;}
+  return false;
+ }
+ if(scene==='skyglassInterior'){
+  if(near(p,30,47,3)){setScene('observatory',{x:17,y:20,facing:'down'});say('Oliver','Back outside the observatory.');return true;}
   if(near(p,30,11,5)){
    if(!complete('skyglassLedger')){chapter.flags.skyglassLedger=true;persist();say('Royal Ledger','A coronation register shows the royal seal replaced on the night Oliver was arrested.','The mark of Edwin is concealed beneath a false signature.');}
    else say('Oliver','Edwin forged the seal. I need to find someone who can expose his deception.');
@@ -554,7 +573,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  }
  return false;}
 function beforeHouse(){return false;}
-function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest'||scene==='watchtower'||scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory';}
+function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest'||scene==='watchtower'||scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior';}
 
 // Deliberate material pass: shared deterministic details on the ORIGINAL WebGL meshes.
 // Keep small details in static geometry; do not trigger puzzles or alter collision tiles.
@@ -624,7 +643,13 @@ function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
  if(scene==='watchtower'){g.box(x+.5,-.20,z+.5,1,.18,1,'#72716c');g.box(x+.5,-.018,z+.5,.96,.028,.96,(x+z)%2?'#999287':'#aaa294');return;}
- if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'){const path=tile==='p'||tile==='s';const p=scene==='ridge'||scene==='hill';g.box(x+.5,-.20,z+.5,1,.18,1,path?(p?'#7c7563':'#737d7b'):(p?'#375742':'#3e5457'));g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?'#b1aca0':'#827c67'):(p?'#47694e':'#536c69'));return;}
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
+  const path=tile==='p'||tile==='s',woodland=scene==='ridge'||scene==='hill'||scene==='observatory',ruin=scene==='ruins';
+  const base=path?(ruin?'#827762':woodland?'#7c7563':'#737d7b'):(ruin?'#465b45':woodland?'#375742':'#3e5457');
+  g.box(x+.5,-.20,z+.5,1,.18,1,base);
+  g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?(ruin?'#9c9276':'#b1aca0'):'#827c67'):(ruin?'#5a7557':woodland?'#47694e':'#536c69'));
+  return;
+ }
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
  g.box(x+.5,-.20,z+.5,1,.19,1,base);
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
@@ -1218,12 +1243,12 @@ function drawProps(g){
   box(76.5,.08,25.5,2.15,.15,1.50,'#637373');
   for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
  }else if(scene==='watchtower'){drawWatchtowerInterior(g);return;}
- if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'){
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
   const w=engine.getWorld(),isTree=(x,z)=>w.tiles[z]?.[x]==='T';
   // Trees are placed only on solid forest tiles. Foliage uses existing meshes
   // rather than nearly coplanar overlays, so no animated z-fighting is introduced.
   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)
-   if(isTree(x,z)&&((x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
+   if(isTree(x,z)&&((x<=3||z<=3||x>=w.width-4||z>=w.height-4)||(x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
   const rock=(x,z,scale=1)=>{box(x,.12*scale,z,.74*scale,.24*scale,.64*scale,'#737f79');box(x,.29*scale,z,.50*scale,.10*scale,.47*scale,'#9ca59a');};
   const lamp=(x,z,blue=false)=>{
    cylinder(x,.06,z,.085,.09,1.2,'#735e48',9);
@@ -1273,12 +1298,64 @@ function drawProps(g){
    box(18,.55,24,2.35,.10,1.95,'#aaa99b');
    box(18,.64,24,1.55,.06,1.13,'#cfbd92');
    for(const x of [17.5,18,18.5])box(x,.685,24,.10,.025,.45,'#6b7a75');
+   // Moss, broken pottery, ivy and garden beds soften the empty grey masonry.
+   for(const [x,z] of [[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24]]){
+    for(let i=0;i<3;i++){
+     const off=i*.11-.12;
+     cone(x+off,.79,z+.42,.15,.29,'#638464',7);
+     sphere(x+off,1.02,z+.43,.12,i===1?'#a0a65f':'#658b6c',7);
+    }
+   }
+   for(const [x,z] of [[9,10],[26,11],[9,26],[26,26],[6,20],[29,20]]){
+    box(x,.09,z,.92,.18,.70,'#806d56');
+    box(x,.215,z,.76,.055,.54,'#9e8a71');
+    for(let i=0;i<3;i++)sphere(x-.25+i*.24,.38,z,.19,i%2?'#587c52':'#7e9968',8);
+   }
+   for(const [x,z] of [[13,14],[22,15],[14,27],[23,27]]){
+    cylinder(x,.05,z,.18,.18,.25,'#947a62',9);
+    cylinder(x,.33,z,.26,.26,.09,'#c2a185',9);
+    sphere(x,.47,z,.13,'#c4a273',8);
+   }
+   for(const [x,z] of [[7,14],[28,15],[7,23],[28,23]]){
+    box(x,.11,z,1.18,.22,.70,'#776c58');
+    box(x,.27,z,.94,.065,.54,'#aaa18b');
+   }
    for(const [x,z] of [[14,9],[22,9],[14,25],[22,25]]){cylinder(x,.04,z,.25,.25,.57,'#8c977f',10);sphere(x,.77,z,.27,'#6a876c',9);}
    // Partially collapsed arcade; centre remains an open traversable aisle.
    for(const z of [13,21])for(const x of [7,28]){
     box(x,.60,z,.67,1.2,.75,'#7a8580');
     box(x,1.23,z,.94,.12,.91,'#aaa99c');
    }
+  }else if(scene==='observatory'){
+   // Exterior model: one solid footprint, twin side wings and a prominent glass dome.
+   // Details are deliberately stepped off the parent surfaces to avoid flicker.
+   box(17,.08,11.1,16.5,4.5,11.1,'#a7a79a');
+   box(17,4.67,11.1,17.3,.24,11.8,'#6b7777');
+   for(const x of [8.1,25.9]){
+    box(x,.12,10.7,2.7,3.35,9.0,'#8d9e9c');
+    box(x,3.57,10.7,3.1,.20,9.45,'#c1bcaa');
+    sphere(x,3.80,10.7,1.65,'#587c88',16);
+   }
+   cylinder(17,4.97,10.1,4.15,4.15,.36,'#d8c39a',24);
+   sphere(17,5.36,10.1,3.60,'#5c8290',24);
+   sphere(17,8.46,10.1,.57,'#d3b673',12);
+   for(const x of [12.5,21.5]){
+    box(x,2.14,16.83,2.0,2.2,.21,'#506d76');
+    box(x,2.14,17.08,1.58,1.72,.12,'#8bb1b1');
+    box(x,3.17,17.17,2.20,.18,.14,'#d6c8a5');
+   }
+   // Genuine entrance: the door is drawn over the exterior wall, not a solid prop.
+   box(17,1.60,16.91,2.4,3.12,.24,'#574e49');
+   box(17,1.63,17.17,1.92,2.83,.13,'#28464d');
+   box(17.68,1.69,17.28,.12,.12,.08,'#e4c481');
+   for(const x of [15.1,18.9]){
+    cylinder(x,.06,17.2,.29,.29,3.95,'#9fa8a2',12);
+    cylinder(x,4.02,17.2,.40,.40,.16,'#c7c1ac',12);
+   }
+   box(17,4.15,17.25,5.5,.25,.35,'#baa88c');
+   box(17,.04,18.6,5.5,.08,1.55,'#b3aa93');
+   box(17,.15,19.2,4.7,.12,.75,'#cbc09c');
+   for(const [x,z] of [[5,17],[29,17],[8,23],[27,23]]){rock(x,z,1.05);lamp(x+.9,z+.5,true);}
   }else{
    // Grand open-air Skyglass: the central observatory, concentric terraces,
    // brass telescope, two satellite domes, and four accessible garden wings.
@@ -1543,8 +1620,11 @@ function drawVillageProps(g){
  for(const z of [18.05,20.95])for(const x of [43.6,44,48.7,49.1]){box(x,.23,z,.21,.46,.21,'#75593e');box(x,.51,z,.25,.12,.25,'#ae8b62');}
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.44,z,.055,.03,.07,'#dbc18a');}
-  for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.485,19.5,.065,.016,1.92,'#e1c28e');
+  // Full wooden deck at ground height: Oliver's feet are not swallowed by
+  // raised planks and no stone road can show through the finished span.
+  for(let x=43.75;x<=49.25;x+=.48){
+   box(x,-.050,19.5,.46,.058,2.85,Math.round(x*10)%2?'#b38c61':'#c19b70');
+   box(x,.014,19.5,.055,.014,2.66,'#e1c28e');
   }
   for(const z of [18.08,20.92]){
    box(46.3,.52,z,4.9,.10,.14,'#b8a078');
@@ -1602,8 +1682,8 @@ function drawEffects(g,t){
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
   return;
  }
- if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'){
-  if(scene!=='observatory')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
+  if(scene!=='skyglassInterior')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
   else for(let i=0;i<5;i++){const a=i*1.26+t*.15;sphere(17+Math.cos(a)*2,1.35,12+Math.sin(a)*2,.048,'#a4d7d7',7);}
   return;
  }
