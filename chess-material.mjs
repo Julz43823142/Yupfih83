@@ -6,7 +6,7 @@ const ORDER=['q','r','b','n','p'];
 const names={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen'};
 const instances=new WeakMap();
 
-export function materialSnapshot(fen){
+export function materialSnapshot(fen,{moves=null}={}){
  const pieceField=String(fen||'').split(' ')[0];
  const ranks=pieceField.split('/');
  if(ranks.length!==8)throw Error('Invalid chess position');
@@ -25,10 +25,17 @@ export function materialSnapshot(fen){
  const points=color=>ORDER.reduce((total,kind)=>total+on[color][kind]*VALUES[kind],0);
  const white=points('w'),black=points('b');
  const captured={w:[],b:[]};
- for(const color of ['w','b']){
+ if(Array.isArray(moves)){
+  for(const move of moves){
+   const kind=String(move?.captured||'').toLowerCase();
+   if(VALUES[kind]&&['w','b'].includes(move.color))captured[move.color].push(kind);
+  }
+  for(const color of ['w','b'])captured[color].sort((a,b)=>ORDER.indexOf(a)-ORDER.indexOf(b));
+ }else for(const color of ['w','b']){
   const victim=color==='w'?'b':'w';
   for(const kind of ORDER){
-   // Promoted material may outnumber the initial inventory, never show negative captures.
+   // A lone FEN cannot distinguish promoted pawns from captures. Prefer
+   // the actual move history when one is available.
    const missing=Math.max(0,START[kind]-on[victim][kind]);
    for(let i=0;i<missing;i++)captured[color].push(kind);
   }
@@ -94,12 +101,12 @@ function draw(strip,color,data){
   (pieces.length?', captured '+pieces.map(k=>names[k]).join(', '):'')+
   (lead>0?', ahead by '+lead:''));
 }
-export function updateMaterial(board,fen,{flipped=false}={}){
+export function updateMaterial(board,fen,{flipped=false,moves=null}={}){
  if(!board)return;
  const info=ensure(board);
  if(!info)return;
  if(info.fen!==fen||info.flipped!==flipped){
-  const data=materialSnapshot(fen);
+  const data=materialSnapshot(fen,{moves});
   draw(info.top,flipped?'w':'b',data);
   draw(info.bottom,flipped?'b':'w',data);
   info.fen=fen;info.flipped=flipped;
