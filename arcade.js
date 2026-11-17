@@ -16,7 +16,7 @@ $('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(mod
 document.title=info.name+' | EloScanner';
 const instructions={
  'endgame-survivor':'Play increasingly varied endgames: pawns, minor pieces and rooks against Stockfish. Convert an advantage into a win. You have three lives; a draw or loss costs one. Every win is one point.',
- 'guess-the-elo':'Review a real Lichess game, browse its moves, then enter your own Elo estimate. Exact = 10 points; 50 Elo away = 5, 100 = 4 and 200 = 3. The actual Elo and game link are revealed afterward.',
+ 'guess-the-elo':'Review a genuine Chess.com rated game and estimate the player Elo.',
  'chess-memory':'Memorize the position while it is visible. After the pieces disappear, choose a piece from the tray and click or drag it onto the correct square. Reconstruct as many boards as possible in three minutes.',
  'missing-piece':'Select a white piece from the tray, then tap an empty square. Black responds; find checkmate in one. Any valid solution counts, including alternative pieces and placements. Three mistakes end the run.',
  'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
@@ -26,6 +26,7 @@ const instructions={
  'pawn-dash':'Cross a giant chessboard inside the Pawn Kingdom Chess Club. Collect one coin per token, hop across clockwork gaps, dodge moving chess pieces and visit Menu → Shop for six chess-piece categories with five skins each. Original background music and adjustable sound effects included.'
 };
 $('arcade-instructions').textContent=instructions[mode];
+if(mode==='guess-the-elo')$('arcade-how-to-play')?.remove();
 
 let runOffset=Math.floor(Math.random()*1000000),feedbackUntil=0,reviewStep=0,runReview=[];
 const eloSeen=(()=>{try{const a=JSON.parse(localStorage.getItem('elo-arcade-seen-v2')||'[]');return Array.isArray(a)?a.filter(x=>/^[a-zA-Z0-9]{6,20}$/.test(x)).slice(-30):[]}catch{return []}})();
@@ -369,15 +370,33 @@ async function loadRealEloGame(run){
  const choices=$('arcade-choices');choices.replaceChildren();choices.hidden=true;
  run.eloAbort?.abort();run.eloAbort=new AbortController();
  try{
-  const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(eloSeen.join(',')),{cache:'no-store',signal:run.eloAbort.signal});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Game unavailable');
+  // Retry once if a source archive is unavailable or a PGN cannot be replayed.
+  // Guess the Elo only accepts rated Chess.com games.
+  let data,moves;
+  for(let attempt=0;attempt<2;attempt++){
+   try{
+    const response=await fetch('/api/arcade-game?exclude='+encodeURIComponent(eloSeen.join(',')),{
+     cache:'no-store',signal:run.eloAbort.signal
+    });
+    data=await response.json();
+    if(!response.ok)throw Error(data.error||'Chess.com game unavailable');
+    if(data.platform!=='chesscom'||!Number.isInteger(data.elo)||data.elo<100||data.elo>4000||
+     !/^https:\/\/www\.chess\.com\/game\/(?:live|daily)\/[0-9]+$/.test(data.link)||
+     !/^[0-9]{6,20}$/.test(String(data.id))||eloSeen.includes(String(data.id))||
+     typeof data.pgn!=='string'||!['white','black'].includes(data.side))
+     throw Error('Invalid Chess.com game');
+    const validate=new Chess();
+    validate.loadPgn(data.pgn);
+    moves=validate.history({verbose:true});
+    if(moves.length<12)throw Error('Incomplete Chess.com game');
+    break;
+   }catch(error){
+    if(run.eloAbort.signal.aborted||state!==run)return;
+    if(attempt===1)throw error;
+   }
+  }
   if(state!==run||state.finished)return;
-  if(!Number.isInteger(data.elo)||!/^https:\/\/(?:lichess\.org\/[A-Za-z0-9]+|www\.chess\.com\/game\/(?:live|daily)\/[0-9]+)$/.test(data.link)||eloSeen.includes(String(data.id)))throw Error('No new real game available. Retry to load a different one.');
-  const validate=new Chess(),moves=[];
-  if(data.platform==='chesscom'&&typeof data.pgn==='string'){validate.loadPgn(data.pgn);moves.push(...validate.history({verbose:true}))}
-  else for(const uci of data.moves||[]){const move=validate.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(!move)throw Error('Invalid game record');moves.push(move)}
-  if(moves.length<12)throw Error('Incomplete game record');
-  rememberEloGame(data.id);state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloGameId=data.id;state.eloPlatform=data.platform==='chesscom'?'Chess.com':'Lichess';state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
+  rememberEloGame(data.id);state.answer=data.elo;state.eloSide=data.side;state.eloLink=data.link;state.eloGameId=data.id;state.eloPlatform='Chess.com';state.eloMoves=moves;state.eloIndex=0;state.eloView=new Chess();state.phase='guess';
   const prompt=document.createElement('p');prompt.textContent='Real '+state.eloPlatform+' game · Estimate the '+data.side+' player Elo.';
   const prev=document.createElement('button');prev.type='button';prev.textContent='◀ Previous move';
   const progress=document.createElement('span');progress.className='arcade-elo-progress';
@@ -394,8 +413,8 @@ async function loadRealEloGame(run){
   status('Review the real game. Then enter a rating from 100 to 4000.');
  }catch(error){
   if(state!==run||state.finished)return;state.phase='waiting';choices.hidden=false;
-  const retry=document.createElement('button');retry.textContent='Try another real game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
-  choices.replaceChildren(retry);status('No fresh rated game could be loaded. Try again in a moment.');
+  const retry=document.createElement('button');retry.textContent='Try another Chess.com game';retry.type='button';retry.addEventListener('click',()=>{retry.disabled=true;void loadRealEloGame(run)});
+  choices.replaceChildren(retry);status('Chess.com rated games are temporarily unavailable. Try again.');
  }
 }
 function applyQueuedPremove(){
