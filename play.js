@@ -417,7 +417,26 @@ function scheduleBot(){
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
  },level==='lars'?0:timedPractice?80:120);
 }
+let gameHasStarted=false;
+let introTimer=null;
+function showBotStartIntro(){
+ const card=document.querySelector('.play-board-card');
+ if(!card)return;
+ let overlay=document.getElementById('play-start-intro');
+ if(!overlay){overlay=document.createElement('div');overlay.id='play-start-intro';overlay.className='play-start-intro';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');card.append(overlay);}
+ const botName=(names[botLevel]||'Computer bot').replace(/ \\(\\d+\\)$/,'');
+ const botRating=botLevel==='lars'?'Maximum strength':(ratings[botLevel]||'—')+' Elo';
+ overlay.replaceChildren();
+ const heading=document.createElement('strong');heading.textContent='Game started';
+ const players=document.createElement('p');players.textContent=(human==='w'?'You · White':'You · Black')+'  vs  '+botName+' · '+botRating+' · '+(human==='w'?'Black':'White');
+ overlay.append(heading,players);
+ overlay.hidden=false;
+ clearTimeout(introTimer);
+ introTimer=setTimeout(()=>{overlay.hidden=true;},1800);
+}
 function newGame(){
+ gameHasStarted=true;
+ const jump=document.querySelector('.play-bots-jump');if(jump)jump.hidden=true;
  timedPractice=$('play-time').value==='180';
  practiceStarted=timedPractice;
  $('play-human-clock').hidden=!timedPractice;$('play-bot-clock').hidden=!timedPractice;
@@ -428,6 +447,9 @@ function newGame(){
  if($('play-result').open)$('play-result').close();highlights.clear();arrows.length=0;
  closePromotion();if($('play-bot-chat'))$('play-bot-chat').replaceChildren();botChat(botLevel==='rocket'?'Let’s play! I like the Queen’s Gambit.':botLevel==='cashojf3r'?'I play the Queen’s Gambit, London System and Four Knights!':'Good luck, have fun!');$('play-opponent').textContent=names[botLevel];$('play-you').textContent='You · '+(human==='w'?'White':'Black');
  unlock();paint();status(human==='w'?'':'You are Black. The bot moves first.');
+ playReviewPly=null;
+ document.querySelector('.play-board-card')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+ showBotStartIntro();
  if(human==='b')scheduleBot();else startLarsPonder();
 }
 $('play-new').addEventListener('click',newGame);
