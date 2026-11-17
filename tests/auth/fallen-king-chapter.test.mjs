@@ -64,22 +64,22 @@ test('prison remains simple, sewer texture survives, and the village is not trun
 
 test('save slots support confirmed deletion for cloud and device saves',()=>{
  const api=readFileSync(resolve(root,'functions/api/fallen-king/saves.js'),'utf8');
- assert.match(api,/export async function onRequestDelete/);
- assert.match(api,/DELETE FROM fallen_king_saves WHERE user_id=\\? AND slot=\\?/);
- assert.match(engine,/gameSaveRequest\\('DELETE',slot\\)/);
- assert.match(engine,/localStorage\\.removeItem\\(localSlotKey\\(slot\\)\\)/);
- assert.match(engine,/buildSlotButton\\('Delete'/);
+ assert.ok(api.includes('export async function onRequestDelete'));
+ assert.ok(api.includes('DELETE FROM fallen_king_saves WHERE user_id=? AND slot=?'));
+ assert.ok(engine.includes("gameSaveRequest('DELETE',slot)"));
+ assert.ok(engine.includes("localStorage.removeItem(localSlotKey(slot))"));
+ assert.ok(engine.includes("buildSlotButton('Delete'"));
 });
 test('forest sign displays Willowmere Village East and crates have real collision footprints',()=>{
- assert.match(source,/drawSignLetters\\(g,9\\.5,13\\.66,'WILLOWMERE'/);
- assert.match(source,/drawSignLetters\\(g,9\\.5,13\\.66,'VILLAGE EAST'/);
- assert.match(source,/w\\.blockerRects=\\[/);
- assert.match(engine,/world\\.blockerRects/);
+ assert.ok(source.includes("drawSignLetters(g,9.5,13.66,'WILLOWMERE'"));
+ assert.ok(source.includes("drawSignLetters(g,9.5,13.66,'VILLAGE EAST'"));
+ assert.ok(source.includes('w.blockerRects=['));
+ assert.ok(engine.includes('world.blockerRects'));
 });
-test('sewer walls are continuous at corners and bridge trim does not intersect the planks',()=>{
- assert.match(source,/for\\(let dz=-1;dz<=1;dz\\+\\+\\)for\\(let dx=-1;dx<=1;dx\\+\\+\\)/);
- assert.match(source,/box\\(x\\+\\.5,0,z\\+\\.5,1\\.04,2\\.85,1\\.04/);
- assert.match(source,/box\\(x\\+\\.3,\\.468,19\\.5/);
+test('sewer walls are continuous at corners and bridge trim is above the planks',()=>{
+ assert.ok(source.includes('for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)'));
+ assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
+ assert.ok(source.includes("box(x+.3,.468,19.5"));
 });
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
