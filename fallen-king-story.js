@@ -175,6 +175,7 @@ function start(api){
  // The original village map stays the base world even on subsequent New Game starts.
  if(!baseWorld)baseWorld=api.getWorld();
  activePuzzle=null;
+ for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
  chapter=window.FallenKingSlotSession&&!window.FallenKingPendingSave?freshChapter():restored();
  if(!chapter.flags||typeof chapter.flags!=='object')chapter.flags={};
  if(!Array.isArray(chapter.coins))chapter.coins=[];
@@ -194,13 +195,7 @@ function start(api){
   document.addEventListener('keydown',onKey,true);
   $('fallen-story-next').addEventListener('click',nextIntro);
   $('fallen-story-skip')?.addEventListener('click',()=>{
-   if(scene!=='intro')return;
-   engine.enableSound();
-   chapter.step=steps.length;
-   $('fallen-story-intro').hidden=true;
-   setScene('cell',{x:12,y:9,facing:'right'});
-   engine.resumeGameplay?.();
-   say('Oliver','A locked cell. The old toilet might conceal a way out.');
+   finishIntroduction();
   });
   $('fallen-story-art').addEventListener('click',nextIntro);
   $('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);
@@ -208,6 +203,16 @@ function start(api){
   $('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});
  }
  updateObjective();
+}
+function finishIntroduction(){
+ if(!engine)return;
+ activePuzzle=null;
+ chapter.step=steps.length;
+ $('fallen-story-intro').hidden=true;
+ $('fallen-story-puzzle').hidden=true;
+ setScene('cell',{x:12,y:9,facing:'right'});
+ engine.resumeGameplay?.();
+ document.getElementById('fallen-canvas')?.focus?.({preventScroll:true});
 }
 function recoverHiddenIntro(){
  // If an interrupted load or hidden overlay leaves the cutscene state active,
@@ -220,11 +225,11 @@ function recoverHiddenIntro(){
   const visuallyHidden=typeof overlay.getClientRects==='function'&&overlay.getClientRects().length===0;
   if(!visuallyHidden)return false;
  }
- setScene('cell',{x:12,y:9,facing:'right'});
+ finishIntroduction();
  return true;
 }
 function blockedInput(){recoverHiddenIntro();return scene==='intro'||!!activePuzzle;}
-function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
+function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&scene==='intro'){e.preventDefault();e.stopImmediatePropagation();finishIntroduction();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
 function showIntro(){
  scene='intro';
  $('fallen-story-intro').hidden=false;
@@ -247,10 +252,7 @@ function nextIntro(){
  if(chapter.step===0)engine.soundCue();
  chapter.step++;
  if(chapter.step>=steps.length){
-  $('fallen-story-intro').hidden=true;
-  setScene('cell',{x:12,y:9,facing:'right'});
-  engine.resumeGameplay?.();
-  say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');
+  finishIntroduction();
  }else showIntro();
 }
 function introWorld(kind){
