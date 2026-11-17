@@ -1095,3 +1095,27 @@ body[data-example-player] .sample-section{margin-bottom:24px}
 
 /* Missing public game archives must not leave an empty Insights pane. */
 body[data-example-player] .insights-integrated[hidden]{display:none!important}
+
+/* Chess.com masters database overview: never imply account-archive accuracy. */
+.magnus-master-report{padding:20px 0 28px}
+.magnus-master-report>h2{font-size:clamp(22px,3vw,30px);margin:12px 0}
+.magnus-report-note{color:#a8c3d9;line-height:1.65;max-width:850px}
+.magnus-report-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0 14px}
+.magnus-report-metric{padding:20px 14px;border:1px solid #2d536c;background:#0c2035;border-radius:14px;display:flex;flex-direction:column;gap:6px}
+.magnus-report-metric strong{font-size:clamp(24px,3vw,36px);color:#fff}
+.magnus-report-metric span{color:#abc4d7;font-size:13px}
+.magnus-result-bar{height:14px;display:flex;overflow:hidden;border-radius:999px;margin:0 0 28px}
+.magnus-result-bar span{display:block;height:100%}
+.magnus-result-wins{background:#4bd4a1}.magnus-result-draws{background:#8ea6c1}.magnus-result-losses{background:#ef8a8a}
+.magnus-report-colors,.magnus-opening-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0 28px}
+.magnus-report-color,.magnus-opening-column{background:#0b2034;border:1px solid #2d536c;border-radius:14px;padding:18px}
+.magnus-report-color h3,.magnus-opening-column h4{margin:0 0 8px;color:#fff}
+.magnus-color-figures{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
+.magnus-color-figures span{display:flex;flex-direction:column;gap:3px}
+.magnus-color-figures strong{font-size:22px;color:#fff}
+.magnus-color-figures small{color:#abc4d7}
+.magnus-opening-column ol{padding-left:20px;margin:12px 0 0}
+.magnus-opening-column li{padding:8px 0;display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #29475b;color:#d5e6f2}
+.magnus-opening-column li strong{white-space:nowrap;font-size:12px;color:#8fd7ff}
+.magnus-report-source{display:inline-block;padding:12px 18px;margin-top:12px;border:1px solid #70c8f5;border-radius:10px;color:#8fd7ff;font-weight:700}
+@media(max-width:650px){.magnus-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.magnus-report-colors,.magnus-opening-columns{grid-template-columns:1fr}}
