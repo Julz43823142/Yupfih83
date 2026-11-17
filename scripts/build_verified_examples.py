@@ -45,6 +45,7 @@ def build(account: str) -> None:
         raise ValueError("Unsupported example account")
     shown, slug = EXAMPLES[account]
     os.environ.pop("ELO_EXAMPLE_MAX_GAMES", None)
+    print(f"Starting verified Chess.com 5,000-game report: {account}", flush=True)
     result = review(account, progress=lambda msg: print(str(msg)[:200], flush=True))
     games = sorted(result.games, key=lambda g: (g.ended, g.identity), reverse=True)
     if len(games) != 5000:
