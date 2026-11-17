@@ -847,25 +847,16 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
   const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"force-cache"});
   if(!response.ok)throw Error("Example snapshot unavailable.");
   const preset=await response.json();
-  if(preset.schema!==2||preset.username!==exampleUsername.toLowerCase()
+  if(preset.schema!==3||preset.source?.platform!=="chess.com"||preset.source.account!==exampleUsername.toLowerCase()||preset.username!==exampleUsername.toLowerCase()
    ||preset.report?.version!=="fairplay-v87-review-reliability"
    ||preset.report.username!==(preset.source?.account||exampleUsername).toLowerCase()
-   ||!(Number(preset.report.games)>0)||!preset.profile||!preset.stats
+   ||!(Number(preset.report.games)>0)||Number(preset.report.games)>5000||!preset.profile||!preset.stats
    ||!Array.isArray(preset.insights))throw Error("Invalid example snapshot.");
   playerCard.replaceChildren();
   renderPlayer(preset.profile,preset.stats,exampleUsername,{preset:true,platform:preset.source?.platform});
   results.classList.remove("hidden");
   renderReview(preset.report);
-  const origin=preset.source?.platform==="lichess"?"Lichess @"+preset.source.account+" (Magnus Carlsen); not Chess.com data":"Chess.com @"+exampleUsername;
-  statusText.textContent="Precomputed example report · "+origin+" · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
-   ". No live analysis.";
-  if(preset.source?.platform==="lichess"){
-   const notice=document.createElement("p");
-   notice.className="v87-warning";
-   notice.textContent="Magnus sample uses authentic public Lichess games from @"+preset.source.account+". Lichess ratings are not Chess.com ratings.";
-   const panel=document.getElementById("v87-review");
-   if(panel)panel.prepend(notice);
-  }
+  statusText.textContent="Precomputed Chess.com report · last "+preset.report.games+" available games · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+". No live analysis.";
   window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
    detail:{username:exampleUsername.toLowerCase(),games:preset.insights}
   }));
@@ -874,7 +865,7 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  loadPreset().catch(error=>{
   console.warn("Example preset unavailable:",error);
   results.classList.add("hidden");
-  statusText.textContent="This precomputed example report is temporarily unavailable. No new analysis has been started.";
+  statusText.textContent=exampleUsername==="MagnusCarlsen"?"Chess.com has no publicly accessible game archive for MagnusCarlsen. A genuine Chess.com review cannot be shown; no Lichess games or new analysis are used.":"This precomputed Chess.com report is temporarily unavailable. No new analysis has been started.";
   button.disabled=true;
   button.textContent="Example unavailable";
   const insights=document.getElementById("insights-embedded");
