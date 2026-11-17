@@ -102,6 +102,14 @@ test('Fallen King opens account slots, launches New Game and displays first intr
   e.setWorld(e.getWorld(),{x:43.2,y:5,facing:'right'});
   window.FallenKingStory.afterMove();
  });
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(36);
+ await page.waitForTimeout(300);
+ // The exterior is solid: enter the large star hall explicitly with E.
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:17,y:18,facing:'up'});
+  window.FallenKingStory.talk();
+ });
  await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(60);
  await page.waitForTimeout(700);
  expect(renderErrors).toEqual([]);
