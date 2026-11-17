@@ -41,9 +41,19 @@ jobs:
       - name: Install report collector dependencies
         run: python -m pip install --disable-pip-version-check requests
       - name: Generate verified Hikaru Chess.com report
-        run: python -u scripts/build_verified_examples.py hikaru
+        run: |
+          if [ ! -s assets/example-reports-v2/hikaru-nakamura.json ]; then
+            python -u scripts/build_verified_examples.py hikaru
+          else
+            echo 'Using existing verified Hikaru snapshot'
+          fi
       - name: Generate verified Magnus Carlsen Chess.com report
-        run: python -u scripts/build_verified_examples.py magnuscarlsen
+        run: |
+          if [ ! -s assets/example-reports-v2/magnus-carlsen.json ] && [ ! -s assets/example-reports-v2/magnus-carlsen-unavailable.json ]; then
+            python -u scripts/build_verified_examples.py magnuscarlsen
+          else
+            echo 'Using existing verified Magnus source status'
+          fi
       - name: Validate saved sources and counts
         run: |
           python - <<'PY'
