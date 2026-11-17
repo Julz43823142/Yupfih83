@@ -1,89 +1,117 @@
 import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onRequestGet} from '../../functions/api/arcade-game.js';
+
 const url='https://eloscanner.com/api/arcade-game';
-test('Guess the Elo serves real-game metadata, exact player rating and source link without fabrication',async()=>{
- const original=globalThis.fetch,visited=[];
- globalThis.fetch=async input=>{
-  const request=String(input);visited.push(request);
-  if(request.endsWith('/api/tv/channels'))return Response.json({rapid:{user:{id:'PublicChessPlayer'}}});
-  if(request.includes('/api/games/user/'))return new Response(JSON.stringify({
-   id:'PpwPOZMq',moves:'e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 d2d3 g8f6 c2c3 d7d6 e1g1 e8g8',
-   players:{white:{rating:1712},black:{rating:1885}}
-  })+'\n',{headers:{'Content-Type':'application/x-ndjson'}});
-  throw Error('Unexpected upstream '+request);
+const pgn='[Event "Live Chess"]\n[Site "Chess.com"]\n[White "PlayerA"]\n[Black "PlayerB"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
+const games=['123456789','987654321'].map((id,i)=>({
+ url:'https://www.chess.com/game/live/'+id, rated:true, rules:'chess',
+ time_class:i?'blitz':'rapid', pgn,
+ white:{rating:1837+i*100}, black:{rating:1722+i*100}
+}));
+const realFetch=globalThis.fetch;
+const realCaches=globalThis.caches;
+function mockChesscom({entries=games, unavailable=false}={}){
+ const visited=[];
+ globalThis.caches=undefined;
+ globalThis.fetch=async (input,options)=>{
+  const target=String(input);
+  visited.push({url:target,ua:options?.headers?.['User-Agent']});
+  assert.ok(target.startsWith('https://api.chess.com/pub/player/'),
+   'Never fetch from Lichess or any third-party game source: '+target);
+  if(unavailable)return new Response('Unavailable',{status:503});
+  if(target.endsWith('/games/archives'))return Response.json({
+   archives:['https://api.chess.com/pub/player/public/games/2026/08']
+  });
+  return Response.json({games:entries});
  };
- try{
-  const r=await onRequestGet({request:new Request(url)});
-  assert.equal(r.status,200);
-  const game=await r.json();
-  assert.equal(game.link,'https://lichess.org/PpwPOZMq');
-  assert.equal(game.id,'PpwPOZMq');
-  assert.equal(game.moves.length,12);
-  assert.ok([1712,1885].includes(game.elo));
-  assert.equal(game.elo,game.side==='white'?1712:1885);
-  assert.ok(visited.some(link=>link.includes('/api/games/user/PublicChessPlayer')));
- }finally{globalThis.fetch=original}
-});
-test('Guess the Elo serves archived rated game once, but never repeats an excluded game',async()=>{
- const previous=globalThis.fetch;globalThis.fetch=async()=>new Response('Unavailable',{status:503});
- try{const first=await onRequestGet({request:new Request(url)});assert.equal(first.status,200);const game=await first.json();assert.equal(game.id,'PpwPOZMq');const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});assert.equal(r.status,503);const result=await r.json();assert.match(result.error,/No new real game/)}
- finally{globalThis.fetch=previous}
-});
-
-test('Guess the Elo prefers genuine rated Chess.com archive PGNs with original player ratings',async()=>{
- const previous=globalThis.fetch, visited=[];
- const pgn=`[Event "Live Chess"]
-[Site "Chess.com"]
-[White "PlayerA"]
-[Black "PlayerB"]
-[Result "1-0"]
-
-1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0`;
- globalThis.fetch=async input=>{visited.push(String(input));return Response.json({games:[{rated:true,rules:'chess',time_class:'rapid',url:'https://www.chess.com/game/live/123456789',pgn,white:{rating:1837},black:{rating:1722}}]})};
- try{
-  const response=await onRequestGet({request:new Request(url)}),game=await response.json();
-  assert.equal(response.status,200);assert.equal(game.platform,'chesscom');
-  assert.equal(game.link,'https://www.chess.com/game/live/123456789');
-  assert.ok([1837,1722].includes(game.elo));assert.equal(game.elo,game.side==='white'?1837:1722);
-  const board=new Chess();board.loadPgn(game.pgn);assert.equal(board.history().length,12);
-  assert.ok(visited.some(x=>x.startsWith('https://api.chess.com/pub/player/')));
- }finally{globalThis.fetch=previous}
-});
-
-test('Guess the Elo excludes viewed Chess.com games and refuses repeated fallback',async()=>{
- const previous=globalThis.fetch;
- const pgn='[Event "Rated"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 5. c3 d6 6. O-O O-O 1-0';
- globalThis.fetch=async input=>{
-  const dest=String(input);
-  if(dest.endsWith('/games/archives'))return Response.json({archives:['https://api.chess.com/pub/player/test/games/2026/08']});
-  if(dest.includes('api.chess.com'))return Response.json({games:[
-   ...['123456789','987654321'].map(id=>({url:'https://www.chess.com/game/live/'+id,rated:true,rules:'chess',time_class:'rapid',pgn,white:{rating:1600},black:{rating:1900}}))
-  ]});
-  return new Response('unavailable',{status:503});
- };
- try{
-  const first=await (await onRequestGet({request:new Request(url+'?exclude=987654321')})).json();
-  assert.equal(first.id,'123456789');
-  const second=await (await onRequestGet({request:new Request(url+'?exclude=123456789')})).json();
-  assert.equal(second.id,'987654321');
- }finally{globalThis.fetch=previous}
- globalThis.fetch=async()=>new Response('unavailable',{status:503});
- try{
-  const r=await onRequestGet({request:new Request(url+'?exclude=PpwPOZMq')});
-  assert.equal(r.status,503);const result=await r.json();assert.match(result.error,/No new real game/);
- }finally{globalThis.fetch=previous}
-});
-
-test('oversized upstream JSON or NDJSON cannot exhaust Guess the Elo worker',async()=>{
- const original=globalThis.fetch;
- globalThis.fetch=async()=>new Response('x'.repeat(8*1024*1024+1),{headers:{'Content-Type':'application/json'}});
+ return visited;
+}
+function restore(){
+ globalThis.fetch=realFetch;
+ globalThis.caches=realCaches;
+}
+test('Guess the Elo only serves genuine rated Chess.com game PGNs and source ratings',async()=>{
+ const visited=mockChesscom();
  try{
   const response=await onRequestGet({request:new Request(url)});
   assert.equal(response.status,200);
   const game=await response.json();
-  assert.equal(game.id,'PpwPOZMq');
-  assert.equal(game.link,'https://lichess.org/PpwPOZMq');
- }finally{globalThis.fetch=original}
+  assert.equal(game.platform,'chesscom');
+  assert.match(game.link,/^https:\/\/www\.chess\.com\/game\/live\/\d+$/);
+  assert.ok(['123456789','987654321'].includes(game.id));
+  assert.equal(game.elo,game.side==='white'?
+   games.find(g=>g.url.endsWith(game.id)).white.rating:
+   games.find(g=>g.url.endsWith(game.id)).black.rating);
+  const board=new Chess();
+  board.loadPgn(game.pgn);
+  assert.equal(board.history().length,12);
+  assert.ok(visited.some(v=>v.url.endsWith('/games/archives')));
+  assert.ok(visited.some(v=>/\/games\/2026\/08$/.test(v.url)));
+  assert.ok(visited.every(v=>v.ua?.includes('EloScanner')));
+ }finally{restore()}
+});
+test('excluded Chess.com games are not repeated, without Lichess fallback',async()=>{
+ mockChesscom();
+ try{
+  const response=await onRequestGet({request:new Request(url+'?exclude=987654321')});
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).id,'123456789');
+  const other=await onRequestGet({request:new Request(url+'?exclude=123456789')});
+  assert.equal(other.status,200);
+  assert.equal((await other.json()).id,'987654321');
+  const empty=await onRequestGet({request:new Request(url+'?exclude=123456789,987654321')});
+  assert.equal(empty.status,503);
+  assert.match((await empty.json()).error,/Chess.com games/i);
+ }finally{restore()}
+});
+test('unavailable Chess.com archives never display an unrelated Lichess game',async()=>{
+ const visited=mockChesscom({unavailable:true});
+ try{
+  const response=await onRequestGet({request:new Request(url)});
+  assert.equal(response.status,503);
+  const body=await response.json();
+  assert.equal(body.platform,undefined);
+  assert.match(body.error,/Chess.com/);
+  assert.ok(visited.every(v=>v.url.startsWith('https://api.chess.com/')));
+ }finally{restore()}
+});
+test('unrated, nonstandard or unverified games are rejected',async()=>{
+ const bad=[
+  {...games[0],rated:false},
+  {...games[0],rules:'chess960'},
+  {...games[0],url:'https://lichess.org/PpwPOZMq'},
+  {...games[0],time_class:'daily'}
+ ];
+ mockChesscom({entries:bad});
+ try{
+  const response=await onRequestGet({request:new Request(url)});
+  assert.equal(response.status,503);
+ }finally{restore()}
+});
+test('a warm server pool supplies verified games without another Chess.com request',async()=>{
+ const store=new Map(),visited=mockChesscom();
+ globalThis.caches={default:{
+  match:async request=>store.get(request.url)?.clone()||null,
+  put:async (request,response)=>{store.set(request.url,response.clone())}
+ }};
+ try{
+  const first=await (await onRequestGet({request:new Request(url+'?exclude=987654321')})).json();
+  assert.equal(first.id,'123456789');
+  const requests=visited.length;
+  const second=await (await onRequestGet({request:new Request(url+'?exclude=123456789')})).json();
+  assert.equal(second.id,'987654321');
+  assert.equal(visited.length,requests,'warm pool uses Cloudflare cache');
+ }finally{restore()}
+});
+test('Guess the Elo hides How to play and rejects non-Chess.com URLs in browser',()=>{
+ const html=readFileSync(new URL('../../arcade.html',import.meta.url),'utf8');
+ const script=readFileSync(new URL('../../arcade.js',import.meta.url),'utf8');
+ assert.match(html,/id="arcade-how-to-play"/);
+ assert.match(script,/if\(mode==='guess-the-elo'\)\$\('arcade-how-to-play'\)\?\.remove\(\)/);
+ assert.match(script,/data\.platform!=='chesscom'/);
+ assert.match(script,/Try another Chess\.com game/);
+ assert.doesNotMatch(script,/real Lichess game|state\.eloPlatform=data\.platform/);
 });
