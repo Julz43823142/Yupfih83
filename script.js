@@ -924,7 +924,9 @@ form.addEventListener("submit", async event => {
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
-      statusText.textContent = "Full analysis unavailable. Loading simpler public-game statistics instead.";
+      statusText.textContent = activeExample
+        ? "Chess.com 5,000-game review unavailable: "+error.message+" Please retry."
+        : "Full analysis unavailable. Loading simpler public-game statistics instead.";
       if(exampleAccounts.has(username.toLowerCase())&&!activeExample)
         window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
