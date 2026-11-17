@@ -235,7 +235,7 @@ function ruinsWorld(){
   {id:'ruins-scholar',name:'Scholar Vela',x:21,y:19,piece:'B',color:'green',lines:['This sanctuary predates the kingdom of Aldemar.','Look at the weathered engravings. Someone scratched a crown into the stone long ago.']},
   {id:'ruins-wanderer',name:'Wandering Knight',x:12,y:20,piece:'N',color:'white',lines:['Most travellers hurry to Skyglass. I prefer places that remember the past.','There may be more to these ruins than we can see today.']}
  ];
- w.blockerRects=[...[[10,9],[14,8],[22,8],[26,9],[8,17],[28,17],[10,26],[26,26]].map(([x,z])=>({x,z,w:1.1,d:1.1})),{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3},...[[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24],[10,17],[26,17],[7,13],[28,13],[7,21],[28,21]].map(([x,z])=>({x,z,w:.72,d:.72}))];
+ w.blockerRects=[{x:18,z:18,w:3.0,d:3.2},...[[10,9],[14,8],[22,8],[26,9],[8,17],[28,17],[10,26],[26,26]].map(([x,z])=>({x,z,w:1.1,d:1.1})),{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3},...[[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24],[10,17],[26,17],[7,13],[28,13],[7,21],[28,21]].map(([x,z])=>({x,z,w:.72,d:.72}))];
  return w;
 }
 function observatoryWorld(){
@@ -649,6 +649,17 @@ function drawGround(g,x,z){
   // Single solid floor tile: no coplanar base/inlay to shimmer.
   const floorTone=scene==='skyglassInterior'?(path?(tile==='s'?'#b39c77':'#9d8566'):'#84725b'):path?(tile==='s'?(ruin?'#9c9276':'#b1aca0'):'#827c67'):(ruin?'#5a7557':woodland?'#47694e':'#536c69');
   g.box(x+.5,-.052,z+.5,1,.104,1,floorTone);
+  // Bright, hand-laid path pebbles and pale flagstone joints. Inlaid below
+  // ankle height so the player never clips through roadside decorations.
+  if(path&&(scene==='ridge'||scene==='hill')){
+   const pale=(x*5+z*11)%5===0?'#bbad91':'#988a73';
+   if((x*7+z*3)%3===0)g.box(x+.27,.054,z+.33,.21,.008,.13,pale);
+   if((x*11+z*13)%4===0)g.box(x+.72,.054,z+.64,.16,.008,.10,'#b7a889');
+   if(tile==='p'&&(x*3+z*5)%7===0)g.box(x+.50,.055,z+.15,.61,.008,.055,'#c0ae8d');
+  }else if(path&&scene==='ruins'){
+   if((x*7+z*5)%4===0)g.box(x+.37,.055,z+.55,.30,.008,.19,'#c5b99a');
+   if((x+z*3)%6===0)g.box(x+.76,.055,z+.24,.12,.008,.10,'#827862');
+  }
   return;
  }
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
@@ -1577,6 +1588,29 @@ function drawProps(g){
     cylinder(x,.33,z,.30,.30,.10,'#bc9773',10);
     box(x+.43,.09,z+.18,.34,.18,.39,'#9e8470');
    }
+   // Horse of the Lost Crown: central weathered equestrian monument on a
+   // proper collision plinth, with an open approach around both flanks.
+   const hx=18,hz=18;
+   box(hx,.14,hz,3.20,.28,3.38,'#74766c');
+   box(hx,.47,hz,2.96,.17,3.12,'#b2a991');
+   box(hx,.70,hz,2.42,.29,2.58,'#8b897b');
+   for(const dx of [-.52,.52])for(const dz of [-.65,.65]){
+    cylinder(hx+dx,1.04,hz+dz,.23,.26,1.22,'#a8a69a',10);
+    box(hx+dx,1.02,hz+dz+.10,.52,.18,.59,'#666e68');
+   }
+   box(hx,2.18,hz,1.65,.94,2.20,'#9a9d93');
+   sphere(hx,3.12,hz+.69,.59,'#b2b1a3',12);
+   box(hx,3.24,hz+1.04,.74,1.25,.67,'#a4a597');
+   box(hx,4.01,hz+1.33,.72,.62,.79,'#bcb9a9');
+   box(hx,3.79,hz+1.70,.56,.24,.54,'#a9ab9e');
+   for(const dx of [-.25,.25]){
+    cone(hx+dx,4.35,hz+1.25,.13,.44,'#969b8f',8);
+    sphere(hx+dx,4.02,hz+1.73,.065,'#444d4b',7);
+   }
+   for(let k=0;k<5;k++)cone(hx-.70+k*.08,3.09+k*.15,hz+.72,.12,.36,'#747f77',7);
+   box(hx,2.86,hz-1.13,.35,.83,.39,'#858e85');
+   for(const dx of [-1.19,1.19])for(const dz of [-1.23,1.23])
+    sphere(hx+dx,.63,hz+dz,.13,'#637b60',8);
    // Stonehenge-like sanctuary: eight monoliths around a ritual clearing.
    // Horizontal lintels are solidly above uprights, never coplanar.
    for(const [x,z] of [[10,9],[14,8],[22,8],[26,9],[8,17],[28,17],[10,26],[26,26]]){
@@ -1892,16 +1926,16 @@ function drawProps(g){
    }
    // Raised altar, a stone codex lectern and the royal manuscript in the north.
    box(30,.19,11.2,5.1,.38,2.55,'#777264');
-   box(30,.47,11.2,4.65,.14,2.21,'#b9aa8d');
+   box(30,.59,11.2,4.65,.14,2.21,'#b9aa8d');
    for(const x of [28.1,31.9]){
     cylinder(x,.58,11.1,.13,.13,.65,'#8a744c',9);
     sphere(x,1.28,11.1,.13,'#efca85',9);
    }
    box(30,.85,11.3,2.70,.35,1.10,'#76573e');
-   box(30,1.09,11.3,2.48,.09,1.22,'#bb9364');
-   box(29.55,1.19,11.34,.96,.055,.75,'#e0c99f');
-   box(30.53,1.19,11.34,.96,.055,.75,'#ddc59a');
-   box(30.02,1.25,11.35,.07,.045,.80,'#98734b');
+   box(30,1.22,11.3,2.48,.09,1.22,'#bb9364');
+   box(29.55,1.33,11.34,.96,.055,.75,'#e0c99f');
+   box(30.53,1.33,11.34,.96,.055,.75,'#ddc59a');
+   box(30.02,1.405,11.35,.07,.045,.80,'#98734b');
    // A worn votive mosaic replaces the modern telescope platform.
    for(let a=0;a<20;a++){
     const theta=a*Math.PI/10;
@@ -2216,7 +2250,7 @@ function drawEffects(g,t){
  }
  if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
   if(scene!=='skyglassInterior')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
-  else for(let i=0;i<5;i++){const a=i*1.26+t*.15;sphere(17+Math.cos(a)*2,1.35,12+Math.sin(a)*2,.048,'#a4d7d7',7);}
+  // The former five perfectly circling glints in the Abbey were distracting.
   return;
  }
  if(scene==='forest'){
