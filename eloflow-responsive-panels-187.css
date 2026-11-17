@@ -1,0 +1,28 @@
+/* ELOFLOW 187: fluid panels; stack only when their content no longer fits. */
+body.elo-unified-chess .play-game>.play-layout{width:100%;min-width:0}
+body.elo-unified-chess .play-layout>.play-controls-panel,
+body.elo-unified-chess .play-layout>.play-board-card,
+body.elo-unified-chess .play-layout>.play-panel{min-width:0;box-sizing:border-box}
+body.elo-unified-chess .play-controls-panel .play-side-toolbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important;gap:10px!important}
+body.elo-unified-chess .play-controls-panel .play-side-toolbar>.elo-nav-pair{grid-column:1/-1!important;width:100%!important}
+body.elo-unified-chess .play-controls-panel .play-side-toolbar>button{width:100%!important;min-width:0!important;min-height:50px!important;padding:12px 8px!important;font-size:clamp(14px,1.15vw,17px)!important;white-space:normal!important}
+body.elo-unified-chess .play-controls-panel .play-side-toolbar>.elo-toolbar-spacer{display:none!important}
+body.elo-unified-chess .play-layout .play-bot-chat-panel{width:100%!important;max-width:none!important;box-sizing:border-box!important}
+body.elo-unified-chess .play-layout .play-bot-chat-log{min-height:clamp(150px,23vh,300px)!important}
+body.elo-unified-chess .play-layout .play-chat-form{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+body.elo-unified-chess .play-layout .play-chat-form input{flex:1 1 130px;min-width:0}
+body.elo-unified-chess .play-bots-jump[hidden]{display:none!important}
+@media(min-width:1050px){
+ body.elo-unified-chess .play-game>.play-layout{grid-template-columns:minmax(185px,1fr) minmax(0,3.1fr) minmax(245px,1.4fr)!important;gap:clamp(12px,1.3vw,22px)!important;justify-content:stretch!important}
+ body.elo-unified-chess .play-layout>.play-board-card{max-width:none!important}
+ body.elo-unified-chess .play-main-layout>.play-game{max-width:none!important}
+}
+@media(max-width:1049px){
+ body.elo-unified-chess .play-game>.play-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+ body.elo-unified-chess .play-layout>.play-board-card{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:720px!important;justify-self:center!important}
+ body.elo-unified-chess .play-layout>.play-controls-panel{grid-column:1!important;grid-row:2!important;width:100%!important;max-width:720px!important;justify-self:center!important}
+ body.elo-unified-chess .play-layout>.play-panel{grid-column:1!important;grid-row:3!important;width:100%!important;max-width:720px!important;justify-self:center!important}
+}
+@media(max-width:460px){
+ body.elo-unified-chess .play-controls-panel .play-side-toolbar>button{min-height:52px!important;font-size:15px!important}
+}
