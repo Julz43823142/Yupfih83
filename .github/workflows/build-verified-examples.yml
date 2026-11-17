@@ -8,6 +8,12 @@ on:
     paths:
       - scripts/build_verified_examples.py
       - .github/workflows/build-verified-examples.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/build_verified_examples.py
+      - .github/workflows/build-verified-examples.yml
   workflow_dispatch:
 
 permissions:
@@ -19,7 +25,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/precomputed-chesscom-examples-195'
+    if: github.event_name != 'pull_request' || github.head_ref == 'fix/precomputed-chesscom-examples-195'
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
