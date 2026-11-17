@@ -834,25 +834,53 @@ async function runReview(username,requestId){
 // Changing only the URL hash does NOT reload the document or submit the form.
 const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
 const exampleProfileRequests=new Map();
-if(!document.body.dataset.examplePlayer)for(const username of ["MagnusCarlsen","Hikaru"]){
-  // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
-  const profileRequest=getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
-  exampleProfileRequests.set(username.toLowerCase(),profileRequest);
-  void profileRequest.then(profile=>{
-    const slot=document.querySelector('[data-player-avatar="'+username+'"]');
-    if(slot && typeof profile.avatar==="string" && /^https:\/\//.test(profile.avatar)){
-      const photo=document.createElement("img");
-      photo.src=profile.avatar;photo.alt="";photo.loading="lazy";
-      photo.referrerPolicy="no-referrer";slot.replaceChildren(photo);
-    }
-  }).catch(()=>{});
-}
+// Avatars are embedded from the verified public Chess.com profiles in the
+// HTML, so example navigation works without waiting for API requests.
+document.querySelectorAll("[data-player-avatar] img").forEach(photo=>{
+  photo.addEventListener("error",()=>photo.remove(),{once:true});
+});
 // Example pages MUST run the same live Chess.com 5,000-game v87 review as the
 // homepage. Old preset files were limited snapshots with the wrong game coverage.
 // Example reports use a fully precomputed v87 result and never start an
 // on-device scan. Only a verified 5,000-game Chess.com snapshot is accepted.
 const exampleUsername=document.body.dataset.examplePlayer;
 const activeExample=exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru";
+async function showMagnusPublicProfile(){
+  const response=await fetch("/assets/example-reports-v2/magnus-carlsen-profile.json",{cache:"force-cache"});
+  if(!response.ok)throw Error("Magnus Carlsen’s Chess.com profile is temporarily unavailable.");
+  const publicData=await response.json();
+  if(publicData.schema!==1||publicData.source?.platform!=="chess.com"||
+     publicData.source?.account!=="magnuscarlsen"||
+     publicData.profile?.username!=="magnuscarlsen"||
+     publicData.profile?.name!=="Magnus Carlsen"||
+     publicData.profile?.title!=="GM")throw Error("Magnus profile source cannot be verified.");
+  const panel=document.getElementById("v87-review");
+  playerCard.replaceChildren();
+  renderPlayer(publicData.profile,{}, "MagnusCarlsen",{preset:true});
+  const overviewHeading=document.querySelector("#results .overview-title-group h2");
+  if(overviewHeading)overviewHeading.textContent="Magnus Carlsen · Chess.com profile";
+  panel.replaceChildren();
+  const section=add(panel,"div","example-source-summary");
+  add(section,"h3","","Chess.com profile available");
+  add(section,"p","","This is Magnus Carlsen’s public Chess.com profile. Chess.com does not publish game archives for @MagnusCarlsen, so a verified 5,000-game performance review is not available.");
+  const facts=add(section,"div","example-source-facts");
+  add(facts,"span","","Grandmaster (GM)");
+  add(facts,"span","","Norway");
+  const joined=Number(publicData.profile.joined);
+  if(Number.isFinite(joined)&&joined>0)
+    add(facts,"span","","Chess.com member since "+new Date(joined*1000).getUTCFullYear());
+  add(section,"p","","Rating trends, move accuracy and game-based statistics are intentionally not shown without underlying Chess.com games.");
+  const source=add(section,"a","","View Magnus Carlsen’s public Chess.com profile");
+  source.href="https://www.chess.com/member/magnuscarlsen";
+  source.target="_blank";
+  source.rel="noopener noreferrer";
+  add(section,"p","","For a complete example with 5,000 verified Chess.com games, see Hikaru Nakamura’s report.");
+  const other=add(section,"a","","Open Hikaru’s full 5,000-game report");
+  other.href="/example-hikaru-nakamura.html";
+  const insights=document.querySelector("#results .insights-integrated");
+  if(insights)insights.hidden=true;
+  statusText.textContent="Magnus Carlsen · Chess.com public profile. No public game archives available for this account.";
+}
 async function openSavedExample(){
   const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
   const account=exampleUsername.toLowerCase();
@@ -870,12 +898,13 @@ async function openSavedExample(){
         if(unavailable.ok){
           const marker=await unavailable.json();
           if(marker.source?.platform==="chess.com"&&marker.source?.account===account&&
-             marker.available===false&&marker.reason==="no_public_archives"){
-            throw Error("Chess.com publishes no public game archives for @MagnusCarlsen. A verified 5,000-game report cannot be generated for this account.");
+             marker.available===false&&marker.reason==="no_public_archives"&&marker.actualGames===0){
+            await showMagnusPublicProfile();
+            return;
           }
         }
       }
-      throw Error("The 5,000-game report has not been published yet.");
+      throw Error("The verified 5,000-game report has not been published yet.");
     }
     const saved=await response.json();
     if(saved.schema!==2||saved.username!==account||saved.source?.platform!=="chess.com"||
@@ -902,8 +931,13 @@ async function openSavedExample(){
     panel.replaceChildren();
     add(panel,"p","v87-warning","The verified 5,000-game example report is currently unavailable.");
     statusText.textContent=error.message;
-    const link=add(panel,"a","example-live-link","Run a fresh Chess.com analysis for @"+exampleUsername);
-    link.href="/?analyze="+encodeURIComponent(exampleUsername);
+    if(account==="magnuscarlsen"){
+      const profileLink=add(panel,"a","example-live-link","View Magnus Carlsen on Chess.com");
+      profileLink.href="https://www.chess.com/member/magnuscarlsen";
+    }else{
+      const link=add(panel,"a","example-live-link","Run a fresh Chess.com analysis for @"+exampleUsername);
+      link.href="/?analyze="+encodeURIComponent(exampleUsername);
+    }
   }
 }
 if(activeExample)usernameInput.value=exampleUsername;

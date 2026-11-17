@@ -13,7 +13,7 @@ test('both example pages remain directly navigable from homepage and each other'
   assert.ok(html.includes('href="/example-'+slug+'.html" data-username="'+name+'"'));
   const page=readFileSync(new URL('example-'+slug+'.html',root),'utf8');
   assert.ok(page.includes("data-example-player='"+name+"'"));
-  assert.ok(page.includes('script.js?v=195-precomputed-chesscom-examples'));
+  assert.ok(page.includes('script.js?v=196-avatars-magnus-profile'));
   for(const [otherName,otherSlug] of examples)
    assert.ok(page.includes('href="/example-'+otherSlug+'.html" data-username="'+otherName+'"'));
  }
@@ -48,4 +48,36 @@ test('users can explicitly start a fresh live analysis separately',()=>{
  assert.ok(script.includes('link.href="/?analyze="+encodeURIComponent(exampleUsername)'));
  assert.ok(script.includes('new URLSearchParams(location.search).get("analyze")'));
  assert.ok(script.includes('await runReview(username,requestId)'));
+});
+
+test('both Chess.com avatars display on homepage and on both example pages without API prefetch',()=>{
+ const avatars=[
+  ['MagnusCarlsen','3889224.121e2094.200x200o.361c2f8a59c2.jpg'],
+  ['Hikaru','15448422.88c010c1.200x200o.3c5619f5441e.png']
+ ];
+ for(const file of ['index.html','example-hikaru-nakamura.html','example-magnus-carlsen.html']){
+  const page=readFileSync(new URL(file,root),'utf8');
+  for(const [account,image] of avatars){
+   assert.ok(page.includes('data-player-avatar="'+account+'"'),'missing avatar for '+account+' in '+file);
+   assert.ok(page.includes('images.chesscomfiles.com/uploads/v1/user/'+image));
+  }
+ }
+ assert.match(script,/document\.querySelectorAll\("\[data-player-avatar\] img"\)/);
+ assert.doesNotMatch(script,/if\(!document\.body\.dataset\.examplePlayer\)for\(const username of \["MagnusCarlsen","Hikaru"\]\)/);
+});
+
+test('Magnus example shows verified Chess.com profile without inventing a 5000-game report',()=>{
+ const profile=JSON.parse(readFileSync(new URL('assets/example-reports-v2/magnus-carlsen-profile.json',root),'utf8'));
+ assert.deepEqual(profile.source.platform,'chess.com');
+ assert.equal(profile.source.account,'magnuscarlsen');
+ assert.equal(profile.profile.username,'magnuscarlsen');
+ assert.equal(profile.profile.title,'GM');
+ assert.match(script,/async function showMagnusPublicProfile\(\)/);
+ assert.match(script,/await showMagnusPublicProfile\(\)/);
+ assert.match(script,/renderPlayer\(publicData\.profile,\{\}, "MagnusCarlsen",\{preset:true\}\)/);
+ assert.match(script,/Chess\.com does not publish game archives/);
+ assert.match(script,/insights\.hidden=true/);
+ const css=readFileSync(new URL('style.css',root),'utf8');
+ assert.match(css,/body\[data-example-player\] \.sample-section\{display:block!important\}/);
+ assert.doesNotMatch(css,/body\[data-example-player\] \.sample-section\{display:none!important\}/);
 });

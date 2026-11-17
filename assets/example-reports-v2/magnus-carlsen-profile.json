@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source": {
+    "platform": "chess.com",
+    "account": "magnuscarlsen",
+    "endpoint": "https://api.chess.com/pub/player/magnuscarlsen"
+  },
+  "profile": {
+    "avatar": "https://images.chesscomfiles.com/uploads/v1/user/3889224.121e2094.200x200o.361c2f8a59c2.jpg",
+    "player_id": 3889224,
+    "url": "https://www.chess.com/member/MagnusCarlsen",
+    "name": "Magnus Carlsen",
+    "username": "magnuscarlsen",
+    "title": "GM",
+    "country": "https://api.chess.com/pub/country/NO",
+    "location": "Norway",
+    "joined": 1282856720
+  },
+  "note": "Profile information only. Chess.com public game archives are unavailable for this account; no game review is asserted."
+}

@@ -1048,8 +1048,8 @@ html{min-height:100vh}
 /* Respect reduced-motion preferences without changing game rules or clocks. */
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
-/* 185: Example report pages are results, not another example chooser. */
-body[data-example-player] .sample-section{display:none!important}
+/* Allow cross-navigation between the two examples directly from either report. */
+body[data-example-player] .sample-section{display:block!important}
 /* Chess.com avatars must never expand to their intrinsic image dimensions. */
 .sample-options .sample-avatar,
 .sample-button .sample-avatar,
@@ -1081,3 +1081,17 @@ body[data-example-player] .sample-section{display:none!important}
   flex-basis:46px;width:46px;height:46px;max-width:46px;max-height:46px;
  }
 }
+
+/* 196: Verified Chess.com photos render immediately, with initials as fallback. */
+.sample-button [data-player-avatar]{position:relative;isolation:isolate}
+.sample-button [data-player-avatar] img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+body[data-example-player] .sample-section{margin-bottom:24px}
+.example-source-summary{padding:18px 20px;margin:14px 0 20px;border:1px solid #335875;border-radius:12px;background:#0b2034;color:#d6e5f4;line-height:1.65}
+.example-source-summary h3{margin:0 0 8px;font-size:19px;color:#fff}
+.example-source-summary p{margin:6px 0}
+.example-source-summary a{color:#8fd7ff;text-decoration:underline;font-weight:700}
+.example-source-facts{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.example-source-facts span{padding:7px 11px;border:1px solid #385c76;border-radius:8px;background:#122f47;font-size:13px}
+
+/* Missing public game archives must not leave an empty Insights pane. */
+body[data-example-player] .insights-integrated[hidden]{display:none!important}
