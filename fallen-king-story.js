@@ -869,9 +869,9 @@ function drawProps(g){
    piece(12.1,2.38,'R','black',false);
   }else{
    // A real rook chess piece lies horizontally across the cot, with a visible turret silhouette.
-   recliningPiece(11.55,2.43,'R','black');
+   recliningPiece(12.18,2.43,'R','black');
    // Shut eyes toward the camera while the rook sleeps.
-   for(const ex of [12.35,12.68])box(ex,.72,2.80,.17,.035,.045,'#d5c6ae');
+   for(const ex of [12.72,13.04])box(ex,.90,2.89,.16,.028,.035,'#d5c6ae');
   }
   box(11.1,.61,2.7,.34,.19,.43,'#48566d');
   // Mara and Tovin: recognisable chess-piece silhouettes, one in each neighbouring cell.
@@ -1127,8 +1127,9 @@ function drawProps(g){
   box(towerX,1.15,8.15,1.28,2.30,.16,'#654937');
   for(const x of [27.05,27.40,27.75,28.05])box(x,1.16,8.24,.045,2.18,.03,'#967554');
   box(27.91,1.06,8.29,.09,.11,.06,'#e4c17b');
-  box(towerX,4.99,towerZ,5.65,.23,5.65,'#555d61');
-  box(towerX,5.29,towerZ,5.92,.30,5.92,'#8f9490');
+  box(towerX,4.99,towerZ,5.65,.22,5.65,'#555d61');
+  // Separate parapet cap from the wall cornice.
+  box(towerX,5.26,towerZ,5.92,.20,5.92,'#8f9490');
   // Battlements, raised corner turrets and a dark peaked watch roof.
   for(const x of [25.15,26.3,27.5,28.7,29.85])for(const z of [2.65,8.35])
    box(x,5.72,z,.60,.92,.52,'#9da19c');
@@ -1138,8 +1139,8 @@ function drawProps(g){
    cylinder(x,5.70,z,.39,.39,1.45,'#737d80',10);
    cone(x,6.75,z,.55,.82,'#454f58',10);
   }
-  box(towerX,5.58,towerZ,3.76,.18,3.76,'#4a555d');
-  cone(towerX,6.50,towerZ,2.55,1.70,'#47515a',4);
+  // Remove an overlapping roof-cap slab; retain the original peaked silhouette.
+  cone(towerX,6.52,towerZ,2.42,1.63,'#47515a',4);
   // Red-and-white striped hinged road barrier, four tiles across.
   for(const z of [7.0,11.15]){
    box(32.45,1.05,z,.43,2.1,.44,'#a6a9a6');
@@ -1255,10 +1256,10 @@ function drawVillageProps(g){
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.475,19.5,.07,.022,1.96,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.455,19.5,.07,.018,1.96,'#e1c28e');
   }
-  for(const z of [18.3,20.7]){
-   box(46.3,.49,z,4.9,.12,.17,'#b8a078');
+  for(const z of [18.13,20.87]){
+   box(46.3,.49,z,4.9,.12,.14,'#b8a078');
    for(const x of [44.1,45.2,46.3,47.4,48.5])cylinder(x,.47,z,.08,.08,.76,'#6f523b',8);
   }
  }else{
