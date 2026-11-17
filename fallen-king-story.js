@@ -160,7 +160,7 @@ function villageWorld(){
  w.blockers=[];villageDecorCollisions(w);
  return w;
 }
-// Chapter Two: a rising woodland trail and the ruined Skyglass Observatory.
+// Chapter Two: the woodland crossroads, ancient ruins and medieval Skyglass Abbey.
 // Separate world layouts and quest flags preserve all Chapter One scenes and save slots.
 // The woods beyond Willowmere are a free-roaming crossroads: north cave,
 // south ruins, east Skyglass hill road, west back across the repaired bridge.
@@ -196,9 +196,9 @@ function ridgeWorld(){
  for(let y=3;y<=5;y++)for(let x=18;x<=22;x++)updateTile(w,x,y,'X');
  w.spawn={x:4,y:20};w.music='willowmere';
  w.npcs=[
-  {id:'fork-traveller',name:'Mira the Pilgrim',x:9,y:23,piece:'B',color:'purple',lines:['The Willowmere bridge is open again? Wonderful!','At the fork, north is a sealed cave, south the old ruins, and east the Skyglass hill road.']},
+  {id:'fork-traveller',name:'Mira the Pilgrim',x:9,y:23,piece:'B',color:'purple',lines:['The Willowmere bridge is open again? Wonderful!','At the fork, north lies a cave, south the old ruins, and east the road to Skyglass Abbey.']},
   {id:'fork-merchant',name:'Holloway',x:25,y:23,piece:'P',color:'green',lines:['The ruins below the forest are open to explorers.','They say the observatory above the hill holds a record Edwin wants destroyed.']},
-  {id:'fork-cartographer',name:'Cartographer Elin',x:17,y:16,piece:'N',color:'blue',lines:['North: Hidden Cave. East: Skyglass Observatory. South: Old Ruins.','I tried exploring the northern path, but the stones are impossible to pass.']}
+  {id:'fork-cartographer',name:'Cartographer Elin',x:17,y:16,piece:'N',color:'blue',lines:['North: Hidden Cave. East: Skyglass Abbey. South: Old Ruins.','I tried exploring the northern path, but the stones are impossible to pass.']}
  ];
  w.blockerRects=[{x:17.5,z:21,w:.30,d:.30},{x:28.5,z:17.4,w:.6,d:.55}];
  return w;
@@ -214,9 +214,9 @@ function hillWorld(){
  w.spawn={x:3,y:29};w.music='willowmere';
  w.npcs=[
   {id:'hill-hiker',name:'Pilgrim Corin',x:15,y:27,piece:'B',color:'white',lines:['The mountain path is steep, but Skyglass is worth the climb.','From the upper terrace you can see all the way to Willowmere.']},
-  {id:'hill-keeper',name:'Lantern Keeper Ida',x:34,y:13,piece:'P',color:'orange',lines:['The great observatory stands beyond the last bend.','Follow the blue lanterns. The curators are expecting visitors again.']}
+  {id:'hill-keeper',name:'Lantern Keeper Ida',x:34,y:13,piece:'P',color:'orange',lines:['The ancient abbey stands beyond the last bend.','Follow the blue lanterns. The curators are expecting visitors again.']}
  ];
- w.blockerRects=[{x:24.5,z:22.5,w:.70,d:.70}];
+ w.blockerRects=[{x:24.5,z:22.5,w:.70,d:.70},...[[13,20],[23,26],[34,17]].map(([x,z])=>({x,z,w:1.0,d:.9}))];
  return w;
 }
 function ruinsWorld(){
@@ -235,11 +235,11 @@ function ruinsWorld(){
   {id:'ruins-scholar',name:'Scholar Vela',x:21,y:19,piece:'B',color:'green',lines:['This sanctuary predates the kingdom of Aldemar.','Look at the weathered engravings. Someone scratched a crown into the stone long ago.']},
   {id:'ruins-wanderer',name:'Wandering Knight',x:12,y:20,piece:'N',color:'white',lines:['Most travellers hurry to Skyglass. I prefer places that remember the past.','There may be more to these ruins than we can see today.']}
  ];
- w.blockerRects=[{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3},...[[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24],[10,17],[26,17],[7,13],[28,13],[7,21],[28,21]].map(([x,z])=>({x,z,w:.72,d:.72}))];
+ w.blockerRects=[...[[10,9],[14,8],[22,8],[26,9],[8,17],[28,17],[10,26],[26,26]].map(([x,z])=>({x,z,w:1.1,d:1.1})),{x:18,z:24,w:2.2,d:1.8},{x:10,z:17,w:1.5,d:1.3},{x:26,z:17,w:1.5,d:1.3},...[[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24],[10,17],[26,17],[7,13],[28,13],[7,21],[28,21]].map(([x,z])=>({x,z,w:.72,d:.72}))];
  return w;
 }
 function observatoryWorld(){
- // Outside view: a compact, unmistakable stone observatory with a real door.
+ // Outside view: a medieval stone abbey with an oak door, chapel, bell tower and scholarly courtyard.
  const w=createWorld(36,30,'.');
  for(let y=1;y<29;y++)for(let x=1;x<35;x++)if(x<=2||x>=33||y<=2||y>=27)updateTile(w,x,y,'T');
  carveRoad(w,[[17,28],[17,19],[17,16]],3);
@@ -248,7 +248,7 @@ function observatoryWorld(){
  // Exterior door is visible and accessible through the front steps.
  updateTile(w,17,16,'D');
  w.spawn={x:17,y:25};w.music='willowmere';
- w.npcs=[{id:'skyglass-greeter',name:'Skyglass Caretaker',x:24,y:20,piece:'B',color:'white',lines:['Welcome to Skyglass. The observatory has been closed for years.','You can enter through the old front door. The great star hall is inside.']}];
+ w.npcs=[{id:'skyglass-greeter',name:'Skyglass Caretaker',x:24,y:20,piece:'B',color:'white',lines:['Welcome to Skyglass Abbey. Its scholars have watched the heavens for generations.','Enter through the great oak door. The library and star hall are within.']}];
  return w;
 }
 function skyglassInteriorWorld(){
@@ -263,10 +263,10 @@ function skyglassInteriorWorld(){
  for(let x=25;x<=35;x++)for(let y=7;y<=16;y++)updateTile(w,x,y,'s');
  w.spawn={x:30,y:46};w.music='willowmere';
  w.npcs=[
-  {id:'skyglass-curator',name:'Curator Sable',x:25,y:25,piece:'B',color:'white',lines:['Welcome to the great Skyglass Observatory.','Edwin demanded every record of the royal seal. One ledger survived beneath the star chart.']},
-  {id:'skyglass-mechanic',name:'Mechanist Orin',x:42,y:29,piece:'R',color:'orange',lines:['You opened the Willowmere bridge? We can finally receive supplies again.','One day these giant lenses will turn toward the stars once more.']},
-  {id:'skyglass-apprentice',name:'Apprentice Faye',x:17,y:35,piece:'P',color:'blue',lines:['This is the largest observatory in Aldemar!','The bronze royal ledger is on the north terrace.']},
-  {id:'skyglass-archivist',name:'Archivist Noa',x:36,y:16,piece:'B',color:'purple',lines:['The great dome records the sky, but the old books tell us about the throne.','Look for the forged mark in the coronation ledger.']}
+  {id:'skyglass-curator',name:'Abbess Sable',x:25,y:25,piece:'B',color:'white',lines:['Welcome to the Abbey of Skyglass, refuge of the royal chroniclers.','Edwin demanded every record of the royal seal. One ledger survived beneath the star chart.']},
+  {id:'skyglass-mechanic',name:'Brother Orin',x:42,y:29,piece:'R',color:'orange',lines:['You opened the Willowmere bridge? We can finally receive supplies again.','Our brass armillary and ancient astrolabes may yet reveal the truth.']},
+  {id:'skyglass-apprentice',name:'Novice Faye',x:17,y:35,piece:'P',color:'blue',lines:['The abbey library holds the oldest sky charts in Aldemar!','The royal ledger rests in the northern scriptorium.']},
+  {id:'skyglass-archivist',name:'Scribe Noa',x:36,y:16,piece:'B',color:'purple',lines:['The old manuscripts record the stars, but the royal books reveal the throne.','Look for the forged mark in the coronation ledger.']}
  ];
  w.blockerRects=[{x:30.5,z:11.2,w:5,d:3.4},{x:18.5,z:20,w:2.4,d:2.1},{x:41.5,z:20,w:2.4,d:2.1},{x:30.5,z:29,w:4,d:4},...[[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.96,d:.96}))];
  return w;
@@ -287,10 +287,10 @@ function objective(){
  if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';
  if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';
  if(scene==='ridge')return 'Chapter Two: Follow the woodland crossroads to the cave, Skyglass Hill or old ruins.';
- if(scene==='hill')return 'Follow the winding uphill path to Skyglass Observatory.';
+ if(scene==='hill')return 'Follow the winding hillside path to Skyglass Abbey.';
  if(scene==='ruins')return complete('ruinInscription')?'Explore the old sanctuary or return north to the forest fork.':'Explore the old ruins and examine the engraved altar (E).';
- if(scene==='observatory')return 'Skyglass Observatory: approach the front entrance and press E to enter.';
- if(scene==='skyglassInterior')return complete('skyglassLedger')?'The royal seal was forged. Explore the great star hall.':'Examine the royal ledger in the northern gallery (E).';
+ if(scene==='observatory')return 'Skyglass Abbey: approach the great oak door and press E to enter.';
+ if(scene==='skyglassInterior')return complete('skyglassLedger')?'The royal seal was forged. Explore the great star hall.':'Examine the royal ledger in the northern scriptorium (E).';
  if(!complete('bridge'))return 'Press E at the east bridge to repair it and reopen the road.';
  return 'Cross the repaired bridge and continue east to begin Chapter Two.';
 }
@@ -530,23 +530,23 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
  }
  if(scene==='ridge'){
   if(y<=9&&x>=16&&x<=24){say('Oliver','The cave entrance is buried under heavy stone. I cannot get inside right now.');return true;}
-  if(near(p,17,20,3)){say('Woodland Signpost','NORTH: Hidden Cave','EAST: Skyglass Observatory via Hill Road','SOUTH: Old Ruins');return true;}
+  if(near(p,17,20,3)){say('Woodland Signpost','NORTH: Hidden Cave','EAST: Skyglass Abbey via Hill Road','SOUTH: Old Ruins');return true;}
   return false;
  }
  if(scene==='hill'){
-  if(near(p,39,6,3)){say('Oliver','The great Skyglass Observatory is just beyond this ridge.');return true;}
+  if(near(p,39,6,3)){say('Oliver','The old stone towers of Skyglass Abbey rise beyond this ridge.');return true;}
   return false;
  }
  if(scene==='ruins'){
   if(near(p,18,24,3)){
    if(!complete('ruinInscription')){chapter.flags.ruinInscription=true;persist();say('Ancient Inscription','Before the first crown, the stars marked the rulers of Aldemar.','An unfamiliar symbol appears beside the carved royal seal.');}
-   else say('Oliver','The symbol on this altar might connect to the records at Skyglass Observatory.');
+   else say('Oliver','The symbol on this altar might connect to the manuscripts at Skyglass Abbey.');
    updateObjective();return true;
   }
   return false;
  }
  if(scene==='observatory'){
-  if(near(p,17,16,3)){setScene('skyglassInterior',{x:30,y:46,facing:'up'});say('Oliver','The old doors creak open. The Skyglass Observatory is far larger inside than it appears.');return true;}
+  if(near(p,17,16,3)){setScene('skyglassInterior',{x:30,y:46,facing:'up'});say('Oliver','The ancient oak doors creak open. The abbey hides a vast scriptorium and star hall.');return true;}
   return false;
  }
  if(scene==='skyglassInterior'){
