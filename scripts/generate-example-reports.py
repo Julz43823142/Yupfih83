@@ -47,7 +47,7 @@ def generate(username,slug):
     print('Generating '+username,flush=True)
     source={'platform':'chess.com','account':username.lower()}
     env={**os.environ,'CHESS_USERNAME':username}
-    runner=ROOT/'client-v87'/'fairplay_website_runner.py'
+    runner=(ROOT/'scripts'/'export-magnus-chesscom.py' if username=='MagnusCarlsen' else ROOT/'client-v87'/'fairplay_website_runner.py')
     subprocess.run([sys.executable,str(runner)],
                    cwd=ROOT,env=env,check=True,timeout=1200)
     report=json.loads((ROOT/'v87-result.json').read_text())
