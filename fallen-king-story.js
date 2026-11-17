@@ -522,8 +522,8 @@ function drawVillageDetails(g){
  for(const [x,z] of [[20.4,25.8],[34.5,25.6],[24.1,35.0],[32.8,34.1]]){
   box(x,.23,z,1.20,.40,.46,'#775338');
   box(x,.47,z,1.11,.09,.39,'#bb9667');
-  box(x,.53,z,1.01,.06,.30,'#3e6041');
-  for(let i=0;i<5;i++){const px=x-.43+i*.21;sphere(px,.65,z,.095,i%2?'#edca87':'#d49bb0',8);}
+  box(x,.59,z,1.01,.06,.30,'#3e6041');
+  for(let i=0;i<5;i++){const px=x-.43+i*.21;sphere(px,.74,z,.095,i%2?'#edca87':'#d49bb0',8);}
  }
  for(const [x,z] of [[19.8,32.0],[35.7,31.5],[22.2,22.4]]){
   cylinder(x,.28,z,.32,.27,.55,'#aa9072',10);
@@ -594,7 +594,8 @@ function drawVillageSecondPass(g){
  }
  for(const dx of [-.78,.78])for(const dz of [-.43,.43])box(x+dx,1.26,z+dz,.09,1.32,.09,'#75553b');
  box(x,2.00,z,2.25,.17,1.45,'#b65a4a');
- for(let i=0;i<6;i++)box(x-1+i*.40,2.105,z,.20,.018,1.38,'#eee0b7');
+ // The painted bands sit above the canvas, not inside its top face.
+ for(let i=0;i<6;i++)box(x-1+i*.40,2.184,z,.20,.018,1.38,'#eee0b7');
  for(const [dx,dz] of [[-.51,-.10],[.23,.22],[.51,-.18]]){
   box(x+dx,.83,z+dz,.43,.35,.34,'#95714c');
   box(x+dx,.99,z+dz,.47,.05,.38,'#ceb18a');
@@ -1135,9 +1136,10 @@ function drawProps(g){
    box(x,5.72,z,.60,.92,.52,'#9da19c');
   for(const z of [3.8,5.5,7.2])for(const x of [24.65,30.35])
    box(x,5.72,z,.52,.92,.66,'#9da19c');
+  // Corner caps sit above the battlement rather than intersecting the crenellations.
   for(const x of [25.15,29.85])for(const z of [3.15,7.85]){
-   cylinder(x,5.70,z,.39,.39,1.45,'#737d80',10);
-   cone(x,6.75,z,.55,.82,'#454f58',10);
+   cylinder(x,6.65,z,.34,.34,.50,'#737d80',10);
+   cone(x,7.15,z,.45,.62,'#454f58',10);
   }
   // Remove an overlapping roof-cap slab; retain the original peaked silhouette.
   cone(towerX,6.52,towerZ,2.42,1.63,'#47515a',4);
@@ -1221,7 +1223,8 @@ function drawVillageProps(g){
   for(const ox of [-.80,.80])for(const oz of [-.55,.55])cylinder(x+ox,.06,z+oz,.065,.07,1.44,'#80644d',8);
   box(x,.89,z,2.05,.13,1.60,'#947155');
   box(x,1.62,z,2.25,.16,1.87,canopy);
-  for(const ox of [-.83,-.4,.03,.46,.83])box(x+ox,1.53,z,.24,.10,1.8,ox<0?'#d9c494':'#e2d0a8');
+  // Canvas trim hangs just beyond the awning edge instead of intersecting its surface.
+  for(const ox of [-.83,-.4,.03,.46,.83])box(x+ox,1.53,z+.977,.24,.10,.055,ox<0?'#d9c494':'#e2d0a8');
   mdl('barrel',x-1.23,0,z,.55,.58,.55);
   mdl('chest',x+.55,.96,z,.49,.38,.46);
  }
@@ -1256,10 +1259,10 @@ function drawVillageProps(g){
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.455,19.5,.07,.018,1.96,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.485,19.5,.065,.016,1.92,'#e1c28e');
   }
-  for(const z of [18.13,20.87]){
-   box(46.3,.49,z,4.9,.12,.14,'#b8a078');
+  for(const z of [18.08,20.92]){
+   box(46.3,.52,z,4.9,.10,.14,'#b8a078');
    for(const x of [44.1,45.2,46.3,47.4,48.5])cylinder(x,.47,z,.08,.08,.76,'#6f523b',8);
   }
  }else{
