@@ -840,7 +840,7 @@ const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
  // Real, precomputed v87 data is served as a same-origin static preset.
- // If the snapshot has not been published yet, retain the full local review.
+ // A missing snapshot must never silently trigger an expensive fresh analysis.
  const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
  const loadPreset=async()=>{
   const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"force-cache"});
@@ -862,7 +862,15 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
   }));
   results.scrollIntoView({behavior:"instant",block:"start"});
  };
- loadPreset().catch(()=>form.requestSubmit());
+ loadPreset().catch(error=>{
+  console.warn("Example preset unavailable:",error);
+  results.classList.add("hidden");
+  statusText.textContent="This precomputed example report is temporarily unavailable. No new analysis has been started.";
+  button.disabled=true;
+  button.textContent="Example unavailable";
+  const insights=document.getElementById("insights-embedded");
+  if(insights)insights.replaceChildren();
+ });
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -908,7 +916,7 @@ form.addEventListener("submit", async event => {
 
 // URL fragments are never sent to Cloudflare in HTTP requests.
 const requestedAnalysis=new URLSearchParams(location.hash.replace(/^#/, "")).get("analyze");
-if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
+if(!document.body.dataset.examplePlayer&&requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
   usernameInput.value=requestedAnalysis;
   form.requestSubmit();
 }
