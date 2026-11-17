@@ -113,6 +113,9 @@ function building(h){
  box(x,H-.44,face+.17,w-.36,.09,.10,'#edd4a4');
  // Wall stones are deliberately separated, not intersecting corner posts.
  for(let side of [-1,1]){
+  // The inn's right timber post occupies this exact corner. Do not place stone
+  // appliques through the post: the two surfaces would z-fight as the camera moves.
+  if(h.name==='The Inn'&&side===1)continue;
   const sx=x+side*(w/2-.53);
   for(let row=0;row<3;row++){
    box(sx, .37+row*.56,trim+.025,.32,.11,.09,row%2?'#c7af8c':'#baa587');
@@ -144,7 +147,11 @@ function building(h){
  box(x+w/2-.82,H+.22,z-.42,.51,.82,.49,'#bba486');
  box(x+w/2-.82,H+1.0,z-.42,.68,.15,.62,'#69504d');
  if(h.name==='Town Hall'){box(x-w/2+.8,H+.1,z+.35,1.25,.72,1.35,'#b7a17d');box(x-w/2+.8,H+.87,z+.35,1.42,.12,1.48,'#50637a');}
- if(h.name==='The Inn'){box(x+w/2-.42,.2,face+.14,.21,1.9,.16,'#795c48');box(x+w/2-.84,.75,face+.19,.18,.85,.11,'#b28d6b');}
+ if(h.name==='The Inn'){
+  // Front-right wooden upright clears the wall, stone courses and fascia.
+  box(x+w/2-.42,.2,face+.33,.20,1.9,.12,'#795c48');
+  box(x+w/2-.84,.75,face+.25,.18,.85,.10,'#b28d6b');
+ }
  if(h.name==='Village Library'){for(let i=0;i<3;i++)box(x-1.7+i*.28,1.94,face+.24,.09,.35,.08,'#6d8790');}
  if(h.name==='The Workshop'){box(x-1.8,.34,face+.25,.72,.30,.20,'#756351');}
  if(h.name==='The Bakery'){box(x-1.95,1.78,face+.20,.12,.44,.08,'#a68c6d');}
