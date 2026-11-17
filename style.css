@@ -1092,3 +1092,6 @@ body[data-example-player] .sample-section{margin-bottom:24px}
 .example-source-summary a{color:#8fd7ff;text-decoration:underline;font-weight:700}
 .example-source-facts{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
 .example-source-facts span{padding:7px 11px;border:1px solid #385c76;border-radius:8px;background:#122f47;font-size:13px}
+
+/* Missing public game archives must not leave an empty Insights pane. */
+body[data-example-player] .insights-integrated[hidden]{display:none!important}
