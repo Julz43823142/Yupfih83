@@ -75,7 +75,7 @@ function ensure(board){
  return info;
 }
 function draw(strip,color,data){
- const own=color==='w'?'White':'Black',total=color==='w'?data.white:data.black;
+ const own=color==='w'?'White':'Black';
  const lead=color==='w'?data.lead:-data.lead;
  const pieces=data.captured[color];
  strip.replaceChildren();
@@ -94,16 +94,12 @@ function draw(strip,color,data){
   const score=document.createElement('strong');score.className='elo-material-lead';
   score.textContent='+'+lead;strip.append(score);
  }
- const remaining=document.createElement('span');remaining.className='elo-material-remaining';
- remaining.textContent=total+' pts on board';
- strip.append(remaining);
- strip.setAttribute('aria-label',own+': '+total+' material points on board'+
-  (pieces.length?', captured '+pieces.map(k=>names[k]).join(', '):'')+
-  (lead>0?', ahead by '+lead:''));
+ strip.setAttribute('aria-label',own+
+  (pieces.length?', captured '+pieces.map(k=>names[k]).join(', '):', no captures')+
+  (lead>0?', material advantage +'+lead:''));
 }
 export function renderMaterialInline(host,color,data){
  if(!host)return;
- const points=color==='w'?data.white:data.black;
  const lead=color==='w'?data.lead:-data.lead;
  host.replaceChildren();
  const captures=document.createElement('span');captures.className='elo-material-captures';
@@ -119,10 +115,9 @@ export function renderMaterialInline(host,color,data){
   score.className='elo-material-lead';score.textContent='+'+lead;
   host.append(score);
  }
- const remaining=document.createElement('small');remaining.className='elo-material-remaining';
- remaining.textContent=points+' pts';host.append(remaining);
- host.setAttribute('aria-label',(color==='w'?'White':'Black')+' has '+points+
-  ' material points on board'+(lead>0?' and a +'+lead+' advantage':''));
+ host.setAttribute('aria-label',(color==='w'?'White':'Black')+
+  (data.captured[color].length?' captured '+data.captured[color].map(k=>names[k]).join(', '):'')+
+  (lead>0?' and is ahead by '+lead+' material points':''));
 }
 export function updateMaterial(board,fen,{flipped=false,moves=null}={}){
  if(!board)return;

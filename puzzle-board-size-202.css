@@ -1,0 +1,71 @@
+/* Puzzles: use the same 700px playing area as Guess the Elo.
+   Loaded last to override legacy 580px/660px column rules. */
+body.elo-unified-chess .puzzles-page{
+ width:calc(100% - 24px)!important;max-width:1850px!important;
+ margin:8px auto 60px!important;
+}
+body.elo-unified-chess .puzzles-layout,
+body.elo-unified-chess .puzzles-layout.has-save-score{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ gap:12px!important;justify-items:stretch!important;
+ width:100%!important;max-width:none!important
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-board-card{
+ grid-column:1!important;grid-row:1!important;
+ width:100%!important;max-width:724px!important;
+ min-width:0!important;justify-self:center!important;
+ margin:0!important;padding:12px!important;box-sizing:border-box!important
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-board-card #puzzle-board{
+ display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;
+ grid-template-rows:repeat(8,minmax(0,1fr))!important;
+ width:100%!important;max-width:700px!important;
+ aspect-ratio:1!important;height:auto!important;
+ min-width:0!important;min-height:0!important;
+ margin:0 auto!important;box-sizing:border-box!important
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-toolbar-card{
+ grid-column:1!important;grid-row:2!important;
+ width:100%!important;max-width:724px!important;
+ justify-self:center!important;min-width:0!important
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-details{
+ grid-column:1!important;grid-row:3!important;
+ width:100%!important;max-width:724px!important;
+ justify-self:center!important;min-width:0!important
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-save-run:not([hidden]){
+ grid-column:1!important;grid-row:4!important;
+ width:100%!important;max-width:724px!important;justify-self:center!important
+}
+/* Move the turn indicator to a small board header, and remove the redundant
+   instruction so the first chess rank stays close to the mode tabs. */
+body.elo-unified-chess .puzzle-board-top{
+ display:flex!important;justify-content:flex-end!important;
+ min-height:24px!important;margin:0 0 4px!important;padding:0!important
+}
+body.elo-unified-chess .puzzle-board-top .puzzle-tag{
+ font-size:12px!important;line-height:20px!important;
+ margin:0!important;padding:0 7px!important
+}
+body.elo-unified-chess .puzzle-board-top strong{display:none!important}
+@media(min-width:1450px){
+ body.elo-unified-chess .puzzles-layout,
+ body.elo-unified-chess .puzzles-layout.has-save-score{
+  grid-template-columns:minmax(170px,1fr) minmax(0,724px) minmax(270px,1.2fr)!important;
+  gap:clamp(10px,1vw,18px)!important;align-items:start!important
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-toolbar-card{
+  grid-column:1!important;grid-row:1!important;max-width:none!important;justify-self:stretch!important
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-board-card{
+  grid-column:2!important;grid-row:1!important;max-width:724px!important
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-details{
+  grid-column:3!important;grid-row:1!important;max-width:none!important;justify-self:stretch!important
+ }
+ body.elo-unified-chess .puzzles-layout>.puzzle-save-run:not([hidden]){
+  grid-column:1!important;grid-row:2!important;max-width:none!important
+ }
+}

@@ -66,7 +66,7 @@ test('All main chessboards load one shared material UI with their own position',
   assert.match(read(file),/from ['\"]\.\/chess-material\.mjs['\"]/);
  }
  for(const html of ['arcade.html','play.html','analysis.html','player-prep.html','online.html','opening-explorer.html']){
-  assert.match(read(html),/chess-material\.css\?v=200/,html);
+  assert.match(read(html),/chess-material\.css\?v=202-no-totals/,html);
  }
  const css=read('chess-material.css');
  assert.match(css,/--elo-shared-board-size:700px/);

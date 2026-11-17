@@ -71,3 +71,24 @@ body.elo-unified-chess :is(.arcade-board,.chess-board,#play-board,#puzzle-board,
  .online-page .online-players{gap:5px}
  .online-page .online-players>strong{font-size:13px}
 }
+
+/* Guess the Elo: reserve space INSIDE the wrapper for both captions. */
+body.elo-unified-chess .arcade-main .arcade-board-wrap{
+ padding-top:28px!important;padding-bottom:28px!important;
+ box-sizing:border-box!important;overflow:hidden!important;
+ width:100%!important;max-width:var(--elo-shared-board-size)!important;
+}
+body.elo-unified-chess .arcade-board-wrap>.elo-material-strip{
+ height:24px!important;max-height:24px!important;
+ width:100%!important;left:0!important;
+ padding-inline:4px;overflow:hidden!important;
+ white-space:nowrap!important;box-sizing:border-box!important;
+}
+body.elo-unified-chess .arcade-board-wrap>.elo-material-top{top:2px!important}
+body.elo-unified-chess .arcade-board-wrap>.elo-material-bottom{top:auto!important;bottom:2px!important}
+body.elo-unified-chess .arcade-board-wrap .elo-material-captures{max-width:calc(100% - 105px)}
+/* Only the net +N advantage, no total point count. */
+.elo-material-remaining{display:none!important}
+.elo-material-strip .elo-material-name{flex:none;min-width:40px}
+.elo-material-strip .elo-material-lead{flex:none}
+.elo-material-strip,.analysis-material-summary,.elo-material-inline{max-width:100%;min-width:0}

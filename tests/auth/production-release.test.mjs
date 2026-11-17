@@ -33,7 +33,7 @@ test('production publish tests actual local passkeys, recovery and transfer befo
 test('online game history is loaded by the active analysis script',()=>{
  const html=readFileSync('analysis.html','utf8');
  const active=readFileSync('analysis-stockfish-fixed.js','utf8');
- assert.match(html,/analysis-stockfish-fixed\.js\?v=200-material/);
+ assert.match(html,/analysis-stockfish-fixed\.js\?v=202-image-fixed/);
  assert.match(active,/\/api\/social\/game\?id=/);
  assert.match(active,/sanMoves=moves/);
 });
