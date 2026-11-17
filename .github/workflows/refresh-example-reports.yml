@@ -55,6 +55,7 @@ jobs:
             if [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
             elif [ -s assets/example-reports/magnus-carlsen.json ] && [ -s assets/example-reports/hikaru-nakamura.json ] &&
+              python -c 'import json,sys; assert all(json.load(open(p)).get("schema")==2 for p in sys.argv[1:])' assets/example-reports/magnus-carlsen.json assets/example-reports/hikaru-nakamura.json &&
               git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/magnus-carlsen.json' &&
               git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/hikaru-nakamura.json'; then
               echo "Both validated snapshots already committed to this PR"
@@ -83,7 +84,7 @@ jobs:
           user=os.environ['EXAMPLE_USERNAME'].lower()
           slug=os.environ['EXAMPLE_SLUG']
           data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
-          assert data['schema']==1 and data['username']==user
+          assert data['schema']==2 and data['username']==user
           assert data['report']['version']=='fairplay-v87-review-reliability'
           source=data['source']
           assert source['account']==('drnykterstein' if user=='magnuscarlsen' else user)
