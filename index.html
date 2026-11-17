@@ -23,8 +23,8 @@
   <title>EloScanner | Chess Insights & Improvement</title><link rel="icon" type="image/svg+xml" href="/favicon-horse.svg?v=2">
   
   
-  <link rel="stylesheet" href="./style.css?v=197-magnus-master-report">
-  <script src="./script.js?v=197-magnus-master-report" defer></script>
+  <link rel="stylesheet" href="./style.css?v=198-speed">
+  <script src="./script.js?v=198-speed" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
 <link rel="stylesheet" href="/homepage-polish.css?v=38"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script><style>
 /* Align footer copy close to the viewport edges. */
@@ -222,8 +222,8 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
   </footer>
   <script>
   (async()=>{
-   for(const [mode,id] of [['sprint5','home-sprint-rank'],['survival','home-survival-rank']]){
-    const list=document.getElementById(id);if(!list)continue;
+   await Promise.all([['sprint5','home-sprint-rank'],['survival','home-survival-rank']].map(async ([mode,id])=>{
+    const list=document.getElementById(id);if(!list)return;
     try{
      const endpoint=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode+'&limit=10';
    const r=await fetch(endpoint,{cache:'no-store'}),data=await r.json();
@@ -231,7 +231,7 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
      if(!data.entries.length){const li=document.createElement('li');li.textContent='0 scores yet';list.append(li)}
      for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
     }catch{const li=document.createElement('li');li.textContent='Rankings unavailable';list.append(li)}
-   }
+   }));
   })();
   </script>
 <style>
@@ -282,6 +282,8 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
    const saved=JSON.parse(sessionStorage.getItem(key)||'null');
    if(saved&&Array.isArray(saved.entries)&&Date.now()-saved.time<3600000){render(saved.entries);hasCache=true;}
   }catch{}
+  // Reuse current one-hour rankings instead of polling the API every minute.
+  if(hasCache){loading=false;return;}
   const url=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode+'&limit=10';
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
   try{
