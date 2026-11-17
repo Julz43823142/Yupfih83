@@ -43,11 +43,12 @@ const [dx,dz]=dirs[player.facing],tx=Math.round(player.x+dx),tz=Math.round(playe
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
 const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;varying vec2 worldPos;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/24.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;worldPos=p.xz;}';
-const frag='precision mediump float;varying vec3 col;varying vec2 worldPos;uniform sampler2D visionTex;uniform vec2 visionSize;uniform float visionEnabled;void main(){vec3 lit=pow(col,vec3(.88));float seen=texture2D(visionTex,clamp(worldPos/visionSize,vec2(0.),vec2(1.))).r;float visibility=mix(1.,seen,visionEnabled);gl_FragColor=vec4(mix(vec3(.004,.007,.012),lit,visibility),1.);}';
+const frag='precision mediump float;varying vec3 col;varying vec2 worldPos;uniform sampler2D visionTex;uniform vec2 visionSize;uniform float visionEnabled;uniform float sewerMood;uniform vec2 fogFocus;void main(){vec3 lit=pow(col,vec3(.88));float mist=sewerMood*(.15+.33*smoothstep(2.,11.,distance(worldPos,fogFocus)));lit=mix(lit,vec3(.075,.12,.14),mist);lit*=1.-.16*sewerMood;float seen=texture2D(visionTex,clamp(worldPos/visionSize,vec2(0.),vec2(1.))).r;float visibility=mix(1.,seen,visionEnabled);gl_FragColor=vec4(mix(vec3(.004,.007,.012),lit,visibility),1.);}';
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
 const posLoc=gl.getAttribLocation(program,'p'),normLoc=gl.getAttribLocation(program,'n'),colorLoc=gl.getAttribLocation(program,'c'),camLoc=gl.getUniformLocation(program,'cam'),aspectLoc=gl.getUniformLocation(program,'aspect'),zoomLoc=gl.getUniformLocation(program,'zoom');
 const visionLoc=gl.getUniformLocation(program,'visionTex'),visionSizeLoc=gl.getUniformLocation(program,'visionSize'),visionEnabledLoc=gl.getUniformLocation(program,'visionEnabled');
+const sewerMoodLoc=gl.getUniformLocation(program,'sewerMood'),fogFocusLoc=gl.getUniformLocation(program,'fogFocus');
 const visionTexture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,visionTexture);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
@@ -88,13 +89,13 @@ function roofTiles(h){
  const e=.17,half=d/2+e;
  // Tiles sit just above each sloping roof plane to avoid z-fighting.
  for(let side of [-1,1])for(let row=0;row<4;row++){
-  const f=(row+.5)/4,zz=z+side*half*f,yy=H+.94*(1-f)+.028;
+  const f=(row+.5)/4,zz=z+side*half*f,yy=H+.94*(1-f)+.13;
   for(let col=0;col<Math.ceil(w*2);col++){
    const xx=x-w/2+(col+.5)*w/Math.ceil(w*2);
    box(xx,yy,zz,w/Math.ceil(w*2)-.055,.025,.13,(row+col)%3===0?palette[1]:palette[0]);
   }
  }
- box(x,H+.94,z,w+.35,.085,.15,'#e5d2b3');
+ box(x,H+1.10,z,w+.35,.085,.15,'#e5d2b3');
 }
 
 function building(h){
@@ -748,7 +749,10 @@ if(!window.FallenKingStory?.isIntro()){
  oliver(visual.x+.5,visual.z+.5);
 }
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
-gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
+gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();
+gl.uniform1f(sewerMoodLoc,window.FallenKingStory?.fieldOfView?.()?.radius===10?1:0);
+gl.uniform2f(fogFocusLoc,visual.x+.5,visual.z+.5);
+gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
 gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(2,2);
 for(const chunk of staticChunks){
  gl.bindBuffer(gl.ARRAY_BUFFER,chunk.buffer);
