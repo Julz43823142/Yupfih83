@@ -838,17 +838,8 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
     }
   }).catch(()=>{});
 }
-function startExampleAnalysis(username){
-  if(!exampleAccounts.has(String(username).toLowerCase()))return;
-  usernameInput.value=username;
-  // Keep the deep link for bookmarks and refresh, but start the scan synchronously.
-  history.replaceState(history.state,"",location.pathname+location.search+"#analyze="+encodeURIComponent(username));
-  form.requestSubmit();
-  results.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth",block:"start"});
-}
-document.querySelectorAll(".sample-button[data-username]").forEach(example=>{
-  example.addEventListener("click",()=>startExampleAnalysis(example.dataset.username));
-});
+// Example reports are ordinary links to /?analyze=Username, which guarantees
+// that the load-time analysis boot path runs on every click (including on mobile).
 // Example pages render an already completed v87 report. They never start a
 // second scan; the snapshot was produced by the regular v87 Python runner.
 const exampleUsername=document.body.dataset.examplePlayer;
@@ -965,7 +956,7 @@ form.addEventListener("submit", async event => {
 });
 
 // URL fragments are never sent to Cloudflare in HTTP requests.
-const requestedAnalysis=new URLSearchParams(location.hash.replace(/^#/, "")).get("analyze");
+const requestedAnalysis=new URLSearchParams(location.search).get("analyze")||new URLSearchParams(location.hash.replace(/^#/, "")).get("analyze");
 if(!document.body.dataset.examplePlayer&&requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
   usernameInput.value=requestedAnalysis;
   form.requestSubmit();
