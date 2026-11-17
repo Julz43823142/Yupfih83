@@ -152,3 +152,21 @@
 .play-bot-viewer[data-bot="lars"],.play-bot-viewer[data-bot="lars"].is-selected{background:linear-gradient(to bottom,#111 0%,#111 33.333%,#dd0000 33.333%,#dd0000 66.666%,#ffce00 66.666%,#ffce00 100%)!important;border-color:#ffce00!important;box-shadow:0 0 0 1px #1118!important}
 .play-bot-viewer[data-bot="lars"] .play-bot-info strong,.play-bot-viewer[data-bot="lars"] .play-bot-info small{color:#fff!important;text-shadow:0 2px 3px #000,0 0 8px #000!important}
 .play-bot-viewer[data-bot="lars"] .play-avatar{background:#102b40!important;text-shadow:none!important}
+
+/* ELOFLOW: responsive, full-width bot controls and start state. */
+.play-controls-panel .elo-board-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+.play-controls-panel .elo-board-toolbar>button{min-width:0;width:100%;min-height:48px;padding:12px;font-size:clamp(14px,1.15vw,17px)}
+.play-controls-panel .elo-nav-pair{grid-column:1/-1}
+.play-controls-panel .elo-toolbar-spacer{display:none}
+.play-bot-chat-panel{width:100%;min-width:0;box-sizing:border-box;padding:clamp(16px,2vw,24px)}
+.play-bot-chat-panel h3{font-size:clamp(17px,1.5vw,21px)}
+.play-bot-chat-log{min-height:clamp(150px,20vh,280px);font-size:clamp(14px,1.1vw,17px)}
+.play-chat-form input,.play-chat-form button{min-height:46px;font-size:16px}
+.play-bots-jump[hidden],.play-start-intro[hidden]{display:none!important}
+.play-board-card{position:relative;scroll-margin-top:18px}
+.play-start-intro{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;background:rgba(5,21,36,.91);color:#f4fbff;border-radius:16px;animation:elo-intro-in .22s ease-out}
+.play-start-intro strong{font-size:clamp(25px,4vw,40px)}
+.play-start-intro p{font-size:clamp(16px,2vw,22px);line-height:1.5;max-width:32ch}
+@keyframes elo-intro-in{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+@media(max-width:750px){.play-controls-panel .elo-board-toolbar>button{min-height:52px;font-size:16px}.play-bot-chat-panel{padding:16px}.play-start-intro{padding:14px}}
+@media(prefers-reduced-motion:reduce){.play-start-intro{animation:none}}
