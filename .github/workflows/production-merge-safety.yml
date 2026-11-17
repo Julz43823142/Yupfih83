@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify production signup consistency and Git auto-deploy disabled
+      - name: Verify production signup consistency and Git deployment configuration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PASSKEY_PREVIEW_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -43,9 +43,11 @@ jobs:
           if(signupFlag!=='true'&&signupFlag!=='false')
             throw Error('Production registration flag must be explicitly true or false');
           console.log('Native Git deployment audit:',JSON.stringify({sourceType:p.source?.type,productionDeploymentsEnabled:p.source?.config?.production_deployments_enabled,previewDeploymentSetting:p.source?.config?.preview_deployment_setting}));
-          if(p.source?.type==='github' && (p.source.config?.production_deployments_enabled!==false ||
-              p.source.config?.preview_deployment_setting!=='none'))
-            throw Error('Native Git deployment is enabled or cannot be proven disabled');
+          // Git auto-deployment is deliberately enabled by the project owner.
+          // This read-only gate still verifies the production branch, isolated
+          // D1 databases, live signup behavior and blocked password registration.
+          if(p.source?.type==='github'&&p.source.config?.production_branch&&p.source.config.production_branch!=='main')
+            throw Error('Unexpected native Git production branch');
           const base='https://eloscanner.com';
           const cfg=await fetch(base+'/api/auth/config',{headers:{'Cache-Control':'no-cache'}}).then(r=>r.json());
           if(cfg.registrationOpen!==(signupFlag==='true'))throw Error('Live registration status disagrees with production flag');
@@ -62,5 +64,5 @@ jobs:
             throw Error('Passkey signup endpoint is not closed');
           if(signupFlag==='true'&&phone.status===404)
             throw Error('Passkey signup endpoint remains closed despite enabled registration');
-          console.log('READ ONLY: native Git auto-deploy disabled; signup flag matches live configuration; password signup blocked; D1 bindings isolated.');
+          console.log('READ ONLY: Git deployment configuration checked; signup flag matches live configuration; password signup blocked; D1 bindings isolated.');
           NODE
