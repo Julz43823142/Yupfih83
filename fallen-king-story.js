@@ -118,6 +118,23 @@ function watchtowerWorld(){
  w.spawn={x:8,y:10};w.music='willowmere';
  return w;
 }
+// Physical footprints of the substantial village scenery. Small grass blades
+// remain walkable; pots, barrels, carts, torches, stalls and crates do not.
+function villageDecorCollisions(w){
+ const rect=(x,z,width,depth)=>({x,z,w:width,d:depth});
+ const solid=[
+  rect(31.3,28.9,2.15,1.28),rect(27.3,27.1,1.65,1.65),
+  rect(37.3,28.6,1.55,.28),rect(34.6,28.8,.68,.68),
+  ...[[23.5,24.4],[32.7,24.4],[30.7,33.2]].map(([x,z])=>rect(x,z,2.1,1.65)),
+  ...[[20.4,25.8],[34.5,25.6],[24.1,35.0],[32.8,34.1]].map(([x,z])=>rect(x,z,1.20,.5)),
+  ...[[19.8,32.0],[35.7,31.5],[22.2,22.4]].map(([x,z])=>rect(x,z,.70,.70)),
+  ...[[14.5,27.4],[35.8,35.5],[39.0,24.7],[40.8,17.3],[41.3,17.7]].map(([x,z])=>rect(x,z,.65,.65)),
+  ...[[21.2,29.8],[33.8,28.8],[29.2,20.7],[42.5,18],[49.3,18]].map(([x,z])=>rect(x,z,.28,.28)),
+  ...[[41.8,21.4],[19.5,22.5],[41.7,18.2],[41.9,20.1]].map(([x,z])=>rect(x,z,.9,.52))
+ ];
+ // Keep existing engine/world blockers, and preserve the bridge centreline.
+ w.blockerRects=[...(w.blockerRects||[]),...solid];
+}
 function villageWorld(){
  const w={...baseWorld,tiles:[...baseWorld.tiles],npcs:baseWorld.npcs.filter(n=>n.id!=='pip').map(n=>({...n,lines:[...n.lines]}))};
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
@@ -136,8 +153,8 @@ function villageWorld(){
  }
  // Open a small natural access to the pond without clearing the entire woodland.
  for(const [x,y] of [[6,9],[7,9],[8,9],[9,9],[10,9],[7,10],[8,10],[9,10]])if(w.tiles[y]?.[x]==='T')updateTile(w,x,y,'.');
- // Larger market props are solid; small plants and floor details stay walkable.
- w.blockers=[[31,29],[32,29]];
+ // Decor collision matches the visible physical meshes, not arbitrary tiles.
+ w.blockers=[];villageDecorCollisions(w);
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
@@ -808,10 +825,18 @@ function drawProps(g){
   if(scene==='intro'){
    // The guard is still AWAKE when Oliver is imprisoned.
    piece(12.1,2.38,'R','black',false);
-  }else if(g.recliningPiece)g.recliningPiece(12.1,2.38,'R','black');
-  else{ // Headless-test fallback; real gameplay uses the fully reclined mesh.
-   box(12.0,.47,2.42,1.75,.18,.42,'#293d63');
-   sphere(11.35,.57,2.42,.24,'#405779',9);
+  }else{
+   // The sleeping guard lies fully sideways: long uniformed body, head on
+   // pillow, outstretched arm, and a fallen rook helmet beside the cot.
+   // No standing chess-piece silhouette is rendered in the playable cell.
+   box(12.02,.47,2.43,1.54,.26,.55,'#293d63');
+   box(12.12,.59,2.44,1.04,.08,.48,'#47617e');
+   sphere(11.11,.58,2.43,.25,'#ad9e91',9);
+   sphere(11.07,.58,2.36,.12,'#536e88',7);
+   box(12.05,.42,2.83,1.26,.15,.18,'#263b56');
+   box(12.87,.45,2.30,.65,.15,.30,'#27394d');
+   box(11.08,.40,2.87,.44,.17,.43,'#455c74');
+   box(11.08,.58,2.89,.48,.10,.47,'#d1b880');
   }
   box(11.1,.61,2.7,.34,.19,.43,'#48566d');
   // Mara and Tovin: recognisable chess-piece silhouettes, one in each neighbouring cell.
@@ -860,6 +885,58 @@ function drawProps(g){
    if((x*7+z*5)%13===0){box(x+.5,.13,z+.5,.48,.14,.3,'#577b70');model('stones',x+.5,.01,z+.5,.49,.28,.44);}
    // Damp runs down individual stone joints instead of noisy random block decorations.
    if((x*13+z*17)%23===0){box(x+.28,1.19,z+.02,.075,1.22,.06,'#38534f');box(x+.26,.47,z+.04,.15,.30,.07,'#4c6c61');}
+  }
+  // Twenty deliberately different hairline crack silhouettes. Drawn just
+  // outside the stone face; no altered wall geometry or collision.
+  const crackPatterns=[
+   [[-.34,.76],[-.18,.58],[-.25,.35],[.04,.17]],
+   [[-.2,.89],[.02,.72],[-.08,.59],[.26,.43]],
+   [[.29,.81],[.05,.64],[.15,.40],[-.10,.25]],
+   [[-.31,.42],[-.08,.56],[.12,.48],[.30,.63]],
+   [[-.25,.85],[-.11,.68],[.05,.72],[.13,.50],[.32,.40]],
+   [[.33,.80],[.11,.70],[-.02,.50],[-.25,.55]],
+   [[-.34,.60],[-.10,.59],[.01,.32],[.25,.31]],
+   [[.12,.91],[.02,.72],[.28,.61],[.09,.42]],
+   [[-.19,.20],[-.02,.42],[-.13,.59],[.16,.78]],
+   [[.33,.31],[.11,.40],[.21,.60],[-.09,.75]],
+   [[-.30,.88],[-.07,.79],[-.18,.65],[.05,.55],[.18,.34]],
+   [[.05,.22],[.24,.36],[.08,.54],[-.22,.62]],
+   [[-.29,.27],[-.11,.46],[.06,.39],[.22,.58],[.06,.74]],
+   [[.22,.90],[.03,.76],[-.12,.77],[-.26,.56]],
+   [[-.35,.66],[-.09,.52],[-.22,.38],[.06,.31],[.25,.16]],
+   [[.31,.72],[.17,.55],[-.01,.61],[-.16,.43],[-.33,.40]],
+   [[-.15,.91],[-.30,.73],[-.10,.66],[.09,.48],[.28,.45]],
+   [[.31,.24],[.14,.38],[-.04,.36],[-.22,.55],[-.07,.81]],
+   [[-.32,.79],[-.13,.78],[.12,.61],[.01,.40],[.27,.33]],
+   [[.27,.89],[.09,.72],[.25,.52],[-.03,.34],[-.23,.22]]
+  ];
+  function crackLine(a,b,face,axis,edge,color){
+   if(!tri)return;
+   const width=.013,dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy)||1;
+   const ox=-dy/length*width,oy=dx/length*width;
+   const pt=(p,sign)=>axis==='z'?[face+p[0]+ox*sign,p[1]+oy*sign,edge]:
+                              [edge,p[1]+oy*sign,face+p[0]+ox*sign];
+   tri(pt(a,1),pt(b,1),pt(b,-1),color);
+   tri(pt(a,1),pt(b,-1),pt(a,-1),color);
+  }
+  for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
+   if(world.tiles[z][x]!=='H'||(x*11+z*13)%4!==0)continue;
+   const front=world.tiles[z+1]?.[x]==='s',back=world.tiles[z-1]?.[x]==='s';
+   const right=world.tiles[z]?.[x+1]==='s',left=world.tiles[z]?.[x-1]==='s';
+   if(!front&&!back&&!left&&!right)continue;
+   const pattern=crackPatterns[(x*17+z*31)%20],axis=front||back?'z':'x';
+   const face=(axis==='z'?x:z)+.5,edge=axis==='z'?z+(front?1.027:-.027):x+(right?1.027:-.027);
+   const ybase=.38+((x*3+z*7)%7)*.22;
+   const variant=(x*7+z*3)%3,color=variant===0?'#2e4545':variant===1?'#374b49':'#354b4f';
+   for(let k=1;k<pattern.length;k++){
+    const a=[pattern[k-1][0],ybase+pattern[k-1][1]*.68];
+    const b=[pattern[k][0],ybase+pattern[k][1]*.68];
+    crackLine(a,b,face,axis,edge,color);
+   }
+   if((x+z)%5===0){
+    const p=pattern[1],junction=[p[0],ybase+p[1]*.68];
+    crackLine(junction,[p[0]+.13,junction[1]-.19],face,axis,edge,'#415957');
+   }
   }
   // Drain rims help distinguish real water tiles from walkable stone.
   for(let z=2;z<world.height-2;z++)for(let x=2;x<world.width-2;x++){
