@@ -151,7 +151,7 @@ function building(h){
  // Consistent fascia ridge and roof tile rows; distinct height for stability.
  for(let i=-2;i<=2;i++){
   const tx=x+i*(w/6);
-  box(tx,H+.055,z+d/2+.16,.10,.095,.14,'#e6ceaf');
+  box(tx,H+.055,z+d/2+.28,.10,.095,.12,'#e6ceaf');
  }
 }
 function drawBakeryInterior(){
@@ -758,7 +758,7 @@ if(!staticReady){
 }
 window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
-for(const n of world.npcs){const tone=(n.id==='watch-keeper'||n.id==='watchtower-keeper')?n.color:npcColor(n);piece(n.x+.5,n.y+.5,n.piece,tone,false);features(n.x+.5,n.y+.5,n.piece,tone,false,n.id);}
+for(const n of world.npcs){const tone=(n.id==='watch-keeper'||n.id==='watchtower-keeper')?n.color:npcColor(n);piece(n.x+.5,n.y+.5,n.piece,tone,false);if(n.piece!=='R')features(n.x+.5,n.y+.5,n.piece,tone,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){
  // Never let player-controlled cosmetics change Oliver's canonical, crownless story appearance.
  oliver(visual.x+.5,visual.z+.5);
