@@ -79,7 +79,7 @@ test('forest sign displays Willowmere Village East and crates have real collisio
 test('sewer walls are continuous at corners and bridge trim is above the planks',()=>{
  assert.ok(source.includes('for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)'));
  assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
- assert.ok(source.includes("box(x+.3,.468,19.5"));
+ assert.ok(source.includes("box(x+.3,.475,19.5"));
 });
 test('dark sewer uses distance haze only outside the untouched cinematic intro',()=>{
  assert.ok(engine.includes('uniform float sewerMood'));
@@ -581,7 +581,7 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(engine,/Math\.imul\(hash\^id\.charCodeAt\(i\),16777619\)/);
  assert.match(engine,/const tone=npcColor\(n\)/);
  assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
- assert.match(engine,/gl\.polygonOffset\(-2,-2\)/);
+ assert.match(engine,/gl\.polygonOffset\(1,1\)/);
  assert.match(engine,/vertices\[i\]=x\+\.88-py/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/Low, open royal bed/);
