@@ -79,7 +79,7 @@ test('forest sign displays Willowmere Village East and crates have real collisio
 test('sewer walls are continuous at corners and bridge trim is above the planks',()=>{
  assert.ok(source.includes('for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)'));
  assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
- assert.ok(source.includes("box(x+.3,.475,19.5"));
+ assert.ok(source.includes("box(x+.3,.455,19.5"));
 });
 test('dark sewer uses distance haze only outside the untouched cinematic intro',()=>{
  assert.ok(engine.includes('uniform float sewerMood'));
@@ -525,7 +525,7 @@ test('royal intro, blue pawn, awake rook and spy windows all use consistent asse
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(engine,/blue:\['#487ec4','#294d85','#91bbed'\]/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
- assert.match(source,/recliningPiece\(11\.55,2\.43,'R','black'\)/);
+ assert.match(source,/recliningPiece\(12\.18,2\.43,'R','black'\)/);
  assert.match(source,/Solid stone partitions left and right/);
  assert.match(source,/One narrow barred peephole/);
  assert.match(source,/if\(\(x===6\|\|x===18\)&&z>=9&&z<=10\)return false/);
