@@ -681,7 +681,11 @@ reviewPanel.innerHTML='<h2>Game Review</h2><h3 class="review-import-heading">Imp
 boardLayout.closest('.tool-card').insertAdjacentElement('afterend',reviewPanel);
 const importCard=$('import-value').closest('.tool-card');
 const importSlot=$('review-import-slot');
-importSlot.append(importCard.querySelector('.tab-row'),$('import-value'),$('import-status'));
+// The original card also owns the image tab's photo panel and upload input.
+// Moving only the tab row removed these elements from the DOM permanently.
+const imagePanel=$('position-photo-panel');
+const textPanel=$('text-import-panel');
+importSlot.append(importCard.querySelector('.tab-row'),imagePanel,textPanel);
 importCard.remove();
 const importBox=$('import-value');
 function syncReviewAction(){
