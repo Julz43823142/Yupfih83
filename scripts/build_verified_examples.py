@@ -20,6 +20,7 @@ import requests  # noqa: E402
 from requests.adapters import HTTPAdapter  # noqa: E402
 from urllib3.util.retry import Retry  # noqa: E402
 from fairplay_method3 import review  # noqa: E402
+from fairplay_data import ReviewError  # noqa: E402
 from fairplay_deviation_display import suspicion_score  # noqa: E402
 from fairplay_website_runner import clean, chart_samples, rolling_winrate_samples, opening_summary  # noqa: E402
 
@@ -46,7 +47,21 @@ def build(account: str) -> None:
     shown, slug = EXAMPLES[account]
     os.environ.pop("ELO_EXAMPLE_MAX_GAMES", None)
     print(f"Starting verified Chess.com 5,000-game report: {account}", flush=True)
-    result = review(account, progress=lambda msg: print(str(msg)[:200], flush=True))
+    try:
+        result = review(account, progress=lambda msg: print(str(msg)[:200], flush=True))
+    except ReviewError as error:
+        if account != "magnuscarlsen" or "No public game archives" not in str(error):
+            raise
+        target = ROOT / "assets" / "example-reports-v2" / f"{slug}-unavailable.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({
+            "schema": 2, "username": account,
+            "source": {"platform": "chess.com", "account": account},
+            "available": False, "reason": "no_public_archives",
+            "actualGames": 0, "generatedAt": datetime.now(timezone.utc).isoformat(),
+        }, separators=(",", ":")), encoding="utf-8")
+        print(f"Chess.com has no public archives for @{account}; publishing an honest unavailable marker", flush=True)
+        return
     games = sorted(result.games, key=lambda g: (g.ended, g.identity), reverse=True)
     if len(games) != 5000:
         raise RuntimeError(
