@@ -12,10 +12,11 @@ const steps=[
 // Placeholder stages only. Actual questions, answers and hints are intentionally deferred.
 const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
-let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
+const freshChapter=()=>({scene:'intro',flags:{},coins:[],step:0,position:null});
+let engine=null,baseWorld=null,scene='intro',chapter=freshChapter(),activePuzzle=null,storyHandlersBound=false;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{chapter.coins=[];if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return freshChapter();}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -169,7 +170,45 @@ function teleport(destination){
 function say(name,...lines){engine.say(name,lines);}
 function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
 function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause-title');if(o&&h&&o.parentNode!==h.parentNode){h.parentNode.insertBefore(o,h);o.style.cssText='display:block;position:static;margin:0 auto 12px;padding:10px;border:1px solid #a49270;border-radius:6px;background:#202632;color:#e8d7ae;text-align:center;font-size:14px';}if(o){o.textContent='Objective: '+objective();o.hidden=scene==='intro';}const d=$('fallen-story-interact');if(d)d.hidden=true;}
-function start(api){engine=api;baseWorld=api.getWorld();document.querySelectorAll?.('[data-fallen-jump]')?.forEach(b=>b.addEventListener('click',()=>teleport(b.dataset.fallenJump)));chapter=restored();if(chapter.scene==='intro'){scene='intro';showIntro();}else setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);if(chapter.scene!=='intro')$('fallen-story-intro').hidden=true;document.addEventListener('keydown',onKey,true);$('fallen-story-next').addEventListener('click',nextIntro);$('fallen-story-skip')?.addEventListener('click',()=>{if(scene!=='intro')return;engine.enableSound();chapter.step=steps.length;const intro=$('fallen-story-intro');intro.hidden=true;setScene('cell',{x:12,y:9,facing:'right'});say('Oliver','A locked cell. The old toilet might conceal a way out.');});$('fallen-story-art').addEventListener('click',nextIntro);$('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);$('fallen-story-puzzle-close').addEventListener('click',closePuzzle);$('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});updateObjective();}
+function start(api){
+ engine=api;
+ // The original village map stays the base world even on subsequent New Game starts.
+ if(!baseWorld)baseWorld=api.getWorld();
+ activePuzzle=null;
+ chapter=window.FallenKingSlotSession&&!window.FallenKingPendingSave?freshChapter():restored();
+ if(!chapter.flags||typeof chapter.flags!=='object')chapter.flags={};
+ if(!Array.isArray(chapter.coins))chapter.coins=[];
+ if(chapter.scene==='intro'){
+  // A completed or corrupted intro checkpoint must not strand a new game in the old cutscene.
+  chapter.step=Number.isInteger(chapter.step)&&chapter.step>=0&&chapter.step<steps.length?chapter.step:0;
+  scene='intro';showIntro();
+ }else{
+  setScene(chapter.scene==='finished'?'village':chapter.scene,chapter.position);
+  $('fallen-story-intro').hidden=true;
+ }
+ // Bind only once. Previously every New Game registered another click and key handler,
+ // so one key press could advance several intro panels and trap the cutscene.
+ if(!storyHandlersBound){
+  storyHandlersBound=true;
+  document.querySelectorAll?.('[data-fallen-jump]')?.forEach(b=>b.addEventListener('click',()=>teleport(b.dataset.fallenJump)));
+  document.addEventListener('keydown',onKey,true);
+  $('fallen-story-next').addEventListener('click',nextIntro);
+  $('fallen-story-skip')?.addEventListener('click',()=>{
+   if(scene!=='intro')return;
+   engine.enableSound();
+   chapter.step=steps.length;
+   $('fallen-story-intro').hidden=true;
+   setScene('cell',{x:12,y:9,facing:'right'});
+   engine.resumeGameplay?.();
+   say('Oliver','A locked cell. The old toilet might conceal a way out.');
+  });
+  $('fallen-story-art').addEventListener('click',nextIntro);
+  $('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);
+  $('fallen-story-puzzle-close').addEventListener('click',closePuzzle);
+  $('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});
+ }
+ updateObjective();
+}
 function recoverHiddenIntro(){
  // If an interrupted load or hidden overlay leaves the cutscene state active,
  // enter the playable cell instead of trapping the player in intro input mode.
@@ -210,6 +249,7 @@ function nextIntro(){
  if(chapter.step>=steps.length){
   $('fallen-story-intro').hidden=true;
   setScene('cell',{x:12,y:9,facing:'right'});
+  engine.resumeGameplay?.();
   say('Oliver','An old toilet. A barred door. And a puzzle carved into the drain.');
  }else showIntro();
 }
