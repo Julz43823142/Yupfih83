@@ -834,7 +834,7 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
 document.querySelectorAll(".sample-button[data-username]").forEach(example => {
   example.addEventListener("click", () => {
     const slug=example.dataset.username==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
-    location.href="/example-"+slug+".html";
+    location.href="/#analyze="+encodeURIComponent(example.dataset.username);
   });
 });
 // Example pages render an already completed v87 report. They never start a
