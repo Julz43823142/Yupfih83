@@ -51,8 +51,15 @@ jobs:
       - name: Avoid refreshing again after the bot saves a PR snapshot
         id: guard
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            elif [ -s assets/example-reports/magnus-carlsen.json ] && [ -s assets/example-reports/hikaru-nakamura.json ] &&
+              git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/magnus-carlsen.json' &&
+              git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/hikaru-nakamura.json'; then
+              echo "Both validated snapshots already committed to this PR"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
           fi
       - name: Install v87 data collector
         if: steps.guard.outputs.skip != 'true'
