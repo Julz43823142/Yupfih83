@@ -67,4 +67,6 @@ def generate(username,slug):
     print('Wrote '+str(target)+' games='+str(report['games'])+' bytes='+str(target.stat().st_size),flush=True)
 
 if __name__=='__main__':
-    for username,slug in USERS.items():generate(username,slug)
+    if len(sys.argv)!=2 or sys.argv[1] not in USERS:
+        raise SystemExit('Usage: generate-example-reports.py MagnusCarlsen|Hikaru')
+    generate(sys.argv[1],USERS[sys.argv[1]])
