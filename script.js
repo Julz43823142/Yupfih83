@@ -766,6 +766,8 @@ function renderPlayer(profile, stats, username, options = {}) {
 }
 // Original Insights v87 Python runs inside a browser Web Worker (WebAssembly).
 // No GitHub workflow or status polling is involved.
+let activeReviewCancel=null;
+let activeReviewSerial=0;
 function analyzeOnVisitorDevice(username){
   return new Promise((resolve,reject)=>{
     if(typeof Worker==="undefined"||typeof WebAssembly==="undefined"){
@@ -780,8 +782,11 @@ function analyzeOnVisitorDevice(username){
       if(settled)return;
       settled=true;
       worker.terminate();
+      if(activeReviewCancel===cancelThisReview)activeReviewCancel=null;
       callback(value);
     }
+    const cancelThisReview=reason=>settle(reject,reason);
+    activeReviewCancel=cancelThisReview;
     worker.addEventListener("message",event=>{
       const data=event.data||{};
       if(data.type==="progress"){
@@ -804,13 +809,15 @@ function analyzeOnVisitorDevice(username){
     worker.postMessage({type:"run",username});
   });
 }
-async function runReview(username){
+async function runReview(username,requestId){
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
  const report=await analyzeOnVisitorDevice(username);
-
- await finishReviewProgress();renderReview(report);
+ if(requestId!==activeReviewSerial)return;
+ await finishReviewProgress();
+ if(requestId!==activeReviewSerial)return;
+ renderReview(report);
 
  statusText.textContent="Analysis complete on your device.";
 }
@@ -884,6 +891,8 @@ form.addEventListener("submit", async event => {
     statusText.textContent = "Enter a valid Chess.com username.";
     return;
   }
+  const requestId=++activeReviewSerial;
+  if(activeReviewCancel)activeReviewCancel(new Error("Previous player analysis replaced."));
   button.disabled = true;
   button.textContent = "Analyzing…";
   statusText.textContent = "Loading public Chess.com player profile…";
@@ -909,10 +918,11 @@ form.addEventListener("submit", async event => {
       ]);
     }
     finally{clearTimeout(profileTimeout)}
+    if(requestId!==activeReviewSerial)return;
     playerCard.replaceChildren();
     renderPlayer(profile, {}, username, {preset:true});
     void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
-      if(usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
+      if(requestId!==activeReviewSerial||usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
       playerCard.replaceChildren();
       // Do not download the entire career rating history in parallel with the
       // 5,000-game review. Two archive collectors can trigger Chess.com 429s.
@@ -927,11 +937,13 @@ form.addEventListener("submit", async event => {
     placeExampleCardsNearOverview();
     results.scrollIntoView({behavior:"smooth",block:"start"});
     try {
-      await runReview(username);
+      await runReview(username,requestId);
+      if(requestId!==activeReviewSerial)return;
       if(exampleAccounts.has(username.toLowerCase()))
         window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
     catch (error) {
+      if(requestId!==activeReviewSerial)return;
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
@@ -940,12 +952,15 @@ form.addEventListener("submit", async event => {
         window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
   } catch (error) {
+    if(requestId!==activeReviewSerial)return;
     statusText.textContent = error.name==="AbortError"?"Chess.com did not respond. Retry the player analysis.":error.message;
     const panel=document.getElementById("v87-review");
     if(panel)panel.replaceChildren(add(document.createElement("div"),"p","v87-warning",statusText.textContent));
   } finally {
-    button.disabled = false;
-    button.textContent = "Analyze Player";
+    if(requestId===activeReviewSerial){
+      button.disabled = false;
+      button.textContent = "Analyze Player";
+    }
   }
 });
 
