@@ -183,7 +183,32 @@ function withPerGameScores(rows) {
 }
 
 /* Actual observations only. Overlaid controls share chronological timestamps when available. */
+const deferredTimelineObservers=new WeakMap();
 function timelineChart(parent, series, field, unit, compareField = null, periods = [], overlayField = null) {
+  // Paint nearby charts immediately; defer off-screen SVG work until scrolling.
+  // A replacement selection disconnects its prior observer, so stale charts
+  // never overwrite newly selected time controls.
+  const previous=deferredTimelineObservers.get(parent);
+  if(previous){previous.disconnect();deferredTimelineObservers.delete(parent);}
+  if(typeof IntersectionObserver==="function"&&
+     !parent.dataset.timelineReady&&parent.isConnected&&
+     parent.getBoundingClientRect().top>window.innerHeight+450){
+    parent.classList.add("timeline-awaiting-paint");
+    const observer=new IntersectionObserver(entries=>{
+      if(!entries.some(entry=>entry.isIntersecting))return;
+      observer.disconnect();
+      if(deferredTimelineObservers.get(parent)!==observer)return;
+      deferredTimelineObservers.delete(parent);
+      parent.classList.remove("timeline-awaiting-paint");
+      parent.dataset.timelineReady="true";
+      if(parent.isConnected)timelineChart(parent,series,field,unit,compareField,periods,overlayField);
+    },{rootMargin:"450px 0px"});
+    deferredTimelineObservers.set(parent,observer);
+    observer.observe(parent);
+    return;
+  }
+  parent.classList.remove("timeline-awaiting-paint");
+  parent.dataset.timelineReady="true";
   const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
   const data = series.flatMap(({key,label,rows}) => rows.filter(r => Number.isFinite(r?.[field]))
     .map((r,i) => ({...r,control:key,label,position:Number.isFinite(r.game)?r.game:i+1})));
@@ -727,7 +752,15 @@ function renderReview(data) {
         const details=add(card,"details","opening-details");
         add(details,"summary","","View all "+number(ranked.length,0)+" opening choices");
         const more=add(details,"div","opening-details-body opening-extra");
-        for(const item of ranked.slice(6))openingRow(more,item,fullTotal);
+        // The long tail may contain hundreds of openings. Build it only when
+        // the visitor requests it rather than blocking initial report paint.
+        details.addEventListener("toggle",()=>{
+          if(!details.open||details.dataset.populated)return;
+          details.dataset.populated="true";
+          const fragment=document.createDocumentFragment();
+          for(const item of ranked.slice(6))openingRow(fragment,item,fullTotal);
+          more.append(fragment);
+        });
       }
       add(card,"p","opening-disclaimer","Openings describe observed playing preferences.");
     }
