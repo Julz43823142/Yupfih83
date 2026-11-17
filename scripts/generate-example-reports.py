@@ -45,21 +45,32 @@ def report_insights(report):
 
 def generate(username,slug):
     print('Generating '+username,flush=True)
+    source={'platform':'lichess','account':'drnykterstein'} if username=='MagnusCarlsen' else {'platform':'chess.com','account':username.lower()}
     env={**os.environ,'CHESS_USERNAME':username}
-    subprocess.run([sys.executable,str(ROOT/'client-v87'/'fairplay_website_runner.py')],
+    runner=(ROOT/'scripts'/'export-magnus-lichess.py' if username=='MagnusCarlsen'
+            else ROOT/'client-v87'/'fairplay_website_runner.py')
+    subprocess.run([sys.executable,str(runner)],
                    cwd=ROOT,env=env,check=True,timeout=1200)
     report=json.loads((ROOT/'v87-result.json').read_text())
-    if report.get('version')!='fairplay-v87-review-reliability' or report.get('username')!=username.lower() or report.get('games',0)<1:
+    if report.get('version')!='fairplay-v87-review-reliability' or report.get('username')!=source['account'] or report.get('games',0)<1:
         raise RuntimeError('Incomplete or invalid v87 report: '+username)
     with requests.Session() as session:
         session.headers.update({'User-Agent':'EloScanner/1.0 (public example reports; eloscanner.com)'})
         base='https://api.chess.com/pub/player/'+username.lower()
         profile=read_json(session,base)
-        stats=read_json(session,base+'/stats')
+        if source['platform']=='lichess':
+            try:
+                perf=read_json(session,'https://lichess.org/api/user/DrNykterstein').get('perfs',{})
+                stats={'chess_'+kind:{'last':{'rating':perf[kind]['rating']}}
+                       for kind in ('rapid','blitz','bullet') if kind in perf}
+            except (requests.RequestException,ValueError,KeyError):
+                stats={}
+        else:
+            stats=read_json(session,base+'/stats')
         insights=report_insights(report)
     if not insights:raise RuntimeError('No valid report observations for '+username)
     OUTPUT.mkdir(parents=True,exist_ok=True)
-    payload={'schema':1,'username':username.lower(),
+    payload={'schema':1,'username':username.lower(),'source':source,
              'generatedAt':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
              'profile':profile,'stats':stats,'report':report,'insights':insights}
     target=OUTPUT/(slug+'.json')
