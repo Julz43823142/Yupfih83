@@ -846,40 +846,84 @@ document.querySelectorAll("[data-player-avatar] img").forEach(photo=>{
 const exampleUsername=document.body.dataset.examplePlayer;
 const activeExample=exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru";
 async function showMagnusPublicProfile(){
-  const response=await fetch("/assets/example-reports-v2/magnus-carlsen-profile.json",{cache:"force-cache"});
-  if(!response.ok)throw Error("Magnus Carlsen’s Chess.com profile is temporarily unavailable.");
-  const publicData=await response.json();
+  const [profileResponse,gamesResponse]=await Promise.all([
+    fetch("/assets/example-reports-v2/magnus-carlsen-profile.json",{cache:"force-cache"}),
+    fetch("/assets/example-reports-v2/magnus-carlsen-master-games.json",{cache:"force-cache"})
+  ]);
+  if(!profileResponse.ok||!gamesResponse.ok)
+    throw Error("Magnus Carlsen’s saved Chess.com report is temporarily unavailable.");
+  const [publicData,masters]=await Promise.all([profileResponse.json(),gamesResponse.json()]);
   if(publicData.schema!==1||publicData.source?.platform!=="chess.com"||
      publicData.source?.account!=="magnuscarlsen"||
      publicData.profile?.username!=="magnuscarlsen"||
-     publicData.profile?.name!=="Magnus Carlsen"||
-     publicData.profile?.title!=="GM")throw Error("Magnus profile source cannot be verified.");
+     masters.schema!==1||masters.source?.platform!=="chess.com"||
+     masters.source?.dataset!=="masters-games-database"||
+     masters.player!=="Magnus Carlsen"||!Number.isInteger(masters.games)||
+     masters.games<5000||masters.colors?.white?.games+masters.colors?.black?.games!==masters.games||
+     masters.outcomes?.winPercent+masters.outcomes?.drawPercent+masters.outcomes?.lossPercent!==100)
+    throw Error("Magnus Carlsen’s saved Chess.com report could not be validated.");
   const panel=document.getElementById("v87-review");
   playerCard.replaceChildren();
-  renderPlayer(publicData.profile,{}, "MagnusCarlsen",{preset:true});
-  const overviewHeading=document.querySelector("#results .overview-title-group h2");
-  if(overviewHeading)overviewHeading.textContent="Magnus Carlsen · Chess.com profile";
+  renderPlayer(publicData.profile,{},"MagnusCarlsen",{preset:true});
+  const heading=document.querySelector("#results .overview-title-group h2");
+  if(heading)heading.textContent="Magnus Carlsen · Games Report";
   panel.replaceChildren();
-  const section=add(panel,"div","example-source-summary");
-  add(section,"h3","","Chess.com profile available");
-  add(section,"p","","This is Magnus Carlsen’s public Chess.com profile. Chess.com does not publish game archives for @MagnusCarlsen, so a verified 5,000-game performance review is not available.");
-  const facts=add(section,"div","example-source-facts");
-  add(facts,"span","","Grandmaster (GM)");
-  add(facts,"span","","Norway");
-  const joined=Number(publicData.profile.joined);
-  if(Number.isFinite(joined)&&joined>0)
-    add(facts,"span","","Chess.com member since "+new Date(joined*1000).getUTCFullYear());
-  add(section,"p","","Rating trends, move accuracy and game-based statistics are intentionally not shown without underlying Chess.com games.");
-  const source=add(section,"a","","View Magnus Carlsen’s public Chess.com profile");
-  source.href="https://www.chess.com/member/magnuscarlsen";
+  const section=add(panel,"section","magnus-master-report");
+  add(section,"p","v87-muted","CHESS.COM · MASTER GAMES DATABASE · "+masters.games.toLocaleString("en-US")+" RECORDED GAMES");
+  add(section,"h2","","Magnus Carlsen — game performance");
+  add(section,"p","magnus-report-note","A complete overview of Magnus Carlsen’s recorded games in Chess.com’s masters database. This is a separate game collection from the @MagnusCarlsen account archive.");
+  const summary=add(section,"div","magnus-report-metrics");
+  const metrics=[
+    ["Recorded games",masters.games.toLocaleString("en-US")],
+    ["Wins",masters.outcomes.winPercent+"%"],
+    ["Draws",masters.outcomes.drawPercent+"%"],
+    ["Losses",masters.outcomes.lossPercent+"%"]
+  ];
+  for(const [label,value] of metrics){
+    const metric=add(summary,"div","magnus-report-metric");
+    add(metric,"strong","",value);
+    add(metric,"span","",label);
+  }
+  const bar=add(section,"div","magnus-result-bar");
+  bar.setAttribute("role","img");
+  bar.setAttribute("aria-label",masters.outcomes.winPercent+"% wins, "+masters.outcomes.drawPercent+"% draws, "+masters.outcomes.lossPercent+"% losses");
+  for(const [kind,pct] of [["wins",masters.outcomes.winPercent],["draws",masters.outcomes.drawPercent],["losses",masters.outcomes.lossPercent]]){
+    const piece=add(bar,"span","magnus-result-"+kind);
+    piece.style.width=pct+"%";
+  }
+  const colors=add(section,"div","magnus-report-colors");
+  for(const [label,data] of [["White",masters.colors.white],["Black",masters.colors.black]]){
+    const card=add(colors,"section","magnus-report-color");
+    add(card,"h3","",label+" pieces");
+    add(card,"p","",data.games.toLocaleString("en-US")+" games");
+    const figures=add(card,"div","magnus-color-figures");
+    for(const [name,pct] of [["Wins",data.winPercent],["Draws",data.drawPercent],["Losses",data.lossPercent]]){
+      const item=add(figures,"span","");
+      add(item,"strong","",pct+"%");
+      add(item,"small","",name);
+    }
+  }
+  add(section,"h3","","Most played openings");
+  const openingColumns=add(section,"div","magnus-opening-columns");
+  for(const [label,items] of [["As White",masters.openings.white],["As Black",masters.openings.black]]){
+    const column=add(openingColumns,"section","magnus-opening-column");
+    add(column,"h4","",label);
+    const list=add(column,"ol","");
+    for(const item of items){
+      const row=add(list,"li","");
+      add(row,"span","",item.name);
+      add(row,"strong","",item.games+" games");
+    }
+  }
+  const disclaimer=add(section,"p","magnus-report-note","Source: Chess.com masters games database, not the @MagnusCarlsen public account archive. The percentages are source aggregates; move accuracy, time-control splits and a 5,000-game v87 review are not claimed.");
+  disclaimer.setAttribute("role","note");
+  const source=add(section,"a","magnus-report-source","Explore all Magnus Carlsen games on Chess.com");
+  source.href="https://www.chess.com/games/magnus-carlsen";
   source.target="_blank";
   source.rel="noopener noreferrer";
-  add(section,"p","","For a complete example with 5,000 verified Chess.com games, see Hikaru Nakamura’s report.");
-  const other=add(section,"a","","Open Hikaru’s full 5,000-game report");
-  other.href="/example-hikaru-nakamura.html";
   const insights=document.querySelector("#results .insights-integrated");
   if(insights)insights.hidden=true;
-  statusText.textContent="Magnus Carlsen · Chess.com public profile. No public game archives available for this account.";
+  statusText.textContent="Magnus Carlsen · "+masters.games.toLocaleString("en-US")+" games from Chess.com’s masters database.";
 }
 async function openSavedExample(){
   const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";

@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "source": {
+    "platform": "chess.com",
+    "dataset": "masters-games-database",
+    "url": "https://www.chess.com/games/magnus-carlsen",
+    "account": "magnuscarlsen",
+    "retrieved": "2026-11-17"
+  },
+  "player": "Magnus Carlsen",
+  "games": 6897,
+  "outcomes": {
+    "winPercent": 56,
+    "drawPercent": 30,
+    "lossPercent": 14
+  },
+  "colors": {
+    "white": {
+      "games": 3502,
+      "winPercent": 61,
+      "drawPercent": 26,
+      "lossPercent": 13
+    },
+    "black": {
+      "games": 3395,
+      "winPercent": 50,
+      "drawPercent": 33,
+      "lossPercent": 17
+    }
+  },
+  "openings": {
+    "white": [
+      {
+        "name": "Ruy López: Berlin Defense",
+        "games": 51
+      },
+      {
+        "name": "Ruy López: Morphy Defense, Closed, Martinez Variation",
+        "games": 30
+      },
+      {
+        "name": "Ruy López: Berlin, Rio Gambit Accepted",
+        "games": 26
+      },
+      {
+        "name": "Indian Game",
+        "games": 24
+      },
+      {
+        "name": "Queen's Gambit Declined",
+        "games": 23
+      }
+    ],
+    "black": [
+      {
+        "name": "Sicilian Defense: Nyezhmetdinov-Rossolimo Attack",
+        "games": 30
+      },
+      {
+        "name": "Sicilian Defense: Open, Pelikán and Sveshnikov, Chelyabinsk Variation",
+        "games": 30
+      },
+      {
+        "name": "Sicilian Defense: Nyezhmetdinov-Rossolimo, Fianchetto Variation",
+        "games": 28
+      },
+      {
+        "name": "Ruy López: Berlin Defense",
+        "games": 28
+      },
+      {
+        "name": "Ruy López: Berlin, l'Hermet, Berlin Wall Defense",
+        "games": 27
+      }
+    ]
+  },
+  "notes": "Aggregate master-game database, not the 5,000-game account archive and not a v87 move-accuracy review."
+}
