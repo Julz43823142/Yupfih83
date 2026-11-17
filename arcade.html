@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=179-quiet" defer></script>
 <script src="/account-nav.js?v=178-active" defer></script>
-<script defer src="/arcade-bundle.js?v=20261111-eloflow139"></script>
+<script defer src="/arcade-bundle.js?v=199-chesscom-only"></script>
 <script src="/puzzle-report.js?v=4-arcade" defer></script>
 <style>
 .arcade-panel-title #arcade-ranking-link,.arcade-panel-title #arcade-ranking-link:link,.arcade-panel-title #arcade-ranking-link:visited,.arcade-panel-title #arcade-ranking-link:hover,.arcade-panel-title #arcade-ranking-link:focus{color:#fff!important;-webkit-text-fill-color:#fff!important;text-decoration:underline;text-underline-offset:3px}
@@ -55,7 +55,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <p class="arcade-help">Click or drag pieces to move. During computer moves, queue a premove, even onto your own piece; it executes only if legal later. On a computer, right-drag to draw an arrow and right-click a square to highlight it. Touchscreens support drag-and-drop.</p>
 </section>
 <aside class="arcade-side">
-<section class="arcade-panel"><h2>How to play</h2><p id="arcade-instructions"></p><p>Every minigame has a score and its own all-time Top 100. Multiplayer is not enabled.</p></section>
+<section id="arcade-how-to-play" class="arcade-panel"><h2>How to play</h2><p id="arcade-instructions"></p><p>Every minigame has a score and its own all-time Top 100. Multiplayer is not enabled.</p></section>
 <section id="arcade-submit-panel" class="arcade-panel" hidden><h2>Save your score</h2><p id="arcade-final-score"></p><label for="arcade-nickname">Leaderboard nickname</label><div class="arcade-submit"><input id="arcade-nickname" type="text" maxlength="20" autocomplete="off" placeholder="2–20 characters"><button id="arcade-submit" class="arcade-primary" type="button">Submit</button></div><p id="arcade-submit-status" role="status"></p></section>
 <section class="arcade-panel"><div class="arcade-panel-title"><h2>Top 100</h2><a id="arcade-ranking-link" href="/puzzle-top100.html" style="color:#fff!important;text-decoration:underline;text-underline-offset:3px">View full Top 100</a><span id="arcade-ranking-name"></span></div><p class="arcade-legend"><span class="arcade-nickname-color">Orange = nickname</span> · <span class="arcade-account-color">Green = account</span></p><ol id="arcade-ranking" class="arcade-ranking"><li class="arcade-empty">Loading scores…</li></ol><p class="arcade-ranking-note">All-time, per-game rankings. Scores in this new arcade are provisional until server-side gameplay verification is complete.</p></section>
 </aside>
