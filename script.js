@@ -842,64 +842,13 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
 // that the load-time analysis boot path runs on every click (including on mobile).
 // Example pages render an already completed v87 report. They never start a
 // second scan; the snapshot was produced by the regular v87 Python runner.
+// Example pages MUST run the same live Chess.com 5,000-game v87 review as the
+// homepage. Old preset files were limited snapshots with the wrong game coverage.
 const exampleUsername=document.body.dataset.examplePlayer;
-if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
- const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
- usernameInput.value=exampleUsername;
- results.classList.remove("hidden");
- statusText.textContent="Opening saved example report…";
- const loadPreset=async()=>{
-  const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"no-cache"});
-  if(!response.ok)throw Error("Saved example report unavailable (HTTP "+response.status+").");
-  const preset=await response.json();
-  const account=exampleUsername.toLowerCase();
-  const source=preset.source||{};
-  // Magnus has a saved Lichess report for DrNykterstein. Its sample must
-  // never be described as a 5,000-game Chess.com review.
-  const validSource=account==="magnuscarlsen"
-    ?source.platform==="lichess"&&source.account==="drnykterstein"
-    :source.platform==="chess.com"&&source.account==="hikaru";
-  if(![2,3].includes(preset.schema)||preset.username!==account||!validSource
-    ||preset.report?.version!=="fairplay-v87-review-reliability"
-    ||preset.report?.username!==source.account||!(preset.report.games>0)
-    ||!preset.profile||!preset.stats||!Array.isArray(preset.insights)
-    ||preset.insights.length!==preset.report.games)
-    throw Error("The saved example report has invalid or mismatched source data.");
-  playerCard.replaceChildren();
-  renderPlayer(preset.profile,preset.stats,exampleUsername,
-    {preset:true,platform:source.platform});
-  const provenance=add(playerCard,"p","example-report-source",
-    "Saved example · "+Number(preset.report.games).toLocaleString("en-US")+
-    " games · "+(source.platform==="lichess"?"Lichess":"Chess.com")+
-    " @"+source.account+" · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
-    ". This is a snapshot, not a live 5,000-game scan.");
-  provenance.style.cssText="margin:16px 0;color:#b5d5e8;line-height:1.6;font-size:14px";
-  const liveLink=add(playerCard,"a","example-live-link","Analyze latest Chess.com games for @"+exampleUsername);
-  liveLink.href="/?analyze="+encodeURIComponent(exampleUsername);
-  liveLink.style.cssText="display:inline-flex;padding:11px 16px;border-radius:9px;background:#154c69;color:#e4f9ff;text-decoration:none;font-weight:700;border:1px solid #3d96ba;margin-top:8px";
-  results.classList.remove("hidden");
-  placeExampleCardsNearOverview();
-  renderReview(preset.report);
-  statusText.textContent="Saved example loaded · "+preset.report.games+" games from "+
-    (source.platform==="lichess"?"Lichess":"Chess.com")+" @"+source.account+".";
-  window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
-   detail:{username:account,games:preset.insights}
-  }));
- };
- loadPreset().catch(error=>{
-  console.warn("Example report unavailable:",error);
-  results.classList.remove("hidden");
-  const panel=document.getElementById("v87-review");
-  if(panel){
-   panel.replaceChildren();
-   add(panel,"p","v87-warning",error.message);
-   const live=document.createElement("a");
-   live.href="/?analyze="+encodeURIComponent(exampleUsername);
-   live.textContent="Start a fresh Chess.com analysis for @"+exampleUsername;
-   panel.append(live);
-  }
-  statusText.textContent="Could not open the saved example: "+error.message;
- });
+const activeExample=exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru";
+if(activeExample){
+  usernameInput.value=exampleUsername;
+  statusText.textContent="Preparing the latest Chess.com analysis for @"+exampleUsername+" (up to 5,000 eligible games)…";
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -956,7 +905,18 @@ form.addEventListener("submit", async event => {
     try {
       await runReview(username,requestId);
       if(requestId!==activeReviewSerial)return;
-      if(exampleAccounts.has(username.toLowerCase()))
+      if(activeExample){
+        const reportSection=document.getElementById("v87-review");
+        const countLabel=reportSection?.querySelector(".v87-metrics");
+        if(countLabel){
+          countLabel.setAttribute("data-example-source","chess.com");
+        }
+        const extra=document.getElementById("insights-embedded");
+        if(extra)extra.replaceChildren();
+      }
+      // A completed v87 review is the authoritative result for example pages.
+      // Avoid an independent archive scan that briefly shows 52/164 games.
+      if(exampleAccounts.has(username.toLowerCase())&&!activeExample)
         window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
     catch (error) {
@@ -964,8 +924,10 @@ form.addEventListener("submit", async event => {
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
-      statusText.textContent = "Full analysis unavailable. Loading simpler public-game statistics instead.";
-      if(exampleAccounts.has(username.toLowerCase()))
+      statusText.textContent = activeExample
+        ? "Chess.com 5,000-game review unavailable: "+error.message+" Please retry."
+        : "Full analysis unavailable. Loading simpler public-game statistics instead.";
+      if(exampleAccounts.has(username.toLowerCase())&&!activeExample)
         window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
   } catch (error) {
@@ -1062,7 +1024,7 @@ async function load(user){
 form.addEventListener('submit',()=>{
  const user=input.value.trim().toLowerCase();
  if(!/^[a-z0-9_-]{3,25}$/.test(user))return;
- if(user==='magnuscarlsen'||user==='hikaru'){
+ if(activeExample||user==='magnuscarlsen'||user==='hikaru'){
    ++generation;
    target.replaceChildren(node('p','insights-intro','The full Chess.com review is running. Additional public-game statistics will load after the report finishes.'));
    return;
@@ -1081,6 +1043,13 @@ window.addEventListener('elo-example-preset-ready',event=>{
 
 const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
-// Example pages wait for a preset-ready event or the fallback form submission.
+// Never substitute the old short example snapshots for a Chess.com review.
 })();
+// Schedule after all submit listeners have attached, so the full v87 worker
+// and its progress UI start together on the example page.
+if(activeExample){
+  document.addEventListener("DOMContentLoaded",()=>{
+    form.requestSubmit();
+  },{once:true});
+}
 
