@@ -62,6 +62,25 @@ test('prison remains simple, sewer texture survives, and the village is not trun
  assert.ok(engine.includes('renderErrorReported=true;'));
 });
 
+test('save slots support confirmed deletion for cloud and device saves',()=>{
+ const api=readFileSync(resolve(root,'functions/api/fallen-king/saves.js'),'utf8');
+ assert.match(api,/export async function onRequestDelete/);
+ assert.match(api,/DELETE FROM fallen_king_saves WHERE user_id=\\? AND slot=\\?/);
+ assert.match(engine,/gameSaveRequest\\('DELETE',slot\\)/);
+ assert.match(engine,/localStorage\\.removeItem\\(localSlotKey\\(slot\\)\\)/);
+ assert.match(engine,/buildSlotButton\\('Delete'/);
+});
+test('forest sign displays Willowmere Village East and crates have real collision footprints',()=>{
+ assert.match(source,/drawSignLetters\\(g,9\\.5,13\\.66,'WILLOWMERE'/);
+ assert.match(source,/drawSignLetters\\(g,9\\.5,13\\.66,'VILLAGE EAST'/);
+ assert.match(source,/w\\.blockerRects=\\[/);
+ assert.match(engine,/world\\.blockerRects/);
+});
+test('sewer walls are continuous at corners and bridge trim does not intersect the planks',()=>{
+ assert.match(source,/for\\(let dz=-1;dz<=1;dz\\+\\+\\)for\\(let dx=-1;dx<=1;dx\\+\\+\\)/);
+ assert.match(source,/box\\(x\\+\\.5,0,z\\+\\.5,1\\.04,2\\.85,1\\.04/);
+ assert.match(source,/box\\(x\\+\\.3,\\.468,19\\.5/);
+});
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
  assert.doesNotThrow(()=>new Script(engine));
@@ -123,15 +142,15 @@ test('cell is furnished with realistic game geometry and toilet can be accessed 
  assert.match(engine,/sewer:\{notes:/);
 });
 
-test('chapter scenes are distinct and restored hint coins are capped at two',()=>{
+test('chapter scenes are distinct and provisional hint coins are disabled',()=>{
  assert.match(source,/scene:'approach'/);
  assert.match(source,/scene:'arrest'/);
  assert.match(source,/royal crown is kept on an obvious velvet-topped pedestal/);
  assert.match(source,/createWorld\(84,53,'H'\)/);
  assert.match(source,/function forestWorld\(\)/);
  assert.match(source,/function arch\(x,z\)/);
- assert.match(source,/v\.coins=v\.coins\.slice\(0,2\)/);
- assert.match(source,/const coinSpots=\{cell:\[\[12,13\]\]\}/);
+ assert.match(source,/v\.coins=\[\]/);
+ assert.match(source,/const coinSpots=\{\}/);
  assert.match(source,/if\(scene==='cell'\)return x===16&&y===10;/);
  const moveBlock=source.match(/function beforeMove\(x,y\)\{[\s\S]*?\n\}/)?.[0];
  assert.ok(moveBlock);
@@ -374,7 +393,7 @@ test('extended story has pawn Edwin, room arrest, sleeper, window coin, sewer mo
  assert.match(page,/id="fallen-map-button"[^>]* hidden>/);
 });
 
-test('one hint coin is found only at the southern window and the sleeping guard can be inspected with E',()=>{
+test('the southern window awards no hint coins and the sleeping guard can be inspected with E',()=>{
  const items=new Map();
  const document={getElementById(id){if(!items.has(id))items.set(id,{hidden:true,textContent:'',children:[],addEventListener(k,fn){this[k]=fn;},replaceChildren(...c){this.children=c;},getContext(){return{drawImage(){},fillRect(){}}},focus(){}});return items.get(id);},addEventListener(){},createElement(){return{dataset:{},closest(){return this;}};}};
  const state=new Map(),storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,v),removeItem:k=>state.delete(k)};
@@ -383,9 +402,9 @@ test('one hint coin is found only at the southern window and the sleeping guard 
  const win={};new Function('window','document','localStorage','location','confirm',source)(win,document,storage,{},()=>true);
  win.FallenKingStory.start(api);for(let i=0;i<12;i++)document.getElementById('fallen-story-next').click();
  player={x:12,y:12};win.FallenKingStory.talk();
- assert.match(document.getElementById('fallen-story-hintcoins').textContent,/1/);
- assert.match(said.at(-1).join(' '),/window ledge/i);
- win.FallenKingStory.talk();assert.match(document.getElementById('fallen-story-hintcoins').textContent,/1/);
+ assert.match(document.getElementById('fallen-story-hintcoins').textContent,/0/);
+ assert.match(said.at(-1).join(' '),/window is far too high/i);
+ win.FallenKingStory.talk();assert.match(document.getElementById('fallen-story-hintcoins').textContent,/0/);
  player={x:12,y:7};win.FallenKingStory.talk();assert.match(said.at(-1).join(' '),/I think he is asleep/);
  assert.equal(win.FallenKingStory.hasMap(),false);
 });
