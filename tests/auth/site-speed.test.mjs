@@ -35,3 +35,13 @@ test('large precomputed reports and stable fonts use longer public caching',()=>
  assert.match(headers,/\/account\n  Cache-Control: no-store/);
  assert.match(headers,/\/\n  Cache-Control: no-store/);
 });
+
+test('successful review no longer waits for a cosmetic multi-second progress animation',()=>{
+ const start=script.indexOf('async function finishReviewProgress(){');
+ const end=script.indexOf('function placeExampleCardsNearOverview()',start);
+ assert.ok(start>=0&&end>start);
+ const complete=script.slice(start,end);
+ assert.match(complete,/showReviewProgress\("Review complete\.","complete",true\)/);
+ assert.match(complete,/stopReviewProgress\(\)/);
+ assert.doesNotMatch(complete,/await wait\(|duration=2600/);
+});
