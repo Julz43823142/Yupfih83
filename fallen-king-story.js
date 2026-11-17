@@ -216,7 +216,7 @@ function hillWorld(){
   {id:'hill-hiker',name:'Pilgrim Corin',x:15,y:27,piece:'B',color:'white',lines:['The mountain path is steep, but Skyglass is worth the climb.','From the upper terrace you can see all the way to Willowmere.']},
   {id:'hill-keeper',name:'Lantern Keeper Ida',x:34,y:13,piece:'P',color:'orange',lines:['The ancient abbey stands beyond the last bend.','Follow the blue lanterns. The curators are expecting visitors again.']}
  ];
- w.blockerRects=[{x:24.5,z:22.5,w:.70,d:.70},...[[13,20],[23,26],[34,17]].map(([x,z])=>({x,z,w:1.0,d:.9}))];
+ w.blockerRects=[{x:24.5,z:22.5,w:.70,d:.70},...[[13,20],[23,26],[34,17],[11,32],[37,25],[6,26],[27,14],[37,8]].map(([x,z])=>({x,z,w:.90,d:.80}))];
  return w;
 }
 function ruinsWorld(){
@@ -249,6 +249,8 @@ function observatoryWorld(){
  updateTile(w,17,16,'D');
  w.spawn={x:17,y:25};w.music='willowmere';
  w.npcs=[{id:'skyglass-greeter',name:'Skyglass Caretaker',x:24,y:20,piece:'B',color:'white',lines:['Welcome to Skyglass Abbey. Its scholars have watched the heavens for generations.','Enter through the great oak door. The library and star hall are within.']}];
+ // Courtyard well, herb racks and astronomical instrument occupy solid space.
+ w.blockerRects=[[5.6,21.5,1.5,1.6],[28,21.4,1.9,1.9],[6.85,23.57,1.6,1.6],[4.5,15,1.9,.9],[30.1,17,1.9,.9]].map(([x,z,w,d])=>({x,z,w,d}));
  return w;
 }
 function skyglassInteriorWorld(){
@@ -268,7 +270,7 @@ function skyglassInteriorWorld(){
   {id:'skyglass-apprentice',name:'Novice Faye',x:17,y:35,piece:'P',color:'blue',lines:['The abbey library holds the oldest sky charts in Aldemar!','The royal ledger rests in the northern scriptorium.']},
   {id:'skyglass-archivist',name:'Scribe Noa',x:36,y:16,piece:'B',color:'purple',lines:['The old manuscripts record the stars, but the royal books reveal the throne.','Look for the forged mark in the coronation ledger.']}
  ];
- w.blockerRects=[{x:30,z:11.2,w:4.9,d:2.5},{x:30,z:29,w:2.1,d:1.6},...[[19,18],[41,18],[19,29],[41,29],[19,39],[41,39],[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.88,d:.88}))];
+ w.blockerRects=[{x:30,z:11.2,w:4.9,d:2.5},{x:30,z:29,w:2.1,d:1.6},...[[16,25],[44,25],[16,32],[44,32]].map(([x,z])=>({x,z,w:1.4,d:1.0})),...[[19,18],[41,18],[19,29],[41,29],[19,39],[41,39],[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.88,d:.88}))];
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='hill'?hillWorld():next==='ruins'?ruinsWorld():next==='observatory'?observatoryWorld():next==='skyglassInterior'?skyglassInteriorWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
@@ -653,12 +655,12 @@ function drawGround(g,x,z){
   // ankle height so the player never clips through roadside decorations.
   if(path&&(scene==='ridge'||scene==='hill')){
    const pale=(x*5+z*11)%5===0?'#bbad91':'#988a73';
-   if((x*7+z*3)%3===0)g.box(x+.27,.054,z+.33,.21,.008,.13,pale);
-   if((x*11+z*13)%4===0)g.box(x+.72,.054,z+.64,.16,.008,.10,'#b7a889');
-   if(tile==='p'&&(x*3+z*5)%7===0)g.box(x+.50,.055,z+.15,.61,.008,.055,'#c0ae8d');
+   if((x*7+z*3)%3===0)g.box(x+.27,.066,z+.33,.21,.008,.13,pale);
+   if((x*11+z*13)%4===0)g.box(x+.72,.066,z+.64,.16,.008,.10,'#b7a889');
+   if(tile==='p'&&(x*3+z*5)%7===0)g.box(x+.50,.066,z+.15,.61,.008,.055,'#c0ae8d');
   }else if(path&&scene==='ruins'){
-   if((x*7+z*5)%4===0)g.box(x+.37,.055,z+.55,.30,.008,.19,'#c5b99a');
-   if((x+z*3)%6===0)g.box(x+.76,.055,z+.24,.12,.008,.10,'#827862');
+   if((x*7+z*5)%4===0)g.box(x+.37,.066,z+.55,.30,.008,.19,'#c5b99a');
+   if((x+z*3)%6===0)g.box(x+.76,.066,z+.24,.12,.008,.10,'#827862');
   }
   return;
  }
