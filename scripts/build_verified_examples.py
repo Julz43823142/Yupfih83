@@ -17,6 +17,8 @@ sys.path.insert(0, str(ROOT / "client-v87"))
 os.chdir(ROOT / "client-v87")
 
 import requests  # noqa: E402
+from requests.adapters import HTTPAdapter  # noqa: E402
+from urllib3.util.retry import Retry  # noqa: E402
 from fairplay_method3 import review  # noqa: E402
 from fairplay_deviation_display import suspicion_score  # noqa: E402
 from fairplay_website_runner import clean, chart_samples, rolling_winrate_samples, opening_summary  # noqa: E402
@@ -27,7 +29,11 @@ EXAMPLES = {
 }
 
 def get_chesscom(url: str) -> dict:
-    response = requests.get(url, timeout=40, headers={"User-Agent": "EloScanner-example-report-builder/1.0", "Accept": "application/json"})
+    session = requests.Session()
+    retries = Retry(total=5, backoff_factor=2, status_forcelist=(429, 500, 502, 503, 504),
+                    allowed_methods={"GET"}, respect_retry_after_header=True)
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    response = session.get(url, timeout=40, headers={"User-Agent": "EloScanner-example-report-builder/1.0", "Accept": "application/json"})
     response.raise_for_status()
     data = response.json()
     if not isinstance(data, dict):
