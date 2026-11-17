@@ -7,7 +7,10 @@ const storageKey='eloscanner-fallen-king-admin-preview-v1',dirs={up:[0,-1],down:
 let interior=null,outdoorState=null,mapOpen=false,world,player,dialogue=null,paused=false,last=0,stepClock=0,sceneTime=0,cam={x:0,z:0},visual={x:0,z:0},musicOn=false,audioCtx=null,musicTimer=null,musicStep=0;
 const tile=(x,z)=>world?.tiles[Math.round(z)]?.[Math.round(x)]||'T';
 const hash=(x,z,n=0)=>{let h=Math.imul(x+31,73856093)^Math.imul(z+47,19349663)^Math.imul(n+3,83492791);h^=h>>>13;return (h>>>0)/4294967295;};
-function occupied(x,z){return (world.npcs||[]).some(n=>Math.hypot(n.x-x,n.y-z)<.66)||(world.blockers||[]).some(([bx,bz])=>Math.hypot(bx-x,bz-z)<.67);}
+function occupied(x,z){
+ if((world.blockerRects||[]).some(r=>Math.abs(x-r.x)<r.w/2+.23&&Math.abs(z-r.z)<r.d/2+.23))return true;
+ return (world.npcs||[]).some(n=>Math.hypot(n.x-x,n.y-z)<.66)||(world.blockers||[]).some(([bx,bz])=>Math.hypot(bx-x,bz-z)<.67);
+}
 function canWalk(x,z){
  // Circle-footprint collision prevents slipping through corners of walls and furniture.
  for(const [dx,dz] of [[0,0],[-.20,0],[.20,0],[0,-.20],[0,.20]]){
@@ -608,8 +611,8 @@ function ground(x,z){
   // Exactly three lily pads in the Willowmere pond, not random pads across the river.
   if((x===7&&z===7)||(x===8&&z===6)||(x===9&&z===7)){
    cylinder(x+.53,.031,z+.55,.31,.31,.022,'#5f9d65',14);
-   cylinder(x+.53,.053,z+.55,.23,.23,.024,'#8eb982',14);
-   box(x+.74,.064,z+.55,.22,.013,.065,'#468868');
+   cylinder(x+.53,.063,z+.55,.23,.23,.024,'#8eb982',14);
+   box(x+.74,.096,z+.55,.22,.013,.065,'#468868');
    if(x===8){sphere(x+.38,.10,z+.58,.075,'#efd5e5',9);sphere(x+.49,.13,z+.59,.058,'#f6e0ec',8);}
   }
  }else if(!forest&&kind!=='H'&&kind!=='D'&&kind!=='F'){
@@ -642,8 +645,8 @@ function recliningPiece(x,z,type,color){
  piece(x,z,type,color,false);features(x,z,type,color,false,'guard');
  for(let i=from;i<vertices.length;i+=9){
   const dx=vertices[i]-x,dy=vertices[i+1],nx=vertices[i+3],ny=vertices[i+4];
-  vertices[i]=x+dy-.9;vertices[i+1]=.48-dx;
-  vertices[i+3]=ny;vertices[i+4]=-nx;
+  vertices[i]=x+dy-.9;vertices[i+1]=.48+dx*.18;
+  vertices[i+3]=ny;vertices[i+4]=nx;
  }
 }
 function prepareVision(){
@@ -746,13 +749,13 @@ if(!window.FallenKingStory?.isIntro()){
 }
 const sceneBackdrop=window.FallenKingStory?.backdrop?.();if(sceneBackdrop)gl.clearColor(sceneBackdrop[0],sceneBackdrop[1],sceneBackdrop[2],1);else gl.clearColor(.39,.56,.36,1);
 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);prepareVision();gl.uniform2f(camLoc,cam.x+.5,cam.z+.5);gl.uniform1f(aspectLoc,aspect);gl.uniform1f(zoomLoc,zoom);
-gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1,1);
+gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(2,2);
 for(const chunk of staticChunks){
  gl.bindBuffer(gl.ARRAY_BUFFER,chunk.buffer);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
  gl.drawArrays(gl.TRIANGLES,0,chunk.count);
 }
- gl.polygonOffset(-1,-1); // Keep moving chess models in front of coplanar background surfaces.
+ gl.polygonOffset(-2,-2); // Keep moving chess models in front of coplanar background surfaces.
 gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.DYNAMIC_DRAW);
  gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
