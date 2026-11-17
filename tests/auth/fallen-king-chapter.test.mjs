@@ -22,7 +22,7 @@ test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
  assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
- assert.match(page,/fallen-king-story\.js\?v=63/);
+ assert.match(page,/fallen-king-story\.js\?v=64/);
 });
 test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wired',()=>{
  assert.match(engine,/woodBridgeTile\?\.\(x,z\)/);
@@ -82,6 +82,13 @@ test('extra environmental details remain off traversable road tiles',()=>{
  assert.match(source,/Excavated fragments:/);
  assert.match(source,/Abbey courtyard: tidy firewood/);
  assert.match(source,/Manuscript gilding, votive shelves/);
+});
+test('handcrafted micro-scenes retain Abbey and ruins narrative details',()=>{
+ assert.match(source,/Old hunter's shrine and braided roots/);
+ assert.match(source,/Pilgrim trail: carved waymarkers/);
+ assert.match(source,/Additional ancient workmanship: engraved steles/);
+ assert.match(source,/Cloister cloaks, herb-drying racks/);
+ assert.match(source,/Monastic reading stations and side-chapel reliquaries/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
