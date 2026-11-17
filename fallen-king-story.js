@@ -1274,6 +1274,37 @@ function drawProps(g){
    sphere(x,1.48,z,.14,blue?'#93d5e1':'#efc581',9);
    cone(x,1.68,z,.20,.24,'#4f5e61',9);
   };
+  // Chapter Two detail pass: small, repeatable scenery exclusively on
+  // non-walkable ground, with open exits and clear character pathways.
+  // These props are static and use shallow separated surfaces to prevent shimmer.
+  if(scene!=='skyglassInterior'){
+   const grass=(x,z,i)=>{
+    for(let k=0;k<3;k++)cone(x+(k-1)*.16,.035,z+(k%2)*.13,.09,.28+(i%3)*.035,k%2?'#6f8755':'#567553',6);
+   };
+   const mushroom=(x,z,i)=>{
+    cylinder(x,.04,z,.052,.052,.18,'#d6c5a9',7);
+    cone(x,.23,z,.18,.13,i%2?'#a96d51':'#b99a72',8);
+    for(const dx of [-.055,.055])sphere(x+dx,.31,z+.08,.018,'#eddbb1',6);
+   };
+   const flowers=(x,z,i)=>{
+    cylinder(x,.05,z,.035,.035,.23,'#597953',6);
+    for(let petal=0;petal<4;petal++){
+     const a=petal*Math.PI/2;
+     sphere(x+Math.cos(a)*.095,.34,z+Math.sin(a)*.095,.065,i%3===0?'#e1c49a':i%3===1?'#a6b9d4':'#d9b6c6',7);
+    }
+    sphere(x,.345,z,.065,'#e8c66c',7);
+   };
+   for(let i=0;i<90;i++){
+    const x=2+((i*17+Math.floor(i/7)*7)%(w.width-4));
+    const z=2+((i*13+Math.floor(i/11)*9)%(w.height-4));
+    const tile=w.tiles[z]?.[x],groundOnly=tile==='.'||tile==='T';
+    if(!groundOnly)continue;
+    const xx=x+.48+(i%3-1)*.09,zz=z+.46+(i%5-2)*.08;
+    if(i%7===0)mushroom(xx,zz,i);
+    else if(i%4===0)flowers(xx,zz,i);
+    else grass(xx,zz,i);
+   }
+  }
   if(scene==='ridge'){
    // Three named directions meet at an unmistakable central signpost.
    for(const [x,z] of [[6,16],[12,15],[23,11],[13,29],[26,26],[33,16],[37,24]])rock(x+.5,z+.5,.78);
@@ -1283,6 +1314,19 @@ function drawProps(g){
    box(17.5,1.86,21,1.85,.24,.20,'#ae855b');
    box(17.5,1.50,21,1.55,.23,.20,'#c4a075');
    for(const [x,z] of [[14,20],[19,24],[24,18]]){cylinder(x,.04,z,.27,.27,.22,'#695b46',9);cone(x,.28,z,.31,.35,'#476c52',9);}
+   // Travelers' abandoned woodland campsite, harmless fireflies and dry wood.
+   for(const [x,z] of [[8,27],[28,29],[35,13]]){
+    box(x,.13,z,1.1,.26,.69,'#775b42');
+    box(x,.29,z,.92,.07,.49,'#aa8761');
+    for(const dx of [-.48,.48])cylinder(x+dx,.07,z,.07,.07,.52,'#594738',7);
+    for(const k of [-1,1])mushroomMarker(x+k*.55,z+.75,k);
+   }
+   function mushroomMarker(x,z,k){cylinder(x,.04,z,.06,.06,.20,'#d4be9c',7);cone(x,.25,z,.17,.12,k>0?'#a87c58':'#bd9174',7);}
+   for(const [x,z] of [[5,14],[23,28],[37,11]]){
+    cylinder(x,.07,z,.20,.20,.32,'#765a43',8);
+    cone(x,.43,z,.30,.20,'#ad8053',8);
+    for(const dx of [-.12,.12])box(x+dx,.46,z,.10,.045,.14,'#d8bb84');
+   }
    // The blocked cave is deliberately outside the walking path.
    box(20.5,.42,2.8,6.8,.84,1.7,'#525e5f');
    for(const [x,z,scale] of [[18.1,5,.9],[19.5,5,1.15],[21,4.9,1],[22.4,5,.85],[20,3.8,1.3]]){
@@ -1300,6 +1344,22 @@ function drawProps(g){
     box(x,.20,z,2.5,.04,.74,'#acaa94');
    }
    for(const [x,z] of [[10,27],[18,19],[29,12],[38,6]]){box(x,.09,z,.80,.18,.65,'#9f9981');box(x,.21,z,.64,.05,.51,'#c0b49a');}
+   // Fern-covered slopes, stacked cairns, mountain lanterns and tiny shrines.
+   for(const [x,z] of [[4.7,19],[15,13],[25,28],[37,17]]){
+    cylinder(x,.06,z,.26,.26,.17,'#73776d',10);
+    cylinder(x,.24,z,.18,.18,.15,'#a6a18a',10);
+    sphere(x,.47,z,.16,'#c4b396',8);
+   }
+   for(const [x,z] of [[13,33],[20,30],[36,22]]){
+    cylinder(x,.06,z,.33,.33,.56,'#7f8274',10);
+    box(x,.69,z,.74,.16,.60,'#b9aa87');
+    cone(x,1.11,z,.36,.48,'#71856e',9);
+   }
+   for(const [x,z] of [[5,25],[16,10],[31,24]]){
+    box(x,.16,z,1.2,.31,.83,'#695943');
+    box(x,.37,z,1.0,.08,.66,'#a98b62');
+    for(const dx of [-.35,.35])sphere(x+dx,.51,z,.13,'#72906a',8);
+   }
    // Weathered pilgrim walls, cliff steps and wind-carved overlooks.
    for(const [x,z] of [[12,20],[23,26],[32,16]]){
     for(let i=0;i<5;i++)box(x+i*.58,.10,z,.57,.21,.62,i%2?'#7f8275':'#a69e87');
@@ -1329,6 +1389,22 @@ function drawProps(g){
     cylinder(x,1.47,z,.66,.66,.18,'#bbb8aa',12);
    }
    for(const [x,z] of [[6,18],[28,20],[15,28],[23,28]])rock(x,z,1.2);
+   // Excavation details: broken urns, scattered stones, worn steles and ivy.
+   for(const [x,z] of [[5.5,11],[29.5,10],[5.5,25],[29.5,26]]){
+    cylinder(x,.07,z,.34,.33,.34,'#936f54',10);
+    cylinder(x,.43,z,.27,.27,.12,'#c7a27a',10);
+    sphere(x,.58,z,.18,'#ad8668',9);
+   }
+   for(const [x,z] of [[12,6],[23,6],[4,16],[31,18],[13,29],[23,29]]){
+    box(x,.11,z,.84,.22,.62,'#767b70');
+    box(x+.14,.26,z-.08,.43,.08,.28,'#a5a296');
+    for(let k=0;k<3;k++)cone(x-.22+k*.22,.06,z+.32,.12,.37,'#618262',7);
+   }
+   for(const [x,z] of [[9,15],[27,23],[19,28]]){
+    cylinder(x,.06,z,.34,.34,.21,'#777464',12);
+    cylinder(x,.27,z,.22,.22,.37,'#a8a18b',12);
+    cone(x,.66,z,.28,.26,'#617a60',10);
+   }
    // Stonehenge-like sanctuary: eight monoliths around a ritual clearing.
    // Horizontal lintels are solidly above uprights, never coplanar.
    for(const [x,z] of [[10,9],[14,8],[22,8],[26,9],[8,17],[28,17],[10,26],[26,26]]){
@@ -1381,6 +1457,25 @@ function drawProps(g){
     box(x,1.23,z,.94,.12,.91,'#aaa99c');
    }
   }else if(scene==='observatory'){
+   // Courtyard supplies and monastery garden: barrels, herbs, a stone well.
+   for(const [x,z] of [[6,19],[7,19.3],[27,25],[29,25]]){
+    cylinder(x,.08,z,.30,.30,.57,'#805b40',10);
+    cylinder(x,.68,z,.32,.32,.08,'#b29165',10);
+    for(const yy of [.23,.50])cylinder(x,yy,z,.33,.33,.065,'#6e706b',10);
+   }
+   for(const [x,z] of [[5,13],[29,12],[5,24],[29,24]]){
+    box(x,.07,z,1.2,.15,.90,'#77674f');
+    box(x,.23,z,1.02,.18,.73,'#755c3f');
+    for(const dx of [-.34,0,.34])for(const dz of [-.23,.23]){
+     cone(x+dx,.43,z+dz,.16,.47,'#64865a',7);
+     sphere(x+dx,.87,z+dz,.09,'#927e9d',7);
+    }
+   }
+   cylinder(5.6,.10,21.5,.69,.69,.68,'#8b8b7c',12);
+   cylinder(5.6,.81,21.5,.76,.76,.14,'#c2b79b',12);
+   cylinder(5.6,.96,21.5,.49,.49,.06,'#344e52',12);
+   for(const xx of [5.0,6.2])cylinder(xx,.97,21.5,.10,.10,1.08,'#7b6544',9);
+   box(5.6,2.06,21.5,1.65,.22,.50,'#785c42');
    // Skyglass Abbey: rough limestone nave, steep slate roofs, oak doors,
    // cloister arches and a narrow square belfry, not a modern glass dome.
    box(17,.10,10.7,16.1,4.75,10.9,'#a79c81');
@@ -1469,6 +1564,25 @@ function drawProps(g){
     cylinder(x,.05,z,.48,.48,3.1,'#a6a99f',12);
     cylinder(x,3.20,z,.64,.64,.19,'#d7cbac',12);
     box(x,3.46,z,.96,.15,1.05,'#6a8c91');
+   }
+   // Small medieval lived-in details: scroll trays, desks, glass inkpots,
+   // candle holders and a checker-pattern mosaic beside the central aisle.
+   for(const [x,z] of [[17,12],[42,12],[17,42],[42,42]]){
+    box(x,.17,z,1.35,.31,.82,'#634831');
+    box(x,.37,z,1.25,.085,.75,'#af8960');
+    box(x-.24,.50,z,.34,.08,.20,'#dac49a');
+    box(x+.28,.53,z,.14,.17,.14,'#36484d');
+    sphere(x+.28,.72,z,.09,'#a3a58b',8);
+   }
+   for(const [x,z] of [[22,23],[38,23],[22,35],[38,35]]){
+    cylinder(x,.12,z,.16,.16,.61,'#806044',9);
+    box(x,.77,z,.68,.12,.44,'#b39867');
+    cone(x,.93,z,.12,.28,'#d9ae60',9);
+    sphere(x,1.20,z,.085,'#f3d291',8);
+   }
+   for(let x=24;x<=36;x+=2)for(const z of [18,40]){
+    box(x,.025,z,1.76,.07,1.72,(x/2)%2?'#9f9a83':'#726b60');
+    box(x,.105,z,1.52,.04,1.40,'#c7b99a');
    }
    // Scriptorium bookcases, oak lecterns, candles, pennants and a tiled chapel.
    // All furniture remains beside the walking aisle.
