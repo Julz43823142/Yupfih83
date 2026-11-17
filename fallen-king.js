@@ -95,7 +95,7 @@ function roofTiles(h){
    box(xx,yy,zz,w/Math.ceil(w*2)-.055,.025,.13,(row+col)%3===0?palette[1]:palette[0]);
   }
  }
- box(x,H+1.10,z,w+.35,.085,.15,'#e5d2b3');
+ box(x,H+1.13,z,w+.35,.06,.15,'#e5d2b3');
 }
 
 function building(h){
@@ -139,7 +139,7 @@ function building(h){
  box(x,.04,face+.35,1.50,.12,.46,'#baa890');
  // Raised inn/bakery sign: raised away from the wall and from the frame.
  box(x,2.24,face+.22,1.82,.36,.12,'#77573f');
- box(x,2.24,face+.32,1.59,.22,.065,'#ebd09a');
+ box(x,2.24,face+.41,1.59,.22,.045,'#ebd09a');
  // Dormer and chimney with dark cap.
  box(x+w/2-.82,H+.22,z-.42,.51,.82,.49,'#bba486');
  box(x+w/2-.82,H+1.0,z-.42,.68,.15,.62,'#69504d');
@@ -758,7 +758,7 @@ if(!staticReady){
 }
 window.FallenKingStory?.drawFollowers({piece,features});
 window.FallenKingStory?.drawEffects?.({box,sphere,cylinder,cone,tri},t);
-for(const n of world.npcs){const tone=npcColor(n);piece(n.x+.5,n.y+.5,n.piece,tone,false);features(n.x+.5,n.y+.5,n.piece,tone,false,n.id);}
+for(const n of world.npcs){const tone=(n.id==='watch-keeper'||n.id==='watchtower-keeper')?n.color:npcColor(n);piece(n.x+.5,n.y+.5,n.piece,tone,false);features(n.x+.5,n.y+.5,n.piece,tone,false,n.id);}
 if(!window.FallenKingStory?.isIntro()){
  // Never let player-controlled cosmetics change Oliver's canonical, crownless story appearance.
  oliver(visual.x+.5,visual.z+.5);
