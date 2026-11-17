@@ -53,10 +53,10 @@ test('the v87 worker does not publish a 164-game review while older Chess.com ar
   firstCount:5300,secondCount:5300,firstReported:164,secondReported:5000
  });
  assert.equal(visited.length,2,'Must fetch the older month after an underfilled review');
- assert.deepEqual(messages.map(m=>m.type),['complete']);
- assert.equal(messages[0].result.games,5000,'Never publish the 164-game intermediate result');
- assert.equal(messages[0].result.archive_months_checked,2);
- assert.equal(messages[0].result.source_platform,'chess.com');
+ assert.deepEqual(messages.map(m=>m.type),['profile','complete']);
+ assert.equal(messages[1].result.games,5000,'Never publish the 164-game intermediate result');
+ assert.equal(messages[1].result.archive_months_checked,2);
+ assert.equal(messages[1].result.source_platform,'chess.com');
  assert.ok(progressMessages.some(m=>m.includes('164 / 5,000')));
 });
 
@@ -65,9 +65,9 @@ test('a review reports the honest available game count when all archives are exh
   firstCount:5300,secondCount:0,firstReported:164,secondReported:164
  });
  assert.equal(visited.length,2);
- assert.equal(messages[0].result.games,164);
+ assert.equal(messages[1].result.games,164);
  assert.equal(messages[0].result.archive_months_checked,2);
- assert.equal(messages[0].result.archive_months_available,2);
+ assert.equal(messages[1].result.archive_months_available,2);
 });
 
 test('the main script always loads the updated review worker',()=>{
@@ -84,4 +84,15 @@ test('the minigames leaderboard link has no blue box or button padding',()=>{
  assert.match(style,/font-weight:850/);
  assert.match(style,/text-decoration:underline/);
  assert.doesNotMatch(style,/(?:background|border:|border-radius|padding:)/);
+});
+
+test('example player worker starts before any optional Chess.com profile or stats fetch',()=>{
+ const index=script.indexOf('if(activeExample){',script.indexOf('form.addEventListener("submit"'));
+ const profile=script.indexOf('const profileController=new AbortController()',index);
+ assert.ok(index>=0&&profile>index);
+ const fastPath=script.slice(index,profile);
+ assert.match(fastPath,/await runReview\(username,requestId\)/);
+ assert.doesNotMatch(fastPath,/await getJSON|await Promise\.race|profileController/);
+ assert.ok(script.includes('if(data.type==="profile"){'));
+ assert.ok(script.includes('renderPlayer(data.profile,{},username,{preset:true})'));
 });
