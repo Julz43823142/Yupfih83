@@ -48,14 +48,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Avoid refreshing again after the bot saves a PR snapshot
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$(git log -1 --format=%an)" = "github-actions[bot]" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install v87 data collector
+        if: steps.guard.outputs.skip != 'true'
         run: python -m pip install 'requests>=2.32,<3'
       - name: Calculate bounded genuine v87 report
+        if: steps.guard.outputs.skip != 'true'
         env:
           ELO_EXAMPLE_MAX_GAMES: '300'
         run: python -u scripts/generate-example-reports.py "${{ matrix.username }}"
         timeout-minutes: 30
       - name: Validate saved report
+        if: steps.guard.outputs.skip != 'true'
         env:
           EXAMPLE_USERNAME: ${{ matrix.username }}
           EXAMPLE_SLUG: ${{ matrix.slug }}
@@ -78,6 +87,7 @@ jobs:
           print(slug,data['report']['games'],'verified games')
           PY
       - name: Publish each snapshot as soon as it is ready
+        if: steps.guard.outputs.skip != 'true'
         env:
           EXAMPLE_SLUG: ${{ matrix.slug }}
         run: |
