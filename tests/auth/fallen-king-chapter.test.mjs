@@ -22,7 +22,7 @@ test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
  assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
- assert.match(page,/fallen-king-story\.js\?v=64/);
+ assert.match(page,/fallen-king-story\.js\?v=65/);
 });
 test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wired',()=>{
  assert.match(engine,/woodBridgeTile\?\.\(x,z\)/);
@@ -89,6 +89,16 @@ test('handcrafted micro-scenes retain Abbey and ruins narrative details',()=>{
  assert.match(source,/Additional ancient workmanship: engraved steles/);
  assert.match(source,/Cloister cloaks, herb-drying racks/);
  assert.match(source,/Monastic reading stations and side-chapel reliquaries/);
+});
+test('visible terrain paths, Horse of the Lost Crown and Abbey effect fixes',()=>{
+ assert.match(source,/Horse of the Lost Crown/);
+ assert.match(source,/x:18,z:18,w:3\.0,d:3\.2/);
+ assert.match(source,/Bright, hand-laid path pebbles/);
+ assert.match(source,/g\.box\(x\+\.27,\.066,z\+\.33/);
+ assert.doesNotMatch(source,/17\+Math\.cos\(a\)\*2,1\.35,12\+Math\.sin\(a\)\*2/);
+ assert.match(source,/Courtyard well, herb racks and astronomical instrument occupy solid space/);
+ assert.match(source,/x:30,z:11\.2,w:4\.9,d:2\.5/);
+ assert.match(source,/box\(30,\.59,11\.2,4\.65,\.14,2\.21/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
