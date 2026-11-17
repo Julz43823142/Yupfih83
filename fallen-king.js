@@ -24,7 +24,7 @@ function load(){try{const s=JSON.parse(localStorage.getItem(storageKey)||'null')
 function moveVector(dx,dz,dt){
  if(paused||mapOpen||window.FallenKingStory?.blockedInput()||(!dx&&!dz))return;
  // Story dialogue must never trap the player in a cell: walking dismisses it.
- if(dialogue){if(!window.FallenKingStory?.customScene())return;dialogue=null;dialog.hidden=true;}
+ if(dialogue){dialogue=null;dialog.hidden=true;}
  const length=Math.hypot(dx,dz),step=Math.min(.22,Math.max(0,dt)*4.5)/length;
  const vx=dx*step,vz=dz*step;
  player.facing=Math.abs(dx)>Math.abs(dz)?(dx>0?'right':'left'):(dz>0?'down':'up');
