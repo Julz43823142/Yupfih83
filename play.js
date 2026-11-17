@@ -417,7 +417,6 @@ function scheduleBot(){
   catch(e){working=false;status('Bot calculation unavailable. Please retry.');paint()}
  },level==='lars'?0:timedPractice?80:120);
 }
-let gameHasStarted=false;
 let introTimer=null;
 function showBotStartIntro(){
  const card=document.querySelector('.play-board-card');
@@ -435,7 +434,6 @@ function showBotStartIntro(){
  introTimer=setTimeout(()=>{overlay.hidden=true;},1800);
 }
 function newGame(){
- gameHasStarted=true;
  const jump=document.querySelector('.play-bots-jump');if(jump)jump.hidden=true;
  timedPractice=$('play-time').value==='180';
  practiceStarted=timedPractice;
