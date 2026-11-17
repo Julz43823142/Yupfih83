@@ -6,6 +6,12 @@ on:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
       - 'client-v87/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-example-reports.yml'
+      - 'scripts/generate-example-reports.py'
+      - 'client-v87/**'
   schedule:
     - cron: '15 3 * * 0'
   workflow_dispatch:
@@ -14,11 +20,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: refresh-example-reports
+  group: refresh-example-reports-${{ github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 
 jobs:
   refresh:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
@@ -34,6 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+          ref: ${{ github.event.pull_request.head.ref || 'main' }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,6 +56,7 @@ jobs:
         env:
           EXAMPLE_USERNAME: ${{ matrix.username }}
           EXAMPLE_SLUG: ${{ matrix.slug }}
+          PUBLISH_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
         run: |
           python - <<'PY'
           import json
@@ -71,6 +80,6 @@ jobs:
           git add "assets/example-reports/${EXAMPLE_SLUG}.json"
           if ! git diff --cached --quiet; then
             git commit -m "181"
-            git pull --rebase origin main
-            git push origin HEAD:main
+            git pull --rebase origin "${PUBLISH_BRANCH}"
+            git push origin "HEAD:${PUBLISH_BRANCH}"
           fi
