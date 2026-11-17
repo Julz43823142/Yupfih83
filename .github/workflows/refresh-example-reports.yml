@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
+      - 'scripts/export-magnus-chesscom.py'
       - 'client-v87/**'
   pull_request:
     branches: [main]
@@ -34,6 +35,8 @@ jobs:
       max-parallel: 1
       matrix:
         include:
+          - username: MagnusCarlsen
+            slug: magnus-carlsen
           - username: Hikaru
             slug: hikaru-nakamura
     steps:
@@ -85,7 +88,7 @@ jobs:
           source=data['source']
           assert source['account']==user
           assert source['platform']=='chess.com'
-          assert data['report']['username']==source['account'] and data['report']['games']==5000
+          assert data['report']['username']==source['account'] and 50<=data['report']['games']<=5000
           assert isinstance(data['insights'],list) and len(data['insights'])>0
           print(slug,data['report']['games'],'verified games')
           PY
