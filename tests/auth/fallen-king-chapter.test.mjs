@@ -16,13 +16,23 @@ test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
 
 test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
- for(const name of ['ridgeWorld','hillWorld','ruinsWorld','observatoryWorld'])assert.ok(source.includes('function '+name+'('),name+' world is wired');
+ for(const name of ['ridgeWorld','hillWorld','ruinsWorld','observatoryWorld','skyglassInteriorWorld'])assert.ok(source.includes('function '+name+'('),name+' world is wired');
  assert.match(source,/if\(scene==='village'&&complete\('bridge'\)&&p\.x>=50/);
  assert.match(source,/if\(scene==='ridge'\)/);
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
  assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
- assert.match(page,/fallen-king-story\.js\?v=57/);
+ assert.match(page,/fallen-king-story\.js\?v=58/);
+});
+test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wired',()=>{
+ assert.match(engine,/woodBridgeTile\?\.\(x,z\)/);
+ assert.match(source,/function woodBridgeTile\(x,z\)/);
+ assert.doesNotMatch(source,/NORTH: Hidden Cave \(Blocked\)|special tool to clear it|stonebreaking tool/);
+ for(const target of ['ridge','ruins','hill','observatory','skyglassInterior']){
+  assert.ok(page.includes('data-fallen-jump="'+target+'"'),target+' must be in teleport menu');
+ }
+ assert.match(source,/setScene\('skyglassInterior',\{x:30,y:46/);
+ assert.match(source,/setScene\('observatory',\{x:17,y:20/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
@@ -267,11 +277,15 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  player={x:42.2,y:20,facing:'right'};chapter.afterMove();
  assert.equal(world.width,46);assert.equal(world.height,36);
  player={x:43.2,y:5,facing:'right'};chapter.afterMove();
+ assert.equal(world.width,36);assert.equal(world.height,30);
+ assert.equal(world.tiles[16][17],'D','Skyglass is now a solid building with a door');
+ assert.ok(world.npcs.some(n=>n.id==='skyglass-greeter'));
+ player={x:17,y:18,facing:'up'};assert.equal(chapter.talk(),true);
  assert.equal(world.width,60);assert.equal(world.height,52);
  assert.ok(world.npcs.some(n=>n.id==='skyglass-curator'));
  player={x:30,y:11};assert.equal(chapter.talk(),true);
  assert.equal(chapter.exportSave().chapter.flags.skyglassLedger,true);
- assert.equal(chapter.exportSave().chapter.scene,'observatory');
+ assert.equal(chapter.exportSave().chapter.scene,'skyglassInterior');
  assert.ok(said.length>5);
 });
 
