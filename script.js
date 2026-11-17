@@ -766,6 +766,8 @@ function renderPlayer(profile, stats, username, options = {}) {
 }
 // Original Insights v87 Python runs inside a browser Web Worker (WebAssembly).
 // No GitHub workflow or status polling is involved.
+let activeReviewCancel=null;
+let activeReviewSerial=0;
 function analyzeOnVisitorDevice(username){
   return new Promise((resolve,reject)=>{
     if(typeof Worker==="undefined"||typeof WebAssembly==="undefined"){
@@ -780,8 +782,11 @@ function analyzeOnVisitorDevice(username){
       if(settled)return;
       settled=true;
       worker.terminate();
+      if(activeReviewCancel===cancelThisReview)activeReviewCancel=null;
       callback(value);
     }
+    const cancelThisReview=reason=>settle(reject,reason);
+    activeReviewCancel=cancelThisReview;
     worker.addEventListener("message",event=>{
       const data=event.data||{};
       if(data.type==="progress"){
@@ -804,38 +809,45 @@ function analyzeOnVisitorDevice(username){
     worker.postMessage({type:"run",username});
   });
 }
-async function runReview(username){
+async function runReview(username,requestId){
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
  const report=await analyzeOnVisitorDevice(username);
-
- await finishReviewProgress();renderReview(report);
+ if(requestId!==activeReviewSerial)return;
+ await finishReviewProgress();
+ if(requestId!==activeReviewSerial)return;
+ renderReview(report);
 
  statusText.textContent="Analysis complete on your device.";
 }
-// Public Chess.com profile previews are prefetched; full game analysis remains opt-in.
-const exampleProfiles=new Map();
+// Example reports must start immediately on the existing homepage.
+// Changing only the URL hash does NOT reload the document or submit the form.
+const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
+const exampleProfileRequests=new Map();
 for(const username of ["MagnusCarlsen","Hikaru"]){
-  const task=Promise.all([
-    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)),
-    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)+"/stats")
-  ]).then(([profile,stats])=>{
+  // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
+  const profileRequest=getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
+  exampleProfileRequests.set(username.toLowerCase(),profileRequest);
+  void profileRequest.then(profile=>{
     const slot=document.querySelector('[data-player-avatar="'+username+'"]');
     if(slot && typeof profile.avatar==="string" && /^https:\/\//.test(profile.avatar)){
       const photo=document.createElement("img");
       photo.src=profile.avatar;photo.alt="";photo.loading="lazy";
       photo.referrerPolicy="no-referrer";slot.replaceChildren(photo);
     }
-    return {profile,stats};
-  });
-  exampleProfiles.set(username,task.then(data=>{try{sessionStorage.setItem("eloscanner-example-v1-"+username,JSON.stringify({savedAt:Date.now(),data}));}catch{}return data;}));
+  }).catch(()=>{});
 }
-document.querySelectorAll(".sample-button[data-username]").forEach(example => {
-  example.addEventListener("click", () => {
-    const slug=example.dataset.username==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
-    location.href="/#analyze="+encodeURIComponent(example.dataset.username);
-  });
+function startExampleAnalysis(username){
+  if(!exampleAccounts.has(String(username).toLowerCase()))return;
+  usernameInput.value=username;
+  // Keep the deep link for bookmarks and refresh, but start the scan synchronously.
+  history.replaceState(history.state,"",location.pathname+location.search+"#analyze="+encodeURIComponent(username));
+  form.requestSubmit();
+  results.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth",block:"start"});
+}
+document.querySelectorAll(".sample-button[data-username]").forEach(example=>{
+  example.addEventListener("click",()=>startExampleAnalysis(example.dataset.username));
 });
 // Example pages render an already completed v87 report. They never start a
 // second scan; the snapshot was produced by the regular v87 Python runner.
@@ -879,21 +891,42 @@ form.addEventListener("submit", async event => {
     statusText.textContent = "Enter a valid Chess.com username.";
     return;
   }
+  const requestId=++activeReviewSerial;
+  if(activeReviewCancel)activeReviewCancel(new Error("Previous player analysis replaced."));
   button.disabled = true;
   button.textContent = "Analyzing…";
-  statusText.textContent = "Loading player profile…";
-  results.classList.add("hidden");
+  statusText.textContent = "Loading public Chess.com player profile…";
+  results.classList.remove("hidden");
   playerCard.replaceChildren();
+  const preview=add(playerCard,"div","player-header");
+  add(preview,"h3","player-name","@"+username+" · Loading player profile…");
+  const reportPreview=document.getElementById("v87-review");
+  if(reportPreview)reportPreview.replaceChildren(add(document.createElement("div"),"p","v87-warning","Collecting public games for @"+username+" (up to 5,000 available games)…"));
   try {
     const encoded = encodeURIComponent(username);
     // Show a useful player preview as soon as the public profile arrives.
     // Rating stats are optional and must not block the full game scan.
-    const profile = await getJSON("https://api.chess.com/pub/player/" + encoded);
+    const profileController=new AbortController();
+    const profileTimeout=setTimeout(()=>profileController.abort(),15000);
+    let profile;
+    try{
+      // Reuse the existing sample-avatar request instead of doubling Chess.com traffic.
+      const shared=exampleProfileRequests.get(username.toLowerCase());
+      profile=await Promise.race([
+        shared||getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal}),
+        new Promise((_,reject)=>profileController.signal.addEventListener("abort",()=>reject(new DOMException("Profile timeout","AbortError")),{once:true}))
+      ]);
+    }
+    finally{clearTimeout(profileTimeout)}
+    if(requestId!==activeReviewSerial)return;
+    playerCard.replaceChildren();
     renderPlayer(profile, {}, username, {preset:true});
     void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
-      if(usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
+      if(requestId!==activeReviewSerial||usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
       playerCard.replaceChildren();
-      renderPlayer(profile, stats, username);
+      // Do not download the entire career rating history in parallel with the
+      // 5,000-game review. Two archive collectors can trigger Chess.com 429s.
+      renderPlayer(profile, stats, username, {preset:exampleAccounts.has(username.toLowerCase())});
     }).catch(error=>console.warn("Optional player ratings unavailable:",error));
     let panel = document.getElementById("v87-review");
     if (!panel) {
@@ -903,18 +936,31 @@ form.addEventListener("submit", async event => {
     results.classList.remove("hidden");
     placeExampleCardsNearOverview();
     results.scrollIntoView({behavior:"smooth",block:"start"});
-    try { await runReview(username); }
+    try {
+      await runReview(username,requestId);
+      if(requestId!==activeReviewSerial)return;
+      if(exampleAccounts.has(username.toLowerCase()))
+        window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
+    }
     catch (error) {
+      if(requestId!==activeReviewSerial)return;
       stopReviewProgress();
       panel.replaceChildren();
       add(panel, "p", "v87-warning", "Analysis unavailable: " + error.message);
-      statusText.textContent = "Player preview loaded, but the analysis could not finish.";
+      statusText.textContent = "Full analysis unavailable. Loading simpler public-game statistics instead.";
+      if(exampleAccounts.has(username.toLowerCase()))
+        window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
     }
   } catch (error) {
-    statusText.textContent = error.message;
+    if(requestId!==activeReviewSerial)return;
+    statusText.textContent = error.name==="AbortError"?"Chess.com did not respond. Retry the player analysis.":error.message;
+    const panel=document.getElementById("v87-review");
+    if(panel)panel.replaceChildren(add(document.createElement("div"),"p","v87-warning",statusText.textContent));
   } finally {
-    button.disabled = false;
-    button.textContent = "Analyze Player";
+    if(requestId===activeReviewSerial){
+      button.disabled = false;
+      button.textContent = "Analyze Player";
+    }
   }
 });
 
@@ -987,14 +1033,29 @@ async function load(user){
    // Show usable insights early, even if a complete multi-month load is still in progress.
    if((i+1)%3===0||i===urls.length-1||games.length>=5000){
     games.sort((a,b)=>b.date-a.date);
+    if(games.length>5000)games.length=5000;
     render(user,games,i+1,failed);
     if(i<urls.length-1&&games.length<5000)target.prepend(node('p','insights-intro','Loading recent games: '+games.length+' / 5,000 · '+(i+1)+' months checked'));
    }
+   if(games.length>=5000)break;
   }
   if(!urls.length)render(user,[],0,0);
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
 }
-form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
+form.addEventListener('submit',()=>{
+ const user=input.value.trim().toLowerCase();
+ if(!/^[a-z0-9_-]{3,25}$/.test(user))return;
+ if(user==='magnuscarlsen'||user==='hikaru'){
+   ++generation;
+   target.replaceChildren(node('p','insights-intro','The full Chess.com review is running. Additional public-game statistics will load after the report finishes.'));
+   return;
+ }
+ void load(user);
+});
+window.addEventListener('elo-example-live-review-ready',event=>{
+ const user=event.detail?.username;
+ if(user==='magnuscarlsen'||user==='hikaru')void load(user);
+});
 window.addEventListener('elo-example-preset-ready',event=>{
  const {username,games}=event.detail||{};
  if(typeof username!=='string'||!Array.isArray(games))return;
