@@ -392,7 +392,7 @@ function afterMove(){const p=engine.getPlayer();
   if(p.x<48.4||p.y<17||p.y>21)exitPromptArmed=true;
   else if(p.x>=49.2&&exitPromptArmed){
    exitPromptArmed=false;
-   const yes=window.confirm('Are you sure you want to continue?\\n\\nYes: Chapter Two - The Skyglass Road\\nCancel: Stay in Willowmere');
+   const yes=confirm('Are you sure you want to continue?\\n\\nYes: Chapter Two - The Skyglass Road\\nCancel: Stay in Willowmere');
    if(yes){
     chapter.flags.chapterEnd=true;
     setScene('ridge',{x:15,y:41,facing:'up'});
