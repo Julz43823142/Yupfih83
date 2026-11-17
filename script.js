@@ -872,11 +872,15 @@ async function openSavedExample(){
        saved.report?.version!=="fairplay-v87-review-reliability"||
        saved.report?.games!==5000||saved.sample?.actualGames!==5000||
        saved.sample?.requestedGames!==5000||
-       !Array.isArray(saved.insights)||saved.insights.length!==5000)
+       !Array.isArray(saved.insights)||saved.insights.length!==5000||
+       ["rapid","blitz","bullet"].reduce((n,k)=>n+(Number(saved.sample?.timeControls?.[k])||0),0)!==5000)
       throw Error("Saved report has not passed the 5,000-game Chess.com validation.");
     renderPlayer(saved.profile,saved.stats||{},exampleUsername,{preset:true});
     renderReview(saved.report);
-    const title=add(panel,"p","v87-muted","PRECOMPUTED CHESS.COM REPORT · 5,000 GAMES");
+    const counts=saved.sample.timeControls;
+    const heading="CHESS.COM · 5,000 TOTAL GAMES · RAPID "+(counts.rapid||0)+
+      " · BLITZ "+(counts.blitz||0)+" · BULLET "+(counts.bullet||0);
+    const title=add(panel,"p","v87-muted",heading);
     panel.insertBefore(title,panel.firstChild);
     statusText.textContent="Saved Chess.com review: 5,000 games · @"+exampleUsername+".";
     window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
