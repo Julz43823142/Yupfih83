@@ -1572,6 +1572,7 @@ function drawWatchtowerInterior(g){
  for(let i=0;i<5;i++){box(3.2+i*.47,.12,10.7,.35,.24,.27,'#907a58');box(3.2+i*.47,.27,10.7,.32,.05,.28,'#c4a67e');}
  for(let i=0;i<8;i++)box(2.0+i*1.75,2.45,1.87,.035,.035,.12,'#b9b8a7');
 }
+function woodBridgeTile(x,z){return scene==='village'&&complete('bridge')&&x>=43&&x<=49&&z>=18&&z<=20;}
 function drawVillageProps(g){
  if(scene!=='village')return;
  const {box,cylinder,cone,sphere}=g,done=complete('bridge');
@@ -1675,7 +1676,7 @@ function drawEffects(g,t){
  const {box,sphere,tri}=g;
  const flow=(x,z,offset=0)=>Math.sin(x*.92-z*.43-t*1.25+offset);
  if(scene==='village'){
-  for(let x=45.15;x<47.85;x+=.38)for(const z of [17.25,19.5,21.8]){
+  for(let x=45.15;x<47.85;x+=.38)for(const z of (complete('bridge')?[17.25,21.8]:[17.25,19.5,21.8])){
    const w=flow(x,z),h=.05+.014*w;
    box(x,h,z,.29,.012,.045,'#8fbfbd');
   }
@@ -1732,5 +1733,5 @@ function exportSave(){
  chapter.scene=scene;
  return {chapter:JSON.parse(JSON.stringify(chapter))};
 }
-window.FallenKingStory={exportSave,start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,renderIntroFrame,isIntro,isPrisoner,musicTheme};
+window.FallenKingStory={exportSave,start,blockedInput,beforeMove,afterMove,talk,beforeHouse,customScene,hasMap,drawGround,backdrop,fieldOfView,drawProps,drawVillageProps,drawEffects,drawFollowers,woodBridgeTile,renderIntroFrame,isIntro,isPrisoner,musicTheme};
 })();

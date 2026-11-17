@@ -588,6 +588,12 @@ function features(x,z,type,color,aldric=false,id=''){
 }
 
 function ground(x,z){
+ // A repaired bridge is timber all the way through. Suppress the old path
+ // cobblestones and water surface beneath its planks.
+ if(window.FallenKingStory?.woodBridgeTile?.(x,z)){
+  box(x+.5,-.18,z+.5,1,.15,1,'#70543c');
+  return;
+ }
  const kind=tile(x,z),n=hash(x,z);
  const path=kind==='p'||kind==='s',water=kind==='w',forest=kind==='T';
  let col=kind==='p'?'#d1bb91':kind==='s'?'#cab99c':water?'#468ca9':forest?'#638f5a':kind==='f'?'#7bac69':kind==='g'?'#91b878':'#83ad70';
