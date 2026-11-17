@@ -51,7 +51,7 @@ jobs:
       - name: Avoid refreshing again after the bot saves a PR snapshot
         id: guard
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$(git log -1 --format=%an)" = "github-actions[bot]" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Install v87 data collector
