@@ -15,7 +15,7 @@ def clean(value, depth=0):
     if isinstance(value, float):
         return value if math.isfinite(value) else None
     if isinstance(value, (tuple, list)):
-        return [clean(item, depth + 1) for item in value[:1200]]
+        return [clean(item, depth + 1) for item in value[:5000]]
     if isinstance(value, dict):
         return {str(key): clean(item, depth + 1) for key, item in list(value.items())[:300]}
     return str(value)
