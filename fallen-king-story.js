@@ -1410,6 +1410,21 @@ function drawProps(g){
    for(const [x,z] of [[7,29],[28,8],[38,30]]){
     for(let j=0;j<3;j++){cylinder(x+j*.41,.04,z,.10,.11,.58,'#785b41',8);sphere(x+j*.41,.70,z,.12,'#a48b68',8);}
    }
+   // Old hunter's shrine and braided roots tucked well away from the roads.
+   for(const [x,z] of [[8,8],[36,27]]){
+    box(x,.16,z,1.28,.32,.98,'#777260');
+    box(x,.39,z,1.12,.13,.82,'#b3a78b');
+    cylinder(x,.48,z,.21,.21,1.13,'#88705a',10);
+    box(x,1.71,z,.94,.16,.33,'#b49e73');
+    box(x,1.22,z,.29,1.07,.21,'#a78d67');
+    for(const dx of [-.43,.43])cone(x+dx,.11,z+.53,.26,.67,'#547b59',9);
+   }
+   for(const [x,z] of [[4,8],[34,10],[28,35]]){
+    for(let j=0;j<4;j++){
+     box(x+j*.23,.09,z+(j%2)*.24,.43,.12,.15,j%2?'#786a4d':'#685840');
+     sphere(x+j*.21,.18,z+.42,.14,j%2?'#768652':'#b19963',8);
+    }
+   }
    // The blocked cave is deliberately outside the walking path.
    box(20.5,.42,2.8,6.8,.84,1.7,'#525e5f');
    for(const [x,z,scale] of [[18.1,5,.9],[19.5,5,1.15],[21,4.9,1],[22.4,5,.85],[20,3.8,1.3]]){
@@ -1466,6 +1481,18 @@ function drawProps(g){
     box(x,.10,z,1.10,.18,.72,'#756f5e');
     box(x,.24,z,.80,.07,.61,'#a59e88');
     for(const dx of [-.32,.32])cone(x+dx,.32,z+.40,.17,.41,'#66835c',8);
+   }
+   // Pilgrim trail: carved waymarkers, a mountain rest bench and alpine sprigs.
+   for(const [x,z] of [[5,5],[16,32],[40,19]]){
+    box(x,.28,z,.60,.56,.45,'#817d6f');
+    box(x,.66,z,.76,.18,.57,'#b9aa8a');
+    for(const dx of [-.18,.18])box(x+dx,.79,z+.31,.085,.11,.06,'#5e695b');
+    for(let j=0;j<3;j++)cone(x-.46+j*.38,.08,z+.64,.17,.43,'#6c8661',7);
+   }
+   for(const [x,z] of [[11,32],[37,25]]){
+    for(const dx of [-.72,.72])box(x+dx,.27,z,.17,.54,.38,'#806146');
+    box(x,.57,z,1.77,.16,.49,'#a17d58');
+    box(x,.70,z,1.55,.10,.39,'#be996b');
    }
    // Weathered pilgrim walls, cliff steps and wind-carved overlooks.
    for(const [x,z] of [[12,20],[23,26],[32,16]]){
@@ -1535,6 +1562,20 @@ function drawProps(g){
     box(x,.13,z,.94,.25,.63,'#6c716a');
     box(x,.33,z,.66,.12,.48,'#9d9e89');
     wildBerry(x+.68,z+.34,2);
+   }
+   // Additional ancient workmanship: engraved steles, votive urns and
+   // broken keystones outside the sanctuary's north-south aisle.
+   for(const [x,z] of [[6,10],[30,12],[6,26],[30,27]]){
+    box(x,.57,z,.83,1.14,.56,'#797e73');
+    box(x,1.21,z,.96,.14,.67,'#aba996');
+    for(const dx of [-.19,.19])box(x+dx,.81,z+.29,.065,.38,.055,'#b6b199');
+    box(x,.53,z+.30,.56,.065,.055,'#b6b199');
+    for(let i=0;i<2;i++)cone(x-.31+i*.62,.06,z+.47,.20,.47,'#587658',7);
+   }
+   for(const [x,z] of [[5,14],[31,15],[8,28],[27,28]]){
+    cylinder(x,.08,z,.26,.26,.24,'#866c58',10);
+    cylinder(x,.33,z,.30,.30,.10,'#bc9773',10);
+    box(x+.43,.09,z+.18,.34,.18,.39,'#9e8470');
    }
    // Stonehenge-like sanctuary: eight monoliths around a ritual clearing.
    // Horizontal lintels are solidly above uprights, never coplanar.
@@ -1640,6 +1681,21 @@ function drawProps(g){
     box(x,.40,z,.82,.80,.68,'#969080');
     box(x,.86,z,.68,.12,.57,'#b9ab8c');
     box(x,1.01,z,.11,.27,.09,'#cbb178');
+   }
+   // Cloister cloaks, herb-drying racks and a narrow stone sanctuary marker.
+   for(const [x,z] of [[4.5,15],[30.1,17]]){
+    for(const dx of [-.78,.78])cylinder(x+dx,.07,z,.10,.10,1.55,'#6e503b',8);
+    box(x,1.66,z,1.86,.12,.17,'#9f8061');
+    for(const dx of [-.50,0,.50]){
+     cone(x+dx,.70,z,.16,.61,'#8c9362',8);
+     sphere(x+dx,1.37,z,.10,'#b3a36f',8);
+    }
+   }
+   for(const [x,z] of [[5,8],[30,8]]){
+    box(x,.49,z,.89,.98,.74,'#8e8d80');
+    box(x,1.04,z,1.03,.18,.83,'#c3b89b');
+    box(x,1.26,z,.14,.44,.15,'#b9a071');
+    box(x,1.39,z,.51,.11,.15,'#b9a071');
    }
    // Skyglass Abbey: rough limestone nave, steep slate roofs, oak doors,
    // cloister arches and a narrow square belfry, not a modern glass dome.
@@ -1807,6 +1863,21 @@ function drawProps(g){
     box(x,.32,z,.70,.11,.73,'#b69b75');
     cylinder(x,.42,z,.10,.10,.38,'#c9b58c',8);
     sphere(x,.86,z,.13,'#ebc884',8);
+   }
+   // Monastic reading stations and side-chapel reliquaries in the western
+   // and eastern galleries, carefully off the main crossing.
+   for(const [x,z] of [[16,25],[44,25],[16,32],[44,32]]){
+    box(x,.36,z,1.32,.72,.89,'#735239');
+    box(x,.78,z,1.44,.16,1.02,'#b18b5d');
+    box(x-.19,.91,z,.58,.06,.50,'#e4cfa9');
+    box(x+.27,1.04,z,.12,.23,.13,'#8d8067');
+    sphere(x+.27,1.34,z,.09,'#f1d38b',8);
+   }
+   for(const [x,z] of [[12,27],[48,27]]){
+    cylinder(x,.12,z,.44,.44,.50,'#8e8570',10);
+    box(x,.70,z,.98,.13,.92,'#c8b695');
+    box(x,1.08,z,.55,.63,.42,'#9b815a');
+    box(x,1.47,z,.64,.12,.49,'#d5bc8f');
    }
    // Skyglass Abbey's great library and scriptorium. Old observatory machinery
    // was removed entirely; the quest ledger remains at (30,11).
