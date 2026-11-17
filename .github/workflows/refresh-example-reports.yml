@@ -5,12 +5,14 @@ on:
     paths:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
+      - 'scripts/export-magnus-lichess.py'
       - 'client-v87/**'
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
+      - 'scripts/export-magnus-lichess.py'
       - 'client-v87/**'
   schedule:
     - cron: '15 3 * * 0'
@@ -68,7 +70,10 @@ jobs:
           data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
           assert data['schema']==1 and data['username']==user
           assert data['report']['version']=='fairplay-v87-review-reliability'
-          assert data['report']['username']==user and data['report']['games']>=50
+          source=data['source']
+          assert source['account']==('drnykterstein' if user=='magnuscarlsen' else user)
+          assert source['platform']==('lichess' if user=='magnuscarlsen' else 'chess.com')
+          assert data['report']['username']==source['account'] and data['report']['games']>=50
           assert isinstance(data['insights'],list) and len(data['insights'])>0
           print(slug,data['report']['games'],'verified games')
           PY
