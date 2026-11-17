@@ -1,0 +1,64 @@
+name: Build verified saved Chess.com example reports
+
+on:
+  push:
+    branches:
+      - fix/precomputed-chesscom-examples-195
+    paths:
+      - scripts/build_verified_examples.py
+      - .github/workflows/build-verified-examples.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: saved-chesscom-examples
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/fix/precomputed-chesscom-examples-195'
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - name: Check out example report branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install report collector dependencies
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Generate verified Hikaru Chess.com report
+        run: python -u scripts/build_verified_examples.py hikaru
+      - name: Generate verified Magnus Carlsen Chess.com report
+        run: python -u scripts/build_verified_examples.py magnuscarlsen
+      - name: Validate saved sources and counts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for slug, account in [('hikaru-nakamura', 'hikaru'), ('magnus-carlsen', 'magnuscarlsen')]:
+              path=Path('assets/example-reports-v2')/(slug+'.json')
+              saved=json.loads(path.read_text())
+              assert saved['source']=={'platform':'chess.com','account':account}
+              assert saved['report']['username']==account
+              assert saved['report']['games']==5000
+              assert saved['sample']['actualGames']==5000
+              assert len(saved['insights'])==5000
+              assert sum(saved['sample']['timeControls'].values())==5000
+              print(f"{account}: 5000 Chess.com games validated")
+          PY
+      - name: Commit real snapshots to the example branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/example-reports-v2/hikaru-nakamura.json assets/example-reports-v2/magnus-carlsen.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Publish verified Chess.com 5000-game example reports'
+          git push origin HEAD:"$BRANCH"
