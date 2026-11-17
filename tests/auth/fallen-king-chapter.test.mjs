@@ -316,6 +316,7 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.match(source,/for\(let x=1;x<=23;x\+\+\)updateTile\(w,x,5,'H'\)/);
  assert.match(source,/for\(const x of \[6,18\]\)updateTile\(w,x,y,'H'\)/);
  assert.match(source,/Sleeping guard's cot belongs to the corridor/);
+ assert.match(source,/A real rook chess piece lies horizontally/);
  assert.match(source,/Mara and Tovin/);
  assert.match(source,/A SMALL, unmistakeable window/);
  assert.match(source,/function fieldOfView\(\)/);
@@ -524,6 +525,7 @@ test('royal intro, blue pawn, awake rook and spy windows all use consistent asse
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(engine,/blue:\['#487ec4','#294d85','#91bbed'\]/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
+ assert.match(source,/recliningPiece\(11\.55,2\.43,'R','black'\)/);
  assert.match(source,/Solid stone partitions left and right/);
  assert.match(source,/One narrow barred peephole/);
  assert.match(source,/if\(\(x===6\|\|x===18\)&&z>=9&&z<=10\)return false/);
@@ -579,7 +581,7 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(engine,/Math\.imul\(hash\^id\.charCodeAt\(i\),16777619\)/);
  assert.match(engine,/const tone=npcColor\(n\)/);
  assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
- assert.match(engine,/gl\.polygonOffset\(1,1\)/);
+ assert.match(engine,/gl\.polygonOffset\(0,0\)/);
  assert.match(engine,/vertices\[i\]=x\+\.88-py/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/Low, open royal bed/);
