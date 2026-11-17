@@ -286,7 +286,7 @@ function objective(){
  if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';
  if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';
  if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';
- if(scene==='ridge')return 'Chapter Two: Follow the signpost. North: sealed cave, east: Skyglass Hill, south: old ruins.';
+ if(scene==='ridge')return 'Chapter Two: Follow the woodland crossroads to the cave, Skyglass Hill or old ruins.';
  if(scene==='hill')return 'Follow the winding uphill path to Skyglass Observatory.';
  if(scene==='ruins')return complete('ruinInscription')?'Explore the old sanctuary or return north to the forest fork.':'Explore the old ruins and examine the engraved altar (E).';
  if(scene==='observatory')return 'Skyglass Observatory: approach the front entrance and press E to enter.';
@@ -474,7 +474,7 @@ function afterMove(){const p=engine.getPlayer();
  }
  if(scene==='hill'){
   if(p.x<=2&&p.y>=26&&p.y<=33){setScene('ridge',{x:39,y:20,facing:'left'});return;}
-  if(p.x>=43&&p.y<=8){setScene('observatory',{x:30,y:46,facing:'up'});return;}
+  if(p.x>=43&&p.y<=8){setScene('observatory',{x:17,y:25,facing:'up'});return;}
  }
  if(scene==='ruins'&&p.y<=2&&p.x>=14&&p.x<=22){setScene('ridge',{x:11,y:34,facing:'up'});return;}
  if(scene==='observatory'&&p.y>=27&&p.x>=13&&p.x<=21){setScene('hill',{x:40,y:6,facing:'left'});return;}
@@ -643,7 +643,13 @@ function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
  if(scene==='watchtower'){g.box(x+.5,-.20,z+.5,1,.18,1,'#72716c');g.box(x+.5,-.018,z+.5,.96,.028,.96,(x+z)%2?'#999287':'#aaa294');return;}
- if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){const path=tile==='p'||tile==='s';const p=scene==='ridge'||scene==='hill'||scene==='observatory';g.box(x+.5,-.20,z+.5,1,.18,1,path?(p?'#7c7563':'#737d7b'):(p?'#375742':'#3e5457'));g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?'#b1aca0':'#827c67'):(p?'#47694e':'#536c69'));return;}
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'||scene==='skyglassInterior'){
+  const path=tile==='p'||tile==='s',woodland=scene==='ridge'||scene==='hill'||scene==='observatory',ruin=scene==='ruins';
+  const base=path?(ruin?'#827762':woodland?'#7c7563':'#737d7b'):(ruin?'#465b45':woodland?'#375742':'#3e5457');
+  g.box(x+.5,-.20,z+.5,1,.18,1,base);
+  g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?(ruin?'#9c9276':'#b1aca0'):'#827c67'):(ruin?'#5a7557':woodland?'#47694e':'#536c69'));
+  return;
+ }
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
  g.box(x+.5,-.20,z+.5,1,.19,1,base);
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
@@ -1292,6 +1298,28 @@ function drawProps(g){
    box(18,.55,24,2.35,.10,1.95,'#aaa99b');
    box(18,.64,24,1.55,.06,1.13,'#cfbd92');
    for(const x of [17.5,18,18.5])box(x,.685,24,.10,.025,.45,'#6b7a75');
+   // Moss, broken pottery, ivy and garden beds soften the empty grey masonry.
+   for(const [x,z] of [[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24]]){
+    for(let i=0;i<3;i++){
+     const off=i*.11-.12;
+     cone(x+off,.79,z+.42,.15,.29,'#638464',7);
+     sphere(x+off,1.02,z+.43,.12,i===1?'#a0a65f':'#658b6c',7);
+    }
+   }
+   for(const [x,z] of [[9,10],[26,11],[9,26],[26,26],[6,20],[29,20]]){
+    box(x,.09,z,.92,.18,.70,'#806d56');
+    box(x,.215,z,.76,.055,.54,'#9e8a71');
+    for(let i=0;i<3;i++)sphere(x-.25+i*.24,.38,z,.19,i%2?'#587c52':'#7e9968',8);
+   }
+   for(const [x,z] of [[13,14],[22,15],[14,27],[23,27]]){
+    cylinder(x,.05,z,.18,.18,.25,'#947a62',9);
+    cylinder(x,.33,z,.26,.26,.09,'#c2a185',9);
+    sphere(x,.47,z,.13,'#c4a273',8);
+   }
+   for(const [x,z] of [[7,14],[28,15],[7,23],[28,23]]){
+    box(x,.11,z,1.18,.22,.70,'#776c58');
+    box(x,.27,z,.94,.065,.54,'#aaa18b');
+   }
    for(const [x,z] of [[14,9],[22,9],[14,25],[22,25]]){cylinder(x,.04,z,.25,.25,.57,'#8c977f',10);sphere(x,.77,z,.27,'#6a876c',9);}
    // Partially collapsed arcade; centre remains an open traversable aisle.
    for(const z of [13,21])for(const x of [7,28]){
@@ -1592,8 +1620,11 @@ function drawVillageProps(g){
  for(const z of [18.05,20.95])for(const x of [43.6,44,48.7,49.1]){box(x,.23,z,.21,.46,.21,'#75593e');box(x,.51,z,.25,.12,.25,'#ae8b62');}
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.44,z,.055,.03,.07,'#dbc18a');}
-  for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.485,19.5,.065,.016,1.92,'#e1c28e');
+  // Full wooden deck at ground height: Oliver's feet are not swallowed by
+  // raised planks and no stone road can show through the finished span.
+  for(let x=43.75;x<=49.25;x+=.48){
+   box(x,-.050,19.5,.46,.058,2.85,Math.round(x*10)%2?'#b38c61':'#c19b70');
+   box(x,.014,19.5,.055,.014,2.66,'#e1c28e');
   }
   for(const z of [18.08,20.92]){
    box(46.3,.52,z,4.9,.10,.14,'#b8a078');
