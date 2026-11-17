@@ -89,3 +89,39 @@ body.elo-subpage header.navbar:has(.account-nav){flex-wrap:wrap!important;height
 
 /* Current page indication is consistent on every mobile navigation menu. */
 .mobile-chess-menu nav a[aria-current="page"],.elo-global-menu nav a[aria-current="page"]{background:#247da5!important;border-color:#74e8ff!important;border-left:5px solid #8cf2ff!important;color:#fff!important;box-shadow:inset 3px 0 #8cf2ff!important;font-weight:800!important}
+
+/* 184: The tool links use the same framed tiles as Log in / Sign up. */
+@media(max-width:1099px){
+ header.navbar .mobile-chess-menu nav > a,
+ body.elo-subpage header.navbar .elo-global-menu nav > a{
+  display:block!important;
+  padding:11px 13px!important;
+  margin:0!important;
+  background:#153e56!important;
+  border:1px solid #397e9b!important;
+  border-radius:9px!important;
+  color:#e5faff!important;
+  text-decoration:none!important;
+  font:700 13px system-ui,sans-serif!important;
+  box-shadow:none!important;
+ }
+ header.navbar .mobile-chess-menu nav > a:hover,
+ header.navbar .mobile-chess-menu nav > a:focus-visible,
+ body.elo-subpage header.navbar .elo-global-menu nav > a:hover,
+ body.elo-subpage header.navbar .elo-global-menu nav > a:focus-visible{
+  background:#20526b!important;
+  border-color:#4d91a9!important;
+ }
+}
+/* Subtle active state on every screen size, without the neon glow. */
+header.navbar .mobile-chess-menu nav > a[aria-current="page"],
+header.navbar .mobile-chess-menu nav > a.elo-menu-active,
+body.elo-subpage header.navbar .elo-global-menu nav > a[aria-current="page"],
+body.elo-subpage header.navbar .elo-global-menu nav > a.elo-menu-active{
+ background:#1b526b!important;
+ border:1px solid #498ba3!important;
+ border-radius:9px!important;
+ color:#e6f6ff!important;
+ font-weight:700!important;
+ box-shadow:none!important;
+}

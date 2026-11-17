@@ -28,10 +28,6 @@
   if(name===currentSection){
    a.classList.add('elo-menu-active');
    a.setAttribute('aria-current','page');
-   a.style.setProperty('background','#247da5','important');
-   a.style.setProperty('border-color','#74e8ff','important');
-   a.style.setProperty('color','#fff','important');
-   a.style.setProperty('box-shadow','inset 4px 0 #8cf2ff','important');
   }
   nav.append(a);
  });
