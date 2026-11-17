@@ -30,8 +30,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
-          cache-dependency-path: scripts/build_verified_examples.py
       - name: Install report collector dependencies
         run: python -m pip install --disable-pip-version-check requests
       - name: Generate verified Hikaru Chess.com report

@@ -13,10 +13,10 @@ const steps=[
 const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},merrick:{},lumber:{},ropes:{},bridge:{}};
 
 const freshChapter=()=>({scene:'intro',flags:{},coins:[],step:0,position:null});
-let engine=null,baseWorld=null,scene='intro',chapter=freshChapter(),activePuzzle=null,storyHandlersBound=false;
+let engine=null,baseWorld=null,scene='intro',chapter=freshChapter(),activePuzzle=null,storyHandlersBound=false,exitPromptArmed=true;
 const complete=id=>!!chapter.flags[id];
 function persist(){try{chapter.coins=[];if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return freshChapter();}
+function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','ridge','observatory','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return freshChapter();}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -141,6 +141,8 @@ function villageWorld(){
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
+ // The visible eastbound road continues through the former forest border, not into a wall.
+ for(let x=48;x<w.width;x++)for(const y of [18,19,20])updateTile(w,x,y,'p');
  w.spawn={x:26,y:29};
  // The six older statue display pieces are retired from Willowmere.
  w.showcase=[];
@@ -158,17 +160,82 @@ function villageWorld(){
  w.blockers=[];villageDecorCollisions(w);
  return w;
 }
-function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
+// Chapter Two: a rising woodland trail and the ruined Skyglass Observatory.
+// Separate world layouts and quest flags preserve all Chapter One scenes and save slots.
+function ridgeWorld(){
+ const w=createWorld(30,45,'.');
+ // The approach winds upward: a broad, navigable two-to-four-tile trail.
+ const bends=[[15,41],[15,34],[9,34],[9,26],[21,26],[21,18],[12,18],[12,9],[15,9],[15,2]];
+ function path(x1,y1,x2,y2){
+  let x=x1,y=y1;
+  for(;;){for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
+   const xx=x+dx,yy=y+dz;
+   if(xx>0&&xx<w.width-1&&yy>0&&yy<w.height-1)updateTile(w,xx,yy,'p');
+  }
+  if(x===x2&&y===y2)break;
+  x+=Math.sign(x2-x);y+=Math.sign(y2-y);
+  }
+ }
+ for(let i=1;i<bends.length;i++)path(...bends[i-1],...bends[i]);
+ for(let y=1;y<44;y++)for(let x=1;x<29;x++){
+  const t=w.tiles[y][x];
+  if(t==='.'&&(x<=2||x>=27||(x*13+y*7)%17===0))updateTile(w,x,y,'T');
+ }
+ // Clear both entrances after tree placement.
+ for(let y=1;y<=5;y++)for(let x=12;x<=18;x++)updateTile(w,x,y,'p');
+ for(let y=38;y<=43;y++)for(let x=12;x<=18;x++)updateTile(w,x,y,'p');
+ w.spawn={x:15,y:41};w.music='willowmere';
+ w.npcs=[
+  {id:'ridge-pilgrim',name:'Mira the Pilgrim',x:19,y:35,piece:'B',color:'purple',lines:['You repaired the Willowmere bridge? The caravans can travel again!','Keep climbing north. The Skyglass Observatory sits above the clouds.']},
+  {id:'ridge-merchant',name:'Holloway',x:6,y:27,piece:'P',color:'green',lines:['News travels uphill faster than a horse. Everyone heard about the bridge.','The astronomers kept records of the royal seals. Edwin may not have destroyed them.']},
+  {id:'ridge-cartographer',name:'Cartographer Elin',x:18,y:13,piece:'N',color:'blue',lines:['These switchbacks lead to Skyglass. Watch the pale stones on the bends.','Nobody has tended the star mirrors since Edwin took the throne.']}
+ ];
+ w.blockerRects=[{x:24.3,z:29.0,w:1.3,d:.55},{x:4.8,z:20,w:1.1,d:.65}];
+ return w;
+}
+function observatoryWorld(){
+ const w=createWorld(35,27,'.');
+ for(let y=1;y<26;y++)for(let x=1;x<34;x++){
+  const edge=x<=2||x>=32||y<=2||y>=24;
+  if(edge)updateTile(w,x,y,'T');
+ }
+ for(let y=4;y<=23;y++)for(let x=9;x<=25;x++){
+  if((x-17)*(x-17)+(y-13)*(y-13)<116)updateTile(w,x,y,'p');
+ }
+ // Wide southern entrance; no puzzle blocks access to the observatory.
+ for(let y=20;y<=25;y++)for(let x=14;x<=20;x++)updateTile(w,x,y,'p');
+ // The north end is a raised star-chart terrace instead of another village.
+ for(let y=4;y<=10;y++)for(let x=12;x<=22;x++)updateTile(w,x,y,'s');
+ w.spawn={x:17,y:22};w.music='willowmere';
+ w.npcs=[
+  {id:'skyglass-curator',name:'Curator Sable',x:15,y:10,piece:'B',color:'white',lines:['Welcome to Skyglass Observatory, traveller. Our great lens has not turned since the coronation.','Edwin demanded every record of the royal seal. One ledger survived beneath the star chart.']},
+  {id:'skyglass-mechanic',name:'Mechanist Orin',x:23,y:15,piece:'R',color:'orange',lines:['You opened the Willowmere bridge? Then perhaps there is hope for this place too.','The astrolabe needs repairing, but first you should read the surviving royal ledger.']},
+  {id:'skyglass-apprentice',name:'Apprentice Faye',x:10,y:17,piece:'P',color:'blue',lines:['The sky used to glow through the great glass lens. Now its light is gone.','Look for the brass star chart at the north terrace.']}
+ ];
+ // These heavy instruments have physical footprints; the terrace is otherwise open.
+ w.blockerRects=[{x:17.5,z:6.8,w:3.4,d:2.9},{x:24.5,z:9.2,w:1.6,d:1.2},{x:9.5,z:9.2,w:1.6,d:1.2}];
+ return w;
+}
+function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='observatory'?observatoryWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
 function teleport(destination){
- if(!engine||!['cell','sewer','forest','village'].includes(destination))return;
- activePuzzle=null;
- for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
- setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:{x:26,y:29,facing:'down'});
+ if(!engine||!['cell','sewer','forest','village','ridge','observatory'].includes(destination))return;
+ activePuzzle=null;exitPromptArmed=true;
+ for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-story-chapter-confirm','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
+ setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:destination==='ridge'?{x:15,y:41,facing:'up'}:destination==='observatory'?{x:17,y:22,facing:'up'}:{x:26,y:29,facing:'down'});
  engine.resumeGameplay?.();
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
 }
 function say(name,...lines){engine.say(name,lines);}
-function objective(){if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';if(!complete('lumber'))return 'Ask Baker Bea about timber for the broken bridge.';if(!complete('ropes'))return 'Find Courier Nox and work out the ropes.';if(!complete('bridge'))return 'Go to the east bridge and solve the final engineering puzzle.';return 'The bridge is restored. Chapter One complete!';}
+function objective(){
+ if(scene==='cell')return complete('cell')?'The drain is open. Press E at the toilet to escape.':complete('inspectedToilet')?'Find the mechanism beneath the toilet. Press E to examine it.':'Find a way out of the prison cell.';
+ if(scene==='sewer')return !complete('exit')?'Find the sewer exit.':'Escape into the forest (E).';
+ if(scene==='forest')return complete('watchChest')?'Pass the open barrier into Willowmere.':'Enter the watchtower (E) and unlock the gate.';
+ if(scene==='watchtower')return complete('watchChest')?'Leave the watchtower through the south door.':'Examine the chest inside the watchtower (E).';
+ if(scene==='ridge')return 'Chapter Two: Follow the climbing forest path north to Skyglass Observatory.';
+ if(scene==='observatory')return complete('skyglassLedger')?'Chapter Two: The royal seal was forged. Investigate Skyglass Observatory.':'Chapter Two: Examine the brass star chart on the northern terrace (E).';
+ if(!complete('bridge'))return 'Press E at the east bridge to repair it and reopen the road.';
+ return 'Cross the repaired bridge and continue east to begin Chapter Two.';
+}
 function updateObjective(){const o=$('fallen-story-objective'),h=$('fallen-pause-title');if(o&&h&&o.parentNode!==h.parentNode){h.parentNode.insertBefore(o,h);o.style.cssText='display:block;position:static;margin:0 auto 12px;padding:10px;border:1px solid #a49270;border-radius:6px;background:#202632;color:#e8d7ae;text-align:center;font-size:14px';}if(o){o.textContent='Objective: '+objective();o.hidden=scene==='intro';}const d=$('fallen-story-interact');if(d)d.hidden=true;}
 function start(api){
  engine=api;
@@ -200,6 +267,8 @@ function start(api){
   $('fallen-story-art').addEventListener('click',nextIntro);
   $('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);
   $('fallen-story-puzzle-close').addEventListener('click',closePuzzle);
+  $('fallen-story-chapter-yes')?.addEventListener('click',advanceChapterTwo);
+  $('fallen-story-chapter-no')?.addEventListener('click',cancelChapterTwo);
   $('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});
  }
  updateObjective();
@@ -228,8 +297,8 @@ function recoverHiddenIntro(){
  finishIntroduction();
  return true;
 }
-function blockedInput(){recoverHiddenIntro();return scene==='intro'||!!activePuzzle;}
-function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&scene==='intro'){e.preventDefault();e.stopImmediatePropagation();finishIntroduction();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
+function blockedInput(){recoverHiddenIntro();return scene==='intro'||!!activePuzzle||!$('fallen-story-chapter-confirm')?.hidden;}
+function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(!$('fallen-story-chapter-confirm')?.hidden){if(['enter','e',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)advanceChapterTwo();}else if(k==='escape'){e.preventDefault();e.stopImmediatePropagation();cancelChapterTwo();}return;}if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&scene==='intro'){e.preventDefault();e.stopImmediatePropagation();finishIntroduction();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
 function showIntro(){
  scene='intro';
  $('fallen-story-intro').hidden=false;
@@ -320,10 +389,37 @@ function beforeMove(x,y){
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
+function advanceChapterTwo(){
+ if(scene!=='village'||!complete('bridge'))return;
+ $('fallen-story-chapter-confirm').hidden=true;
+ chapter.flags.chapterEnd=true;
+ setScene('ridge',{x:15,y:41,facing:'up'});
+ engine.resumeGameplay?.();
+ say('Oliver','Beyond the bridge, the road climbs toward a forgotten observatory. The search for my crown is not over.');
+}
+function cancelChapterTwo(){
+ $('fallen-story-chapter-confirm').hidden=true;
+ document.getElementById('fallen-canvas')?.focus?.({preventScroll:true});
+}
 const coinSpots={}; // Empty until the final coin locations are approved.
 function afterMove(){const p=engine.getPlayer();
- if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Oliver','The road east is open. I must continue my journey.');}
- persist();updateObjective();}
+ if(scene==='village'&&complete('bridge')){
+  // Ask once on reaching the eastern map edge; declining lets the player walk back.
+  if(p.x<48.4||p.y<17||p.y>21)exitPromptArmed=true;
+  else if(p.x>=49.5&&exitPromptArmed){
+   exitPromptArmed=false;
+   $('fallen-story-chapter-confirm').hidden=false;
+   $('fallen-story-chapter-yes')?.focus?.({preventScroll:true});
+   return;
+  }
+ }
+ if(scene==='ridge'&&p.y<=4&&p.x>=10&&p.x<=20){
+  setScene('observatory',{x:17,y:22,facing:'up'});
+  say('Oliver','Skyglass Observatory. The astronomers here may know how Edwin forged the royal seal.');
+  return;
+ }
+ persist();updateObjective();
+}
 function near(p,x,y,r=2){return Math.abs(p.x-x)+Math.abs(p.y-y)<=r;}
 function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.getPlayer(),{x,y}=p;
  if(scene==='cell'){
@@ -372,20 +468,36 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   if(near(p,8,12,2)){setScene('forest',{x:27,y:11,facing:'down'});return true;}
   return true;
  }
+ if(scene==='ridge'){
+  if(y>=40&&near(p,15,42,3)){say('Oliver','The repaired bridge is behind me. The path winds uphill through the pines.');return true;}
+  if(y<=6&&x>=10&&x<=20){setScene('observatory',{x:17,y:22,facing:'up'});say('Oliver','The Skyglass Observatory lies ahead.');return true;}
+  return false;
+ }
+ if(scene==='observatory'){
+  if(near(p,17,8,4)){
+   if(!complete('skyglassLedger')){chapter.flags.skyglassLedger=true;persist();say('Royal Ledger','A coronation register shows the royal seal replaced on the night Oliver was arrested.','The mark of Edwin is concealed beneath a false signature.');}
+   else say('Oliver','Edwin forged the seal. I need to find someone who can expose his deception.');
+   updateObjective();return true;
+  }
+  if(y>=23&&near(p,17,24,4)){setScene('ridge',{x:15,y:6,facing:'down'});return true;}
+  return false;
+ }
  if(scene==='village'){
-  if(near(p,17,19,2)&&!complete('lumber')){openPuzzle('lumber');return true;}
-  if(complete('lumber')&&near(p,16,28,2)&&!complete('ropes')){openPuzzle('ropes');return true;}
-  if(x>=41&&y>=17&&y<=21){
-   if(!complete('lumber')||!complete('ropes'))say('Oliver','Timber and rope are still needed to repair the bridge.');
-   else if(!complete('bridge'))openPuzzle('bridge');
-   else say('Oliver','The bridge is ready. The way ahead is clear.');
+  if(near(p,17,19,2)&&!complete('lumber')){say('Baker Bea','The bridge needs strong timber. There is wood by the river if you want to help.');return true;}
+  if(near(p,16,28,2)&&!complete('ropes')){say('Courier Nox','The ropes for the bridge are ready. Just press E by the bridge to rebuild it.');return true;}
+  if(x>=41&&x<=48&&y>=17&&y<=22){
+   if(!complete('bridge')){
+    chapter.flags.lumber=true;chapter.flags.ropes=true;chapter.flags.bridge=true;
+    setScene('village',p);
+    say('Oliver','With the timber and rope at hand, the bridge is repaired! I can cross east now.');
+   }else say('Oliver','The bridge is safe. Walk east along the road to continue my journey.');
    return true;
   }
   return false;
  }
  return false;}
 function beforeHouse(){return false;}
-function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest'||scene==='watchtower';}
+function customScene(){return scene==='intro'||scene==='cell'||scene==='sewer'||scene==='forest'||scene==='watchtower'||scene==='ridge'||scene==='observatory';}
 
 // Deliberate material pass: shared deterministic details on the ORIGINAL WebGL meshes.
 // Keep small details in static geometry; do not trigger puzzles or alter collision tiles.
@@ -455,6 +567,7 @@ function drawGround(g,x,z){
  const w=engine.getWorld(),tile=w.tiles[z]?.[x]||'H',isPalace=scene==='intro'&&steps[Math.min(chapter.step,steps.length-1)].scene!=='prison';
  const base=isPalace?'#9d856d':scene==='sewer'?'#43575a':scene==='forest'?'#496b4f':'#696f6d';
  if(scene==='watchtower'){g.box(x+.5,-.20,z+.5,1,.18,1,'#72716c');g.box(x+.5,-.018,z+.5,.96,.028,.96,(x+z)%2?'#999287':'#aaa294');return;}
+ if(scene==='ridge'||scene==='observatory'){const path=tile==='p'||tile==='s';const p=scene==='ridge';g.box(x+.5,-.20,z+.5,1,.18,1,path?(p?'#7c7563':'#737d7b'):(p?'#375742':'#3e5457'));g.box(x+.5,-.014,z+.5,.94,.02,.94,path?(tile==='s'?'#b1aca0':'#827c67'):(p?'#47694e':'#536c69'));return;}
  if(scene==='forest'){const path=tile==='p'||tile==='s';g.box(x+.5,-.20,z+.5,1,.18,1,path?'#7e7661':'#37553e');if(path){g.box(x+.5,-.025,z+.5,.94,.025,.94,(x+z)%4===0?'#908267':'#746e5c');}else{g.box(x+.5,-.014,z+.5,.94,.02,.94,(x*3+z)%7===0?'#507451':'#466647');}return;}
  g.box(x+.5,-.20,z+.5,1,.19,1,base);
  if(scene==='sewer'&&tile==='w'){g.box(x+.5,-.045,z+.5,1,.055,1,'#355d68');return;}
@@ -1048,6 +1161,41 @@ function drawProps(g){
   box(76.5,.08,25.5,2.15,.15,1.50,'#637373');
   for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
  }else if(scene==='watchtower'){drawWatchtowerInterior(g);return;}
+ if(scene==='ridge'||scene==='observatory'){
+  const w=engine.getWorld();
+  if(scene==='ridge'){
+   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)if(w.tiles[z][x]==='T'&&((x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
+   for(const [x,z] of [[15,36],[9,29],[21,21],[12,13]]){
+    cylinder(x,.08,z,.11,.13,.90,'#77604a',8);
+    cone(x,1.0,z,.18,.26,'#e1b86f',9);
+    sphere(x,1.20,z,.09,'#ffdc9d',8);
+   }
+   // A fallen log, mountain cairns and a broad valley overlook.
+   for(const [x,z] of [[24.3,29],[4.8,20]]){box(x,.21,z,1.2,.42,.48,'#7b654e');box(x,.46,z,.92,.08,.43,'#a08a64');}
+   for(const [x,z] of [[22,32],[5,17],[23,9]]){model('stones',x,.01,z,1.0,.65,.83);sphere(x,1.04,z,.10,'#a2b2a3',8);}
+   box(16,.10,4.8,3.5,.20,1.4,'#9b9e8e');
+   box(16,.40,4.8,3.1,.40,.30,'#7b8e8c');
+  }else{
+   // Skyglass is an open-air hilltop observatory, not another village or watchtower.
+   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)if(w.tiles[z][x]==='T'&&(x+z)%3!==0)g.tree?.(x+.5,z+.5);
+   cylinder(17,.10,12,.92,.92,.20,'#8f9690',16);
+   cylinder(17,.34,12,.72,.72,.28,'#c4bda7',16);
+   for(let i=0;i<12;i++){const a=i*Math.PI/6;box(17+Math.cos(a)*1.75,.05,12+Math.sin(a)*1.75,.65,.09,.38,i%2?'#9fa7a1':'#6a8787');}
+   // A tilted brass orrery and its three painted planets.
+   cylinder(17,.39,6.8,1.35,1.35,.40,'#606d70',16);
+   cylinder(17,.82,6.8,.94,.94,.14,'#d2b87f',16);
+   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(17+Math.cos(a)*.65,.98,6.8+Math.sin(a)*.65,.13,.025,.29,'#445c66');}
+   sphere(17,1.43,6.8,.38,'#577f96',12);
+   for(const [x,z,c] of [[16,6.4,'#ddb27a'],[18.2,7.3,'#a8bec7'],[17.6,5.7,'#c47b7d']])sphere(x,1.17,z,.16,c,10);
+   for(const x of [9.5,24.5]){cylinder(x,.12,9.2,.70,.70,.28,'#788889',12);sphere(x,.56,9.2,.45,'#5f8c91',10);}
+   for(const [x,z] of [[8,13],[26,14],[12,20],[24,21]])model('stones',x,.01,z,1,.4,.8);
+   // Entry arch and engraved sign, with open sides for free exploration.
+   for(const x of [14,20])cylinder(x,.05,21.7,.22,.22,2.0,'#7d8b8b',12);
+   box(17,2.08,21.7,6.4,.28,.45,'#7f9795');
+   box(17,2.14,22.0,3.7,.14,.06,'#dcc894');
+  }
+  return;
+ }
  if(scene==='forest'){
   const world=engine.getWorld();
   // A forest road with substantial canopies and mossy stones, not random blocks in walkable areas.
@@ -1315,6 +1463,11 @@ function drawEffects(g,t){
    box(x,h,z,.29,.012,.045,'#8fbfbd');
   }
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
+  return;
+ }
+ if(scene==='ridge'||scene==='observatory'){
+  if(scene==='ridge')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
+  else for(let i=0;i<5;i++){const a=i*1.26+t*.15;sphere(17+Math.cos(a)*2,1.35,12+Math.sin(a)*2,.048,'#a4d7d7',7);}
   return;
  }
  if(scene==='forest'){

@@ -62,5 +62,31 @@ test('Fallen King opens account slots, launches New Game and displays first intr
  expect(errors).toEqual([]);
  expect(renderErrors).toEqual([]);
  console.log('CHECKPOINT gameplay playable');
+ // Exercise the actual browser/WebGL path through bridge repair and both new scenes.
+ await page.locator('[data-fallen-jump="village"]').click();
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:43,y:19,facing:'right'});
+  window.FallenKingStory.talk();
+ });
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().tiles[19][45])).toBe('p');
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().tiles[19][51])).toBe('p');
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:49.5,y:19,facing:'right'});
+  window.FallenKingStory.afterMove();
+ });
+ await expect(page.locator('#fallen-story-chapter-confirm')).toBeVisible();
+ await page.locator('#fallen-story-chapter-yes').click();
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(30);
+ await page.waitForTimeout(450);
+ await page.evaluate(()=>{
+  const e=window.FallenKingEngine;
+  e.setWorld(e.getWorld(),{x:15,y:3,facing:'up'});
+  window.FallenKingStory.afterMove();
+ });
+ await expect.poll(()=>page.evaluate(()=>window.FallenKingEngine.getWorld().width)).toBe(35);
+ await page.waitForTimeout(700);
+ expect(renderErrors).toEqual([]);
  expect(errors).toEqual([]);
 });
