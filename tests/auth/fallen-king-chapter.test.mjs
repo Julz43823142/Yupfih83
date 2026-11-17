@@ -22,7 +22,7 @@ test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
  assert.match(source,/chapter\.flags\.skyglassLedger=true/);
  assert.match(source,/North: Hidden Cave|NORTH: Hidden Cave/);
- assert.match(page,/fallen-king-story\.js\?v=61/);
+ assert.match(page,/fallen-king-story\.js\?v=62/);
 });
 test('bridge wooden ground, cave spoiler-free dialogue and all teleports are wired',()=>{
  assert.match(engine,/woodBridgeTile\?\.\(x,z\)/);
@@ -63,6 +63,16 @@ test('second pass enriches every Chapter Two location without changing navigatio
  assert.match(source,/Relics from an ancient pilgrimage/);
  assert.match(source,/Monastery life: bundled firewood/);
  assert.match(source,/Interior life: incense braziers/);
+});
+test('intro has no saves-per-account promotion and Abbey has a medieval, nonflickering floor',()=>{
+ assert.doesNotMatch(page,/Three saves per account/i);
+ assert.match(page,/Choose an adventure<\/p>/);
+ assert.match(source,/Single solid floor tile: no coplanar base\/inlay to shimmer/);
+ assert.match(source,/g\.box\(x\+\.5,-\.052,z\+\.5,1,\.104,1,floorTone\)/);
+ assert.match(source,/Old observatory machinery/);
+ assert.doesNotMatch(source,/Grand Skyglass interior: concentric galleries/);
+ assert.match(source,/royal manuscript in the north/);
+ assert.match(source,/align collisions|w\.blockerRects=\[\{x:30,z:11\.2/);
 });
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
