@@ -80,7 +80,7 @@ def export_rows():
         if not kind:
             continue
         control = headers.get('TimeControl', '')
-        if not re.fullmatch(r'[0-9]{1,5}\\+[0-9]{1,2}', control):
+        if not re.fullmatch(r'[0-9]{1,5}[+][0-9]{1,2}', control):
             continue
         try:
             ended = datetime.strptime(
