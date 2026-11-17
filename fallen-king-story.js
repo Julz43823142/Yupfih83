@@ -94,7 +94,8 @@ function forestWorld(){
  for(let y=7;y<=10;y++)for(let x=31;x<=33;x++)updateTile(w,x,y,'p');
  // Keep the old footpath walkable without placing any display pedestals.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
- w.signs=[{x:9,y:13,text:'Willowmere Village lies east, beyond the watchtower. Keep to the marked path.'}];
+ w.signs=[{x:9,y:13,text:'Willowmere Village East'}];
+ w.blockerRects=[{x:9.5,z:13.5,w:2.2,d:.30},{x:30.2,z:12.9,w:.6,d:.5}];
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -110,6 +111,10 @@ function watchtowerWorld(){
  // The keeper is a solid, interactive rook; crates and the chest cannot be walked through.
  w.npcs=[{id:'watchtower-keeper',name:'Tower Keeper',x:5,y:6,piece:'R',color:'white',lines:['The barrier key is locked in that chest.','I cannot open it: I do not know the code. Perhaps you can solve the lock.']}];
  w.blockers=[[8,4],[3,6],[4,6],[13,6],[14,6],[3,10],[4,10],[5,10],[13,10],[14,10],[12,9],[13,9]];
+ // Solid footprint of the large chest and long side crates, not just their centres.
+ w.blockerRects=[{x:8.5,z:4.5,w:2.65,d:1.7},{x:3.7,z:6.0,w:1.4,d:2.2},
+ {x:13.2,z:6.0,w:1.4,d:2.2},{x:3.9,z:10.0,w:3.5,d:1.5},
+ {x:13.4,z:10.0,w:2.6,d:1.4}];
  w.spawn={x:8,y:10};w.music='willowmere';
  return w;
 }
@@ -785,9 +790,10 @@ function drawProps(g){
   if(scene==='intro'){
    // The guard is still AWAKE when Oliver is imprisoned.
    piece(12.1,2.38,'R','black',false);
-  }else if(g.recliningPiece)g.recliningPiece(12.1,2.38,'R','black');else{
-   piece(12.0,2.45,'R','black',false);
-   features(12.0,2.45,'R','black',false,'guard');
+  }else if(g.recliningPiece)g.recliningPiece(12.1,2.38,'R','black');
+  else{ // Headless-test fallback; real gameplay uses the fully reclined mesh.
+   box(12.0,.47,2.42,1.75,.18,.42,'#293d63');
+   sphere(11.35,.57,2.42,.24,'#405779',9);
   }
   box(11.1,.61,2.7,.34,.19,.43,'#48566d');
   // Mara and Tovin: recognisable chess-piece silhouettes, one in each neighbouring cell.
@@ -825,10 +831,14 @@ function drawProps(g){
   // Walls are only modelled along the actual winding walkways; dead ends are visibly solid stone.
   for(let z=1;z<world.height-1;z++)for(let x=1;x<world.width-1;x++){
    if(world.tiles[z][x]!=='H')continue;
-   const around=[[x-1,z],[x+1,z],[x,z-1],[x,z+1]];
-   if(!around.some(([xx,zz])=>world.tiles[zz]?.[xx]==='s'))continue;
-   if((x+z)%4===0)model('wall',x+.5,0,z+.5,.98,2.1,.98);
-   else{box(x+.5,.82,z+.5,.99,1.64,.98,(x+z)%4===0?'#4c6061':'#536467');box(x+.5,1.72,z+.5,1.02,.12,1.02,'#818c87');}
+   // Seal all visible solid tiles, including inside corners. Sparse GLB wall
+   // meshes left walkable-looking holes along the edges of the corridors.
+   let exposed=false;
+   for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)
+    if((dx||dz)&&world.tiles[z+dz]?.[x+dx]==='s')exposed=true;
+   if(!exposed)continue;
+   box(x+.5,0,z+.5,1.04,2.85,1.04,(x+z)%4===0?'#4c6061':'#536467');
+   box(x+.5,2.82,z+.5,1.08,.16,1.08,'#818c87');
    if((x*7+z*5)%13===0){box(x+.5,.13,z+.5,.48,.14,.3,'#577b70');model('stones',x+.5,.01,z+.5,.49,.28,.44);}
    // Damp runs down individual stone joints instead of noisy random block decorations.
    if((x*13+z*17)%23===0){box(x+.28,1.19,z+.02,.075,1.22,.06,'#38534f');box(x+.26,.47,z+.04,.15,.30,.07,'#4c6c61');}
