@@ -966,8 +966,8 @@ function drawProps(g){
   box(9.5,0,13.5,.18,1.30,.20,'#644a34');
   box(9.5,1.22,13.5,2.80,.90,.16,'#8b6545');
   box(9.5,1.26,13.61,2.62,.77,.045,'#dfc795');
-  drawSignLetters(g,9.5,13.66,'WILLOWMERE',1.54);
-  drawSignLetters(g,9.5,13.66,'VILLAGE EAST',1.18);
+  drawSignLetters(g,9.5,13.66,'WILLOWMERE',1.97);
+  drawSignLetters(g,9.5,13.66,'VILLAGE EAST',1.56);
   drawWaypost(g,30.2,12.9,'#d8c3a1');
   // Watchtower forecourt: paving, flags, lanterns and stored supplies.
   for(const x of [26.5,27.5,28.5])for(const z of [8.5,9.5])
@@ -1143,7 +1143,7 @@ function drawVillageProps(g){
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.354,19.5,.07,.022,1.96,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.468,19.5,.07,.022,1.96,'#e1c28e');
   }
   for(const z of [18.3,20.7]){
    box(46.3,.49,z,4.9,.12,.17,'#b8a078');
