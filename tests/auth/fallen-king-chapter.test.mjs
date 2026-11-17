@@ -48,7 +48,7 @@ test('surface depth audit prevents known bridge and rook z-fighting regressions'
 test('inn right-hand wooden post clears stone detailing without altering collision',()=>{
  assert.match(engine,/if\(h\.name==='The Inn'&&side===1\)continue/);
  assert.match(engine,/box\(x\+w\/2-\.42,\.2,face\+\.33,\.20,1\.9,\.12,'#795c48'\)/);
- assert.match(page,/fallen-king\.js\?v=62/);
+ assert.match(page,/fallen-king\.js\?v=63/);
 });
 test('gameplay continues rendering after one failed frame and hidden pause does not trap movement',()=>{
  const frame=engine.slice(engine.indexOf('function frame(ms){'),engine.indexOf('function togglePause(',engine.indexOf('function frame(ms){')));
@@ -114,7 +114,7 @@ test('forest sign displays Willowmere Village East and crates have real collisio
 test('sewer walls are continuous at corners and bridge trim is above the planks',()=>{
  assert.ok(source.includes('for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)'));
  assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
- assert.ok(source.includes("box(x+.3,.485,19.5"));
+ assert.ok(source.includes("box(x,.014,19.5"),"bridge timber trim must sit near walking height");
 });
 test('dark sewer uses distance haze only outside the untouched cinematic intro',()=>{
  assert.ok(engine.includes('uniform float sewerMood'));
