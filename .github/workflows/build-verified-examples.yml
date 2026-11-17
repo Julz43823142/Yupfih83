@@ -3,6 +3,7 @@ name: Build verified saved Chess.com example reports
 on:
   push:
     branches:
+      - main
       - fix/precomputed-chesscom-examples-195
     paths:
       - scripts/build_verified_examples.py
@@ -18,13 +19,14 @@ concurrency:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/fix/precomputed-chesscom-examples-195'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/precomputed-chesscom-examples-195'
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
       - name: Check out example report branch
         uses: actions/checkout@v4
         with:
+          ref: fix/precomputed-chesscom-examples-195
           persist-credentials: true
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,7 +56,7 @@ jobs:
           PY
       - name: Commit real snapshots to the example branch
         env:
-          BRANCH: ${{ github.ref_name }}
+          BRANCH: fix/precomputed-chesscom-examples-195
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
