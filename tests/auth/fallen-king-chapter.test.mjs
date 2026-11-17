@@ -81,6 +81,21 @@ test('sewer walls are continuous at corners and bridge trim is above the planks'
  assert.ok(source.includes("box(x+.5,0,z+.5,1.04,2.85,1.04"));
  assert.ok(source.includes("box(x+.3,.468,19.5"));
 });
+test('dark sewer uses distance haze only outside the untouched cinematic intro',()=>{
+ assert.ok(engine.includes('uniform float sewerMood'));
+ assert.ok(engine.includes('smoothstep(2.,11.,distance(worldPos,fogFocus))'));
+ assert.ok(engine.includes("window.FallenKingStory?.fieldOfView?.()?.radius===10?1:0"));
+ assert.ok(source.includes('const crackPatterns=['));
+ const patterns=source.match(/\[\[[-.0-9,\[\]]+\]\]/g)||[];
+ assert.ok(patterns.length>=20,'twenty different crack outlines should be present');
+});
+test('visible village market objects block movement without making small grass solid',()=>{
+ assert.ok(source.includes('function villageDecorCollisions(w)'));
+ assert.ok(source.includes('villageDecorCollisions(w)'));
+ assert.ok(source.includes('rect(31.3,28.9,2.15,1.28)'));
+ assert.ok(source.includes('rect(27.3,27.1,1.65,1.65)'));
+ assert.ok(source.includes('rect(x,z,.70,.70)'));
+});
 test('chapter one and existing WebGL engine are valid browser scripts',()=>{
  assert.doesNotThrow(()=>new Script(source));
  assert.doesNotThrow(()=>new Script(engine));
@@ -301,7 +316,7 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.match(source,/for\(let x=1;x<=23;x\+\+\)updateTile\(w,x,5,'H'\)/);
  assert.match(source,/for\(const x of \[6,18\]\)updateTile\(w,x,y,'H'\)/);
  assert.match(source,/Sleeping guard's cot belongs to the corridor/);
- assert.match(source,/recliningPiece\(12\.1,2\.38,'R','black'\)/);
+ assert.match(source,/The sleeping guard lies fully sideways/);
  assert.match(source,/Mara and Tovin/);
  assert.match(source,/A SMALL, unmistakeable window/);
  assert.match(source,/function fieldOfView\(\)/);
@@ -510,7 +525,7 @@ test('royal intro, blue pawn, awake rook and spy windows all use consistent asse
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(engine,/blue:\['#487ec4','#294d85','#91bbed'\]/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
- assert.match(source,/else if\(g\.recliningPiece\)/);
+ assert.match(source,/No standing chess-piece silhouette is rendered/);
  assert.match(source,/Solid stone partitions left and right/);
  assert.match(source,/One narrow barred peephole/);
  assert.match(source,/if\(\(x===6\|\|x===18\)&&z>=9&&z<=10\)return false/);
