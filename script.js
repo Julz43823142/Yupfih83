@@ -551,34 +551,14 @@ function startReviewProgress(){
   },180);
 }
 async function finishReviewProgress(){
+  // Once the worker has returned its completed report, show it immediately.
+  // The previous cosmetic 2.6s animation + 650ms pause added 3.25 seconds
+  // to every successful analysis without doing any useful work.
   reviewProgressFinishing=true;
-  // The analysis is actually complete, but animate the remaining distance
-  // to 100 so the indicator is never removed while showing 85 or 90.
-  const from=reviewProgressPercent;
-  const started=Date.now();
-  const duration=2600;
-  while(true){
-    const t=Math.min(1,(Date.now()-started)/duration);
-    const eased=1-Math.pow(1-t,2);
-    reviewProgressPercent=from+(100-from)*eased;
-    // UI uses a displayed integer and smooth fill width.
-    const panel=document.getElementById("v87-review");
-    const progress=panel?.querySelector(".v87-progress");
-    if(progress){
-      progress.querySelector(".v87-progress-value").textContent=Math.floor(reviewProgressPercent)+"%";
-      progress.querySelector(".v87-progress-track").setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
-      progress.querySelector(".v87-progress-fill").style.width=reviewProgressPercent+"%";
-      progress.querySelector(".v87-progress-message").textContent="Preparing the completed report…";
-    }
-    if(t===1)break;
-    await wait(75);
-  }
   showReviewProgress("Review complete.","complete",true);
-  await wait(650);
   stopReviewProgress();
   reviewProgressFinishing=false;
 }
-
 
 function placeExampleCardsNearOverview() {
   // Previews remain in the dedicated left sidebar on the homepage.
