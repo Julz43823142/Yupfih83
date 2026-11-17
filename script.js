@@ -903,7 +903,10 @@ form.addEventListener("submit", async event => {
     try{
       // Reuse the existing sample-avatar request instead of doubling Chess.com traffic.
       const shared=exampleProfileRequests.get(username.toLowerCase());
-      profile=await (shared||getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal}));
+      profile=await Promise.race([
+        shared||getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal}),
+        new Promise((_,reject)=>profileController.signal.addEventListener("abort",()=>reject(new DOMException("Profile timeout","AbortError")),{once:true}))
+      ]);
     }
     finally{clearTimeout(profileTimeout)}
     playerCard.replaceChildren();
