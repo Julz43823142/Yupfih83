@@ -1218,38 +1218,118 @@ function drawProps(g){
   box(76.5,.08,25.5,2.15,.15,1.50,'#637373');
   for(const x of [69,73])model('stones',x,0,27.75,.55,.31,.58);
  }else if(scene==='watchtower'){drawWatchtowerInterior(g);return;}
- if(scene==='ridge'||scene==='observatory'){
-  const w=engine.getWorld();
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'){
+  const w=engine.getWorld(),isTree=(x,z)=>w.tiles[z]?.[x]==='T';
+  // Trees are placed only on solid forest tiles. Foliage uses existing meshes
+  // rather than nearly coplanar overlays, so no animated z-fighting is introduced.
+  for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)
+   if(isTree(x,z)&&((x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
+  const rock=(x,z,scale=1)=>{box(x,.12*scale,z,.74*scale,.24*scale,.64*scale,'#737f79');box(x,.29*scale,z,.50*scale,.10*scale,.47*scale,'#9ca59a');};
+  const lamp=(x,z,blue=false)=>{
+   cylinder(x,.06,z,.085,.09,1.2,'#735e48',9);
+   box(x,1.31,z,.24,.18,.24,'#b59c69');
+   sphere(x,1.48,z,.14,blue?'#93d5e1':'#efc581',9);
+   cone(x,1.68,z,.20,.24,'#4f5e61',9);
+  };
   if(scene==='ridge'){
-   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)if(w.tiles[z][x]==='T'&&((x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
-   for(const [x,z] of [[15,36],[9,29],[21,21],[12,13]]){
-    cylinder(x,.08,z,.11,.13,.90,'#77604a',8);
-    cone(x,1.0,z,.18,.26,'#e1b86f',9);
-    sphere(x,1.20,z,.09,'#ffdc9d',8);
+   // Three named directions meet at an unmistakable central signpost.
+   for(const [x,z] of [[6,16],[12,15],[23,11],[13,29],[26,26],[33,16],[37,24]])rock(x+.5,z+.5,.78);
+   for(const [x,z] of [[6.5,21.9],[16.5,11],[10.4,29.5],[30.5,22]])lamp(x,z);
+   cylinder(17.5,.08,21,.18,.20,2.5,'#73583b',10);
+   box(17.5,2.22,21,1.55,.26,.20,'#c5a275');
+   box(17.5,1.86,21,1.85,.24,.20,'#ae855b');
+   box(17.5,1.50,21,1.55,.23,.20,'#c4a075');
+   for(const [x,z] of [[14,20],[19,24],[24,18]]){cylinder(x,.04,z,.27,.27,.22,'#695b46',9);cone(x,.28,z,.31,.35,'#476c52',9);}
+   // The blocked cave is deliberately outside the walking path.
+   box(20.5,.42,2.8,6.8,.84,1.7,'#525e5f');
+   for(const [x,z,scale] of [[18.1,5,.9],[19.5,5,1.15],[21,4.9,1],[22.4,5,.85],[20,3.8,1.3]]){
+    rock(x,z,scale);
+    cone(x,.25,z,.40*scale,.65*scale,'#61716c',7);
    }
-   // A fallen log, mountain cairns and a broad valley overlook.
-   for(const [x,z] of [[24.3,29],[4.8,20]]){box(x,.21,z,1.2,.42,.48,'#7b654e');box(x,.46,z,.92,.08,.43,'#a08a64');}
-   for(const [x,z] of [[22,32],[5,17],[23,9]]){model('stones',x,.01,z,1.0,.65,.83);sphere(x,1.04,z,.10,'#a2b2a3',8);}
-   box(16,.10,4.8,3.5,.20,1.4,'#9b9e8e');
-   box(16,.40,4.8,3.1,.40,.30,'#7b8e8c');
+   box(20.5,1.12,3.34,3.5,.22,.32,'#343c44');
+   box(20.5,1.45,3.32,3.0,.20,.24,'#738a86');
+  }else if(scene==='hill'){
+   for(const [x,z] of [[7,32],[15,20],[24,16],[35,11],[40,4]])lamp(x+.5,z+.5,true);
+   for(const [x,z,sc] of [[4,23,1.1],[15,31,1.4],[22,21,1],[33,18,1.7],[40,14,1.1]])rock(x,z,sc);
+   // Raised-looking terrain details remain decorative and do not change walk physics.
+   for(const [x,z] of [[11,20],[20,12],[31,7]]){
+    box(x,.09,z,2.8,.18,.95,'#7c8276');
+    box(x,.20,z,2.5,.04,.74,'#acaa94');
+   }
+   for(const [x,z] of [[10,27],[18,19],[29,12],[38,6]]){box(x,.09,z,.80,.18,.65,'#9f9981');box(x,.21,z,.64,.05,.51,'#c0b49a');}
+  }else if(scene==='ruins'){
+   // An open ancient sanctuary with broken arches, fallen capitals and an altar.
+   for(const [x,z] of [[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24]]){
+    box(x,.68,z,.70,1.36,.73,'#8b958d');
+    box(x,1.40,z,.86,.12,.87,'#c0bdb0');
+   }
+   for(const [x,z] of [[10,17],[26,17]]){
+    cylinder(x,.07,z,.55,.52,1.36,'#849187',12);
+    cylinder(x,1.47,z,.66,.66,.18,'#bbb8aa',12);
+   }
+   for(const [x,z] of [[6,18],[28,20],[15,28],[23,28]])rock(x,z,1.2);
+   // The stone altar has its inscription on a raised top, not intersecting a slab.
+   box(18,.25,24,2.1,.5,1.8,'#686e6c');
+   box(18,.55,24,2.35,.10,1.95,'#aaa99b');
+   box(18,.64,24,1.55,.06,1.13,'#cfbd92');
+   for(const x of [17.5,18,18.5])box(x,.685,24,.10,.025,.45,'#6b7a75');
+   for(const [x,z] of [[14,9],[22,9],[14,25],[22,25]]){cylinder(x,.04,z,.25,.25,.57,'#8c977f',10);sphere(x,.77,z,.27,'#6a876c',9);}
+   // Partially collapsed arcade; centre remains an open traversable aisle.
+   for(const z of [13,21])for(const x of [7,28]){
+    box(x,.60,z,.67,1.2,.75,'#7a8580');
+    box(x,1.23,z,.94,.12,.91,'#aaa99c');
+   }
   }else{
-   // Skyglass is an open-air hilltop observatory, not another village or watchtower.
-   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)if(w.tiles[z][x]==='T'&&(x+z)%3!==0)g.tree?.(x+.5,z+.5);
-   cylinder(17,.10,12,.92,.92,.20,'#8f9690',16);
-   cylinder(17,.34,12,.72,.72,.28,'#c4bda7',16);
-   for(let i=0;i<12;i++){const a=i*Math.PI/6;box(17+Math.cos(a)*1.75,.05,12+Math.sin(a)*1.75,.65,.09,.38,i%2?'#9fa7a1':'#6a8787');}
-   // A tilted brass orrery and its three painted planets.
-   cylinder(17,.39,6.8,1.35,1.35,.40,'#606d70',16);
-   cylinder(17,.82,6.8,.94,.94,.14,'#d2b87f',16);
-   for(let i=0;i<8;i++){const a=i*Math.PI/4;box(17+Math.cos(a)*.65,.98,6.8+Math.sin(a)*.65,.13,.025,.29,'#445c66');}
-   sphere(17,1.43,6.8,.38,'#577f96',12);
-   for(const [x,z,c] of [[16,6.4,'#ddb27a'],[18.2,7.3,'#a8bec7'],[17.6,5.7,'#c47b7d']])sphere(x,1.17,z,.16,c,10);
-   for(const x of [9.5,24.5]){cylinder(x,.12,9.2,.70,.70,.28,'#788889',12);sphere(x,.56,9.2,.45,'#5f8c91',10);}
-   for(const [x,z] of [[8,13],[26,14],[12,20],[24,21]])model('stones',x,.01,z,1,.4,.8);
-   // Entry arch and engraved sign, with open sides for free exploration.
-   for(const x of [14,20])cylinder(x,.05,21.7,.22,.22,2.0,'#7d8b8b',12);
-   box(17,2.08,21.7,6.4,.28,.45,'#7f9795');
-   box(17,2.14,22.0,3.7,.14,.06,'#dcc894');
+   // Grand open-air Skyglass: the central observatory, concentric terraces,
+   // brass telescope, two satellite domes, and four accessible garden wings.
+   const cx=30,cz=27;
+   for(let i=0;i<28;i++){
+    const a=i*Math.PI*2/28,x=cx+Math.cos(a)*16,z=cz+Math.sin(a)*14;
+    box(x,.055,z,1.08,.11,.62,i%2?'#a8b2af':'#7e9999');
+   }
+   for(const [x,z] of [[30,21],[30,33],[24,27],[36,27]])lamp(x,z,true);
+   for(const [x,z] of [[12,14],[48,14],[12,39],[48,39]]){rock(x,z,1.45);cone(x,.53,z,.49,.76,'#5e897d',10);}
+   // Central lens platform, with layers separated by at least .035 world units.
+   cylinder(30,.08,29,3.1,3.1,.38,'#6e8385',20);
+   cylinder(30,.51,29,2.75,2.75,.14,'#c6ba98',20);
+   for(let i=0;i<16;i++){const a=i*Math.PI/8;
+    box(30+Math.cos(a)*3.75,.06,29+Math.sin(a)*3.75,.53,.12,.46,i%2?'#8d9f9d':'#b8b7aa');
+   }
+   for(const [x,z] of [[28.3,29],[31.7,29]]){
+    cylinder(x,.68,z,.28,.28,2.1,'#8b918a',12);
+    cylinder(x,2.82,z,.42,.42,.14,'#d1b88c',12);
+   }
+   // Suspended-looking telescope: nested cylinders never share the same surface.
+   cylinder(30,2.70,29,.82,.65,1.5,'#b09b75',18);
+   cylinder(30,4.24,29,.96,.96,.13,'#e2c994',18);
+   sphere(30,4.46,29,1.15,'#638d9b',18);
+   sphere(30,4.54,29,.72,'#a1bec6',16);
+   for(let i=0;i<9;i++){const a=i*2*Math.PI/9;
+    cone(30+Math.cos(a)*1.43,4.45,29+Math.sin(a)*1.43,.10,.31,'#e8c787',8);
+   }
+   // A monumental brass orrery and stone archive on the northern terrace.
+   cylinder(30,.10,11.2,2.65,2.65,.42,'#67777c',20);
+   cylinder(30,.58,11.2,2.34,2.34,.18,'#d1b87d',20);
+   for(let i=0;i<12;i++){const a=i*Math.PI/6;
+    box(30+Math.cos(a)*1.78,.81,11.2+Math.sin(a)*1.78,.34,.055,.47,'#5c777b');
+   }
+   sphere(30,1.40,11.2,.52,'#578da0',14);
+   for(const [x,z,color] of [[28.5,10,'#d7b18a'],[31.8,11.7,'#e6d2a2'],[30.6,9.4,'#9eb8ca']])sphere(x,1.26,z,.23,color,12);
+   // The huge paired satellite domes anchor the east and west wings.
+   for(const x of [18.5,41.5]){
+    cylinder(x,.10,20,2.5,2.5,1.2,'#788888',20);
+    cylinder(x,1.35,20,2.68,2.68,.20,'#d1c5aa',20);
+    sphere(x,1.55,20,2.40,'#637f88',18);
+    sphere(x,3.70,20,.47,'#c7a46a',12);
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;
+     box(x+Math.cos(a)*3.15,.09,20+Math.sin(a)*3.15,.46,.18,.37,'#899c9d');
+    }
+   }
+   // Tall entrance pylons and a distinct arch, away from the walking centreline.
+   for(const x of [26,34]){cylinder(x,.09,42,.54,.54,3.8,'#7b8f90',12);cone(x,3.97,42,.73,1.12,'#526b78',12);}
+   box(30,3.68,42,8.9,.37,.62,'#819697');
+   box(30,3.98,42,7.5,.15,.51,'#d2c29c');
+   for(const [x,z] of [[9,24],[51,24],[9,32],[51,32]]){lamp(x,z);}
   }
   return;
  }
@@ -1522,8 +1602,8 @@ function drawEffects(g,t){
   for(const x of [42.5,49.3])sphere(x,1.30+Math.sin(t*7+x)*.025,18,.15,'#efd19a',7);
   return;
  }
- if(scene==='ridge'||scene==='observatory'){
-  if(scene==='ridge')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
+ if(scene==='ridge'||scene==='hill'||scene==='ruins'||scene==='observatory'){
+  if(scene!=='observatory')for(let i=0;i<8;i++){const x=7+i*2.1,z=8+i*3.8;sphere(x,1.2+.12*Math.sin(t+i),z,.055,'#e6cc87',7);}
   else for(let i=0;i<5;i++){const a=i*1.26+t*.15;sphere(17+Math.cos(a)*2,1.35,12+Math.sin(a)*2,.048,'#a4d7d7',7);}
   return;
  }
