@@ -883,6 +883,10 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
+  if(document.body.dataset.examplePlayer){
+    statusText.textContent="This example uses a saved report; no new analysis is started.";
+    return;
+  }
   const username = usernameInput.value.trim();
   if (!/^[A-Za-z0-9_-]{3,25}$/.test(username)) {
     statusText.textContent = "Enter a valid Chess.com username.";
