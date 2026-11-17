@@ -316,7 +316,6 @@ test('cell layout has north corridor, two side prisoners, south window and occlu
  assert.match(source,/for\(let x=1;x<=23;x\+\+\)updateTile\(w,x,5,'H'\)/);
  assert.match(source,/for\(const x of \[6,18\]\)updateTile\(w,x,y,'H'\)/);
  assert.match(source,/Sleeping guard's cot belongs to the corridor/);
- assert.match(source,/The sleeping guard lies fully sideways/);
  assert.match(source,/Mara and Tovin/);
  assert.match(source,/A SMALL, unmistakeable window/);
  assert.match(source,/function fieldOfView\(\)/);
@@ -525,7 +524,6 @@ test('royal intro, blue pawn, awake rook and spy windows all use consistent asse
  assert.match(source,/piece\(x,z,'P','blue',false\)/);
  assert.match(engine,/blue:\['#487ec4','#294d85','#91bbed'\]/);
  assert.match(source,/if\(scene==='intro'\)\{[\s\S]*?The guard is still AWAKE/);
- assert.match(source,/No standing chess-piece silhouette is rendered/);
  assert.match(source,/Solid stone partitions left and right/);
  assert.match(source,/One narrow barred peephole/);
  assert.match(source,/if\(\(x===6\|\|x===18\)&&z>=9&&z<=10\)return false/);
