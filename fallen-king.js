@@ -42,7 +42,7 @@ function talk(){if(paused||mapOpen)return;if(dialogue){dialogue.i++;if(dialogue.
 const [dx,dz]=dirs[player.facing],tx=Math.round(player.x+dx),tz=Math.round(player.y+dz);if(tile(tx,tz)==='D'){enterHouse(tx,tz);return;}const npc=world.npcs.find(n=>Math.hypot(n.x-player.x,n.y-player.y)<1.55&&((n.x-player.x)*dx+(n.y-player.y)*dz)>-.2);if(!npc)return;dialogue={npc,i:0};speaker.textContent=npc.name;speech.textContent=npc.lines[0];dialog.hidden=false;pressed.clear();}
 const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'});
 if(!gl){gate.textContent='This game needs a browser with WebGL enabled.';return;}
-const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;varying vec2 worldPos;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/96.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;worldPos=p.xz;}';
+const vert='attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform vec2 cam;uniform float aspect;uniform float zoom;varying vec3 col;varying vec2 worldPos;void main(){vec3 q=p-vec3(cam.x,0.,cam.y);float sx=q.x;float sy=q.z*.93-q.y*.70;float depth=q.z*.92+q.y*.18;gl_Position=vec4(sx/(zoom*aspect),-sy/zoom,-depth/32.,1.);float light=.82+.18*max(dot(normalize(n),normalize(vec3(-.45,.9,.7))),0.);col=c*light;worldPos=p.xz;}';
 const frag='precision mediump float;varying vec3 col;varying vec2 worldPos;uniform sampler2D visionTex;uniform vec2 visionSize;uniform float visionEnabled;uniform float sewerMood;uniform vec2 fogFocus;void main(){vec3 lit=pow(col,vec3(.88));float mist=sewerMood*(.15+.33*smoothstep(2.,11.,distance(worldPos,fogFocus)));lit=mix(lit,vec3(.075,.12,.14),mist);lit*=1.-.16*sewerMood;float seen=texture2D(visionTex,clamp(worldPos/visionSize,vec2(0.),vec2(1.))).r;float visibility=mix(1.,seen,visionEnabled);gl_FragColor=vec4(mix(vec3(.004,.007,.012),lit,visibility),1.);}';
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
@@ -56,7 +56,7 @@ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Ar
 gl.uniform1i(visionLoc,0);let previousVisionKey='';
 const buffer=gl.createBuffer(),staticBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(posLoc);gl.enableVertexAttribArray(normLoc);gl.enableVertexAttribArray(colorLoc);
 gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(colorLoc,3,gl.FLOAT,false,36,24);
-gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.39,.56,.36,1);
+gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clearColor(.39,.56,.36,1);
 let vertices=[],staticReady=false,staticGeometryBuilding=false,staticChunks=[],renderErrorReported=false;
 // Stream static geometry to multiple small GPU buffers rather than silently
 // discarding later objects (tower, gate, buildings) at a single vertex cap.
