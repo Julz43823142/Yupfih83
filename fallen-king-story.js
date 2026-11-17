@@ -244,7 +244,7 @@ function observatoryWorld(){
  for(let y=1;y<29;y++)for(let x=1;x<35;x++)if(x<=2||x>=33||y<=2||y>=27)updateTile(w,x,y,'T');
  carveRoad(w,[[17,28],[17,19],[17,16]],3);
  for(let y=5;y<=16;y++)for(let x=9;x<=25;x++)updateTile(w,x,y,'H');
- for(let x=15;x<=19;x++)for(let y=15;y<=17;y++)updateTile(w,x,y,'p');
+ for(let x=15;x<=19;x++)for(let y=17;y<=19;y++)updateTile(w,x,y,'p');
  // Exterior door is visible and accessible through the front steps.
  updateTile(w,17,16,'D');
  w.spawn={x:17,y:25};w.music='willowmere';
@@ -268,7 +268,7 @@ function skyglassInteriorWorld(){
   {id:'skyglass-apprentice',name:'Apprentice Faye',x:17,y:35,piece:'P',color:'blue',lines:['This is the largest observatory in Aldemar!','The bronze royal ledger is on the north terrace.']},
   {id:'skyglass-archivist',name:'Archivist Noa',x:36,y:16,piece:'B',color:'purple',lines:['The great dome records the sky, but the old books tell us about the throne.','Look for the forged mark in the coronation ledger.']}
  ];
- w.blockerRects=[{x:30.5,z:11.2,w:5,d:3.4},{x:18.5,z:20,w:2.4,d:2.1},{x:41.5,z:20,w:2.4,d:2.1},{x:30.5,z:29,w:4,d:4}];
+ w.blockerRects=[{x:30.5,z:11.2,w:5,d:3.4},{x:18.5,z:20,w:2.4,d:2.1},{x:41.5,z:20,w:2.4,d:2.1},{x:30.5,z:29,w:4,d:4},...[[14,13],[14,21],[14,31],[14,39],[46,13],[46,21],[46,31],[46,39]].map(([x,z])=>({x,z,w:.96,d:.96}))];
  return w;
 }
 function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():next==='ridge'?ridgeWorld():next==='hill'?hillWorld():next==='ruins'?ruinsWorld():next==='observatory'?observatoryWorld():next==='skyglassInterior'?skyglassInteriorWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
@@ -1248,7 +1248,7 @@ function drawProps(g){
   // Trees are placed only on solid forest tiles. Foliage uses existing meshes
   // rather than nearly coplanar overlays, so no animated z-fighting is introduced.
   for(let z=1;z<w.height-1;z++)for(let x=1;x<w.width-1;x++)
-   if(isTree(x,z)&&((x<=3||z<=3||x>=w.width-4||z>=w.height-4)||(x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
+   if(scene!=='skyglassInterior'&&isTree(x,z)&&((x<=3||z<=3||x>=w.width-4||z>=w.height-4)||(x*3+z*5)%3!==0))g.tree?.(x+.5,z+.5);
   const rock=(x,z,scale=1)=>{box(x,.12*scale,z,.74*scale,.24*scale,.64*scale,'#737f79');box(x,.29*scale,z,.50*scale,.10*scale,.47*scale,'#9ca59a');};
   const lamp=(x,z,blue=false)=>{
    cylinder(x,.06,z,.085,.09,1.2,'#735e48',9);
@@ -1357,8 +1357,27 @@ function drawProps(g){
    box(17,.15,19.2,4.7,.12,.75,'#cbc09c');
    for(const [x,z] of [[5,17],[29,17],[8,23],[27,23]]){rock(x,z,1.05);lamp(x+.9,z+.5,true);}
   }else{
-   // Grand open-air Skyglass: the central observatory, concentric terraces,
-   // brass telescope, two satellite domes, and four accessible garden wings.
+   // Cutaway grand star hall: back and side walls frame the vast playable
+   // interior without obscuring the camera-facing southern entrance.
+   for(let x=8;x<=52;x+=2){
+    box(x,.10,7,2.02,.20,1.15,'#7d8986');
+    box(x,1.35,7,2.02,2.46,.82,'#879d9c');
+    box(x,2.75,7,2.02,.34,1.10,'#d4c6a8');
+   }
+   for(const x of [8,52])for(let z=9;z<=43;z+=2){
+    box(x,.13,z,.92,.26,2.03,'#7f8d8c');
+    box(x,1.30,z,.70,2.35,2.03,'#748f92');
+    box(x,2.73,z,.98,.28,2.05,'#c9bca6');
+   }
+   for(const x of [14,46])for(const z of [13,21,31,39]){
+    cylinder(x,.05,z,.48,.48,3.1,'#a6a99f',12);
+    cylinder(x,3.20,z,.64,.64,.19,'#d7cbac',12);
+    box(x,3.46,z,.96,.15,1.05,'#6a8c91');
+   }
+   // A broad ornamental runner leading from the doorway to the brass lens.
+   for(let z=36;z<=44;z+=2)box(30,-.002,z,3.45,.013,1.70,'#77575e');
+   // Grand Skyglass interior: concentric galleries, the central telescope,
+   // brass orrery and satellite viewing instruments.
    const cx=30,cz=27;
    for(let i=0;i<28;i++){
     const a=i*Math.PI*2/28,x=cx+Math.cos(a)*16,z=cz+Math.sin(a)*14;
