@@ -8,7 +8,7 @@ let interior=null,outdoorState=null,mapOpen=false,world,player,dialogue=null,pau
 const tile=(x,z)=>world?.tiles[Math.round(z)]?.[Math.round(x)]||'T';
 const hash=(x,z,n=0)=>{let h=Math.imul(x+31,73856093)^Math.imul(z+47,19349663)^Math.imul(n+3,83492791);h^=h>>>13;return (h>>>0)/4294967295;};
 function occupied(x,z){
- if((world.blockerRects||[]).some(r=>Math.abs(x-r.x)<r.w/2+.23&&Math.abs(z-r.z)<r.d/2+.23))return true;
+ if((world.blockerRects||[]).some(r=>Math.abs(x+.5-r.x)<r.w/2+.23&&Math.abs(z+.5-r.z)<r.d/2+.23))return true;
  return (world.npcs||[]).some(n=>Math.hypot(n.x-x,n.y-z)<.66)||(world.blockers||[]).some(([bx,bz])=>Math.hypot(bx-x,bz-z)<.67);
 }
 function canWalk(x,z){
