@@ -847,6 +847,11 @@ const localSlotCache=new Map();
 const localSlotKey=slot=>'fallen-king-emergency-save-v1:'+slot;
 function localSaveRequest(method,slot,payload){
  const get=s=>{try{return JSON.parse(localStorage.getItem(localSlotKey(s))||'null');}catch{return localSlotCache.get(s)||null;}};
+ if(method==='DELETE'){
+  localSlotCache.delete(slot);
+  try{localStorage.removeItem(localSlotKey(slot));}catch{}
+  return {ok:true,slot};
+ }
  if(method==='PUT'){
   const entry={save:payload,savedAt:new Date().toISOString()};
   localSlotCache.set(slot,entry);
@@ -891,8 +896,23 @@ function displayStartSlots(){
   const info=document.createElement('span');info.textContent='Slot '+slot+' · '+slotDescription(slot);
   const start=buildSlotButton('New Game',()=>beginGame(slot,false));
   const resume=buildSlotButton('Continue',()=>beginGame(slot,true),!saveMetadata[slot]);
-  row.append(info,start,resume);startSlots.append(row);
+  const remove=buildSlotButton('Delete',()=>deleteGame(slot),!saveMetadata[slot]);
+  remove.setAttribute('aria-label','Delete save in Slot '+slot);
+  row.append(info,start,resume,remove);startSlots.append(row);
  }
+}
+async function deleteGame(slot){
+ if(startingGame||!saveMetadata[slot])return;
+ if(!confirm('Permanently delete all progress in Slot '+slot+'? This cannot be undone.'))return;
+ startingGame=true;startStatus.textContent='Deleting Slot '+slot+'…';
+ try{
+  await gameSaveRequest('DELETE',slot);
+  saveMetadata[slot]=null;
+  if(activeSlot===slot)activeSlot=null;
+  displayStartSlots();
+  startStatus.textContent='Slot '+slot+' deleted.';
+ }catch(error){startStatus.textContent='Delete failed: '+error.message;}
+ finally{startingGame=false;}
 }
 async function initializeSaveSlots(){
  paused=true;startMenu.hidden=false;startStatus.textContent='Loading account saves…';
