@@ -831,7 +831,12 @@ function drawProps(g){
    // No standing chess-piece silhouette is rendered in the playable cell.
    box(12.02,.47,2.43,1.54,.26,.55,'#293d63');
    box(12.12,.59,2.44,1.04,.08,.48,'#47617e');
-   sphere(11.11,.58,2.43,.25,'#ad9e91',9);
+   sphere(11.11,.73,2.43,.32,'#d4b89b',12);
+    // Visible pale face, dark sleeping eyes and helmet set aside on the pillow.
+    sphere(11.08,.75,2.73,.13,'#e0c4a8',10);
+    for(const ex of [10.96,11.20]){sphere(ex,.81,2.735,.038,'#29313c',8);box(ex,.835,2.765,.10,.015,.018,'#41372f');}
+    box(11.46,.51,2.43,.30,.19,.46,'#405b79');
+    box(12.67,.52,2.23,.50,.20,.23,'#405b79');
    sphere(11.07,.58,2.36,.12,'#536e88',7);
    box(12.05,.42,2.83,1.26,.15,.18,'#263b56');
    box(12.87,.45,2.30,.65,.15,.30,'#27394d');
@@ -1103,8 +1108,8 @@ function drawProps(g){
    cylinder(x,5.70,z,.39,.39,1.45,'#737d80',10);
    cone(x,6.75,z,.55,.82,'#454f58',10);
   }
-  box(towerX,5.38,towerZ,3.85,.25,3.85,'#4a555d');
-  cone(towerX,6.43,towerZ,2.6,1.80,'#47515a',4);
+  box(towerX,5.58,towerZ,3.76,.18,3.76,'#4a555d');
+  cone(towerX,6.50,towerZ,2.55,1.70,'#47515a',4);
   // Red-and-white striped hinged road barrier, four tiles across.
   for(const z of [7.0,11.15]){
    box(32.45,1.05,z,.43,2.1,.44,'#a6a9a6');
@@ -1220,7 +1225,7 @@ function drawVillageProps(g){
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.468,19.5,.07,.022,1.96,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.365,19.5,.07,.022,1.96,'#e1c28e');
   }
   for(const z of [18.3,20.7]){
    box(46.3,.49,z,4.9,.12,.17,'#b8a078');
