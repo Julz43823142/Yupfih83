@@ -24,7 +24,7 @@
   
   
   <link rel="stylesheet" href="./style.css?v=185-avatar">
-  <script src="./script.js?v=188-live-examples" defer></script>
+  <script src="./script.js?v=189-fast-preview" defer></script>
   <link rel="stylesheet" href="./layout-fix.css?v=1">
 <link rel="stylesheet" href="/homepage-polish.css?v=38"><style>.homepage-insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.homepage-insight-card{background:#0d263d;border:1px solid #285777;border-radius:14px;padding:20px;color:#d8effc}.homepage-insight-card h3{margin:0 0 14px;color:#69e3f5;font-size:18px}.homepage-insight-card p{line-height:1.6;margin:8px 0;font-size:14px}.insights-intro{color:#b5d5e8;line-height:1.6}@media(max-width:700px){.homepage-insights-grid{grid-template-columns:1fr}}</style><script src="/chess-menu-dismiss.js?v=1" defer></script><style>
 /* Align footer copy close to the viewport edges. */
@@ -151,7 +151,7 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
 
       <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Rotating hourly chess leaderboards">
         <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
-        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Checking leaderboard…</li></ol>
+        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Leaderboard unavailable until scores load</li></ol>
         <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 100</a>
 
       </aside>
@@ -247,41 +247,57 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
 <script>
 (()=>{
  const title=document.getElementById('hero-puzzle-title'),list=document.getElementById('hero-puzzle-list'),more=document.getElementById('hero-puzzle-more');
- let lastMode='',lastSuccess=false,loading=false;
+ if(!title||!list||!more)return;
+ const boards=[
+  ['sprint','Puzzle Sprint'],['survival','Puzzle Survival'],['knight-maze','Knight Maze'],
+  ['endgame-survivor','Endgame Survivor'],['guess-the-elo','Guess the Elo'],
+  ['chess-memory','Chess Memory'],['missing-piece','Missing Piece'],
+  ['safe-square-rush','Safe Square Rush'],['falling-board','Falling Board'],
+  ['queen-chase','Queen Chase'],['chess-block-party','Chess Block Party'],['pawn-dash','Pawn Dash']
+ ];
+ let lastHour=-1,loading=false;
+ const showMessage=message=>{list.replaceChildren();const li=document.createElement('li');li.textContent=message;list.append(li);};
+ const render=entries=>{
+  list.replaceChildren();
+  if(!entries.length){showMessage('No scores yet');return}
+  for(const entry of entries.slice(0,10)){
+   const li=document.createElement('li'),name=document.createElement('span');
+   name.textContent=String(entry.nickname||'Player');
+   name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';
+   name.title=entry.sourceType==='account'?'Account':'Nickname';
+   li.append(name,document.createTextNode(' — '+String(entry.score??0)));
+   list.append(li);
+  }
+ };
+ // Never leave a persistent loading placeholder when an API is slow or unavailable.
+ showMessage('Leaderboard unavailable until scores load');
  async function update(){
   if(document.hidden||loading)return;
-  // Switch the displayed leaderboard every UTC hour. Scores remain separate,
-  // and the existing hourly scoring windows are unchanged.
-  const boards=[
-   ['sprint','Puzzle Sprint'],['survival','Puzzle Survival'],['knight-maze','Knight Maze'],
-   ['endgame-survivor','Endgame Survivor'],['guess-the-elo','Guess the Elo'],
-   ['chess-memory','Chess Memory'],['missing-piece','Missing Piece'],
-   ['safe-square-rush','Safe Square Rush'],['falling-board','Falling Board'],
-   ['queen-chase','Queen Chase'],['chess-block-party','Chess Block Party'],['pawn-dash','Pawn Dash']
-  ];
   const hour=Math.floor(Date.now()/3600000),[mode,label]=boards[((hour%boards.length)+boards.length)%boards.length];
-  if(mode===lastMode&&lastSuccess)return;lastMode=mode;loading=true;
-  title.textContent=label+' · Top 10';
-  more.href='/puzzle-top100.html?mode='+mode;
-  list.replaceChildren();const loading=document.createElement('li');loading.textContent='Checking leaderboard…';list.append(loading);
+  if(hour!==lastHour){lastHour=hour;title.textContent=label+' · Top 10';more.href='/puzzle-top100.html?mode='+mode;}
+  loading=true;
+  const key='eloscanner-leaderboard-'+mode;
+  let hasCache=false;
   try{
-   const url=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode;
-   const controller=new AbortController();
-   const timeout=setTimeout(()=>controller.abort(),9000);
-   let data;
-   try{
-    const r=await fetch(url,{cache:'no-store',signal:controller.signal});
-    if(!r.ok)throw Error('Leaderboard HTTP '+r.status);
-    data=await r.json();
-   }finally{clearTimeout(timeout)}
+   const saved=JSON.parse(sessionStorage.getItem(key)||'null');
+   if(saved&&Array.isArray(saved.entries)&&Date.now()-saved.time<3600000){render(saved.entries);hasCache=true;}
+  }catch{}
+  const url=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode+'&limit=10';
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
+  try{
+   const response=await fetch(url,{cache:'no-store',signal:controller.signal});
+   if(!response.ok)throw Error('Leaderboard HTTP '+response.status);
+   const data=await response.json();
    if(!Array.isArray(data.entries))throw Error('Invalid leaderboard response');
-   lastSuccess=true;list.replaceChildren();
-   if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
-   for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
-  }catch{lastSuccess=false;list.replaceChildren();const li=document.createElement('li');li.textContent='Rankings temporarily unavailable';list.append(li)}
-  finally{loading=false}
+   render(data.entries);
+   try{sessionStorage.setItem(key,JSON.stringify({entries:data.entries,time:Date.now()}));}catch{}
+  }catch(error){
+   if(!hasCache)showMessage('Scores currently unavailable — try Top 100');
+   console.warn('Leaderboard request failed:',mode,error);
+  }finally{clearTimeout(timeout);loading=false;}
  }
- update();setInterval(update,60000);
+ void update();
+ setInterval(()=>{void update()},60000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void update()});
 })();
 </script>
