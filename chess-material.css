@@ -42,3 +42,32 @@ body.elo-unified-chess :is(.arcade-board,.chess-board,#play-board,#puzzle-board,
  .analysis-material-summary .elo-material-remaining{display:none}
  .analysis-player-identity{gap:4px}
 }
+
+/* Live chess and Opening Explorer use the same 700px board as Guess the Elo. */
+.online-page #online-board,.opening-layout .opening-board{
+ width:100%!important;max-width:var(--elo-shared-board-size)!important;
+ aspect-ratio:1/1!important;margin-inline:auto!important;box-sizing:border-box!important
+}
+.online-page .online-players{width:100%;max-width:var(--elo-shared-board-size);margin-inline:auto;align-items:center;min-width:0}
+.elo-material-inline,.elo-opening-material{
+ display:inline-flex;align-items:center;gap:5px;min-width:0;
+ font:600 12px/1.25 Inter,system-ui,sans-serif;color:#e8f5ff
+}
+.elo-opening-material{display:flex;width:min(100%,var(--elo-shared-board-size));margin:8px auto;padding:2px 4px}
+.elo-material-inline .elo-material-captures,.elo-opening-material .elo-material-captures{
+ display:inline-flex;gap:0;align-items:center;min-width:0;overflow:hidden
+}
+.elo-material-inline .elo-material-captures img,.elo-opening-material .elo-material-captures img{
+ width:18px;height:18px;object-fit:contain;flex:0 0 18px;margin-right:-3px
+}
+.elo-material-inline .elo-material-remaining,.elo-opening-material .elo-material-remaining{
+ margin-left:5px;color:#a6c4d8;white-space:nowrap
+}
+.online-page .online-players>strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.online-page .online-players .elo-material-inline{flex:1 1 auto}
+.online-page .online-players strong[id$="-clock"]{flex:none}
+@media(max-width:480px){
+ .elo-material-inline .elo-material-remaining{display:none}
+ .online-page .online-players{gap:5px}
+ .online-page .online-players>strong{font-size:13px}
+}
