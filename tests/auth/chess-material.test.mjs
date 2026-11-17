@@ -57,8 +57,8 @@ test('All main chessboards load one shared material UI with their own position',
   'arcade.js':/updateMaterial\(board,state\.eloView\.fen\(\)/,
   'play.js':/updateMaterial\(board,chess\.fen\(\)/,
   'analysis-stockfish-fixed.js':/renderMaterialInline\(strip\.material,id,position\)/,
-  'online.js':/renderMaterialInline\\(\\$\\('online-top-material'\\)/,
-  'opening-explorer.js':/renderMaterialInline\\(topMaterial,'b',material\\)/,
+  'online.js':/renderMaterialInline\(\$\('online-top-material'\)/,
+  'opening-explorer.js':/renderMaterialInline\(topMaterial,'b',material\)/,
   'player-prep.js':/updateMaterial\(board,game\.fen\(\)/
  };
  for(const [file,pattern] of Object.entries(sources)){
