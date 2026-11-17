@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 
+// These assertions run only after the report generator commits its real artifacts.
 const root=new URL('../../',import.meta.url);
 for(const [slug,account] of [['hikaru-nakamura','hikaru'],['magnus-carlsen','magnuscarlsen']]){
  test('verified saved Chess.com example for '+account+' exists and contains exactly 5000 games',()=>{
