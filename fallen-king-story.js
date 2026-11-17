@@ -729,7 +729,7 @@ function drawEverydayDetails(g){
 }
 
 function drawProps(g){
- const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,tri}=g;
+ const {box,cylinder,cone,sphere,piece,oliver,features,recliningKing,recliningPiece,tri}=g;
  if(scene!=='intro'&&scene!=='cell')drawEverydayDetails(g);
  const drawOliver=(x,z)=>oliver?oliver(x,z):piece(x,z,'K','white',true);
  const dp=window.FallenKingDetailPlus,model=(id,x,y,z,w,h,d,rot=0)=>
