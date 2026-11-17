@@ -151,7 +151,7 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
 
       <aside class="hero-sus-ranking hero-puzzle-ranking" aria-label="Rotating hourly chess leaderboards">
         <div class="hero-puzzle-heading"><strong id="hero-puzzle-title">Puzzle Sprint · Top 10</strong></div>
-        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Loading scores…</li></ol>
+        <ol id="hero-puzzle-list" class="sus-ranking-list"><li>Checking leaderboard…</li></ol>
         <a id="hero-puzzle-more" href="/puzzle-top100.html?mode=sprint">View Top 100</a>
 
       </aside>
@@ -263,11 +263,18 @@ main>section.results{box-sizing:border-box!important;width:100%!important;max-wi
   if(mode===lastMode&&lastSuccess)return;lastMode=mode;loading=true;
   title.textContent=label+' · Top 10';
   more.href='/puzzle-top100.html?mode='+mode;
-  list.replaceChildren();const loading=document.createElement('li');loading.textContent='Loading scores…';list.append(loading);
+  list.replaceChildren();const loading=document.createElement('li');loading.textContent='Checking leaderboard…';list.append(loading);
   try{
    const url=mode==='knight-maze'?'/api/knight-maze?limit=10':mode==='sprint'||mode==='survival'?'/api/puzzle-leaderboard?mode='+mode+'&limit=10':'/api/arcade?mode='+mode;
-   const r=await fetch(url,{cache:'no-store'}),data=await r.json();
-   if(!r.ok||!Array.isArray(data.entries))throw Error('Unavailable');
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),9000);
+   let data;
+   try{
+    const r=await fetch(url,{cache:'no-store',signal:controller.signal});
+    if(!r.ok)throw Error('Leaderboard HTTP '+r.status);
+    data=await r.json();
+   }finally{clearTimeout(timeout)}
+   if(!Array.isArray(data.entries))throw Error('Invalid leaderboard response');
    lastSuccess=true;list.replaceChildren();
    if(!data.entries.length){const li=document.createElement('li');li.textContent='No scores yet';list.append(li)}
    for(const entry of data.entries){const li=document.createElement('li'),name=document.createElement('span');name.textContent=entry.nickname;name.style.color=entry.sourceType==='account'?'#79ec9a':'#ffae58';name.title=entry.sourceType==='account'?'Account':'Nickname';li.append(name,document.createTextNode(' — '+entry.score));list.append(li)}
