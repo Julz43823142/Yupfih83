@@ -453,7 +453,7 @@ function advanceChapterTwo(){
  chapter.flags.chapterEnd=true;
  setScene('ridge',{x:4,y:20,facing:'right'});
  engine.resumeGameplay?.();
- say('Oliver','Beyond the bridge, the road climbs toward a forgotten observatory. The search for my crown is not over.');
+ say('Oliver','Beyond the bridge, the old road climbs toward Skyglass Abbey. The search for my crown is not over.');
 }
 function cancelChapterTwo(){
  $('fallen-story-chapter-confirm').hidden=true;
@@ -550,7 +550,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   return false;
  }
  if(scene==='skyglassInterior'){
-  if(near(p,30,47,3)){setScene('observatory',{x:17,y:20,facing:'down'});say('Oliver','Back outside the observatory.');return true;}
+  if(near(p,30,47,3)){setScene('observatory',{x:17,y:20,facing:'down'});say('Oliver','Back outside Skyglass Abbey.');return true;}
   if(near(p,30,11,5)){
    if(!complete('skyglassLedger')){chapter.flags.skyglassLedger=true;persist();say('Royal Ledger','A coronation register shows the royal seal replaced on the night Oliver was arrested.','The mark of Edwin is concealed beneath a false signature.');}
    else say('Oliver','Edwin forged the seal. I need to find someone who can expose his deception.');
@@ -1442,7 +1442,7 @@ function drawProps(g){
    // An open ancient sanctuary with broken arches, fallen capitals and an altar.
    for(const [x,z] of [[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24]]){
     box(x,.68,z,.70,1.36,.73,'#8b958d');
-    box(x,1.40,z,.86,.12,.87,'#c0bdb0');
+    box(x,1.445,z,.83,.08,.84,'#c0bdb0');
    }
    for(const [x,z] of [[10,17],[26,17]]){
     cylinder(x,.07,z,.55,.52,1.36,'#849187',12);
@@ -1489,7 +1489,7 @@ function drawProps(g){
    for(const [ax,bx,z] of [[10,14,8.5],[22,26,8.5],[8,10,17],[26,28,17],[10,14,26],[22,26,26]]){
     const span=Math.abs(bx-ax);
     box((ax+bx)/2,2.61,z,span+1.25,.47,1.12,'#a19e92');
-    box((ax+bx)/2,2.88,z,span+.92,.10,.82,'#bbb6a4');
+    box((ax+bx)/2,2.92,z,span+.92,.08,.82,'#bbb6a4');
    }
    // A partially fallen monumental arch lies off the central north-south aisle.
    for(const [x,z] of [[6.6,16],[29.3,16]]){
@@ -1499,8 +1499,8 @@ function drawProps(g){
    // The stone altar has its inscription on a raised top, not intersecting a slab.
    box(18,.25,24,2.1,.5,1.8,'#686e6c');
    box(18,.55,24,2.35,.10,1.95,'#aaa99b');
-   box(18,.64,24,1.55,.06,1.13,'#cfbd92');
-   for(const x of [17.5,18,18.5])box(x,.685,24,.10,.025,.45,'#6b7a75');
+   box(18,.725,24,1.55,.06,1.13,'#cfbd92');
+   for(const x of [17.5,18,18.5])box(x,.79,24,.10,.025,.45,'#6b7a75');
    // Moss, broken pottery, ivy and garden beds soften the empty grey masonry.
    for(const [x,z] of [[8,12],[12,12],[24,12],[28,12],[8,24],[12,24],[24,24],[28,24]]){
     for(let i=0;i<3;i++){
@@ -1511,7 +1511,7 @@ function drawProps(g){
    }
    for(const [x,z] of [[9,10],[26,11],[9,26],[26,26],[6,20],[29,20]]){
     box(x,.09,z,.92,.18,.70,'#806d56');
-    box(x,.215,z,.76,.055,.54,'#9e8a71');
+    box(x,.235,z,.71,.035,.50,'#9e8a71');
     for(let i=0;i<3;i++)sphere(x-.25+i*.24,.38,z,.19,i%2?'#587c52':'#7e9968',8);
    }
    for(const [x,z] of [[13,14],[22,15],[14,27],[23,27]]){
@@ -1521,13 +1521,13 @@ function drawProps(g){
    }
    for(const [x,z] of [[7,14],[28,15],[7,23],[28,23]]){
     box(x,.11,z,1.18,.22,.70,'#776c58');
-    box(x,.27,z,.94,.065,.54,'#aaa18b');
+    box(x,.33,z,.88,.055,.51,'#aaa18b');
    }
    for(const [x,z] of [[14,9],[22,9],[14,25],[22,25]]){cylinder(x,.04,z,.25,.25,.57,'#8c977f',10);sphere(x,.77,z,.27,'#6a876c',9);}
    // Partially collapsed arcade; centre remains an open traversable aisle.
    for(const z of [13,21])for(const x of [7,28]){
     box(x,.60,z,.67,1.2,.75,'#7a8580');
-    box(x,1.23,z,.94,.12,.91,'#aaa99c');
+    box(x,1.30,z,.88,.08,.85,'#aaa99c');
    }
   }else if(scene==='observatory'){
    // Monastery life: bundled firewood, courtyard planters and abbey birds.
@@ -1721,56 +1721,65 @@ function drawProps(g){
    }
    // A broad ornamental runner leading from the doorway to the brass lens.
    for(let z=36;z<=44;z+=2)box(30,-.002,z,3.45,.013,1.70,'#77575e');
-   // Grand Skyglass interior: concentric galleries, the central telescope,
-   // brass orrery and satellite viewing instruments.
-   const cx=30,cz=27;
-   for(let i=0;i<28;i++){
-    const a=i*Math.PI*2/28,x=cx+Math.cos(a)*16,z=cz+Math.sin(a)*14;
-    box(x,.055,z,1.08,.11,.62,i%2?'#a8b2af':'#7e9999');
-   }
-   for(const [x,z] of [[30,21],[30,33],[24,27],[36,27]])lamp(x,z,true);
-   for(const [x,z] of [[12,14],[48,14],[12,39],[48,39]]){rock(x,z,1.45);cone(x,.53,z,.49,.76,'#5e897d',10);}
-   // Central lens platform, with layers separated by at least .035 world units.
-   cylinder(30,.08,29,3.1,3.1,.38,'#6e8385',20);
-   cylinder(30,.51,29,2.75,2.75,.14,'#c6ba98',20);
-   for(let i=0;i<16;i++){const a=i*Math.PI/8;
-    box(30+Math.cos(a)*3.75,.06,29+Math.sin(a)*3.75,.53,.12,.46,i%2?'#8d9f9d':'#b8b7aa');
-   }
-   for(const [x,z] of [[28.3,29],[31.7,29]]){
-    cylinder(x,.68,z,.28,.28,2.1,'#8b918a',12);
-    cylinder(x,2.82,z,.42,.42,.14,'#d1b88c',12);
-   }
-   // Suspended-looking telescope: nested cylinders never share the same surface.
-   cylinder(30,2.70,29,.82,.65,1.5,'#b09b75',18);
-   cylinder(30,4.24,29,.96,.96,.13,'#e2c994',18);
-   sphere(30,4.46,29,1.15,'#638d9b',18);
-   sphere(30,4.54,29,.72,'#a1bec6',16);
-   for(let i=0;i<9;i++){const a=i*2*Math.PI/9;
-    cone(30+Math.cos(a)*1.43,4.45,29+Math.sin(a)*1.43,.10,.31,'#e8c787',8);
-   }
-   // A monumental brass orrery and stone archive on the northern terrace.
-   cylinder(30,.10,11.2,2.65,2.65,.42,'#67777c',20);
-   cylinder(30,.58,11.2,2.34,2.34,.18,'#d1b87d',20);
-   for(let i=0;i<12;i++){const a=i*Math.PI/6;
-    box(30+Math.cos(a)*1.78,.81,11.2+Math.sin(a)*1.78,.34,.055,.47,'#5c777b');
-   }
-   sphere(30,1.40,11.2,.52,'#578da0',14);
-   for(const [x,z,color] of [[28.5,10,'#d7b18a'],[31.8,11.7,'#e6d2a2'],[30.6,9.4,'#9eb8ca']])sphere(x,1.26,z,.23,color,12);
-   // The huge paired satellite domes anchor the east and west wings.
-   for(const x of [18.5,41.5]){
-    cylinder(x,.10,20,2.5,2.5,1.2,'#788888',20);
-    cylinder(x,1.35,20,2.68,2.68,.20,'#d1c5aa',20);
-    sphere(x,1.55,20,2.40,'#756d5c',18);
-    sphere(x,3.70,20,.47,'#c7a46a',12);
-    for(let i=0;i<8;i++){const a=i*Math.PI/4;
-     box(x+Math.cos(a)*3.15,.09,20+Math.sin(a)*3.15,.46,.18,.37,'#899c9d');
+   // Skyglass Abbey's great library and scriptorium. Old observatory machinery
+   // was removed entirely; the quest ledger remains at (30,11).
+   // Massive sandstone columns frame an unobstructed central nave.
+   for(const [x,z] of [[19,18],[41,18],[19,29],[41,29],[19,39],[41,39]]){
+    cylinder(x,.08,z,.43,.43,2.8,'#988c76',12);
+    cylinder(x,2.98,z,.61,.61,.22,'#c6b494',12);
+    box(x,3.23,z,1.20,.20,1.20,'#776f5f');
+    for(const [dx,dz] of [[-.29,0],[.29,0],[0,-.29],[0,.29]]){
+     cone(x+dx,.04,z+dz,.16,.43,'#73846b',7);
     }
    }
-   // Tall entrance pylons and a distinct arch, away from the walking centreline.
-   for(const x of [26,34]){cylinder(x,.09,42,.54,.54,3.8,'#7b8f90',12);cone(x,3.97,42,.73,1.12,'#526b78',12);}
-   box(30,3.68,42,8.9,.37,.62,'#819697');
-   box(30,3.98,42,7.5,.15,.51,'#d2c29c');
-   for(const [x,z] of [[9,24],[51,24],[9,32],[51,32]]){lamp(x,z);}
+   // Raised altar, a stone codex lectern and the royal manuscript in the north.
+   box(30,.19,11.2,5.1,.38,2.55,'#777264');
+   box(30,.47,11.2,4.65,.14,2.21,'#b9aa8d');
+   for(const x of [28.1,31.9]){
+    cylinder(x,.58,11.1,.13,.13,.65,'#8a744c',9);
+    sphere(x,1.28,11.1,.13,'#efca85',9);
+   }
+   box(30,.85,11.3,2.70,.35,1.10,'#76573e');
+   box(30,1.09,11.3,2.48,.09,1.22,'#bb9364');
+   box(29.55,1.19,11.34,.96,.055,.75,'#e0c99f');
+   box(30.53,1.19,11.34,.96,.055,.75,'#ddc59a');
+   box(30.02,1.25,11.35,.07,.045,.80,'#98734b');
+   // A worn votive mosaic replaces the modern telescope platform.
+   for(let a=0;a<20;a++){
+    const theta=a*Math.PI/10;
+    const x=30+Math.cos(theta)*3.0,z=29+Math.sin(theta)*3.0;
+    box(x,.054,z,.56,.10,.52,a%2?'#a39176':'#7e7865');
+   }
+   box(30,.12,29,2.18,.24,1.62,'#806a50');
+   box(30,.29,29,1.95,.10,1.43,'#c3ad83');
+   for(const x of [29.22,30.78]){
+    cylinder(x,.35,29,.14,.14,.59,'#7c664b',9);
+    sphere(x,1.00,29,.13,'#f0ca83',9);
+   }
+   // Antique prayer desks and low manuscript cabinets along the galleries.
+   for(const [x,z] of [[23,15],[37,15],[23,33],[37,33],[24,43],[36,43]]){
+    box(x,.20,z,1.55,.40,.92,'#6d4e36');
+    box(x,.47,z,1.74,.13,1.09,'#b39265');
+    box(x,.57,z,.91,.07,.64,'#d5bd93');
+    for(const dx of [-.32,.32])box(x+dx,.64,z,.18,.07,.47,'#8b6d4b');
+   }
+   // Hanging cloth banners, candle stands and a large ancient floor cross.
+   for(const [x,z] of [[12,17],[47,17],[12,31],[47,31]]){
+    box(x,2.28,z,.17,1.20,.68,'#6f3941');
+    box(x,1.62,z,.19,.13,.67,'#cbb27e');
+   }
+   for(const [x,z] of [[26,22],[34,22],[26,36],[34,36]]){
+    cylinder(x,.10,z,.15,.15,.76,'#8d7b56',9);
+    cylinder(x,.89,z,.33,.33,.09,'#c2a779',10);
+    for(const dx of [-.18,.18]){
+     cylinder(x+dx,.95,z,.058,.058,.27,'#efe0b1',7);
+     sphere(x+dx,1.26,z,.08,'#f0c57e',8);
+    }
+   }
+   box(30,.042,37.5,.46,.08,4.2,'#927c65');
+   box(30,.087,37.5,.30,.02,3.84,'#cfb991');
+   box(30,.105,37.5,2.20,.02,.28,'#cfb991');
+   // South exit remains unobstructed so pressing E near the door works.
   }
   return;
  }
