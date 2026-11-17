@@ -45,10 +45,9 @@ def report_insights(report):
 
 def generate(username,slug):
     print('Generating '+username,flush=True)
-    source={'platform':'lichess','account':'drnykterstein'} if username=='MagnusCarlsen' else {'platform':'chess.com','account':username.lower()}
+    source={'platform':'chess.com','account':username.lower()}
     env={**os.environ,'CHESS_USERNAME':username}
-    runner=(ROOT/'scripts'/'export-magnus-lichess.py' if username=='MagnusCarlsen'
-            else ROOT/'client-v87'/'fairplay_website_runner.py')
+    runner=(ROOT/'scripts'/'export-magnus-chesscom.py' if username=='MagnusCarlsen' else ROOT/'client-v87'/'fairplay_website_runner.py')
     subprocess.run([sys.executable,str(runner)],
                    cwd=ROOT,env=env,check=True,timeout=1200)
     report=json.loads((ROOT/'v87-result.json').read_text())
@@ -58,23 +57,14 @@ def generate(username,slug):
         session.headers.update({'User-Agent':'EloScanner/1.0 (public example reports; eloscanner.com)'})
         base='https://api.chess.com/pub/player/'+username.lower()
         profile=read_json(session,base)
-        if source['platform']=='lichess':
-            try:
-                perf=read_json(session,'https://lichess.org/api/user/DrNykterstein').get('perfs',{})
-                stats={'chess_'+kind:{'last':{'rating':perf[kind]['rating']}}
-                       for kind in ('rapid','blitz','bullet') if kind in perf}
-            except (requests.RequestException,ValueError,KeyError):
-                stats={}
-        else:
-            stats=read_json(session,base+'/stats')
+        stats=read_json(session,base+'/stats')
         insights=report_insights(report)
     if not insights:raise RuntimeError('No valid report observations for '+username)
-    # The huge per-subject diagnostic trace is not used by any website renderer.
-    # Keep all displayed v87 metrics, selected periods, charts, opening and trends.
-    if isinstance(report.get('method3'),dict):
-        report['method3'].pop('subject',None)
+    if report['games']>5000:raise RuntimeError('Exceeded 5000-game sample limit')
+    # Preserve the exact output of the normal v87 scan. Do not remove
+    # diagnostic fields or recompute any score for example pages.
     OUTPUT.mkdir(parents=True,exist_ok=True)
-    payload={'schema':2,'username':username.lower(),'source':source,
+    payload={'schema':3,'username':username.lower(),'source':source,
              'generatedAt':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
              'profile':profile,'stats':stats,'report':report,'insights':insights}
     target=OUTPUT/(slug+'.json')

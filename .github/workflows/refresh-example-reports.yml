@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
-      - 'scripts/export-magnus-lichess.py'
+      - 'scripts/export-magnus-chesscom.py'
       - 'client-v87/**'
   pull_request:
     branches: [main]
@@ -29,7 +29,7 @@ jobs:
   refresh:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -55,10 +55,9 @@ jobs:
             if [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
             elif [ -s assets/example-reports/magnus-carlsen.json ] && [ -s assets/example-reports/hikaru-nakamura.json ] &&
-              python -c 'import json,sys; assert all(json.load(open(p)).get("schema")==2 for p in sys.argv[1:])' assets/example-reports/magnus-carlsen.json assets/example-reports/hikaru-nakamura.json &&
-              git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/magnus-carlsen.json' &&
+              python -c 'import json; d=json.load(open("assets/example-reports/hikaru-nakamura.json")); assert d["schema"]==3 and d["source"]["platform"]=="chess.com" and d["report"]["games"]>=5000' &&
               git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/hikaru-nakamura.json'; then
-              echo "Both validated snapshots already committed to this PR"
+              echo "Verified 5000-game Chess.com snapshot already committed to this PR"
               echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
@@ -68,9 +67,9 @@ jobs:
       - name: Calculate bounded genuine v87 report
         if: steps.guard.outputs.skip != 'true'
         env:
-          ELO_EXAMPLE_MAX_GAMES: '300'
+          ELO_EXAMPLE_MAX_GAMES: '5000'
         run: python -u scripts/generate-example-reports.py "${{ matrix.username }}"
-        timeout-minutes: 30
+        timeout-minutes: 55
       - name: Validate saved report
         if: steps.guard.outputs.skip != 'true'
         env:
@@ -84,12 +83,12 @@ jobs:
           user=os.environ['EXAMPLE_USERNAME'].lower()
           slug=os.environ['EXAMPLE_SLUG']
           data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
-          assert data['schema']==2 and data['username']==user
+          assert data['schema']==3 and data['username']==user
           assert data['report']['version']=='fairplay-v87-review-reliability'
           source=data['source']
-          assert source['account']==('drnykterstein' if user=='magnuscarlsen' else user)
-          assert source['platform']==('lichess' if user=='magnuscarlsen' else 'chess.com')
-          assert data['report']['username']==source['account'] and data['report']['games']>=50
+          assert source['account']==user
+          assert source['platform']=='chess.com'
+          assert data['report']['username']==source['account'] and 50<=data['report']['games']<=5000
           assert isinstance(data['insights'],list) and len(data['insights'])>0
           print(slug,data['report']['games'],'verified games')
           PY
@@ -103,7 +102,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "assets/example-reports/${EXAMPLE_SLUG}.json"
           if ! git diff --cached --quiet; then
-            git commit -m "181"
+            git commit -m "182"
             git pull --rebase origin "${PUBLISH_BRANCH}"
             git push origin "HEAD:${PUBLISH_BRANCH}"
           fi
