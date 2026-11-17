@@ -20,7 +20,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,7 +31,8 @@ jobs:
       - name: Install v87 data collector
         run: python -m pip install 'requests>=2.32,<3'
       - name: Calculate genuine reports and insights
-        run: python scripts/generate-example-reports.py
+        run: python -u scripts/generate-example-reports.py
+        timeout-minutes: 65
       - name: Validate report snapshots
         run: |
           python - <<'PY'
