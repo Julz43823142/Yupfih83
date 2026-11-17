@@ -16,7 +16,7 @@ test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
 
 test('chapter two opens into a three-way forest fork with a sealed cave',()=>{
- for(const name of ['ridgeWorld','hillWorld','ruinsWorld','observatoryWorld'])assert.match(source,new RegExp('function '+name+'\\\\('));
+ for(const name of ['ridgeWorld','hillWorld','ruinsWorld','observatoryWorld'])assert.ok(source.includes('function '+name+'('),name+' world is wired');
  assert.match(source,/if\(scene==='village'&&complete\('bridge'\)&&p\.x>=50/);
  assert.match(source,/if\(scene==='ridge'\)/);
  assert.match(source,/chapter\.flags\.ruinInscription=true/);
