@@ -66,7 +66,7 @@ test('a review reports the honest available game count when all archives are exh
  });
  assert.equal(visited.length,2);
  assert.equal(messages[1].result.games,164);
- assert.equal(messages[0].result.archive_months_checked,2);
+ assert.equal(messages[1].result.archive_months_checked,2);
  assert.equal(messages[1].result.archive_months_available,2);
 });
 
