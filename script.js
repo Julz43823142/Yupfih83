@@ -794,6 +794,13 @@ function analyzeOnVisitorDevice(username){
         showReviewProgress(data.progress||"Analyzing locally on your device…",reviewProgressStage);
         return;
       }
+      if(data.type==="profile"){
+        if(!settled&&String(data.profile?.username||"").toLowerCase()===username.toLowerCase()){
+          playerCard.replaceChildren();
+          renderPlayer(data.profile,{},username,{preset:true});
+        }
+        return;
+      }
       if(data.type==="complete"){
         settle(resolve,data.result);
         return;
@@ -827,7 +834,7 @@ async function runReview(username,requestId){
 // Changing only the URL hash does NOT reload the document or submit the form.
 const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
 const exampleProfileRequests=new Map();
-for(const username of ["MagnusCarlsen","Hikaru"]){
+if(!document.body.dataset.examplePlayer)for(const username of ["MagnusCarlsen","Hikaru"]){
   // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
   const profileRequest=getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
   exampleProfileRequests.set(username.toLowerCase(),profileRequest);
@@ -840,10 +847,6 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
     }
   }).catch(()=>{});
 }
-// Example reports are ordinary links to /?analyze=Username, which guarantees
-// that the load-time analysis boot path runs on every click (including on mobile).
-// Example pages render an already completed v87 report. They never start a
-// second scan; the snapshot was produced by the regular v87 Python runner.
 // Example pages MUST run the same live Chess.com 5,000-game v87 review as the
 // homepage. Old preset files were limited snapshots with the wrong game coverage.
 const exampleUsername=document.body.dataset.examplePlayer;
@@ -870,6 +873,34 @@ form.addEventListener("submit", async event => {
   add(preview,"h3","player-name","@"+username+" · Loading player profile…");
   const reportPreview=document.getElementById("v87-review");
   if(reportPreview)reportPreview.replaceChildren(add(document.createElement("div"),"p","v87-warning","Collecting public games for @"+username+" (up to 5,000 available games)…"));
+  // Start the example's v87 worker immediately. Its verified Chess.com profile
+  // arrives on the worker message channel; no separate profile/stats request
+  // may hold up or rate-limit the full 5,000-game review.
+  if(activeExample){
+    placeExampleCardsNearOverview();
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+    try{
+      await runReview(username,requestId);
+      if(requestId!==activeReviewSerial)return;
+      const extra=document.getElementById("insights-embedded");
+      if(extra)extra.replaceChildren();
+    }catch(error){
+      if(requestId!==activeReviewSerial)return;
+      stopReviewProgress();
+      const panel=document.getElementById("v87-review");
+      if(panel){
+        panel.replaceChildren();
+        add(panel,"p","v87-warning","Chess.com review unavailable: "+error.message);
+      }
+      statusText.textContent="Chess.com review unavailable: "+error.message+" Please retry.";
+    }finally{
+      if(requestId===activeReviewSerial){
+        button.disabled=false;
+        button.textContent="Analyze Player";
+      }
+    }
+    return;
+  }
   try {
     const encoded = encodeURIComponent(username);
     // Show a useful player preview as soon as the public profile arrives.
