@@ -250,6 +250,8 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  player={x:44,y:19};assert.equal(chapter.beforeMove(45,19),true);
  assert.equal(chapter.talk(),true);
  assert.equal(world.tiles[19][45],'p');
+ assert.equal(world.tiles[19][50],'p','the exit road must cross the old outer tree border');
+ assert.equal(world.tiles[19][51],'p','the path must remain visible at the map edge');
  assert.equal(chapter.beforeMove(45,19),false);
  // A continued step east asks for confirmation and loads the uphill route.
  player={x:49.5,y:19,facing:'right'};chapter.afterMove();
