@@ -141,6 +141,8 @@ function villageWorld(){
  for(let y=2;y<=37;y++)for(let x=45;x<=47;x++)updateTile(w,x,y,'w');
  for(let x=41;x<=49;x++)if(x<45||x>47)updateTile(w,x,19,'p');
  if(complete('bridge'))for(let x=45;x<=47;x++)updateTile(w,x,19,'p');
+ // The visible eastbound road continues through the former forest border, not into a wall.
+ for(let x=48;x<w.width;x++)for(const y of [18,19,20])updateTile(w,x,y,'p');
  w.spawn={x:26,y:29};
  // The six older statue display pieces are retired from Willowmere.
  w.showcase=[];
@@ -404,7 +406,7 @@ function afterMove(){const p=engine.getPlayer();
  if(scene==='village'&&complete('bridge')){
   // Ask once on reaching the eastern map edge; declining lets the player walk back.
   if(p.x<48.4||p.y<17||p.y>21)exitPromptArmed=true;
-  else if(p.x>=49.2&&exitPromptArmed){
+  else if(p.x>=49.5&&exitPromptArmed){
    exitPromptArmed=false;
    $('fallen-story-chapter-confirm').hidden=false;
    $('fallen-story-chapter-yes')?.focus?.({preventScroll:true});
