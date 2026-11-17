@@ -744,7 +744,7 @@ function renderReview(data) {
   const foot = add(panel, "p", "v87-note",
     "Charts summarize patterns in the available game data.");
 }
-function renderPlayer(profile, stats, username) {
+function renderPlayer(profile, stats, username, options = {}) {
   const header = add(playerCard, "div", "player-header");
   if (profile.avatar) {
     const avatar = add(header, "img", "player-avatar");
@@ -759,9 +759,10 @@ function renderPlayer(profile, stats, username) {
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   const ratings = add(playerCard, "div", "rating-grid");
-  const boxes={bullet:ratingBox("BULLET",stats.chess_bullet?.last?.rating),blitz:ratingBox("BLITZ",stats.chess_blitz?.last?.rating),rapid:ratingBox("RAPID",stats.chess_rapid?.last?.rating)};
+  const prefix=options.platform==="lichess"?"LICHESS ":"";
+  const boxes={bullet:ratingBox(prefix+"BULLET",stats.chess_bullet?.last?.rating),blitz:ratingBox(prefix+"BLITZ",stats.chess_blitz?.last?.rating),rapid:ratingBox(prefix+"RAPID",stats.chess_rapid?.last?.rating)};
   for(const box of Object.values(boxes))ratings.append(box);
-  loadRatingSparklines(profile.username||username,boxes);
+  if(!options.preset)loadRatingSparklines(profile.username||username,boxes);
 }
 // Original Insights v87 Python runs inside a browser Web Worker (WebAssembly).
 // No GitHub workflow or status polling is involved.
@@ -840,32 +841,52 @@ const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
  // Real, precomputed v87 data is served as a same-origin static preset.
- // If the snapshot has not been published yet, retain the full local review.
+ // A missing snapshot must never silently trigger an expensive fresh analysis.
  const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
  const loadPreset=async()=>{
   const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"force-cache"});
   if(!response.ok)throw Error("Example snapshot unavailable.");
   const preset=await response.json();
-  if(preset.schema!==1||preset.username!==exampleUsername.toLowerCase()
+  if(preset.schema!==2||preset.username!==exampleUsername.toLowerCase()
    ||preset.report?.version!=="fairplay-v87-review-reliability"
-   ||preset.report.username!==exampleUsername.toLowerCase()
+   ||preset.report.username!==(preset.source?.account||exampleUsername).toLowerCase()
    ||!(Number(preset.report.games)>0)||!preset.profile||!preset.stats
    ||!Array.isArray(preset.insights))throw Error("Invalid example snapshot.");
   playerCard.replaceChildren();
-  renderPlayer(preset.profile,preset.stats,exampleUsername);
+  renderPlayer(preset.profile,preset.stats,exampleUsername,{preset:true,platform:preset.source?.platform});
   results.classList.remove("hidden");
   renderReview(preset.report);
-  statusText.textContent="Precomputed example report · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
-   ". This snapshot is not a live analysis.";
+  const origin=preset.source?.platform==="lichess"?"Lichess @"+preset.source.account+" (Magnus Carlsen); not Chess.com data":"Chess.com @"+exampleUsername;
+  statusText.textContent="Precomputed example report · "+origin+" · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
+   ". No live analysis.";
+  if(preset.source?.platform==="lichess"){
+   const notice=document.createElement("p");
+   notice.className="v87-warning";
+   notice.textContent="Magnus sample uses authentic public Lichess games from @"+preset.source.account+". Lichess ratings are not Chess.com ratings.";
+   const panel=document.getElementById("v87-review");
+   if(panel)panel.prepend(notice);
+  }
   window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
    detail:{username:exampleUsername.toLowerCase(),games:preset.insights}
   }));
   results.scrollIntoView({behavior:"instant",block:"start"});
  };
- loadPreset().catch(()=>form.requestSubmit());
+ loadPreset().catch(error=>{
+  console.warn("Example preset unavailable:",error);
+  results.classList.add("hidden");
+  statusText.textContent="This precomputed example report is temporarily unavailable. No new analysis has been started.";
+  button.disabled=true;
+  button.textContent="Example unavailable";
+  const insights=document.getElementById("insights-embedded");
+  if(insights)insights.replaceChildren();
+ });
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
+  if(document.body.dataset.examplePlayer){
+    statusText.textContent="This example uses a saved report; no new analysis is started.";
+    return;
+  }
   const username = usernameInput.value.trim();
   if (!/^[A-Za-z0-9_-]{3,25}$/.test(username)) {
     statusText.textContent = "Enter a valid Chess.com username.";
@@ -908,7 +929,7 @@ form.addEventListener("submit", async event => {
 
 // URL fragments are never sent to Cloudflare in HTTP requests.
 const requestedAnalysis=new URLSearchParams(location.hash.replace(/^#/, "")).get("analyze");
-if(requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
+if(!document.body.dataset.examplePlayer&&requestedAnalysis&&/^[a-z0-9_-]{3,25}$/i.test(requestedAnalysis)){
   usernameInput.value=requestedAnalysis;
   form.requestSubmit();
 }

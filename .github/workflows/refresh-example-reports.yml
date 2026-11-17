@@ -5,6 +5,14 @@ on:
     paths:
       - '.github/workflows/refresh-example-reports.yml'
       - 'scripts/generate-example-reports.py'
+      - 'scripts/export-magnus-lichess.py'
+      - 'client-v87/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-example-reports.yml'
+      - 'scripts/generate-example-reports.py'
+      - 'scripts/export-magnus-lichess.py'
       - 'client-v87/**'
   schedule:
     - cron: '15 3 * * 0'
@@ -14,45 +22,88 @@ permissions:
   contents: write
 
 concurrency:
-  group: refresh-example-reports
+  group: refresh-example-reports-${{ github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 
 jobs:
   refresh:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - username: MagnusCarlsen
+            slug: magnus-carlsen
+          - username: Hikaru
+            slug: hikaru-nakamura
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref || 'main' }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Avoid refreshing again after the bot saves a PR snapshot
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "$(git show -s --format=%an "${{ github.event.pull_request.head.sha }}")" = "github-actions[bot]" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            elif [ -s assets/example-reports/magnus-carlsen.json ] && [ -s assets/example-reports/hikaru-nakamura.json ] &&
+              python -c 'import json,sys; assert all(json.load(open(p)).get("schema")==2 for p in sys.argv[1:])' assets/example-reports/magnus-carlsen.json assets/example-reports/hikaru-nakamura.json &&
+              git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/magnus-carlsen.json' &&
+              git diff --name-only origin/main...HEAD | grep -qx 'assets/example-reports/hikaru-nakamura.json'; then
+              echo "Both validated snapshots already committed to this PR"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
       - name: Install v87 data collector
+        if: steps.guard.outputs.skip != 'true'
         run: python -m pip install 'requests>=2.32,<3'
-      - name: Calculate genuine reports and insights
-        run: python -u scripts/generate-example-reports.py
-        timeout-minutes: 65
-      - name: Validate report snapshots
+      - name: Calculate bounded genuine v87 report
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          ELO_EXAMPLE_MAX_GAMES: '300'
+        run: python -u scripts/generate-example-reports.py "${{ matrix.username }}"
+        timeout-minutes: 30
+      - name: Validate saved report
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          EXAMPLE_USERNAME: ${{ matrix.username }}
+          EXAMPLE_SLUG: ${{ matrix.slug }}
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
-          for slug,user in [('magnus-carlsen','magnuscarlsen'),('hikaru-nakamura','hikaru')]:
-              data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
-              assert data['schema']==1 and data['username']==user
-              assert data['report']['version']=='fairplay-v87-review-reliability'
-              assert data['report']['username']==user and data['report']['games']>0
-              assert isinstance(data['insights'],list) and len(data['insights'])>0
-              print(slug,data['report']['games'],'games reviewed')
+          user=os.environ['EXAMPLE_USERNAME'].lower()
+          slug=os.environ['EXAMPLE_SLUG']
+          data=json.loads((Path('assets/example-reports')/(slug+'.json')).read_text())
+          assert data['schema']==2 and data['username']==user
+          assert data['report']['version']=='fairplay-v87-review-reliability'
+          source=data['source']
+          assert source['account']==('drnykterstein' if user=='magnuscarlsen' else user)
+          assert source['platform']==('lichess' if user=='magnuscarlsen' else 'chess.com')
+          assert data['report']['username']==source['account'] and data['report']['games']>=50
+          assert isinstance(data['insights'],list) and len(data['insights'])>0
+          print(slug,data['report']['games'],'verified games')
           PY
-      - name: Publish static snapshots only after both succeed
+      - name: Publish each snapshot as soon as it is ready
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          EXAMPLE_SLUG: ${{ matrix.slug }}
+          PUBLISH_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/example-reports/magnus-carlsen.json assets/example-reports/hikaru-nakamura.json
+          git add "assets/example-reports/${EXAMPLE_SLUG}.json"
           if ! git diff --cached --quiet; then
-            git commit -m "179"
-            git pull --rebase origin main
-            git push origin HEAD:main
+            git commit -m "181"
+            git pull --rebase origin "${PUBLISH_BRANCH}"
+            git push origin "HEAD:${PUBLISH_BRANCH}"
           fi
