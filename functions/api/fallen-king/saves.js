@@ -66,3 +66,16 @@ export async function onRequestPut({request,env}){
   return Response.json({ok:true,slot},{headers});
  }catch{return adminReply('Unable to save game.',503);}
 }
+
+export async function onRequestDelete({request,env}){
+ const auth=await requireAdmin({request,env});
+ if(auth instanceof Response)return auth;
+ const slot=new URL(request.url).searchParams.get('slot');
+ if(!allowed.has(slot))return adminReply('Invalid slot.',400);
+ try{
+  await table(env.AUTH_DB);
+  await env.AUTH_DB.prepare('DELETE FROM fallen_king_saves WHERE user_id=? AND slot=?')
+   .bind(auth.session.user.id,slot).run();
+  return Response.json({ok:true,slot},{headers});
+ }catch{return adminReply('Unable to delete game save.',503);}
+}
