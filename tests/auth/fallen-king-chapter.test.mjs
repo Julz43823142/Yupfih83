@@ -26,6 +26,11 @@ test('surface depth audit prevents known bridge and rook z-fighting regressions'
  assert.match(source,/box\(x\+\.5,\.177,z\+\.5,\.41,\.020,\.27/);
  assert.match(source,/box\(x,1\.13,z,\.67,\.13,\.54/);
 });
+test('inn right-hand wooden post clears stone detailing without altering collision',()=>{
+ assert.match(engine,/if\(h\.name==='The Inn'&&side===1\)continue/);
+ assert.match(engine,/box\(x\+w\/2-\.42,\.2,face\+\.33,\.20,1\.9,\.12,'#795c48'\)/);
+ assert.match(page,/fallen-king\.js\?v=62/);
+});
 test('gameplay continues rendering after one failed frame and hidden pause does not trap movement',()=>{
  const frame=engine.slice(engine.indexOf('function frame(ms){'),engine.indexOf('function togglePause(',engine.indexOf('function frame(ms){')));
  assert.match(frame,/requestAnimationFrame\(frame\)/);
