@@ -15,6 +15,17 @@ const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8
 test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
 
+test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
+ // Check the actual base/top dimensions, not merely that an artwork token exists.
+ const clears=(bottom,height,detail)=>detail-bottom-height>=.008;
+ assert.ok(clears(.055,.11,.177),'bridge approach inlay is above paving');
+ assert.ok(clears(.13,.25,.40),'bridge-side bench is above its base');
+ assert.ok(clears(.37,.74,1.13),'bridge pier cap is above the stone pier');
+ assert.match(engine,/if\(n\.piece!=='R'\)features\(/,'rook heads have a single face mesh');
+ assert.match(engine,/box\(tx,H\+\.055,z\+d\/2\+\.28/,'house fascia is offset from roof face');
+ assert.match(source,/box\(x\+\.5,\.177,z\+\.5,\.41,\.020,\.27/);
+ assert.match(source,/box\(x,1\.13,z,\.67,\.13,\.54/);
+});
 test('gameplay continues rendering after one failed frame and hidden pause does not trap movement',()=>{
  const frame=engine.slice(engine.indexOf('function frame(ms){'),engine.indexOf('function togglePause(',engine.indexOf('function frame(ms){')));
  assert.match(frame,/requestAnimationFrame\(frame\)/);
