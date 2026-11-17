@@ -662,3 +662,49 @@ test('five approved intro panels play in fixed order at native matching dimensio
  assert.match(source,/scene:'prison',title:'THE KING IMPRISONED'/);
  assert.match(source,/claiming that Oliver is a trespasser/);
 });
+
+test('New Game and Skip Introduction always reach a controllable cell without duplicate listeners',()=>{
+ const elements=new Map(),listeners=new Map();
+ const node=id=>{
+  if(!elements.has(id))elements.set(id,{
+   hidden:true,textContent:'',style:{},width:0,height:0,
+   classList:{add(){},remove(){}},
+   addEventListener(name,fn){const key=id+':'+name;listeners.set(key,[...(listeners.get(key)||[]),fn]);},
+   getContext(){return {fillRect(){},clearRect(){},drawImage(){}};},
+   focus(){},getClientRects(){return this.hidden?[]:[{}];}
+  });
+  return elements.get(id);
+ };
+ const document={
+  getElementById:node,querySelectorAll(){return [];},
+  addEventListener(name,fn){const key='document:'+name;listeners.set(key,[...(listeners.get(key)||[]),fn]);}
+ };
+ const localStorage={getItem(){return null;},setItem(){}};
+ const win={FallenKingSlotSession:true,FallenKingPendingSave:null};
+ new Function('window','document','localStorage','location','confirm',source)(win,document,localStorage,{},()=>true);
+ let world={width:52,height:40,version:5,tiles:Array(40).fill('p'.repeat(52)),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:26,y:29}};
+ let player={x:26,y:29},resumes=0;
+ const api={
+  getWorld:()=>world,getPlayer:()=>player,
+  setWorld:(next,pos)=>{world=next;player=pos;},resumeGameplay(){resumes++;},
+  say(){},enableSound(){},soundCue(){}
+ };
+ const story=win.FallenKingStory;
+ for(let i=0;i<3;i++){
+  story.start(api);
+  assert.equal(story.isIntro(),true);
+  assert.equal(node('fallen-story-intro').hidden,false);
+  const skips=listeners.get('fallen-story-skip:click');
+  assert.equal(skips.length,1,'only one Skip listener across repeated games');
+  skips[0]();
+  assert.equal(story.isIntro(),false,'Skip must leave cinematic mode');
+  assert.equal(story.blockedInput(),false,'movement must be unlocked');
+  assert.equal(node('fallen-story-intro').hidden,true);
+  assert.equal(world.width,25);
+  assert.equal(player.x,12);
+  assert.equal(player.y,9);
+ }
+ assert.equal(resumes,3);
+ assert.equal(listeners.get('fallen-story-next:click').length,1);
+ assert.equal(listeners.get('document:keydown').length,1);
+});
