@@ -849,12 +849,64 @@ if(!document.body.dataset.examplePlayer)for(const username of ["MagnusCarlsen","
 }
 // Example pages MUST run the same live Chess.com 5,000-game v87 review as the
 // homepage. Old preset files were limited snapshots with the wrong game coverage.
+// Example reports use a fully precomputed v87 result and never start an
+// on-device scan. Only a verified 5,000-game Chess.com snapshot is accepted.
 const exampleUsername=document.body.dataset.examplePlayer;
 const activeExample=exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru";
-if(activeExample){
+async function openSavedExample(){
+  const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
+  const account=exampleUsername.toLowerCase();
   usernameInput.value=exampleUsername;
-  statusText.textContent="Preparing the latest Chess.com analysis for @"+exampleUsername+" (up to 5,000 eligible games)…";
+  results.classList.remove("hidden");
+  playerCard.replaceChildren();
+  const panel=document.getElementById("v87-review");
+  panel.replaceChildren();
+  statusText.textContent="Opening saved Chess.com report…";
+  try{
+    const response=await fetch("/assets/example-reports-v2/"+slug+".json",{cache:"force-cache"});
+    if(!response.ok){
+      if(account==="magnuscarlsen"){
+        const unavailable=await fetch("/assets/example-reports-v2/magnus-carlsen-unavailable.json",{cache:"force-cache"});
+        if(unavailable.ok){
+          const marker=await unavailable.json();
+          if(marker.source?.platform==="chess.com"&&marker.source?.account===account&&
+             marker.available===false&&marker.reason==="no_public_archives"){
+            throw Error("Chess.com publishes no public game archives for @MagnusCarlsen. A verified 5,000-game report cannot be generated for this account.");
+          }
+        }
+      }
+      throw Error("The 5,000-game report has not been published yet.");
+    }
+    const saved=await response.json();
+    if(saved.schema!==2||saved.username!==account||saved.source?.platform!=="chess.com"||
+       saved.source?.account!==account||saved.profile?.username?.toLowerCase()!==account||
+       saved.report?.username!==account||
+       saved.report?.version!=="fairplay-v87-review-reliability"||
+       saved.report?.games!==5000||saved.sample?.actualGames!==5000||
+       saved.sample?.requestedGames!==5000||
+       !Array.isArray(saved.insights)||saved.insights.length!==5000||
+       ["rapid","blitz","bullet"].reduce((n,k)=>n+(Number(saved.sample?.timeControls?.[k])||0),0)!==5000)
+      throw Error("Saved report has not passed the 5,000-game Chess.com validation.");
+    renderPlayer(saved.profile,saved.stats||{},exampleUsername,{preset:true});
+    renderReview(saved.report);
+    const counts=saved.sample.timeControls;
+    const heading="CHESS.COM · 5,000 TOTAL GAMES · RAPID "+(counts.rapid||0)+
+      " · BLITZ "+(counts.blitz||0)+" · BULLET "+(counts.bullet||0);
+    const title=add(panel,"p","v87-muted",heading);
+    panel.insertBefore(title,panel.firstChild);
+    statusText.textContent="Saved Chess.com review: 5,000 games · @"+exampleUsername+".";
+    window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
+      detail:{username:account,games:saved.insights}
+    }));
+  }catch(error){
+    panel.replaceChildren();
+    add(panel,"p","v87-warning","The verified 5,000-game example report is currently unavailable.");
+    statusText.textContent=error.message;
+    const link=add(panel,"a","example-live-link","Run a fresh Chess.com analysis for @"+exampleUsername);
+    link.href="/?analyze="+encodeURIComponent(exampleUsername);
+  }
 }
+if(activeExample)usernameInput.value=exampleUsername;
 form.addEventListener("submit", async event => {
   event.preventDefault();
   const username = usernameInput.value.trim();
@@ -1076,13 +1128,9 @@ window.addEventListener('elo-example-preset-ready',event=>{
 
 const saved=new URLSearchParams(location.hash.replace(/^#/, '')).get('review');
 if(saved&&/^[a-z0-9_-]{3,25}$/i.test(saved))load(saved.toLowerCase());
-// Never substitute the old short example snapshots for a Chess.com review.
+// The dedicated example page waits for its precomputed report, never a worker.
 })();
-// Schedule after all submit listeners have attached, so the full v87 worker
-// and its progress UI start together on the example page.
 if(activeExample){
-  document.addEventListener("DOMContentLoaded",()=>{
-    form.requestSubmit();
-  },{once:true});
+  document.addEventListener("DOMContentLoaded",()=>{void openSavedExample();},{once:true});
 }
 

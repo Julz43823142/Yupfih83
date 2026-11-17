@@ -86,13 +86,14 @@ test('the minigames leaderboard link has no blue box or button padding',()=>{
  assert.doesNotMatch(style,/(?:background|border:|border-radius|padding:)/);
 });
 
-test('example player worker starts before any optional Chess.com profile or stats fetch',()=>{
- const index=script.indexOf('if(activeExample){',script.indexOf('form.addEventListener("submit"'));
- const profile=script.indexOf('const profileController=new AbortController()',index);
- assert.ok(index>=0&&profile>index);
- const fastPath=script.slice(index,profile);
- assert.match(fastPath,/await runReview\(username,requestId\)/);
- assert.doesNotMatch(fastPath,/await getJSON|await Promise\.race|profileController/);
- assert.ok(script.includes('if(data.type==="profile"){'));
- assert.ok(script.includes('renderPlayer(data.profile,{},username,{preset:true})'));
+test('the example page never waits for a live profile or game analysis',()=>{
+ const entry=script.indexOf('async function openSavedExample()');
+ const submit=script.indexOf('form.addEventListener("submit"',entry);
+ const example=script.slice(entry,submit);
+ assert.match(example,/await fetch\("/);
+ assert.match(example,/renderReview\(saved\.report\)/);
+ assert.doesNotMatch(example,/await runReview|await analyzeOnVisitorDevice|await getJSON/);
+ const boot=script.slice(script.lastIndexOf('if(activeExample){'));
+ assert.match(boot,/openSavedExample\(\)/);
+ assert.doesNotMatch(boot,/requestSubmit\(\)/);
 });
