@@ -30,3 +30,15 @@ body.elo-unified-chess :is(.arcade-board,.chess-board,#play-board,#puzzle-board,
 }
 /* The strips are positioned alongside their real board, not inside the
    64-square grid, so neither squares nor drag/drop hit targets are changed. */
+
+/* Analysis already has player/clock rows; show captured material in those rows. */
+.analysis-material-summary{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap;font-size:12px}
+.analysis-material-summary .elo-material-captures{display:inline-flex}
+.analysis-material-summary .elo-material-remaining{margin-left:4px}
+.tool-page .analysis-player-clock[hidden]{display:none!important}
+.tool-page .board-with-eval.analysis-flipped .analysis-player-black{grid-row:3!important}
+.tool-page .board-with-eval.analysis-flipped .analysis-player-white{grid-row:1!important}
+@media(max-width:600px){
+ .analysis-material-summary .elo-material-remaining{display:none}
+ .analysis-player-identity{gap:4px}
+}
