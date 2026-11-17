@@ -95,7 +95,7 @@ function forestWorld(){
  // Keep the old footpath walkable without placing any display pedestals.
  for(let x=11;x<=23;x++)for(let y=8;y<=12;y++)updateTile(w,x,y,'p');
  w.signs=[{x:9,y:13,text:'Willowmere Village East'}];
- w.blockerRects=[{x:9.5,z:13.5,w:2.2,d:.30},{x:30.2,z:12.9,w:.6,d:.5}];
+ w.blockerRects=[{x:9.5,z:13.5,w:2.2,d:.30},{x:30.2,z:12.9,w:.6,d:.5},...[[5.5,13.2],[10.5,9.8],[19.4,14.8],[29.3,11.0]].map(([x,z])=>({x,z,w:.28,d:.28})),...[[24.6,8.4],[30.5,8.4]].map(([x,z])=>({x,z,w:.36,d:.36}))];
  w.spawn={x:4,y:12};w.music='willowmere';
  w.npcs=[
   {id:'forest-traveller',name:'Travelling Bishop',x:13,y:7,piece:'B',color:'white',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},
@@ -826,22 +826,10 @@ function drawProps(g){
    // The guard is still AWAKE when Oliver is imprisoned.
    piece(12.1,2.38,'R','black',false);
   }else{
-   // The sleeping guard lies fully sideways: long uniformed body, head on
-   // pillow, outstretched arm, and a fallen rook helmet beside the cot.
-   // No standing chess-piece silhouette is rendered in the playable cell.
-   box(12.02,.47,2.43,1.54,.26,.55,'#293d63');
-   box(12.12,.59,2.44,1.04,.08,.48,'#47617e');
-   sphere(11.11,.73,2.43,.32,'#d4b89b',12);
-    // Visible pale face, dark sleeping eyes and helmet set aside on the pillow.
-    sphere(11.08,.75,2.73,.13,'#e0c4a8',10);
-    for(const ex of [10.96,11.20]){sphere(ex,.81,2.735,.038,'#29313c',8);box(ex,.835,2.765,.10,.015,.018,'#41372f');}
-    box(11.46,.51,2.43,.30,.19,.46,'#405b79');
-    box(12.67,.52,2.23,.50,.20,.23,'#405b79');
-   sphere(11.07,.58,2.36,.12,'#536e88',7);
-   box(12.05,.42,2.83,1.26,.15,.18,'#263b56');
-   box(12.87,.45,2.30,.65,.15,.30,'#27394d');
-   box(11.08,.40,2.87,.44,.17,.43,'#455c74');
-   box(11.08,.58,2.89,.48,.10,.47,'#d1b880');
+   // A real rook chess piece lies horizontally across the cot, with a visible turret silhouette.
+   recliningPiece(11.55,2.43,'R','black');
+   // Shut eyes toward the camera while the rook sleeps.
+   for(const ex of [12.35,12.68])box(ex,.72,2.80,.17,.035,.045,'#d5c6ae');
   }
   box(11.1,.61,2.7,.34,.19,.43,'#48566d');
   // Mara and Tovin: recognisable chess-piece silhouettes, one in each neighbouring cell.
@@ -1098,7 +1086,7 @@ function drawProps(g){
   for(const x of [27.05,27.40,27.75,28.05])box(x,1.16,8.24,.045,2.18,.03,'#967554');
   box(27.91,1.06,8.29,.09,.11,.06,'#e4c17b');
   box(towerX,4.99,towerZ,5.65,.23,5.65,'#555d61');
-  box(towerX,5.25,towerZ,5.9,.36,5.9,'#8f9490');
+  box(towerX,5.29,towerZ,5.92,.30,5.92,'#8f9490');
   // Battlements, raised corner turrets and a dark peaked watch roof.
   for(const x of [25.15,26.3,27.5,28.7,29.85])for(const z of [2.65,8.35])
    box(x,5.72,z,.60,.92,.52,'#9da19c');
@@ -1218,14 +1206,14 @@ function drawVillageProps(g){
  }
  for(const z of [18.1,20.8])for(let x=43;x<=49;x+=2){
   box(x,.10,z,1.1,.20,.24,'#83745b');
-  box(x,.22,z,.86,.08,.29,'#bba27a');
+  box(x,.315,z,.86,.055,.29,'#bba27a');
  }
  // Fasteners and rope brackets are visible even before bridge repair.
  for(const z of [18.05,20.95])for(const x of [43.6,44,48.7,49.1]){box(x,.23,z,.21,.46,.21,'#75593e');box(x,.51,z,.25,.12,.25,'#ae8b62');}
   if(done){
   for(let x=44.2;x<=48.8;x+=.5)for(const z of [18.4,20.6]){box(x,.35,z,.10,.08,.15,'#5b544c');box(x,.42,z,.055,.03,.07,'#dbc18a');}
   for(let x=44;x<=48;x+=.48){
-   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.365,19.5,.07,.022,1.96,'#e1c28e');
+   box(x+.3,.21,19.5,.38,.24,2.2,x%1<.45?'#b38c61':'#c19b70');box(x+.3,.475,19.5,.07,.022,1.96,'#e1c28e');
   }
   for(const z of [18.3,20.7]){
    box(46.3,.49,z,4.9,.12,.17,'#b8a078');
@@ -1256,7 +1244,7 @@ function drawEffects(g,t){
    // Three clear, floating Z glyphs above the sleeping rook; no UI image overlay.
    const {tri}=g;
    if(tri)for(let i=0;i<3;i++){
-    const x=11.7+i*.49,y=1.88+i*.24+.07*Math.sin(t*2+i),z=2.83;
+    const x=12.05+i*.37,y=1.30+i*.24+.07*Math.sin(t*2+i),z=2.88;
     const p=(dx,dy)=>[x+dx,y+dy,z],color=i===2?'#d8e0d2':'#b4c8c9';
     function stroke(ax,ay,bx,by){
      const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len*.042,ny=dx/len*.042;
