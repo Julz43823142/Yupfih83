@@ -817,9 +817,12 @@ async function runReview(username){
 // Example reports must start immediately on the existing homepage.
 // Changing only the URL hash does NOT reload the document or submit the form.
 const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
+const exampleProfileRequests=new Map();
 for(const username of ["MagnusCarlsen","Hikaru"]){
   // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
-  void getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)).then(profile=>{
+  const profileRequest=getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username));
+  exampleProfileRequests.set(username.toLowerCase(),profileRequest);
+  void profileRequest.then(profile=>{
     const slot=document.querySelector('[data-player-avatar="'+username+'"]');
     if(slot && typeof profile.avatar==="string" && /^https:\/\//.test(profile.avatar)){
       const photo=document.createElement("img");
@@ -897,14 +900,20 @@ form.addEventListener("submit", async event => {
     const profileController=new AbortController();
     const profileTimeout=setTimeout(()=>profileController.abort(),15000);
     let profile;
-    try{profile=await getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal});}
+    try{
+      // Reuse the existing sample-avatar request instead of doubling Chess.com traffic.
+      const shared=exampleProfileRequests.get(username.toLowerCase());
+      profile=await (shared||getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal}));
+    }
     finally{clearTimeout(profileTimeout)}
     playerCard.replaceChildren();
     renderPlayer(profile, {}, username, {preset:true});
     void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
       if(usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
       playerCard.replaceChildren();
-      renderPlayer(profile, stats, username);
+      // Do not download the entire career rating history in parallel with the
+      // 5,000-game review. Two archive collectors can trigger Chess.com 429s.
+      renderPlayer(profile, stats, username, {preset:exampleAccounts.has(username.toLowerCase())});
     }).catch(error=>console.warn("Optional player ratings unavailable:",error));
     let panel = document.getElementById("v87-review");
     if (!panel) {
@@ -914,7 +923,11 @@ form.addEventListener("submit", async event => {
     results.classList.remove("hidden");
     placeExampleCardsNearOverview();
     results.scrollIntoView({behavior:"smooth",block:"start"});
-    try { await runReview(username); }
+    try {
+      await runReview(username);
+      if(exampleAccounts.has(username.toLowerCase()))
+        window.dispatchEvent(new CustomEvent("elo-example-live-review-ready",{detail:{username:username.toLowerCase()}}));
+    }
     catch (error) {
       stopReviewProgress();
       panel.replaceChildren();
@@ -1007,7 +1020,20 @@ async function load(user){
   if(!urls.length)render(user,[],0,0);
  }catch(e){if(current===generation)target.replaceChildren(node('p','insights-intro','Additional insights unavailable: '+e.message+'. The main player review is unaffected.'))}
 }
-form.addEventListener('submit',()=>{const user=input.value.trim().toLowerCase();if(/^[a-z0-9_-]{3,25}$/.test(user))load(user)});
+form.addEventListener('submit',()=>{
+ const user=input.value.trim().toLowerCase();
+ if(!/^[a-z0-9_-]{3,25}$/.test(user))return;
+ if(user==='magnuscarlsen'||user==='hikaru'){
+   ++generation;
+   target.replaceChildren(node('p','insights-intro','The full Chess.com review is running. Additional public-game statistics will load after the report finishes.'));
+   return;
+ }
+ void load(user);
+});
+window.addEventListener('elo-example-live-review-ready',event=>{
+ const user=event.detail?.username;
+ if(user==='magnuscarlsen'||user==='hikaru')void load(user);
+});
 window.addEventListener('elo-example-preset-ready',event=>{
  const {username,games}=event.detail||{};
  if(typeof username!=='string'||!Array.isArray(games))return;
