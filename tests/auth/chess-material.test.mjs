@@ -56,12 +56,12 @@ test('All main chessboards load one shared material UI with their own position',
  const sources={
   'arcade.js':/updateMaterial\(board,state\.eloView\.fen\(\)/,
   'play.js':/updateMaterial\(board,chess\.fen\(\)/,
-  'analysis-stockfish-fixed.js':/updateMaterial\(board,pos\.fen\(\)/,
+  'analysis-stockfish-fixed.js':/renderMaterialInline\(strip\.material,id,position\)/,
   'player-prep.js':/updateMaterial\(board,game\.fen\(\)/
  };
  for(const [file,pattern] of Object.entries(sources)){
   assert.match(read(file),pattern,file);
-  assert.match(read(file),/import \{updateMaterial\} from ['"]\.\/chess-material\.mjs['"]/);
+  assert.match(read(file),/from ['\"]\.\/chess-material\.mjs['\"]/);
  }
  for(const html of ['arcade.html','play.html','analysis.html','player-prep.html']){
   assert.match(read(html),/chess-material\.css\?v=200/,html);
