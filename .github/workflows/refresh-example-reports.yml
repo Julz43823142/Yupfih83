@@ -68,7 +68,6 @@ jobs:
         env:
           EXAMPLE_USERNAME: ${{ matrix.username }}
           EXAMPLE_SLUG: ${{ matrix.slug }}
-          PUBLISH_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
         run: |
           python - <<'PY'
           import json
@@ -90,6 +89,7 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         env:
           EXAMPLE_SLUG: ${{ matrix.slug }}
+          PUBLISH_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
