@@ -844,35 +844,61 @@ for(const username of ["MagnusCarlsen","Hikaru"]){
 // second scan; the snapshot was produced by the regular v87 Python runner.
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
- usernameInput.value=exampleUsername;
  const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
+ usernameInput.value=exampleUsername;
+ results.classList.remove("hidden");
+ statusText.textContent="Opening saved example report…";
  const loadPreset=async()=>{
   const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"no-cache"});
-  if(!response.ok)throw Error("No saved report is available.");
+  if(!response.ok)throw Error("Saved example report unavailable (HTTP "+response.status+").");
   const preset=await response.json();
   const account=exampleUsername.toLowerCase();
-  if(![2,3].includes(preset.schema)||preset.username!==account
-   ||preset.source?.platform!=="chess.com"||preset.source?.account!==account
-   ||preset.report?.version!=="fairplay-v87-review-reliability"
-   ||preset.report.username!==account||!(preset.report.games>0)
-   ||!preset.profile||!preset.stats||!Array.isArray(preset.insights))
-    throw Error("No verified Chess.com v87 preset is available.");
+  const source=preset.source||{};
+  // Magnus has a saved Lichess report for DrNykterstein. Its sample must
+  // never be described as a 5,000-game Chess.com review.
+  const validSource=account==="magnuscarlsen"
+    ?source.platform==="lichess"&&source.account==="drnykterstein"
+    :source.platform==="chess.com"&&source.account==="hikaru";
+  if(![2,3].includes(preset.schema)||preset.username!==account||!validSource
+    ||preset.report?.version!=="fairplay-v87-review-reliability"
+    ||preset.report?.username!==source.account||!(preset.report.games>0)
+    ||!preset.profile||!preset.stats||!Array.isArray(preset.insights)
+    ||preset.insights.length!==preset.report.games)
+    throw Error("The saved example report has invalid or mismatched source data.");
   playerCard.replaceChildren();
-  renderPlayer(preset.profile,preset.stats,exampleUsername,{preset:true,platform:"chess.com"});
+  renderPlayer(preset.profile,preset.stats,exampleUsername,
+    {preset:true,platform:source.platform});
+  const provenance=add(playerCard,"p","example-report-source",
+    "Saved example · "+Number(preset.report.games).toLocaleString("en-US")+
+    " games · "+(source.platform==="lichess"?"Lichess":"Chess.com")+
+    " @"+source.account+" · "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
+    ". This is a snapshot, not a live 5,000-game scan.");
+  provenance.style.cssText="margin:16px 0;color:#b5d5e8;line-height:1.6;font-size:14px";
+  const liveLink=add(playerCard,"a","example-live-link","Analyze latest Chess.com games for @"+exampleUsername);
+  liveLink.href="/?analyze="+encodeURIComponent(exampleUsername);
+  liveLink.style.cssText="display:inline-flex;padding:11px 16px;border-radius:9px;background:#154c69;color:#e4f9ff;text-decoration:none;font-weight:700;border:1px solid #3d96ba;margin-top:8px";
   results.classList.remove("hidden");
   placeExampleCardsNearOverview();
   renderReview(preset.report);
-  statusText.textContent="Saved Chess.com v87 scan · "+preset.report.games+
-   " games · generated "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
-   ". No new analysis started.";
+  statusText.textContent="Saved example loaded · "+preset.report.games+" games from "+
+    (source.platform==="lichess"?"Lichess":"Chess.com")+" @"+source.account+".";
   window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
    detail:{username:account,games:preset.insights}
   }));
  };
  loadPreset().catch(error=>{
-  console.warn("Example preset unavailable:",error);
-  results.classList.add("hidden");
-  statusText.textContent=error.message+" A live scan was not started.";
+  console.warn("Example report unavailable:",error);
+  results.classList.remove("hidden");
+  const panel=document.getElementById("v87-review");
+  if(panel){
+   panel.replaceChildren();
+   add(panel,"p","v87-warning",error.message);
+   const live=document.createElement("a");
+   live.href="/?analyze="+encodeURIComponent(exampleUsername);
+   live.textContent="Start a fresh Chess.com analysis for @"+exampleUsername;
+   panel.append(live);
+  }
+  statusText.textContent="Could not open the saved example: "+error.message;
  });
 }
 form.addEventListener("submit", async event => {

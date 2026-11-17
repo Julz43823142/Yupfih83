@@ -1,44 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {runInNewContext} from 'node:vm';
 
-const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const script=readFileSync(new URL('../../script.js',import.meta.url),'utf8');
+const root=new URL('../../',import.meta.url);
+const html=readFileSync(new URL('index.html',root),'utf8');
+const script=readFileSync(new URL('script.js',root),'utf8');
+const examples=[
+ {name:'MagnusCarlsen',slug:'magnus-carlsen',source:'lichess',account:'drnykterstein'},
+ {name:'Hikaru',slug:'hikaru-nakamura',source:'chess.com',account:'hikaru'}
+];
 
-test('Magnus and Hikaru example cards are native navigation links',()=>{
- for(const name of ['MagnusCarlsen','Hikaru']){
-  const escaped=name.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\$&');
-  const pattern=new RegExp('<a\\s+class="sample-button"\\s+href="/\\?analyze='+escaped+'"\\s+data-username="'+escaped+'"');
-  assert.match(html,pattern,'Expected a real, directly navigable link for '+name);
- }
- assert.doesNotMatch(html,/<button[^>]+class="sample-button"/);
-});
-
-test('analysis starts on the first page load for a clicked example link',()=>{
- const begin=script.indexOf('const requestedAnalysis=');
- const end=script.indexOf('/* Load public Chess.com Insights',begin);
- assert.ok(begin>=0&&end>begin);
- for(const name of ['MagnusCarlsen','Hikaru']){
-  const calls=[];
-  const location={search:'?analyze='+name,hash:''};
-  const context={
-   location,document:{body:{dataset:{}}},usernameInput:{value:''},
-   form:{requestSubmit(){calls.push(context.usernameInput.value)}},
-   URLSearchParams,
-  };
-  runInNewContext(script.slice(begin,end),context);
-  assert.deepEqual(calls,[name],'Analysis must start immediately for '+name);
+test('homepage example cards open the saved reports, not a fresh multi-month analysis',()=>{
+ for(const {name,slug} of examples){
+  assert.ok(html.includes('href="/example-'+slug+'.html" data-username="'+name+'"'),
+    name+' must link to its saved report');
+  assert.ok(!html.includes('href="/?analyze='+name+'" data-username="'+name+'"'),
+    name+' must not launch an expensive live scan on example click');
  }
 });
 
-test('old hash links remain supported for existing bookmarks',()=>{
- const begin=script.indexOf('const requestedAnalysis=');
- const end=script.indexOf('/* Load public Chess.com Insights',begin);
- const context={
-  location:{search:'',hash:'#analyze=Hikaru'},document:{body:{dataset:{}}},
-  usernameInput:{value:''},form:{requestSubmit(){assert.equal(context.usernameInput.value,'Hikaru')}},
-  URLSearchParams,
- };
- runInNewContext(script.slice(begin,end),context);
+test('example pages do not redirect back into a new homepage scan',()=>{
+ for(const {name,slug} of examples){
+  const page=readFileSync(new URL('example-'+slug+'.html',root),'utf8');
+  assert.ok(page.includes("data-example-player='"+name+"'"));
+  assert.ok(!page.includes('location.replace('));
+  assert.ok(page.includes('script.js?v=192-instant-examples'));
+ }
+});
+
+test('bundled snapshot metadata matches exactly the number and source shown to users',()=>{
+ for(const {name,slug,source,account} of examples){
+  const snapshot=JSON.parse(readFileSync(new URL('assets/example-reports/'+slug+'.json',root),'utf8'));
+  assert.equal(snapshot.username,name.toLowerCase());
+  assert.equal(snapshot.source.platform,source);
+  assert.equal(snapshot.source.account,account);
+  assert.equal(snapshot.report.username,account);
+  assert.equal(snapshot.report.version,'fairplay-v87-review-reliability');
+  assert.ok(snapshot.report.games>0);
+  assert.equal(snapshot.insights.length,snapshot.report.games);
+ }
+});
+
+test('saved source transparency and optional fresh-scan link remain visible',()=>{
+ assert.ok(script.includes('preset.report?.username!==source.account'));
+ assert.ok(script.includes('preset.insights.length!==preset.report.games'));
+ assert.ok(script.includes('This is a snapshot, not a live 5,000-game scan.'));
+ assert.ok(script.includes('liveLink.href="/?analyze="+encodeURIComponent(exampleUsername)'));
+ assert.ok(script.includes('renderReview(preset.report);'));
+});
+
+test('explicit fresh-analysis query remains supported separately',()=>{
+ assert.ok(script.includes('new URLSearchParams(location.search).get("analyze")'));
+ assert.ok(script.includes('form.requestSubmit();'));
 });
