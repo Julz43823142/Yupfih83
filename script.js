@@ -814,28 +814,30 @@ async function runReview(username){
 
  statusText.textContent="Analysis complete on your device.";
 }
-// Public Chess.com profile previews are prefetched; full game analysis remains opt-in.
-const exampleProfiles=new Map();
+// Example reports must start immediately on the existing homepage.
+// Changing only the URL hash does NOT reload the document or submit the form.
+const exampleAccounts=new Set(["magnuscarlsen","hikaru"]);
 for(const username of ["MagnusCarlsen","Hikaru"]){
-  const task=Promise.all([
-    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)),
-    getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)+"/stats")
-  ]).then(([profile,stats])=>{
+  // Avatar prefetch is optional; a failed Chess.com request must never block the buttons.
+  void getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)).then(profile=>{
     const slot=document.querySelector('[data-player-avatar="'+username+'"]');
     if(slot && typeof profile.avatar==="string" && /^https:\/\//.test(profile.avatar)){
       const photo=document.createElement("img");
       photo.src=profile.avatar;photo.alt="";photo.loading="lazy";
       photo.referrerPolicy="no-referrer";slot.replaceChildren(photo);
     }
-    return {profile,stats};
-  });
-  exampleProfiles.set(username,task.then(data=>{try{sessionStorage.setItem("eloscanner-example-v1-"+username,JSON.stringify({savedAt:Date.now(),data}));}catch{}return data;}));
+  }).catch(()=>{});
 }
-document.querySelectorAll(".sample-button[data-username]").forEach(example => {
-  example.addEventListener("click", () => {
-    const slug=example.dataset.username==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
-    location.href="/#analyze="+encodeURIComponent(example.dataset.username);
-  });
+function startExampleAnalysis(username){
+  if(!exampleAccounts.has(String(username).toLowerCase()))return;
+  usernameInput.value=username;
+  // Keep the deep link for bookmarks and refresh, but start the scan synchronously.
+  history.replaceState(history.state,"",location.pathname+location.search+"#analyze="+encodeURIComponent(username));
+  form.requestSubmit();
+  results.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth",block:"start"});
+}
+document.querySelectorAll(".sample-button[data-username]").forEach(example=>{
+  example.addEventListener("click",()=>startExampleAnalysis(example.dataset.username));
 });
 // Example pages render an already completed v87 report. They never start a
 // second scan; the snapshot was produced by the regular v87 Python runner.
@@ -881,14 +883,23 @@ form.addEventListener("submit", async event => {
   }
   button.disabled = true;
   button.textContent = "Analyzing…";
-  statusText.textContent = "Loading player profile…";
-  results.classList.add("hidden");
+  statusText.textContent = "Loading public Chess.com player profile…";
+  results.classList.remove("hidden");
   playerCard.replaceChildren();
+  const preview=add(playerCard,"div","player-header");
+  add(preview,"h3","player-name","@"+username+" · Loading player profile…");
+  const reportPreview=document.getElementById("v87-review");
+  if(reportPreview)reportPreview.replaceChildren(add(document.createElement("div"),"p","v87-warning","Collecting public games for @"+username+" (up to 5,000 available games)…"));
   try {
     const encoded = encodeURIComponent(username);
     // Show a useful player preview as soon as the public profile arrives.
     // Rating stats are optional and must not block the full game scan.
-    const profile = await getJSON("https://api.chess.com/pub/player/" + encoded);
+    const profileController=new AbortController();
+    const profileTimeout=setTimeout(()=>profileController.abort(),15000);
+    let profile;
+    try{profile=await getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal});}
+    finally{clearTimeout(profileTimeout)}
+    playerCard.replaceChildren();
     renderPlayer(profile, {}, username, {preset:true});
     void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
       if(usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
@@ -911,7 +922,9 @@ form.addEventListener("submit", async event => {
       statusText.textContent = "Player preview loaded, but the analysis could not finish.";
     }
   } catch (error) {
-    statusText.textContent = error.message;
+    statusText.textContent = error.name==="AbortError"?"Chess.com did not respond. Retry the player analysis.":error.message;
+    const panel=document.getElementById("v87-review");
+    if(panel)panel.replaceChildren(add(document.createElement("div"),"p","v87-warning",statusText.textContent));
   } finally {
     button.disabled = false;
     button.textContent = "Analyze Player";
