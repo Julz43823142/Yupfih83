@@ -61,10 +61,8 @@ def generate(username,slug):
         insights=report_insights(report)
     if not insights:raise RuntimeError('No valid report observations for '+username)
     if report['games']>5000:raise RuntimeError('Exceeded 5000-game sample limit')
-    # The huge per-subject diagnostic trace is not used by any website renderer.
-    # Keep all displayed v87 metrics, selected periods, charts, opening and trends.
-    if isinstance(report.get('method3'),dict):
-        report['method3'].pop('subject',None)
+    # Preserve the exact output of the normal v87 scan. Do not remove
+    # diagnostic fields or recompute any score for example pages.
     OUTPUT.mkdir(parents=True,exist_ok=True)
     payload={'schema':3,'username':username.lower(),'source':source,
              'generatedAt':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
