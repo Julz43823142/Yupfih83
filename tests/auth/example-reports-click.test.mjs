@@ -13,7 +13,7 @@ test('both example pages remain directly navigable from homepage and each other'
   assert.ok(html.includes('href="/example-'+slug+'.html" data-username="'+name+'"'));
   const page=readFileSync(new URL('example-'+slug+'.html',root),'utf8');
   assert.ok(page.includes("data-example-player='"+name+"'"));
-  assert.ok(page.includes('script.js?v=196-avatars-magnus-profile'));
+  assert.ok(page.includes('script.js?v=197-magnus-master-report'));
   for(const [otherName,otherSlug] of examples)
    assert.ok(page.includes('href="/example-'+otherSlug+'.html" data-username="'+otherName+'"'));
  }
@@ -66,7 +66,7 @@ test('both Chess.com avatars display on homepage and on both example pages witho
  assert.doesNotMatch(script,/if\(!document\.body\.dataset\.examplePlayer\)for\(const username of \["MagnusCarlsen","Hikaru"\]\)/);
 });
 
-test('Magnus example shows verified Chess.com profile without inventing a 5000-game report',()=>{
+test('Magnus example renders real Chess.com master-game aggregates without inventing a v87 review',()=>{
  const profile=JSON.parse(readFileSync(new URL('assets/example-reports-v2/magnus-carlsen-profile.json',root),'utf8'));
  assert.deepEqual(profile.source.platform,'chess.com');
  assert.equal(profile.source.account,'magnuscarlsen');
@@ -80,4 +80,20 @@ test('Magnus example shows verified Chess.com profile without inventing a 5000-g
  const css=readFileSync(new URL('style.css',root),'utf8');
  assert.match(css,/body\[data-example-player\] \.sample-section\{display:block!important\}/);
  assert.doesNotMatch(css,/body\[data-example-player\] \.sample-section\{display:none!important\}/);
+});
+
+test('Magnus saved master-games report has independently sourced games, colors, and openings',()=>{
+ const masters=JSON.parse(readFileSync(new URL('assets/example-reports-v2/magnus-carlsen-master-games.json',root),'utf8'));
+ assert.equal(masters.source.platform,'chess.com');
+ assert.equal(masters.source.dataset,'masters-games-database');
+ assert.equal(masters.source.url,'https://www.chess.com/games/magnus-carlsen');
+ assert.equal(masters.games,6897);
+ assert.equal(masters.colors.white.games+masters.colors.black.games,masters.games);
+ assert.equal(masters.outcomes.winPercent+masters.outcomes.drawPercent+masters.outcomes.lossPercent,100);
+ assert.equal(masters.openings.white.length,5);
+ assert.equal(masters.openings.black.length,5);
+ assert.match(script,/magnus-carlsen-master-games\\.json/);
+ assert.match(script,/masters\\.games\\.toLocaleString/);
+ assert.match(script,/Most played openings/);
+ assert.match(script,/move accuracy, time-control splits and a 5,000-game v87 review are not claimed/);
 });
