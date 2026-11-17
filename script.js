@@ -775,7 +775,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261115-insights-report-2");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261117-backfill-194");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
@@ -819,7 +819,9 @@ async function runReview(username,requestId){
  if(requestId!==activeReviewSerial)return;
  renderReview(report);
 
- statusText.textContent="Analysis complete on your device.";
+ statusText.textContent="Chess.com analysis complete: "+report.games+
+   " of up to 5,000 eligible games reviewed"+
+   (report.games<5000?" · "+report.archive_months_checked+"/"+report.archive_months_available+" available archive months checked.":".");
 }
 // Example reports must start immediately on the existing homepage.
 // Changing only the URL hash does NOT reload the document or submit the form.
