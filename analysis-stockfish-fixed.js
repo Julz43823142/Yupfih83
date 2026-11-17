@@ -1,4 +1,5 @@
 import {Chess} from '/vendor/chess/chess-1.4.0.mjs';
+import {updateMaterial} from './chess-material.mjs';
 import {createOpeningIntegration} from './opening-integration.js?v=7';
 import {appendChessArrow} from './chess-board-arrows.js?v=rainbow-1';
 import {attachChessBoardControls} from './chess-board-controls.js?v=rainbow-1';
@@ -472,6 +473,7 @@ function render(){
   const target=possible.find(m=>m.to===sq);
   if(target){const indicator=document.createElement('span');indicator.className=(p||target.flags.includes('e'))?'legal-capture-ring':'legal-move-dot';indicator.setAttribute('aria-hidden','true');b.append(indicator)}
  }
+ updateMaterial(board,pos.fen(),{flipped:analysisFlipped});
  updatePlayerStrips();
  drawArrows();$('back').disabled=cursor===0;$('forward').disabled=cursor===history.length-1;
  renderNotation();
