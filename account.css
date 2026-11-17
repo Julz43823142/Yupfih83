@@ -125,3 +125,14 @@ body.elo-subpage header.navbar .elo-global-menu nav > a.elo-menu-active{
  font-weight:700!important;
  box-shadow:none!important;
 }
+
+/* 185: Keep a visible, moderate active highlight on the homepage menu too. */
+header.navbar .mobile-chess-menu nav > a[aria-current="page"],
+header.navbar .mobile-chess-menu nav > a.elo-menu-active{
+ background:#246784!important;
+ border:1px solid #66afc6!important;
+ border-left:3px solid #82c9da!important;
+ color:#f2fbff!important;
+ font-weight:800!important;
+ box-shadow:none!important;
+}
