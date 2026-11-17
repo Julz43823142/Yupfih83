@@ -101,6 +101,29 @@ function draw(strip,color,data){
   (pieces.length?', captured '+pieces.map(k=>names[k]).join(', '):'')+
   (lead>0?', ahead by '+lead:''));
 }
+export function renderMaterialInline(host,color,data){
+ if(!host)return;
+ const points=color==='w'?data.white:data.black;
+ const lead=color==='w'?data.lead:-data.lead;
+ host.replaceChildren();
+ const captures=document.createElement('span');captures.className='elo-material-captures';
+ for(const kind of data.captured[color]){
+  const img=document.createElement('img');
+  img.src='/vendor/pieces/cburnett/'+(color==='w'?'b':'w')+kind.toUpperCase()+'.svg';
+  img.alt=names[kind];img.width=18;img.height=18;img.draggable=false;
+  captures.append(img);
+ }
+ host.append(captures);
+ if(lead>0){
+  const score=document.createElement('strong');
+  score.className='elo-material-lead';score.textContent='+'+lead;
+  host.append(score);
+ }
+ const remaining=document.createElement('small');remaining.className='elo-material-remaining';
+ remaining.textContent=points+' pts';host.append(remaining);
+ host.setAttribute('aria-label',(color==='w'?'White':'Black')+' has '+points+
+  ' material points on board'+(lead>0?' and a +'+lead+' advantage':''));
+}
 export function updateMaterial(board,fen,{flipped=false,moves=null}={}){
  if(!board)return;
  const info=ensure(board);
@@ -111,5 +134,5 @@ export function updateMaterial(board,fen,{flipped=false,moves=null}={}){
   draw(info.bottom,flipped?'b':'w',data);
   info.fen=fen;info.flipped=flipped;
  }
- info.layout();
+ if(info.fen===fen&&info.flipped===flipped)info.layout();
 }
