@@ -218,7 +218,7 @@ function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():ne
 function teleport(destination){
  if(!engine||!['cell','sewer','forest','village','ridge','observatory'].includes(destination))return;
  activePuzzle=null;exitPromptArmed=true;
- for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
+ for(const id of ['fallen-story-intro','fallen-story-puzzle','fallen-story-chapter-confirm','fallen-pause','fallen-map','fallen-wardrobe']){const el=$(id);if(el)el.hidden=true;}
  setScene(destination,destination==='cell'?{x:12,y:9,facing:'right'}:destination==='sewer'?{x:6,y:25,facing:'right'}:destination==='forest'?{x:17,y:13,facing:'up'}:destination==='ridge'?{x:15,y:41,facing:'up'}:destination==='observatory'?{x:17,y:22,facing:'up'}:{x:26,y:29,facing:'down'});
  engine.resumeGameplay?.();
  document.getElementById('fallen-canvas')?.focus({preventScroll:true});
@@ -265,6 +265,8 @@ function start(api){
   $('fallen-story-art').addEventListener('click',nextIntro);
   $('fallen-story-puzzle-continue').addEventListener('click',continuePuzzle);
   $('fallen-story-puzzle-close').addEventListener('click',closePuzzle);
+  $('fallen-story-chapter-yes')?.addEventListener('click',advanceChapterTwo);
+  $('fallen-story-chapter-no')?.addEventListener('click',cancelChapterTwo);
   $('fallen-story-restart').addEventListener('click',()=>{if(confirm('Restart Chapter One from the introduction?')){localStorage.removeItem(KEY);location.reload();}});
  }
  updateObjective();
@@ -293,8 +295,8 @@ function recoverHiddenIntro(){
  finishIntroduction();
  return true;
 }
-function blockedInput(){recoverHiddenIntro();return scene==='intro'||!!activePuzzle;}
-function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&scene==='intro'){e.preventDefault();e.stopImmediatePropagation();finishIntroduction();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
+function blockedInput(){recoverHiddenIntro();return scene==='intro'||!!activePuzzle||!$('fallen-story-chapter-confirm')?.hidden;}
+function onKey(e){if(!blockedInput())return;const k=e.key.toLowerCase();if(!$('fallen-story-chapter-confirm')?.hidden){if(['enter','e',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)advanceChapterTwo();}else if(k==='escape'){e.preventDefault();e.stopImmediatePropagation();cancelChapterTwo();}return;}if(['e','enter',' '].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(scene==='intro')nextIntro();else if(activePuzzle)continuePuzzle();return;}if(k==='escape'&&scene==='intro'){e.preventDefault();e.stopImmediatePropagation();finishIntroduction();return;}if(k==='escape'&&activePuzzle){e.preventDefault();e.stopImmediatePropagation();closePuzzle();}if(scene==='intro'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){e.preventDefault();e.stopImmediatePropagation();}}
 function showIntro(){
  scene='intro';
  $('fallen-story-intro').hidden=false;
@@ -385,6 +387,18 @@ function beforeMove(x,y){
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
+function advanceChapterTwo(){
+ if(scene!=='village'||!complete('bridge'))return;
+ $('fallen-story-chapter-confirm').hidden=true;
+ chapter.flags.chapterEnd=true;
+ setScene('ridge',{x:15,y:41,facing:'up'});
+ engine.resumeGameplay?.();
+ say('Oliver','Beyond the bridge, the road climbs toward a forgotten observatory. The search for my crown is not over.');
+}
+function cancelChapterTwo(){
+ $('fallen-story-chapter-confirm').hidden=true;
+ document.getElementById('fallen-canvas')?.focus?.({preventScroll:true});
+}
 const coinSpots={}; // Empty until the final coin locations are approved.
 function afterMove(){const p=engine.getPlayer();
  if(scene==='village'&&complete('bridge')){
@@ -392,14 +406,9 @@ function afterMove(){const p=engine.getPlayer();
   if(p.x<48.4||p.y<17||p.y>21)exitPromptArmed=true;
   else if(p.x>=49.2&&exitPromptArmed){
    exitPromptArmed=false;
-   const yes=confirm('Are you sure you want to continue?\\n\\nYes: Chapter Two - The Skyglass Road\\nCancel: Stay in Willowmere');
-   if(yes){
-    chapter.flags.chapterEnd=true;
-    setScene('ridge',{x:15,y:41,facing:'up'});
-    engine.resumeGameplay?.();
-    say('Oliver','Beyond the bridge, the road climbs toward a forgotten observatory. The search for my crown is not over.');
-    return;
-   }
+   $('fallen-story-chapter-confirm').hidden=false;
+   $('fallen-story-chapter-yes')?.focus?.({preventScroll:true});
+   return;
   }
  }
  if(scene==='ridge'&&p.y<=4&&p.x>=10&&p.x<=20){
