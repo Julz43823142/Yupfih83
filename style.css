@@ -1047,3 +1047,37 @@ html{min-height:100vh}
 
 /* Respect reduced-motion preferences without changing game rules or clocks. */
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* 185: Example report pages are results, not another example chooser. */
+body[data-example-player] .sample-section{display:none!important}
+/* Chess.com avatars must never expand to their intrinsic image dimensions. */
+.sample-options .sample-avatar,
+.sample-button .sample-avatar,
+.sample-options [data-player-avatar]{
+ display:inline-flex;
+ flex:0 0 54px;
+ width:54px;
+ height:54px;
+ max-width:54px;
+ max-height:54px;
+ align-items:center;
+ justify-content:center;
+ overflow:hidden;
+ border-radius:12px;
+}
+.sample-options .sample-avatar img,
+.sample-button .sample-avatar img,
+.sample-options [data-player-avatar] img{
+ display:block;
+ width:100%!important;
+ height:100%!important;
+ max-width:100%!important;
+ max-height:100%!important;
+ object-fit:cover;
+ border-radius:inherit;
+}
+@media(max-width:700px){
+ .sample-options .sample-avatar,.sample-button .sample-avatar,.sample-options [data-player-avatar]{
+  flex-basis:46px;width:46px;height:46px;max-width:46px;max-height:46px;
+ }
+}
