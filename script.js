@@ -847,7 +847,7 @@ if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
   const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"force-cache"});
   if(!response.ok)throw Error("Example snapshot unavailable.");
   const preset=await response.json();
-  if(preset.schema!==1||preset.username!==exampleUsername.toLowerCase()
+  if(preset.schema!==2||preset.username!==exampleUsername.toLowerCase()
    ||preset.report?.version!=="fairplay-v87-review-reliability"
    ||preset.report.username!==(preset.source?.account||exampleUsername).toLowerCase()
    ||!(Number(preset.report.games)>0)||!preset.profile||!preset.stats
