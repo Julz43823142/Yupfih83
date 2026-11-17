@@ -57,17 +57,29 @@ test('All main chessboards load one shared material UI with their own position',
   'arcade.js':/updateMaterial\(board,state\.eloView\.fen\(\)/,
   'play.js':/updateMaterial\(board,chess\.fen\(\)/,
   'analysis-stockfish-fixed.js':/renderMaterialInline\(strip\.material,id,position\)/,
+  'online.js':/renderMaterialInline\\(\\$\\('online-top-material'\\)/,
+  'opening-explorer.js':/renderMaterialInline\\(topMaterial,'b',material\\)/,
   'player-prep.js':/updateMaterial\(board,game\.fen\(\)/
  };
  for(const [file,pattern] of Object.entries(sources)){
   assert.match(read(file),pattern,file);
   assert.match(read(file),/from ['\"]\.\/chess-material\.mjs['\"]/);
  }
- for(const html of ['arcade.html','play.html','analysis.html','player-prep.html']){
+ for(const html of ['arcade.html','play.html','analysis.html','player-prep.html','online.html','opening-explorer.html']){
   assert.match(read(html),/chess-material\.css\?v=200/,html);
  }
  const css=read('chess-material.css');
  assert.match(css,/--elo-shared-board-size:700px/);
  assert.match(css,/\.elo-material-captures img/);
  assert.match(read('chess-material.mjs'),/\+lead/);
+});
+
+test('Online play and Opening Explorer preserve their clocks and 64-square boards',()=>{
+ const online=read('online.html'),open=read('opening-explorer.js');
+ assert.match(online,/id="online-top-material"/);
+ assert.match(online,/id="online-bottom-material"/);
+ assert.match(online,/id="online-top-clock"/);
+ assert.match(online,/id="online-bottom-clock"/);
+ assert.match(open,/board\.replaceChildren\(\)/);
+ assert.match(read('chess-material.css'),/\.online-page #online-board,\.opening-layout \.opening-board/);
 });
