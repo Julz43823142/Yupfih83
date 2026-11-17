@@ -837,11 +837,40 @@ document.querySelectorAll(".sample-button[data-username]").forEach(example => {
     location.href="/example-"+slug+".html";
   });
 });
-// Example pages execute the identical live Chess.com v87 scan as the search form.
+// Example pages render an already completed v87 report. They never start a
+// second scan; the snapshot was produced by the regular v87 Python runner.
 const exampleUsername=document.body.dataset.examplePlayer;
 if(exampleUsername==="MagnusCarlsen"||exampleUsername==="Hikaru"){
  usernameInput.value=exampleUsername;
- queueMicrotask(()=>form.requestSubmit());
+ const slug=exampleUsername==="MagnusCarlsen"?"magnus-carlsen":"hikaru-nakamura";
+ const loadPreset=async()=>{
+  const response=await fetch("/assets/example-reports/"+slug+".json",{cache:"no-cache"});
+  if(!response.ok)throw Error("No saved report is available.");
+  const preset=await response.json();
+  const account=exampleUsername.toLowerCase();
+  if(![2,3].includes(preset.schema)||preset.username!==account
+   ||preset.source?.platform!=="chess.com"||preset.source?.account!==account
+   ||preset.report?.version!=="fairplay-v87-review-reliability"
+   ||preset.report.username!==account||!(preset.report.games>0)
+   ||!preset.profile||!preset.stats||!Array.isArray(preset.insights))
+    throw Error("No verified Chess.com v87 preset is available.");
+  playerCard.replaceChildren();
+  renderPlayer(preset.profile,preset.stats,exampleUsername,{preset:true,platform:"chess.com"});
+  results.classList.remove("hidden");
+  placeExampleCardsNearOverview();
+  renderReview(preset.report);
+  statusText.textContent="Saved Chess.com v87 scan · "+preset.report.games+
+   " games · generated "+new Date(preset.generatedAt).toLocaleDateString("en-GB")+
+   ". No new analysis started.";
+  window.dispatchEvent(new CustomEvent("elo-example-preset-ready",{
+   detail:{username:account,games:preset.insights}
+  }));
+ };
+ loadPreset().catch(error=>{
+  console.warn("Example preset unavailable:",error);
+  results.classList.add("hidden");
+  statusText.textContent=error.message+" A live scan was not started.";
+ });
 }
 form.addEventListener("submit", async event => {
   event.preventDefault();
