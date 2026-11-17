@@ -15,6 +15,17 @@ const assets=readFileSync(resolve(root,'fallen-king-detailplus-assets.js'),'utf8
 test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 
 
+test('chapter two transitions and artwork stay connected without changing the original village',()=>{
+ assert.match(source,/function ridgeWorld\(\)/);
+ assert.match(source,/function observatoryWorld\(\)/);
+ assert.match(source,/Are you sure you want to continue\?/);
+ assert.match(source,/if\(scene==='ridge'&&p\.y<=4/);
+ assert.match(source,/if\(scene==='observatory'\)/);
+ assert.match(source,/chapter\.flags\.bridge=true/);
+ assert.match(source,/chapter\.flags\.skyglassLedger=true/);
+ assert.match(source,/scene==='ridge'\|\|scene==='observatory'/);
+ assert.match(source,/scene==='ridge'\|\|scene==='observatory'\)/);
+});
 test('surface depth audit prevents known bridge and rook z-fighting regressions',()=>{
  // Check the actual base/top dimensions, not merely that an artwork token exists.
  const clears=(bottom,height,detail)=>detail-bottom-height>=.008;
@@ -232,10 +243,22 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  player={x:8,y:11};chapter.talk();assert.equal(world.width,36);
  player={x:33,y:8};chapter.talk();assert.equal(world.width,52);
  player={x:28,y:22};chapter.afterMove();
- player={x:17,y:20};chapter.talk();answer(2);
- player={x:16,y:29};chapter.talk();answer(2);
+ // Chapter One now repairs the bridge on the first E, without collecting lumber
+ // or solving the placeholder puzzle.
  player={x:44,y:19};assert.equal(chapter.beforeMove(45,19),true);
- chapter.talk();answer(1);assert.equal(world.tiles[19][45],'p');
+ assert.equal(chapter.talk(),true);
+ assert.equal(world.tiles[19][45],'p');
+ assert.equal(chapter.beforeMove(45,19),false);
+ // A continued step east asks for confirmation and loads the uphill route.
+ player={x:49.5,y:19,facing:'right'};chapter.afterMove();
+ assert.equal(world.width,30);assert.equal(world.height,45);
+ assert.ok(world.npcs.some(n=>n.id==='ridge-pilgrim'));
+ player={x:15,y:3,facing:'up'};chapter.afterMove();
+ assert.equal(world.width,35);assert.equal(world.height,27);
+ assert.ok(world.npcs.some(n=>n.id==='skyglass-curator'));
+ player={x:17,y:8};assert.equal(chapter.talk(),true);
+ assert.equal(chapter.exportSave().chapter.flags.skyglassLedger,true);
+ assert.equal(chapter.exportSave().chapter.scene,'observatory');
  assert.ok(said.length>5);
 });
 
