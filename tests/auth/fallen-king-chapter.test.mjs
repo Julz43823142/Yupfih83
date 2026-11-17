@@ -566,7 +566,7 @@ test('single connected sewer stream, optional monster, no Pip, smooth royal bed 
  assert.match(engine,/Math\.imul\(hash\^id\.charCodeAt\(i\),16777619\)/);
  assert.match(engine,/const tone=npcColor\(n\)/);
  assert.match(engine,/const dpr=Math\.min\(window\.devicePixelRatio\|\|1,1\.4\)/);
- assert.match(engine,/gl\.polygonOffset\(-1,-1\)/);
+ assert.match(engine,/gl\.polygonOffset\(-2,-2\)/);
  assert.match(engine,/vertices\[i\]=x\+\.88-py/);
  assert.match(engine,/vertices\[i\+1\]=1\.10\+\(pz-z\)/);
  assert.match(source,/Low, open royal bed/);
