@@ -1119,3 +1119,6 @@ body[data-example-player] .insights-integrated[hidden]{display:none!important}
 .magnus-opening-column li strong{white-space:nowrap;font-size:12px;color:#8fd7ff}
 .magnus-report-source{display:inline-block;padding:12px 18px;margin-top:12px;border:1px solid #70c8f5;border-radius:10px;color:#8fd7ff;font-weight:700}
 @media(max-width:650px){.magnus-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.magnus-report-colors,.magnus-opening-columns{grid-template-columns:1fr}}
+
+/* Reserve chart space without building offscreen SVGs on first paint. */
+.timeline-plot.timeline-awaiting-paint{aspect-ratio:1340/365;min-height:105px}

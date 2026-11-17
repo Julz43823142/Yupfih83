@@ -13,7 +13,7 @@ test('both example pages remain directly navigable from homepage and each other'
   assert.ok(html.includes('href="/example-'+slug+'.html" data-username="'+name+'"'));
   const page=readFileSync(new URL('example-'+slug+'.html',root),'utf8');
   assert.ok(page.includes("data-example-player='"+name+"'"));
-  assert.ok(page.includes('script.js?v=197-magnus-master-report'));
+  assert.ok(page.includes('script.js?v=198-speed'));
   for(const [otherName,otherSlug] of examples)
    assert.ok(page.includes('href="/example-'+otherSlug+'.html" data-username="'+otherName+'"'));
  }

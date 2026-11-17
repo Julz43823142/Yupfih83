@@ -183,7 +183,32 @@ function withPerGameScores(rows) {
 }
 
 /* Actual observations only. Overlaid controls share chronological timestamps when available. */
+const deferredTimelineObservers=new WeakMap();
 function timelineChart(parent, series, field, unit, compareField = null, periods = [], overlayField = null) {
+  // Paint nearby charts immediately; defer off-screen SVG work until scrolling.
+  // A replacement selection disconnects its prior observer, so stale charts
+  // never overwrite newly selected time controls.
+  const previous=deferredTimelineObservers.get(parent);
+  if(previous){previous.disconnect();deferredTimelineObservers.delete(parent);}
+  if(typeof IntersectionObserver==="function"&&
+     !parent.dataset.timelineReady&&parent.isConnected&&
+     parent.getBoundingClientRect().top>window.innerHeight+450){
+    parent.classList.add("timeline-awaiting-paint");
+    const observer=new IntersectionObserver(entries=>{
+      if(!entries.some(entry=>entry.isIntersecting))return;
+      observer.disconnect();
+      if(deferredTimelineObservers.get(parent)!==observer)return;
+      deferredTimelineObservers.delete(parent);
+      parent.classList.remove("timeline-awaiting-paint");
+      parent.dataset.timelineReady="true";
+      if(parent.isConnected)timelineChart(parent,series,field,unit,compareField,periods,overlayField);
+    },{rootMargin:"450px 0px"});
+    deferredTimelineObservers.set(parent,observer);
+    observer.observe(parent);
+    return;
+  }
+  parent.classList.remove("timeline-awaiting-paint");
+  parent.dataset.timelineReady="true";
   const palette = {rapid:"#65bbff", blitz:"#34dddc", bullet:"#ad9cff"};
   const data = series.flatMap(({key,label,rows}) => rows.filter(r => Number.isFinite(r?.[field]))
     .map((r,i) => ({...r,control:key,label,position:Number.isFinite(r.game)?r.game:i+1})));
@@ -526,34 +551,14 @@ function startReviewProgress(){
   },180);
 }
 async function finishReviewProgress(){
+  // Once the worker has returned its completed report, show it immediately.
+  // The previous cosmetic 2.6s animation + 650ms pause added 3.25 seconds
+  // to every successful analysis without doing any useful work.
   reviewProgressFinishing=true;
-  // The analysis is actually complete, but animate the remaining distance
-  // to 100 so the indicator is never removed while showing 85 or 90.
-  const from=reviewProgressPercent;
-  const started=Date.now();
-  const duration=2600;
-  while(true){
-    const t=Math.min(1,(Date.now()-started)/duration);
-    const eased=1-Math.pow(1-t,2);
-    reviewProgressPercent=from+(100-from)*eased;
-    // UI uses a displayed integer and smooth fill width.
-    const panel=document.getElementById("v87-review");
-    const progress=panel?.querySelector(".v87-progress");
-    if(progress){
-      progress.querySelector(".v87-progress-value").textContent=Math.floor(reviewProgressPercent)+"%";
-      progress.querySelector(".v87-progress-track").setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
-      progress.querySelector(".v87-progress-fill").style.width=reviewProgressPercent+"%";
-      progress.querySelector(".v87-progress-message").textContent="Preparing the completed report…";
-    }
-    if(t===1)break;
-    await wait(75);
-  }
   showReviewProgress("Review complete.","complete",true);
-  await wait(650);
   stopReviewProgress();
   reviewProgressFinishing=false;
 }
-
 
 function placeExampleCardsNearOverview() {
   // Previews remain in the dedicated left sidebar on the homepage.
@@ -727,7 +732,15 @@ function renderReview(data) {
         const details=add(card,"details","opening-details");
         add(details,"summary","","View all "+number(ranked.length,0)+" opening choices");
         const more=add(details,"div","opening-details-body opening-extra");
-        for(const item of ranked.slice(6))openingRow(more,item,fullTotal);
+        // The long tail may contain hundreds of openings. Build it only when
+        // the visitor requests it rather than blocking initial report paint.
+        details.addEventListener("toggle",()=>{
+          if(!details.open||details.dataset.populated)return;
+          details.dataset.populated="true";
+          const fragment=document.createDocumentFragment();
+          for(const item of ranked.slice(6))openingRow(fragment,item,fullTotal);
+          more.append(fragment);
+        });
       }
       add(card,"p","opening-disclaimer","Openings describe observed playing preferences.");
     }
