@@ -18,7 +18,9 @@ test.beforeEach(t=>console.error('[fallen-king test START]',t.name));
 test('chapter two transitions and artwork stay connected without changing the original village',()=>{
  assert.match(source,/function ridgeWorld\(\)/);
  assert.match(source,/function observatoryWorld\(\)/);
- assert.match(source,/Are you sure you want to continue\?/);
+ assert.match(page,/Are you sure you want to continue\?/);
+ assert.match(page,/fallen-story-chapter-yes/);
+ assert.match(source,/function advanceChapterTwo\(\)/);
  assert.match(source,/if\(scene==='ridge'&&p\.y<=4/);
  assert.match(source,/if\(scene==='observatory'\)/);
  assert.match(source,/chapter\.flags\.bridge=true/);
@@ -251,6 +253,8 @@ test('chapter can be completed by E interactions without any random puzzle on mo
  assert.equal(chapter.beforeMove(45,19),false);
  // A continued step east asks for confirmation and loads the uphill route.
  player={x:49.5,y:19,facing:'right'};chapter.afterMove();
+ assert.equal(element('fallen-story-chapter-confirm').hidden,false);
+ element('fallen-story-chapter-yes').listeners.click();
  assert.equal(world.width,30);assert.equal(world.height,45);
  assert.ok(world.npcs.some(n=>n.id==='ridge-pilgrim'));
  player={x:15,y:3,facing:'up'};chapter.afterMove();
