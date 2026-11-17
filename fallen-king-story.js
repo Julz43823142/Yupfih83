@@ -14,8 +14,8 @@ const puzzles={cell:{},sluice:{},lantern:{},monster:{},exit:{},watchChest:{},mer
 
 let engine=null,baseWorld=null,scene='intro',chapter={scene:'intro',flags:{},coins:[],step:0,position:null},activePuzzle=null;
 const complete=id=>!!chapter.flags[id];
-function persist(){try{if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
-function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=v.coins.slice(0,2);if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
+function persist(){try{chapter.coins=[];if(engine&&scene!=='intro')chapter.position={...engine.getPlayer()};chapter.scene=scene;localStorage.setItem(KEY,JSON.stringify(chapter));}catch{}}
+function restored(){try{const v=window.FallenKingSlotSession?(window.FallenKingPendingSave?.chapter||null):JSON.parse(localStorage.getItem(KEY)||'null');if(v&&['intro','cell','sewer','forest','watchtower','village','finished'].includes(v.scene)&&v.flags&&Array.isArray(v.coins)){v.coins=[];if(!Number.isInteger(v.step)||v.step<0)v.step=0;return v;}}catch{}return chapter;}
 function createWorld(width,height,kind){const rows=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x===0||y===0||x===width-1||y===height-1?'H':kind));return {width,height,tiles:rows.map(a=>a.join('')),npcs:[],houses:[],collectibles:[],showcase:[],spawn:{x:3,y:5},version:baseWorld.version,music:'default'};}
 function updateTile(w,x,y,v){const r=w.tiles[y].split('');r[x]=v;w.tiles[y]=r.join('');}
 function cellWorld(){const w=createWorld(25,16,'H');
@@ -140,7 +140,7 @@ function villageWorld(){
  w.blockers=[[31,29],[32,29]];
  return w;
 }
-function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;}
+function setScene(next,position){scene=next;const w=next==='cell'?cellWorld():next==='sewer'?sewerWorld():next==='forest'?forestWorld():next==='watchtower'?watchtowerWorld():villageWorld();const requested=position||({...w.spawn,facing:'down'});const safe=w.tiles[Math.round(requested.y)]?.[Math.round(requested.x)];const pos=safe&&!['H','w','T','F','X'].includes(safe)?requested:{...w.spawn,facing:'right'};engine.setWorld(w,pos);chapter.scene=scene;persist();updateObjective();$('fallen-story-hintcoins').textContent='Hint coins: 0';}
 function teleport(destination){
  if(!engine||!['cell','sewer','forest','village'].includes(destination))return;
  activePuzzle=null;
@@ -261,7 +261,7 @@ function beforeMove(x,y){
  if(scene==='village'&&x>=45&&x<=47&&y===19&&!complete('bridge'))return true;
  return false;
 }
-const coinSpots={cell:[[12,13]]};
+const coinSpots={}; // Empty until the final coin locations are approved.
 function afterMove(){const p=engine.getPlayer();
  if(scene==='village'&&complete('bridge')&&p.x>=48&&p.y===19&&!complete('chapterEnd')){chapter.flags.chapterEnd=true;say('Oliver','The road east is open. I must continue my journey.');}
  persist();updateObjective();}
@@ -273,8 +273,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
    else{setScene('sewer',{x:6,y:25,facing:'right'});say('Oliver','I have slid through the filthy pipe into the vast sewers. That explains the smell.');}
    persist();updateObjective();return true;}
   if(near(p,12,13,2)&&y>=11){
-   if(!complete('coinFound')){chapter.flags.coinFound=true;chapter.coins=['one-hidden-coin'];$('fallen-story-hintcoins').textContent='Hint coins: 1';persist();say('Oliver','A glint on the south window ledge! One hint coin. I will save it for later.');}
-   else say('Oliver','Moonlight reflects off the castle moat. The window is far too high to climb through.');
+   say('Oliver','Moonlight reflects off the castle moat. The window is far too high to climb through.');
    return true;
   }
   if(near(p,9,7,2)){say('Oliver','Only a narrow iron cot and a worn blanket.');return true;}
@@ -287,7 +286,7 @@ function talk(){if(!engine||blockedInput())return blockedInput();const p=engine.
   if(near(p,3,25,3)){say('Oliver','That disgusting, rusted outlet pipe is where I came from. I am never going back in there.');return true;}
   // Floodgate checkpoints are removed entirely; this sewer is explored freely.
   if(near(p,23,31,2)){say('Strange Sewer Beast','GRRR.');return true;}
-   if(near(p,40,45,2)){if(!complete('sewerCoinFound')){chapter.flags.sewerCoinFound=true;chapter.coins.push('rubbish-heap-coin');$('fallen-story-hintcoins').textContent='Hint coins: '+chapter.coins.length;persist();say('Oliver','A hint coin hidden in the rubbish!');}else say('Oliver','Only rubbish remains.');return true;}
+   if(near(p,40,45,2)){say('Oliver','Only rubbish remains.');return true;}
    if(near(p,49,38,3)&&!complete('monster')){
    if(!complete('monsterIntroduced')){chapter.flags.monsterIntroduced=true;persist();say('Sewer Creature','I have lived in these filthy drains for years. One strange puzzle has defeated me every night. Can you help me?');}
    else openPuzzle('monster');
@@ -438,6 +437,25 @@ function drawWaypost(g,x,z,labelColor='#b69b6e'){
  box(x,1.16,z,.85,.28,.13,'#83613e');
  box(x,1.17,z+.072,.64,.085,.025,labelColor);
  box(x,.30,z,.45,.08,.37,'#695d45');
+}
+// Compact 3x5 wooden sign glyphs. They face the player and stay legible
+// without adding UI overlays or changes to the approved introduction.
+const signGlyphs={
+ A:['010','101','111','101','101'],E:['111','100','110','100','111'],
+ G:['011','100','101','101','011'],I:['111','010','010','010','111'],
+ L:['100','100','100','100','111'],M:['101','111','111','101','101'],
+ O:['111','101','101','101','111'],R:['110','101','110','101','101'],
+ S:['011','100','010','001','110'],T:['111','010','010','010','010'],
+ V:['101','101','101','101','010'],W:['101','101','111','111','101']
+};
+function drawSignLetters(g,x,z,text,y){
+ const scale=.046,step=scale*4,start=x-(text.length*step-scale)/2;
+ for(let i=0;i<text.length;i++){
+  const glyph=signGlyphs[text[i]];if(!glyph)continue;
+  for(let row=0;row<5;row++)for(let col=0;col<3;col++){
+   if(glyph[row][col]==='1')g.box(start+i*step+col*scale,y-row*scale,z,scale*.85,scale*.83,.027,'#463626');
+  }
+ }
 }
 function drawVillageDetails(g){
  const {box,cylinder,cone,sphere}=g;
@@ -943,13 +961,13 @@ function drawProps(g){
    box(x+.19,.24,z-.12,.40,.13,.31,'#9ba095');
    for(let i=0;i<3;i++)cone(x-.20+i*.22,.24,z+.27,.11,.32,'#587558',7);
   }
-  // A readable direction sign, oriented toward the overhead camera.
-  box(9.5,.78,13.5,.18,1.55,.18,'#644a34');
-  box(9.5,1.34,13.5,2.15,.57,.17,'#ad8b62');
-  box(9.5,1.35,13.60,1.96,.40,.04,'#dcc69c');
-  for(const dx of [-.75,-.40,-.05,.30])box(9.5+dx,1.37,13.64,.24,.06,.027,'#664b3a');
-  cone(10.27,1.37,13.65,.18,.20,'#795c43',4);
-  drawWaypost(g,9.5,12.9);
+  // Clear, readable two-line direction sign. Letters are real 3D pixels
+  // on its face, not a separate dialogue box or decorative pseudo-text.
+  box(9.5,0,13.5,.18,1.30,.20,'#644a34');
+  box(9.5,1.22,13.5,2.80,.90,.16,'#8b6545');
+  box(9.5,1.26,13.61,2.62,.77,.045,'#dfc795');
+  drawSignLetters(g,9.5,13.66,'WILLOWMERE',1.54);
+  drawSignLetters(g,9.5,13.66,'VILLAGE EAST',1.18);
   drawWaypost(g,30.2,12.9,'#d8c3a1');
   // Watchtower forecourt: paving, flags, lanterns and stored supplies.
   for(const x of [26.5,27.5,28.5])for(const z of [8.5,9.5])
