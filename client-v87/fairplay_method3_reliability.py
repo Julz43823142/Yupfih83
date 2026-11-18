@@ -68,7 +68,24 @@ def _opening_rating_ramp(games, members, account_joined, early_rated=None):
                     'this is not proof of fair play.'}
 
 
-def rating_support(games, members, *, account_joined=None, early_rated=None):
+def index_history(games):
+    """Index an already chronological v87 sample for repeated window checks.
+
+    Keep the original object references and order. The index only restricts
+    which rows are visited; rating and opponent safeguards remain unchanged.
+    """
+    by_class = {kind: [] for kind in ('rapid', 'blitz', 'bullet')}
+    for game in games:
+        if game.time_class in by_class:
+            by_class[game.time_class].append(game)
+    return {
+        'all': ([g.ended for g in games], games),
+        'by_class': {kind: ([g.ended for g in rows], rows)
+                     for kind, rows in by_class.items()},
+    }
+
+
+def rating_support(games, members, *, account_joined=None, early_rated=None, history_index=None):
     """Use rating anchors available by the end of this exact period.
 
     A player with years of rated history but only a few recent games does not
@@ -78,7 +95,12 @@ def rating_support(games, members, *, account_joined=None, early_rated=None):
     """
     kind = members[0].time_class
     end = max(g.ended for g in members)
-    recent = [g for g in games if 0 <= end - g.ended <= YEAR_SECONDS]
+    if history_index is None:
+        recent = [g for g in games if 0 <= end - g.ended <= YEAR_SECONDS]
+    else:
+        from bisect import bisect_left, bisect_right
+        times, rows = history_index['all']
+        recent = rows[bisect_left(times, end - YEAR_SECONDS):bisect_right(times, end)]
     same = [g for g in recent if g.time_class == kind and _valid_rating(g.rating)]
     rated = [g.rating for g in same if g.rated is True]
     other = [g.rating for g in recent if g.time_class != kind and
@@ -114,7 +136,7 @@ def rating_support(games, members, *, account_joined=None, early_rated=None):
                    'Neither condition can independently support HIGH.'}
 
 
-def opponent_support(members, *, history=None):
+def opponent_support(members, *, history=None, history_index=None):
     """Detect opponent-dominated stretches using the surrounding local cohort.
 
     A five- or twenty-game slice of a long match cannot evade the safeguard by
@@ -123,8 +145,13 @@ def opponent_support(members, *, history=None):
     """
     start=min(g.ended for g in members) - 30 * 86400
     end=max(g.ended for g in members) + 30 * 86400
-    cohort=[g for g in (history if history is not None else members)
-            if g.time_class==members[0].time_class and start <= g.ended <= end]
+    if history_index is None:
+        cohort=[g for g in (history if history is not None else members)
+                if g.time_class==members[0].time_class and start <= g.ended <= end]
+    else:
+        from bisect import bisect_left, bisect_right
+        times, rows = history_index['by_class'][members[0].time_class]
+        cohort = rows[bisect_left(times, start):bisect_right(times, end)]
     def count_opponents(rows):
         return Counter(n.strip().casefold() for g in rows
             if isinstance((n := getattr(g, 'opponent_username', None)), str)
