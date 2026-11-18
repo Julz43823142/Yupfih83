@@ -238,8 +238,12 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
         if side == color:
             legal = board.legal_moves.count()
             in_check = board.is_check()
-            material = sum(len(board.pieces(piece, side_)) * weight for side_ in (True, False)
-                           for piece, weight in ((chess.QUEEN, 9), (chess.ROOK, 5), (chess.BISHOP, 3), (chess.KNIGHT, 3)))
+            # Count the same pieces directly from python-chess bitboards:
+            # avoid allocating eight temporary SquareSet objects per move.
+            material = sum(board.pieces_mask(piece, side_).bit_count() * weight
+                           for side_ in (True, False)
+                           for piece, weight in ((chess.QUEEN, 9), (chess.ROOK, 5),
+                                                 (chess.BISHOP, 3), (chess.KNIGHT, 3)))
             from fairplay_opening import book_status
             opening = book_status(board, node.move, ply, config)
             phase = 'opening' if opening['book'] else 'endgame' if material <= 20 else 'middlegame'
