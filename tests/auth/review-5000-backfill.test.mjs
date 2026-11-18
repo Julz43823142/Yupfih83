@@ -177,3 +177,56 @@ test('indexed v87 safeguards exactly match the original results over 5,000 games
  });
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Python check failed'));
 });
+
+test('browser lightweight PGN path preserves original v87 game and graph evidence',()=>{
+ const python=[
+  'import sys',
+  "sys.path.insert(0,'client-v87')",
+  'import chess, chess.pgn',
+  'from fairplay_data import parse_game',
+  'from fairplay_method3 import observations',
+  'from fairplay_website_runner import chart_samples, rolling_winrate_samples, opening_summary',
+  "moves='e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 d7d6 c2c3 e8g8 h2h3 c6b8 d2d4 b8d7'.split()",
+  'samples=[]',
+  'for color in (True,False):',
+  '    for rated in (True,False):',
+  '        game=chess.pgn.Game()',
+  "        game.headers['White']='example'",
+  "        game.headers['Black']='opponent'",
+  "        game.headers['Result']='1-0'",
+  '        board=chess.Board()',
+  '        node=game',
+  '        for ply,uci in enumerate(moves):',
+  '            move=board.parse_uci(uci)',
+  '            node=node.add_variation(move)',
+  '            node.set_clock(180-ply*2)',
+  '            board.push(move)',
+  "        row={'rules':'chess','time_class':'blitz','rated':rated,'end_time':1700000000,",
+  "             'time_control':'180','uuid':str(color)+str(rated),",
+  "             'white':{'username':'example','result':'win','rating':1500},",
+  "             'black':{'username':'opponent','result':'checkmated','rating':1450},",
+  "             'pgn':str(game),'accuracies':{'white':82.5,'black':76.3}}",
+  "        if not color: row['white']['username'],row['black']['username']='opponent','example'",
+  "        if not color: row['white']['result'],row['black']['result']='win','checkmated'",
+  "        target='example'",
+  '        full=parse_game(row,target,allow_short=True,include_unrated=True)',
+  '        quick=parse_game(row,target,allow_short=True,include_unrated=True,method3_only=True)',
+  '        assert full is not None and quick is not None, (full,quick)',
+  "        for field in ('identity','ended','time_class','rating','opponent_rating','result','score','accuracy','color','time_control','rated','moves','opponent_username'):",
+  "            assert getattr(full,field)==getattr(quick,field),field",
+  '        assert len(full.decisions)==len(quick.decisions)',
+  "        for field in ('ply','fullmove','move','clock_before','clock_after','think','clock_valid','opponent_clock_before'):",
+  '            assert [getattr(d,field) for d in full.decisions]==[getattr(d,field) for d in quick.decisions],field',
+  '        samples.append((full,quick))',
+  'full=[a for a,b in samples]',
+  'quick=[b for a,b in samples]',
+  'assert observations(full)==observations(quick)',
+  'assert chart_samples(full)==chart_samples(quick)',
+  'assert rolling_winrate_samples(full)==rolling_winrate_samples(quick)',
+  'assert opening_summary(full)==opening_summary(quick)'
+ ].join('\n');
+ const result=spawnSync('python3',['-c',python],{
+  cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:60000
+ });
+ assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'PGN fixture failed'));
+});
