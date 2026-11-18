@@ -117,7 +117,8 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
         # controls make segments contain very different numbers of windows.
         from statistics import median
         from fairplay_method3_reliability import (
-            rating_support, opponent_support, independent_results_tier, _valid_rating)
+            rating_support, opponent_support, independent_results_tier, _valid_rating, index_history)
+        history_index=index_history(games)
         # The review history is already chronological. Reuse the first
         # 150 valid rated games per control for the account-opening guard.
         opening_rated_by_class={kind:[g for g in games
@@ -130,7 +131,7 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
         other_ratings=rated_by_class['rapid']+rated_by_class['blitz']
         latest_bullet=next((g for g in reversed(games) if g.time_class=='bullet'),None)
         bullet_support=(rating_support(games,[latest_bullet],account_joined=profile.get('joined'),
-                                       early_rated=opening_rated_by_class['bullet'])
+                                       early_rated=opening_rated_by_class['bullet'], history_index=history_index)
                         if latest_bullet is not None else None)
         rating_reliability={
             'sparse_bullet_rating':bool(bullet_support and bullet_support['unreliable']),
@@ -190,10 +191,10 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
                 rating_key=(period['time_class'],members[-1].identity)
                 if rating_key not in rating_cache:
                     rating_cache[rating_key]=rating_support(games,members,account_joined=profile.get('joined'),
-                        early_rated=opening_rated_by_class[period['time_class']])
+                        early_rated=opening_rated_by_class[period['time_class']], history_index=history_index)
                 opponent_key=(period['time_class'],members[0].identity,members[-1].identity)
                 if opponent_key not in opponent_cache:
-                    opponent_cache[opponent_key]=opponent_support(members,history=games)
+                    opponent_cache[opponent_key]=opponent_support(members,history=games,history_index=history_index)
                 rating=rating_cache[rating_key]
                 opponents=opponent_cache[opponent_key]
                 tier,limits=independent_results_tier(
