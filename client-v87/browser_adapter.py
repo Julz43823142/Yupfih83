@@ -40,7 +40,8 @@ def run(username):
         def on_progress(message):
             progress(message)
             v87Progress(str(message))
-        return original_review(name, progress=on_progress, api_factory=BrowserPubAPI)
+        return original_review(name, progress=on_progress, api_factory=BrowserPubAPI,
+                               lightweight_method3=True)
 
     fairplay_website_runner.review = browser_review
     os.environ['CHESS_USERNAME'] = username
