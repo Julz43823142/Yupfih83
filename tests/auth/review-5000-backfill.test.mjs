@@ -130,3 +130,18 @@ test('ordinary website review starts the worker without waiting for a second pro
  assert.ok(script.includes('report.total_scan_seconds=(performance.now()-startedAt)/1000'));
  assert.ok(script.includes('if(settled||scanSerial!==activeReviewSerial)return'));
 });
+
+test('sample coverage uses v87 diagnostic counts instead of sampled chart points',()=>{
+ assert.match(script,/sectionTitle\(panel, "Sample \/ Coverage"/);
+ assert.match(script,/quality\.rated_games \?\? data\.method3\?\.rated_games/);
+ assert.match(script,/quality\.unrated_games \?\? data\.method3\?\.unrated_games/);
+ assert.match(script,/quality\.published_accuracy_games/);
+ assert.match(script,/ratedGames \+ unratedGames === reviewed/);
+ assert.match(script,/publishedAccuracy <= reviewed/);
+ assert.match(script,/metric\(coverage, "LIVE GAMES"/);
+ assert.match(script,/metric\(coverage, "GAMES REVIEWED"/);
+ assert.match(script,/metric\(coverage, "PUBLISHED ACCURACY"/);
+ const section=script.slice(script.indexOf('function renderReview(data)'),script.indexOf('function renderPlayer(',script.indexOf('function renderReview(data)')));
+ assert.doesNotMatch(section,/Review findings|Key observations|No period passed to configure/i);
+ assert.match(section,/sectionTitle\(panel, "Selected period"/);
+});

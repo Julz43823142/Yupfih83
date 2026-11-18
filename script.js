@@ -663,6 +663,28 @@ function renderReview(data) {
   metric(stats, "GAMES REVIEWED", number(data.games, 0));
   metric(stats, "TIME CONTROLS", "Rapid · Blitz · Bullet");
 
+  // Match Discord's sample/coverage facts. The v87 analysis is authoritative:
+  // do not infer published Accuracy from the plotted (sampled) chart points.
+  const quality = data.method3?.data_quality || {};
+  const totalGames = Number(data.games);
+  const ratedGames = Number(quality.rated_games ?? data.method3?.rated_games);
+  const unratedGames = Number(quality.unrated_games ?? data.method3?.unrated_games);
+  const publishedAccuracy = Number(quality.published_accuracy_games);
+  const reviewed = Number.isInteger(totalGames) && totalGames >= 0 ? totalGames : null;
+  const hasRatedSplit = reviewed !== null && Number.isInteger(ratedGames) && ratedGames >= 0
+    && Number.isInteger(unratedGames) && unratedGames >= 0 && ratedGames + unratedGames === reviewed;
+  const hasAccuracyCount = reviewed !== null && Number.isInteger(publishedAccuracy)
+    && publishedAccuracy >= 0 && publishedAccuracy <= reviewed;
+  sectionTitle(panel, "Sample / Coverage", "Observed live games in this review");
+  const coverage = add(panel, "div", "v87-metrics v87-coverage-metrics");
+  metric(coverage, "LIVE GAMES", reviewed === null ? "Unknown" : number(reviewed, 0));
+  metric(coverage, "GAMES REVIEWED", reviewed === null ? "Unknown" :
+    number(reviewed, 0) + (hasRatedSplit ? " · " + number(ratedGames, 0) + " rated · " +
+      number(unratedGames, 0) + " unrated" : " · rated/unrated breakdown unavailable"));
+  metric(coverage, "PUBLISHED ACCURACY", hasAccuracyCount
+    ? number(publishedAccuracy, 0) + " / " + number(reviewed, 0) + " games"
+    : "Unavailable");
+
   if (data.partial) add(panel, "p", "v87-warning", "Partial review: data or time limits affected coverage.");
   // The selected chronological period is the same evidence and scoring shown in Discord.
   const selected = data.method3?.selected;
