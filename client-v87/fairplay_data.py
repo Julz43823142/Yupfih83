@@ -174,6 +174,92 @@ class QuietGameBuilder(chess.pgn.GameBuilder):
         self.game.errors.append(error)
 
 
+
+class _ClockNode:
+    """Mainline move and clock only; no PGN variation tree or board copies."""
+    __slots__ = ('move', 'comment')
+
+    def __init__(self, move):
+        self.move = move
+        self.comment = ''
+
+    def clock(self):
+        match = chess.pgn.CLOCK_REGEX.search(self.comment)
+        if match is None:
+            return None
+        return (int(match.group('hours')) * 3600
+                + int(match.group('minutes')) * 60
+                + float(match.group('seconds')))
+
+
+class _ClockGame:
+    __slots__ = ('headers', 'errors', 'nodes')
+
+    def __init__(self):
+        # Same header defaults and initial position handling as chess.pgn.Game.
+        self.headers = chess.pgn.Headers()
+        self.errors = []
+        self.nodes = []
+
+    def board(self):
+        return self.headers.board()
+
+    def mainline(self):
+        return iter(self.nodes)
+
+
+class ClockOnlyGameBuilder(chess.pgn.BaseVisitor):
+    """Validate standard PGN with python-chess but keep only mainline clocks.
+
+    Parsing still validates SAN and side variations, so malformed PGNs remain
+    rejected exactly as before. The regular GameBuilder is kept for all
+    non-browser/full analysis paths.
+    """
+    def begin_game(self):
+        self.game = _ClockGame()
+        self.depth = 0
+        self.in_variation = False
+        self.starting_comment = ''
+
+    def begin_headers(self):
+        return self.game.headers
+
+    def visit_header(self, tagname, tagvalue):
+        self.game.headers[tagname] = tagvalue
+
+    def begin_variation(self):
+        self.depth += 1
+        self.in_variation = False
+
+    def end_variation(self):
+        self.depth -= 1
+
+    def visit_move(self, board, move):
+        if self.depth == 0:
+            self.game.nodes.append(_ClockNode(move))
+            self.starting_comment = ''
+            self.in_variation = True
+
+    def visit_comment(self, comment):
+        if self.depth:
+            return
+        if self.in_variation and self.game.nodes:
+            node = self.game.nodes[-1]
+            node.comment = ' '.join(filter(None, (node.comment, comment)))
+        else:
+            self.starting_comment = ' '.join(filter(None, (self.starting_comment, comment)))
+
+    def visit_result(self, result):
+        if self.game.headers.get('Result', '*') == '*':
+            self.game.headers['Result'] = result
+
+    def handle_error(self, error):
+        self.game.errors.append(error)
+
+    def result(self):
+        return self.game
+
+
 def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusions=None,
                allow_short=False, include_unrated=False, method3_only=False) -> GameSample | None:
     def reject(reason):
@@ -203,7 +289,7 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
     # Bound variations/comments before python-chess allocates a full tree.
     if text.count('(') > 100 or text.count('{') > 1200:
         return reject('invalid_pgn')
-    game = chess.pgn.read_game(io.StringIO(text), Visitor=QuietGameBuilder)
+    game = chess.pgn.read_game(io.StringIO(text), Visitor=ClockOnlyGameBuilder if method3_only else QuietGameBuilder)
     if game is None or game.errors or game.headers.get('Result') not in ('1-0', '0-1', '1/2-1/2'):
         return reject('invalid_pgn')
     if str(game.headers.get('White' if color else 'Black', '')).casefold() != target:
