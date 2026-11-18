@@ -73,7 +73,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-209'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-211'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
@@ -324,4 +324,11 @@ test('fast Elo Chernoff guard matches original 40-step numerical bounds and tier
   cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
  });
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Chernoff parity failed'));
+});
+
+test('scan phase breakdown is visible without hover on mobile',()=>{
+ assert.match(script,/target\.textContent\+=\" · Archives \"/);
+ assert.match(script,/phases\.python_analysis_seconds\+\"s · Runtime wait \"/);
+ assert.match(worker,/const REVISION = \"20261118-review-speed-211\"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-211/);
 });

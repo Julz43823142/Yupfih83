@@ -581,6 +581,9 @@ function showMeasuredDuration(result) {
     target.title="Chess.com archives: "+phases.archive_download_seconds+"s · Pyodide wait: "+
       phases.pyodide_extra_wait_seconds+"s · Python analysis: "+phases.python_analysis_seconds+
       "s · archive backfill: "+(phases.archive_backfill_seconds||0)+"s";
+    // Make phase timings available on touch devices (not just hover tooltip).
+    target.textContent+=" · Archives "+phases.archive_download_seconds+"s · Python "+
+      phases.python_analysis_seconds+"s · Runtime wait "+phases.pyodide_extra_wait_seconds+"s";
   }else{
     target.removeAttribute("title");
   }
@@ -826,7 +829,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-209");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-211");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
