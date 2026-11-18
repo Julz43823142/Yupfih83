@@ -73,7 +73,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-208'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-209'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
@@ -269,4 +269,13 @@ test('streaming PGN visitor preserves headers, mainline clocks and variation err
   cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
  });
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'PGN visitor test failed'));
+});
+
+test('real scan reports independent archive, startup and Python phase timings',()=>{
+ assert.match(worker,/report\.scan_timings=\{/);
+ assert.match(worker,/archive_download_seconds:/);
+ assert.match(worker,/pyodide_extra_wait_seconds:/);
+ assert.match(worker,/python_analysis_seconds:/);
+ assert.match(worker,/archive_backfill_seconds:/);
+ assert.match(script,/target\.title="Chess\.com archives:/);
 });
