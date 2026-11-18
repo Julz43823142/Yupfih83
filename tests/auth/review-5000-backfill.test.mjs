@@ -434,18 +434,18 @@ test('only the end-to-end scan time is visible, no phase timings',()=>{
 
 test('homepage points at current scan script, not legacy v198-speed JavaScript',()=>{
  const html=readFileSync(new URL('index.html',root),'utf8');
- assert.match(html,/script\\.js\\?v=20261118-216-live/);
- assert.doesNotMatch(html,/script\\.js\\?v=198-speed/);
+ assert.match(html,/script\.js\?v=20261118-216-live/);
+ assert.doesNotMatch(html,/script\.js\?v=198-speed/);
  const headers=readFileSync(new URL('_headers',root),'utf8');
- assert.match(headers,/\\/script\\.js\\s+Cache-Control: no-store/);
- assert.match(headers,/\\/client-v87-worker\\.js\\s+Cache-Control: no-store/);
+ assert.match(headers,/\/script\.js\s+Cache-Control: no-store/);
+ assert.match(headers,/\/client-v87-worker\.js\s+Cache-Control: no-store/);
 });
 
 test('production build fingerprints the actual homepage JS contents',()=>{
  const build=readFileSync(new URL('scripts/build-site.mjs',root),'utf8');
- assert.match(build,/homepageScript=join\\(output,'script\\.js'\\)/);
- assert.match(build,/createHash\\('sha256'\\)\\.update\\(readFileSync\\(homepageScript\\)\\)/);
- assert.match(build,/writeFileSync\\(homepage,updated\\)/);
+ assert.match(build,/homepageScript=join\(output,'script\.js'\)/);
+ assert.match(build,/createHash\('sha256'\)\.update\(readFileSync\(homepageScript\)\)/);
+ assert.match(build,/writeFileSync\(homepage,updated\)/);
 });
 
 test('latest UI shows ONLY total duration and receives true milestone percentages',()=>{
@@ -453,8 +453,8 @@ test('latest UI shows ONLY total duration and receives true milestone percentage
  const end=script.indexOf('function renderAdditionalInsights(',begin);
  const duration=script.slice(begin,end);
  assert.ok(begin>0&&end>begin);
- assert.match(duration,/target\\.textContent="Analysis time: "/);
+ assert.match(duration,/target\.textContent="Analysis time: "/);
  assert.doesNotMatch(duration,/Archives|Runtime wait|Python analysis/);
- assert.match(script,/showReviewProgress\\(data\\.progress\\|\\|"Analyzing locally on your device…",reviewProgressStage,false,data\\.percent\\)/);
- assert.match(worker,/self\\.v87Progress=pythonProgress/);
+ assert.match(script,/showReviewProgress\(data\.progress\|\|"Analyzing locally on your device…",reviewProgressStage,false,data\.percent\)/);
+ assert.match(worker,/self\.v87Progress=pythonProgress/);
 });
