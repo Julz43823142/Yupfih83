@@ -30,6 +30,11 @@
   Cache-Control: public, max-age=300, must-revalidate
 /*.js
   Cache-Control: public, max-age=300, must-revalidate
+# Homepage scan code must not survive deployments under a stale cache key.
+/script.js
+  Cache-Control: no-store, max-age=0, must-revalidate
+/client-v87-worker.js
+  Cache-Control: no-store, max-age=0, must-revalidate
 /vendor/*
   Cache-Control: public, max-age=604800, must-revalidate
 # Cached precomputed public reports: heavy JSON should not be redownloaded on every visit.
