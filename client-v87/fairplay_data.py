@@ -360,7 +360,12 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
                                       opponent_clock_before=previous[not side]))
         previous[side] = after  # a missing clock breaks that side's chain; never span missing moves
         previous_capture_square = node.move.to_square if capture else None
-        moves.append(node.move.uci())
+        # Browser Method 3 opening statistics consult only the first two
+        # validated UCI moves (opening_choice). Avoid converting and retaining
+        # the remaining ~hundreds of thousands of moves in a 5,000-game scan.
+        # Other parsers keep their complete original move histories.
+        if not method3_only or len(moves) < 2:
+            moves.append(node.move.uci())
         if not method3_only:
             board.push(node.move)
     # The latest-50 comprehensive scope includes legal, finished short
