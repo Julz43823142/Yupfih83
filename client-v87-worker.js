@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261118-review-speed-213";
+const REVISION = "20261118-review-speed-214";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -163,7 +163,9 @@ async function run(username){
     const cached=lastCompletedReview&&lastCompletedReview.username===name
       &&lastCompletedReview.inputJSON===inputJSON;
     if(cached){
-      const report=JSON.parse(JSON.stringify(lastCompletedReview.report));
+      // postMessage uses structured cloning, so the cached report cannot be
+      // mutated by the page. Only shallow-copy the top level to set timings.
+      const report={...lastCompletedReview.report};
       report.scan_timings={
         archive_download_seconds:Math.round((firstArchivesReadyAt-scanStartedAt)/100)/10,
         pyodide_extra_wait_seconds:Math.round((runtimeReadyAt-firstArchivesReadyAt)/100)/10,
@@ -210,7 +212,9 @@ async function run(username){
         continue;
       }
       // Store only successful final reports, never intermediate backfill results.
-      lastCompletedReview={username:name,inputJSON,report:JSON.parse(JSON.stringify(report))};
+      // Retain the validated report directly. The page receives its own
+      // structured-cloned copy, avoiding another expensive JSON roundtrip.
+      lastCompletedReview={username:name,inputJSON,report};
       report.scan_timings={
         archive_download_seconds:Math.round((firstArchivesReadyAt-scanStartedAt)/100)/10,
         pyodide_extra_wait_seconds:Math.round((runtimeReadyAt-firstArchivesReadyAt)/100)/10,
