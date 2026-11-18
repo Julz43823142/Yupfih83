@@ -8,13 +8,13 @@ const root=new URL('../../',import.meta.url);
 const worker=readFileSync(new URL('client-v87-worker.js',root),'utf8');
 const script=readFileSync(new URL('script.js',root),'utf8');
 
-async function runSimulatedReview({firstCount,secondCount,firstReported,secondReported}){
+async function runSimulatedReview({firstCount,secondCount,firstReported,secondReported,runs=1,changeArchiveOnSecond=false}){
  const prefix='https://api.chess.com/pub/player/hikaru';
  const months=[prefix+'/games/2026/11',prefix+'/games/2026/10'];
  const row={rules:'chess',time_class:'blitz',rated:true,end_time:1790000000};
  const rows=[Array(firstCount).fill(row),Array(secondCount).fill(row)];
  const messages=[],visited=[],progressMessages=[];
- let latestInput=null,clock=0;
+ let latestInput=null,clock=0,pythonRuns=0;
  const python={
   FS:{
    writeFile(_path,payload){latestInput=JSON.parse(payload);},
@@ -24,10 +24,12 @@ async function runSimulatedReview({firstCount,secondCount,firstReported,secondRe
    }
   },
   globals:{set(){}},
-  runPython(){}
+  runPython(){pythonRuns++;}
  };
  const context={
   loading:null,
+  lastCompletedReview:null,
+  scanIteration:1,
   preparePython:async()=>python,
   chessJSON:async url=>{
    if(url===prefix)return {username:'hikaru'};
@@ -35,7 +37,7 @@ async function runSimulatedReview({firstCount,secondCount,firstReported,secondRe
    const index=months.indexOf(url);
    assert.ok(index>=0,'Unexpected Chess.com archive '+url);
    visited.push(url);
-   return {games:rows[index]};
+   return {games:rows[index],revision:changeArchiveOnSecond&&context.scanIteration>1?2:1};
   },
   progress:message=>progressMessages.push(message),
   self:{postMessage:message=>messages.push(message)},
@@ -45,8 +47,9 @@ async function runSimulatedReview({firstCount,secondCount,firstReported,secondRe
  const a=worker.indexOf('async function run(username){');
  const b=worker.indexOf('self.v87Progress=',a);
  assert.ok(a>0&&b>a,'Worker run() must exist');
- await runInNewContext(worker.slice(a,b)+'\nrun("hikaru")',context);
- return {visited,messages,progressMessages};
+ const calls=Array.from({length:runs},(_,i)=>'scanIteration='+String(i+1)+'; await run("hikaru");').join('\\n');
+ await runInNewContext('(async()=>{'+worker.slice(a,b)+'\\n'+calls+'})()',context);
+ return {visited,messages,progressMessages,pythonRuns};
 }
 
 test('the v87 worker does not publish a 164-game review while older Chess.com archives remain',async()=>{
@@ -73,7 +76,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-212'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-213'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
@@ -330,8 +333,8 @@ test('fast Elo Chernoff guard matches original 40-step numerical bounds and tier
 test('scan phase breakdown is visible without hover on mobile',()=>{
  assert.match(script,/target\.textContent\+=\" · Archives \"/);
  assert.match(script,/phases\.python_analysis_seconds\+\"s · Runtime wait \"/);
- assert.match(worker,/const REVISION = \"20261118-review-speed-212\"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-212/);
+ assert.match(worker,/const REVISION = \"20261118-review-speed-213\"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-213/);
 });
 
 test('successful reviews keep the warmed worker but cancellation discards it',()=>{
@@ -340,6 +343,28 @@ test('successful reviews keep the warmed worker but cancellation discards it',()
  assert.match(script,/worker\.removeEventListener\("message",onWorkerMessage\)/);
  assert.match(script,/if\(callback===reject\)\s*\{\s*worker\.terminate\(\);/);
  assert.match(script,/reusableReviewWorker===worker\)reusableReviewWorker=null/);
- assert.match(worker,/const REVISION = "20261118-review-speed-212"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-212/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-213"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-213/);
+});
+
+test('identical fresh 5000-game archives reuse the previous complete v87 result',async()=>{
+ const {messages,visited,pythonRuns}=await runSimulatedReview({
+  firstCount:5300,secondCount:5300,firstReported:5000,secondReported:5000,runs:2
+ });
+ assert.equal(pythonRuns,1,'Identical inputs must not recompute the complete Python review');
+ assert.equal(visited.length,4,'Both scans must independently refetch every archive');
+ assert.deepEqual(messages.map(m=>m.type),['profile','complete','profile','complete']);
+ assert.equal(messages[3].result.games,5000);
+ assert.equal(messages[3].result.scan_timings.unchanged_archive_cache,true);
+ assert.equal(messages[3].result.scan_timings.python_analysis_seconds,0);
+});
+
+test('changed Chess.com archives invalidate the reused v87 report',async()=>{
+ const {messages,pythonRuns}=await runSimulatedReview({
+  firstCount:5300,secondCount:5300,firstReported:5000,secondReported:5000,
+  runs:2,changeArchiveOnSecond:true
+ });
+ assert.equal(pythonRuns,2,'Any change in downloaded archive contents must trigger full analysis');
+ assert.equal(messages[3].result.scan_timings.unchanged_archive_cache,undefined);
+ assert.equal(messages[3].result.games,5000);
 });
