@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261118-review-speed-212";
+const REVISION = "20261118-review-speed-213";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -21,6 +21,8 @@ const PYTHON_FILES = [
 ];
 let loading = null;
 let busy = false;
+// Reuse a report only when every freshly downloaded archive matches.
+let lastCompletedReview = null;
 function progress(message, phase = "preparing") {
   self.postMessage({type:"progress",progress:String(message),phase});
 }
@@ -157,7 +159,25 @@ async function run(username){
   let backfillMs=0;
   for(let attempt=0;attempt<=months.length;attempt++){
     progress("Calculating the original Insights v87 report locally…","analyzing");
-    py.FS.writeFile("/home/pyodide/v87-input.json",JSON.stringify(input),{encoding:"utf8"});
+    const inputJSON=JSON.stringify(input);
+    const cached=lastCompletedReview&&lastCompletedReview.username===name
+      &&lastCompletedReview.inputJSON===inputJSON;
+    if(cached){
+      const report=JSON.parse(JSON.stringify(lastCompletedReview.report));
+      report.scan_timings={
+        archive_download_seconds:Math.round((firstArchivesReadyAt-scanStartedAt)/100)/10,
+        pyodide_extra_wait_seconds:Math.round((runtimeReadyAt-firstArchivesReadyAt)/100)/10,
+        python_analysis_seconds:0,
+        archive_backfill_seconds:Math.round(backfillMs/100)/10,
+        worker_total_seconds:Math.round((Date.now()-scanStartedAt)/100)/10,
+        unchanged_archive_cache:true
+      };
+      report.archive_months_checked=index;
+      report.archive_months_available=months.length;
+      self.postMessage({type:"complete",result:report});
+      return;
+    }
+    py.FS.writeFile("/home/pyodide/v87-input.json",inputJSON,{encoding:"utf8"});
     py.globals.set("v87_target",name);
     try{
       const pythonStartedAt=Date.now();
@@ -189,6 +209,8 @@ async function run(username){
           progress("Some monthly archives have no eligible games; continuing the search…","collecting");
         continue;
       }
+      // Store only successful final reports, never intermediate backfill results.
+      lastCompletedReview={username:name,inputJSON,report:JSON.parse(JSON.stringify(report))};
       report.scan_timings={
         archive_download_seconds:Math.round((firstArchivesReadyAt-scanStartedAt)/100)/10,
         pyodide_extra_wait_seconds:Math.round((runtimeReadyAt-firstArchivesReadyAt)/100)/10,
