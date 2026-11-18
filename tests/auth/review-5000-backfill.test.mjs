@@ -280,3 +280,48 @@ test('real scan reports independent archive, startup and Python phase timings',(
  assert.match(worker,/archive_backfill_seconds:/);
  assert.match(script,/target\.title="Chess\.com archives:/);
 });
+
+test('fast Elo Chernoff guard matches original 40-step numerical bounds and tiers',()=>{
+ const python=[
+  'import sys,random,time',
+  "sys.path.insert(0,'client-v87')",
+  'from math import exp,expm1,log,log1p',
+  'from fairplay_periods import _upper_bound',
+  'from fairplay_outcome_study import expected_points',
+  'def old_bound(probabilities,actual):',
+  '    n=len(probabilities);expected=sum(probabilities)',
+  '    if not n or actual<=expected:return 1.0',
+  '    if actual==n:return exp(sum(log(p) for p in probabilities))',
+  '    lo,hi=0.0,64.0',
+  '    for _ in range(40):',
+  '        t=(lo+hi)/2;et=exp(t)',
+  '        tilted=sum(p*et/(1+p*(et-1)) for p in probabilities)',
+  '        if tilted<actual:lo=t',
+  '        else:hi=t',
+  '    t=(lo+hi)/2',
+  '    return min(1.0,exp(sum(log1p(p*expm1(t)) for p in probabilities)-t*actual))',
+  'random.seed(17)',
+  'inputs=[]',
+  'for n in (5,10,20,50,100,200,400):',
+  '    for iteration in range(110):',
+  '        probabilities=[expected_points(random.randint(150,3100),random.randint(150,3100)) for _ in range(n)]',
+  '        expected=sum(probabilities)',
+  '        actual=(n if iteration%11==0 else min(n-1e-6,expected+(n-expected)*random.random()))',
+  '        inputs.append((probabilities,actual))',
+  'old_start=time.perf_counter()',
+  'baseline=[old_bound(p,a) for p,a in inputs]',
+  'old_elapsed=time.perf_counter()-old_start',
+  'new_start=time.perf_counter()',
+  'updated=[_upper_bound(p,a) for p,a in inputs]',
+  'new_elapsed=time.perf_counter()-new_start',
+  'for first,second in zip(baseline,updated):',
+  '    assert abs(first-second)<=1e-11,(first,second)',
+  '    for cutoff in (.001,.01,.10):',
+  '        if abs(first-cutoff)>1e-11: assert (first<=cutoff)==(second<=cutoff)',
+  "print('Old Chernoff',round(old_elapsed,3),'s, new',round(new_elapsed,3),'s, speedup',round(old_elapsed/max(new_elapsed,1e-9),2))"
+ ].join('\n');
+ const result=spawnSync('python3',['-c',python],{
+  cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
+ });
+ assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Chernoff parity failed'));
+});
