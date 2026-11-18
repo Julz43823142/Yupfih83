@@ -57,7 +57,8 @@ test('the v87 worker does not publish a 164-game review while older Chess.com ar
  assert.equal(messages[1].result.games,5000,'Never publish the 164-game intermediate result');
  assert.equal(messages[1].result.archive_months_checked,2);
  assert.equal(messages[1].result.source_platform,'chess.com');
- assert.ok(progressMessages.some(m=>m.includes('164 / 5,000')));
+ assert.ok(progressMessages.some(m=>m.includes('Checking Chess.com archives')));
+ assert.ok(!progressMessages.some(m=>m.includes('164 / 5,000')),'The initial parallel prefetch should avoid a redundant 164-game calculation');
 });
 
 test('a review reports the honest available game count when all archives are exhausted',async()=>{
@@ -71,9 +72,19 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261117-backfill-194'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-203'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
+});
+
+test('review period uses the same selected-window results as Discord',()=>{
+ assert.match(script,/const selected = data\.method3\?\.selected;/);
+ assert.match(script,/EXPECTED POINTS.*formatPoints\(r\.expected_points\)/);
+ assert.match(script,/SCORED POINTS.*formatPoints\(r\.actual_points\)/);
+ assert.match(script,/WINRATE.*r\.win_fraction/);
+ assert.match(script,/selected\.first_ended, selected\.last_ended/);
+ assert.doesNotMatch(script,/sectionTitle\(panel, "Review findings"/);
+ assert.match(worker,/Promise\.all\(Array\.from\(\{length:batchSize\},\(\)=>nextArchive\(\)\)\)/);
 });
 
 test('the minigames leaderboard link has no blue box or button padding',()=>{
