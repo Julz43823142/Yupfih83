@@ -822,6 +822,9 @@ function renderPlayer(profile, stats, username, options = {}) {
 // No GitHub workflow or status polling is involved.
 let activeReviewCancel=null;
 let activeReviewSerial=0;
+// Keep an initialized WASM interpreter between completed scans on this page.
+// A cancelled or failed scan discards the interpreter to avoid stale state.
+let reusableReviewWorker=null;
 function analyzeOnVisitorDevice(username){
   return new Promise((resolve,reject)=>{
     if(typeof Worker==="undefined"||typeof WebAssembly==="undefined"){
@@ -829,7 +832,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-211");}
+    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-212"));}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
@@ -837,13 +840,18 @@ function analyzeOnVisitorDevice(username){
     function settle(callback,value){
       if(settled)return;
       settled=true;
-      worker.terminate();
+      worker.removeEventListener("message",onWorkerMessage);
+      worker.removeEventListener("error",onWorkerError);
+      if(callback===reject){
+        worker.terminate();
+        if(reusableReviewWorker===worker)reusableReviewWorker=null;
+      }
       if(activeReviewCancel===cancelThisReview)activeReviewCancel=null;
       callback(value);
     }
     const cancelThisReview=reason=>settle(reject,reason);
     activeReviewCancel=cancelThisReview;
-    worker.addEventListener("message",event=>{
+    const onWorkerMessage=event=>{
       const data=event.data||{};
       if(data.type==="progress"){
         reviewProgressStage=data.phase||"analyzing";
@@ -879,11 +887,13 @@ function analyzeOnVisitorDevice(username){
       if(data.type==="error"){
         settle(reject,new Error(data.error||"On-device analysis failed."));
       }
-    });
-    worker.addEventListener("error",event=>{
+    };
+    const onWorkerError=event=>{
       event.preventDefault();
       settle(reject,new Error("Local analysis worker could not load. Try reloading the page."));
-    });
+    };
+    worker.addEventListener("message",onWorkerMessage);
+    worker.addEventListener("error",onWorkerError);
     worker.postMessage({type:"run",username});
   });
 }
