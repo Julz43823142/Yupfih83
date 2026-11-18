@@ -566,7 +566,7 @@ function placeExampleCardsNearOverview() {
 function showMeasuredDuration(result) {
   const target=document.getElementById("analysisDuration");
   if(!target)return;
-  const seconds=Number(result?.elapsed_seconds);
+  const seconds=Number(result?.total_scan_seconds ?? result?.elapsed_seconds);
   if(!Number.isFinite(seconds)||seconds<=0){
     target.textContent="Analysis time unavailable";
     target.hidden=false;
@@ -799,6 +799,8 @@ function analyzeOnVisitorDevice(username){
     try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-203");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
+    let verifiedProfile=null,latestStats=null;
+    const scanSerial=activeReviewSerial;
     function settle(callback,value){
       if(settled)return;
       settled=true;
@@ -817,13 +819,28 @@ function analyzeOnVisitorDevice(username){
       }
       if(data.type==="profile"){
         if(!settled&&String(data.profile?.username||"").toLowerCase()===username.toLowerCase()){
+          verifiedProfile=data.profile;
           playerCard.replaceChildren();
-          renderPlayer(data.profile,{},username,{preset:true});
+          renderPlayer(verifiedProfile,{},username,{preset:true});
+          // Ratings are optional; fetch them without blocking archive collection.
+          void getJSON("https://api.chess.com/pub/player/"+encodeURIComponent(username)+"/stats")
+            .then(stats=>{
+              if(settled||scanSerial!==activeReviewSerial)return;
+              latestStats=stats;
+              playerCard.replaceChildren();
+              renderPlayer(verifiedProfile,latestStats,username,{preset:true});
+            }).catch(()=>{});
         }
         return;
       }
       if(data.type==="complete"){
         settle(resolve,data.result);
+        // Career ratings remain available, but their separate archive download
+        // only begins AFTER the 5,000-game analysis finishes.
+        if(verifiedProfile&&scanSerial===activeReviewSerial&&!exampleAccounts.has(username.toLowerCase())){
+          playerCard.replaceChildren();
+          renderPlayer(verifiedProfile,latestStats||{},username);
+        }
         return;
       }
       if(data.type==="error"){
@@ -838,6 +855,7 @@ function analyzeOnVisitorDevice(username){
   });
 }
 async function runReview(username,requestId){
+ const startedAt=performance.now();
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
@@ -845,6 +863,8 @@ async function runReview(username,requestId){
  if(requestId!==activeReviewSerial)return;
  await finishReviewProgress();
  if(requestId!==activeReviewSerial)return;
+ // Browser-visible duration includes Python startup, downloads and analysis.
+ report.total_scan_seconds=(performance.now()-startedAt)/1000;
  renderReview(report);
 
  statusText.textContent="Chess.com analysis complete: "+report.games+
@@ -1053,31 +1073,8 @@ form.addEventListener("submit", async event => {
     return;
   }
   try {
-    const encoded = encodeURIComponent(username);
-    // Show a useful player preview as soon as the public profile arrives.
-    // Rating stats are optional and must not block the full game scan.
-    const profileController=new AbortController();
-    const profileTimeout=setTimeout(()=>profileController.abort(),15000);
-    let profile;
-    try{
-      // Reuse the existing sample-avatar request instead of doubling Chess.com traffic.
-      const shared=exampleProfileRequests.get(username.toLowerCase());
-      profile=await Promise.race([
-        shared||getJSON("https://api.chess.com/pub/player/" + encoded,{signal:profileController.signal}),
-        new Promise((_,reject)=>profileController.signal.addEventListener("abort",()=>reject(new DOMException("Profile timeout","AbortError")),{once:true}))
-      ]);
-    }
-    finally{clearTimeout(profileTimeout)}
-    if(requestId!==activeReviewSerial)return;
-    playerCard.replaceChildren();
-    renderPlayer(profile, {}, username, {preset:true});
-    void getJSON("https://api.chess.com/pub/player/" + encoded + "/stats").then(stats=>{
-      if(requestId!==activeReviewSerial||usernameInput.value.trim().toLowerCase()!==username.toLowerCase())return;
-      playerCard.replaceChildren();
-      // Do not download the entire career rating history in parallel with the
-      // 5,000-game review. Two archive collectors can trigger Chess.com 429s.
-      renderPlayer(profile, stats, username, {preset:exampleAccounts.has(username.toLowerCase())});
-    }).catch(error=>console.warn("Optional player ratings unavailable:",error));
+    // The worker verifies the profile and immediately supplies its snapshot.
+    // Do not delay the scan on a second Chess.com profile request.
     let panel = document.getElementById("v87-review");
     if (!panel) {
       panel = add(results, "section", "v87-review");

@@ -230,16 +230,20 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
             after = None
         before = previous[side]
         think = think_time(before, after, increment)
-        legal = board.legal_moves.count()
-        capture, in_check = board.is_capture(node.move), board.is_check()
+        # Both sides must still be validated and played to preserve legal
+        # chronology, clocks and recaptures. Only subject-side decisions are
+        # exported, so avoid expensive per-position metrics on opponent turns.
+        capture = board.is_capture(node.move)
         recapture = capture and node.move.to_square == previous_capture_square
-        material = sum(len(board.pieces(piece, side_)) * weight for side_ in (True, False)
-                       for piece, weight in ((chess.QUEEN, 9), (chess.ROOK, 5), (chess.BISHOP, 3), (chess.KNIGHT, 3)))
-        from fairplay_opening import book_status
-        opening = book_status(board, node.move, ply, config)
-        phase = 'opening' if opening['book'] else 'endgame' if material <= 20 else 'middlegame'
-        forced = legal == 1 or (in_check and legal <= 2)
         if side == color:
+            legal = board.legal_moves.count()
+            in_check = board.is_check()
+            material = sum(len(board.pieces(piece, side_)) * weight for side_ in (True, False)
+                           for piece, weight in ((chess.QUEEN, 9), (chess.ROOK, 5), (chess.BISHOP, 3), (chess.KNIGHT, 3)))
+            from fairplay_opening import book_status
+            opening = book_status(board, node.move, ply, config)
+            phase = 'opening' if opening['book'] else 'endgame' if material <= 20 else 'middlegame'
+            forced = legal == 1 or (in_check and legal <= 2)
             trivial = trivial_move_kind(board,node.move,legal,recapture) if phase!='opening' else None
             clock_valid = (think is not None and 0 <= think < 120 and before is not None and after is not None
                            and min(before,after)>max(10,(base or 0)*.05))

@@ -108,3 +108,25 @@ test('the example page never waits for a live profile or game analysis',()=>{
  assert.match(boot,/openSavedExample\(\)/);
  assert.doesNotMatch(boot,/requestSubmit\(\)/);
 });
+
+test('v87 parser keeps full move validation but limits expensive metrics to subject turns',()=>{
+ const source=readFileSync(new URL('client-v87/fairplay_data.py',root),'utf8');
+ const loop=source.slice(source.indexOf('    for node in game.mainline():'),source.indexOf('    # The latest-50 comprehensive scope',source.indexOf('    for node in game.mainline():')));
+ assert.ok(loop.includes('if ply > config.max_plies or node.move not in board.legal_moves:'));
+ assert.ok(loop.includes('previous[side] = after'));
+ assert.ok(loop.includes('board.push(node.move)'));
+ const subject=loop.indexOf('        if side == color:');
+ for(const operation of ['legal = board.legal_moves.count()', 'in_check = board.is_check()', 'material = sum(', 'opening = book_status(', 'forced = legal == 1']){
+   assert.ok(loop.indexOf(operation)>subject,'Subject-only operation is not guarded: '+operation);
+ }
+ assert.ok(loop.indexOf('capture = board.is_capture(node.move)')<subject,'Opponent captures remain observed');
+});
+
+test('ordinary website review starts the worker without waiting for a second profile fetch',()=>{
+ const entry=script.indexOf('form.addEventListener("submit"');
+ const normal=script.slice(entry,script.indexOf('  try {\n    const encoded',entry)>0?script.indexOf('  try {\n    const encoded',entry):undefined);
+ assert.ok(normal.includes('await runReview(username,requestId)'));
+ assert.doesNotMatch(normal,/profile=await Promise\.race|await getJSON\("https:\/\/api\.chess\.com\/pub\/player\//);
+ assert.ok(script.includes('report.total_scan_seconds=(performance.now()-startedAt)/1000'));
+ assert.ok(script.includes('if(settled||scanSerial!==activeReviewSerial)return'));
+});
