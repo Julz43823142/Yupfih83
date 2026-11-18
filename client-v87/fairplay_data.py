@@ -222,18 +222,21 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
     ply = 0
     for node in game.mainline():
         ply += 1
-        if ply > config.max_plies or node.move not in board.legal_moves:
+        # PGN parsing has already validated every move and reported any
+        # illegal SAN in game.errors. For Method 3, replaying the same game on
+        # a second board adds no result, clock, or opening-summary information.
+        # Preserve the explicit legality replay for all other review modes.
+        if ply > config.max_plies or (not method3_only and node.move not in board.legal_moves):
             return reject('other_invalid')
-        side = board.turn
+        side = (chess.WHITE if ply % 2 else chess.BLACK) if method3_only else board.turn
         after = None if daily else node.clock()
         if after is not None and (not math.isfinite(after) or after < 0):
             after = None
         before = previous[side]
         think = think_time(before, after, increment)
-        # Both sides must still be validated and played to preserve legal
-        # chronology, clocks and recaptures. Only subject-side decisions are
-        # exported, so avoid expensive per-position metrics on opponent turns.
-        capture = board.is_capture(node.move)
+        # The PGN reader validates the game once. Method 3 uses neither
+        # captures nor recapture flags; full analysis retains those features.
+        capture = board.is_capture(node.move) if not method3_only else False
         recapture = capture and node.move.to_square == previous_capture_square
         if side == color and method3_only:
             # Method 3 scores only game outcomes, Elo and published Accuracy.
@@ -243,7 +246,7 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
             clock_valid = (think is not None and 0 <= think < 120 and before is not None and after is not None
                            and min(before,after)>max(10,(base or 0)*.05))
             decisions.append(Decision(
-                ply, board.fullmove_number, '', node.move.uci(),
+                ply, (ply + 1) // 2, '', node.move.uci(),
                 before, after, think, 0, False, capture, '', False,
                 False, False, False, clock_valid=clock_valid,
                 opponent_clock_before=previous[not side]))
@@ -272,7 +275,8 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
         previous[side] = after  # a missing clock breaks that side's chain; never span missing moves
         previous_capture_square = node.move.to_square if capture else None
         moves.append(node.move.uci())
-        board.push(node.move)
+        if not method3_only:
+            board.push(node.move)
     # The latest-50 comprehensive scope includes legal, finished short
     # games. This changes *selection coverage*, not their evidential weight:
     # opening/forced moves remain excluded from scoring and cannot add hits.
