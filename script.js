@@ -576,18 +576,9 @@ function showMeasuredDuration(result) {
   const minutes=Math.floor(rounded/60);
   const remainder=rounded%60;
   target.textContent="Analysis time: "+(minutes?minutes+"m ":"")+remainder+"s";
-  const phases=result?.scan_timings;
-  if(phases?.unchanged_archive_cache)target.textContent+=" · unchanged archives, reused analysis";
-  if(phases && [phases.archive_download_seconds,phases.pyodide_extra_wait_seconds,phases.python_analysis_seconds].every(Number.isFinite)){
-    target.title="Chess.com archives: "+phases.archive_download_seconds+"s · Pyodide wait: "+
-      phases.pyodide_extra_wait_seconds+"s · Python analysis: "+phases.python_analysis_seconds+
-      "s · archive backfill: "+(phases.archive_backfill_seconds||0)+"s";
-    // Make phase timings available on touch devices (not just hover tooltip).
-    target.textContent+=" · Archives "+phases.archive_download_seconds+"s · Python "+
-      phases.python_analysis_seconds+"s · Runtime wait "+phases.pyodide_extra_wait_seconds+"s";
-  }else{
-    target.removeAttribute("title");
-  }
+  // The user-facing duration is the end-to-end scan time only.
+  // Phase timings remain in the worker report for performance diagnostics.
+  target.removeAttribute("title");
   target.hidden=false;
 }
 
@@ -719,6 +710,13 @@ function renderReview(data) {
       ? number(value, 1) : "Unknown";
     metric(periodMetrics, "EXPECTED POINTS", formatPoints(r.expected_points));
     metric(periodMetrics, "SCORED POINTS", formatPoints(r.actual_points));
+    const pointsKnown=typeof r.actual_points==="number" && Number.isFinite(r.actual_points)
+      && typeof r.expected_points==="number" && Number.isFinite(r.expected_points);
+    const difference=pointsKnown?r.actual_points-r.expected_points:null;
+    const pointsDelta=difference===null?"Unknown":Math.abs(difference)<1e-9
+      ?"Exactly as expected":number(Math.abs(difference),1)+
+        (difference>0?" points above expected":" points below expected");
+    metric(periodMetrics, "VS EXPECTED", pointsDelta);
     metric(periodMetrics, "WINRATE", typeof r.win_fraction === "number" && Number.isFinite(r.win_fraction)
       ? number(r.win_fraction * 100, 1) + "%" : "Unknown");
   } else {
@@ -833,7 +831,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-213"));}
+    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-214"));}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
