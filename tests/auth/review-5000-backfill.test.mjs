@@ -73,7 +73,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-209'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-211'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
