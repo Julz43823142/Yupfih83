@@ -213,8 +213,9 @@ test('browser lightweight PGN path preserves original v87 game and graph evidenc
   '        full=parse_game(row,target,allow_short=True,include_unrated=True)',
   '        quick=parse_game(row,target,allow_short=True,include_unrated=True,method3_only=True)',
   '        assert full is not None and quick is not None, (full,quick)',
-  "        for field in ('identity','ended','time_class','rating','opponent_rating','result','score','accuracy','color','time_control','rated','moves','opponent_username'):",
+  "        for field in ('identity','ended','time_class','rating','opponent_rating','result','score','accuracy','color','time_control','rated','opponent_username'):",
   "            assert getattr(full,field)==getattr(quick,field),field",
+  '        assert quick.moves==full.moves[:2], (full.moves,quick.moves)',
   '        assert len(full.decisions)==len(quick.decisions)',
   "        for field in ('ply','fullmove','move','clock_before','clock_after','think','clock_valid','opponent_clock_before'):",
   '            assert [getattr(d,field) for d in full.decisions]==[getattr(d,field) for d in quick.decisions],field',
@@ -331,4 +332,14 @@ test('scan phase breakdown is visible without hover on mobile',()=>{
  assert.match(script,/phases\.python_analysis_seconds\+\"s · Runtime wait \"/);
  assert.match(worker,/const REVISION = \"20261118-review-speed-211\"/);
  assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-211/);
+});
+
+test('successful reviews keep the warmed worker but cancellation discards it',()=>{
+ assert.match(script,/let reusableReviewWorker=null;/);
+ assert.match(script,/worker=reusableReviewWorker\|\|\(reusableReviewWorker=new Worker/);
+ assert.match(script,/worker\.removeEventListener\("message",onWorkerMessage\)/);
+ assert.match(script,/if\(callback===reject\)\s*\{\s*worker\.terminate\(\);/);
+ assert.match(script,/reusableReviewWorker===worker\)reusableReviewWorker=null/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-212"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-212/);
 });
