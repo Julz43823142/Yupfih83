@@ -643,17 +643,6 @@ function renderReview(data) {
   const level=String(data.priority||"").toUpperCase().replaceAll(" ","-");
   if(["LOW","MODERATE","HIGH","VERY-HIGH"].includes(level))
     priorityHeading.classList.add("v87-priority-"+level.toLowerCase());
-  const entries = Array.isArray(data.reasons) ? data.reasons : [data.reasons];
-  const cleanedReasons = entries.filter(x => x != null)
-    .map(x => typeof x === "string" ? x : JSON.stringify(x))
-    .map(x => x.replace(/\s*This experimental results flag is not engine or Maia confirmation\.?/gi, "").trim())
-    .filter(Boolean)
-    .filter(reason => !/Absolute high Accuracy frequency alone is descriptive\./i.test(reason));
-  const highlightedIndex = cleanedReasons.findIndex(reason =>
-    /A chronological period scored substantially above its Elo-point expectation and passed the history-search guard/i.test(reason));
-  if (highlightedIndex !== -1) {
-    add(left, "p", "v87-priority-finding", cleanedReasons[highlightedIndex]);
-  }
   
   const levels=add(panel,"div","v87-performance-levels");
   add(levels,"strong","","Performance levels");
@@ -675,13 +664,32 @@ function renderReview(data) {
   metric(stats, "TIME CONTROLS", "Rapid · Blitz · Bullet");
 
   if (data.partial) add(panel, "p", "v87-warning", "Partial review: data or time limits affected coverage.");
-  sectionTitle(panel, "Review findings", "Key observations and reliability context");
-  const reasons = add(panel, "ul", "v87-reasons");
-  const readable = cleanedReasons.filter((_, i) => i !== highlightedIndex);
-  if (!readable.length) add(reasons, "li", "", highlightedIndex !== -1
-    ? "The primary finding is displayed directly below the review priority."
-    : "No additional reason text supplied.");
-  else readable.slice(0, 20).forEach(reason => add(reasons, "li", "", reason));
+  // The selected chronological period is the same evidence and scoring shown in Discord.
+  const selected = data.method3?.selected;
+  if (selected && selected.results) {
+    sectionTitle(panel, "Selected period", "The same chronological window used by the review");
+    const dates = [selected.first_ended, selected.last_ended].map(seconds => {
+      const n = Number(seconds);
+      return Number.isFinite(n) && n > 0
+        ? new Date(n * 1000).toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric", timeZone:"UTC"})
+        : null;
+    });
+    const scope = add(panel, "p", "v87-muted",
+      String(selected.time_class || "Unknown").replace(/^./, c => c.toUpperCase()) +
+      " · " + number(selected.games, 0) + " games · " +
+      (dates.every(Boolean) ? dates[0] + " → " + dates[1] : "Dates unavailable"));
+    scope.classList.add("v87-period-scope");
+    const periodMetrics = add(panel, "div", "v87-metrics v87-period-metrics");
+    const r = selected.results;
+    const formatPoints = value => typeof value === "number" && Number.isFinite(value)
+      ? number(value, 1) : "Unknown";
+    metric(periodMetrics, "EXPECTED POINTS", formatPoints(r.expected_points));
+    metric(periodMetrics, "SCORED POINTS", formatPoints(r.actual_points));
+    metric(periodMetrics, "WINRATE", typeof r.win_fraction === "number" && Number.isFinite(r.win_fraction)
+      ? number(r.win_fraction * 100, 1) + "%" : "Unknown");
+  } else {
+    sectionTitle(panel, "Selected period", "No selected chronological period is available");
+  }
   if (data.charts && Object.values(data.charts).some(rows => Array.isArray(rows) && rows.length)) realCharts(panel, data);
   else { sectionTitle(panel, "Game-by-game analysis", "Detailed charts are available for new completed analyses."); add(panel, "p", "v87-muted", "This result does not contain chronological game observations. Start a new analysis to generate the charts."); }
   const opening=data.opening_summary;
@@ -788,7 +796,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261117-backfill-194");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-203");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     function settle(callback,value){
