@@ -826,7 +826,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-209");}
+    try{worker=new Worker("/client-v87-worker.js?v=20261118-review-speed-211");}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
