@@ -171,7 +171,7 @@ test('indexed v87 safeguards exactly match the original results over 5,000 games
   '        new=opponent_support(members,history=games,history_index=index)',
   '        assert old==new, (left,width,old,new)',
   "print('Indexed reliability output matches baseline')"
- ].join('\\n');
+ ].join('\n');
  const result=spawnSync('python3',['-c',python],{
   cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
  });
