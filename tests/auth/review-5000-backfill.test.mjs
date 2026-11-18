@@ -76,7 +76,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-214'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-215'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
@@ -335,8 +335,8 @@ test('only end-to-end scan time is displayed without phase details',()=>{
  assert.match(script,/target\.removeAttribute\("title"\)/);
  assert.doesNotMatch(script,/target\.textContent\+=" · Archives "/);
  assert.doesNotMatch(script,/target\.textContent\+=" · unchanged archives/);
- assert.match(worker,/const REVISION = "20261118-review-speed-214"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-214/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-215"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-215/);
 
 });
 
@@ -346,8 +346,8 @@ test('successful reviews keep the warmed worker but cancellation discards it',()
  assert.match(script,/worker\.removeEventListener\("message",onWorkerMessage\)/);
  assert.match(script,/if\(callback===reject\)\s*\{\s*worker\.terminate\(\);/);
  assert.match(script,/reusableReviewWorker===worker\)reusableReviewWorker=null/);
- assert.match(worker,/const REVISION = "20261118-review-speed-214"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-214/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-215"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-215/);
 });
 
 test('identical fresh 5000-game archives reuse the previous complete v87 result',async()=>{
@@ -387,4 +387,47 @@ test('report cache avoids redundant JSON roundtrips on 5000-game reruns',()=>{
  assert.match(worker,/lastCompletedReview=\{username:name,inputJSON,report\}/);
  assert.doesNotMatch(worker,/JSON\.parse\(JSON\.stringify\(lastCompletedReview\.report\)\)/);
  assert.doesNotMatch(worker,/report:JSON\.parse\(JSON\.stringify\(report\)\)/);
+});
+
+test('progress uses actual worker milestones instead of a slow elapsed-time curve',()=>{
+ const begin=script.indexOf('let reviewProgressStage="queued";');
+ const end=script.indexOf('function placeExampleCardsNearOverview()',begin);
+ const bar=script.slice(begin,end);
+ assert.ok(begin>=0&&end>begin);
+ assert.match(bar,/reviewProgressPercent=Math\.max\(reviewProgressPercent,Math\.min\(99,/);
+ assert.match(bar,/reviewProgressReport;/);
+ assert.doesNotMatch(bar,/Math\.exp\(-seconds|setInterval\(|analysisStatusLine\(/);
+ assert.match(script,/showReviewProgress\(data\.progress\|\|"Analyzing locally on your device…",reviewProgressStage,false,data\.percent\)/);
+ assert.match(worker,/self\.v87Progress=pythonProgress/);
+ assert.match(worker,/progress\("Final report ready…","analyzing",99\)/);
+});
+
+test('worker milestones reflect collected games, analyzed blocks and boundaries',()=>{
+ const output=[];
+ const a=worker.indexOf('function progress(');
+ const b=worker.indexOf('async function preparePython()',a);
+ assert.ok(a>=0&&b>a);
+ const commands=[
+  'pythonProgress("Collecting rated and unrated games… 2500/5000 games · 10/80 archives");',
+  'pythonProgress("Method 3: block 11/25");',
+  'pythonProgress("Method 3: boundary 8/24");',
+  'pythonProgress("Method 3: building graphs and report…");'
+ ].join(String.fromCharCode(10));
+ runInNewContext(worker.slice(a,b)+String.fromCharCode(10)+commands,{
+  self:{postMessage:m=>output.push(m)},String,Math,Number
+ });
+ assert.equal(output.length,4);
+ assert.equal(output[0].percent,52);
+ assert.equal(output[1].percent,73);
+ assert.ok(output[2].percent>=87&&output[2].percent<=90);
+ assert.equal(output[3].percent,96);
+ assert.ok(output.every(m=>m.type==='progress'&&m.phase==='analyzing'));
+});
+
+test('only the end-to-end scan time is visible, no phase timings',()=>{
+ const a=script.indexOf('function showMeasuredDuration(');
+ const b=script.indexOf('function renderAdditionalInsights(',a);
+ const duration=script.slice(a,b);
+ assert.match(duration,/target\.textContent="Analysis time: "/);
+ assert.doesNotMatch(duration,/Archives |Runtime wait |Python analysis/);
 });

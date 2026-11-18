@@ -460,56 +460,18 @@ function realCharts(parent,data){
   }
 }
 
-let reviewProgressStarted=0, reviewProgressTimer=null, reviewProgressStage="queued";
+let reviewProgressStage="queued";
 let reviewProgressPercent=0, reviewProgressReport="", reviewProgressFinishing=false;
-// Ten neutral verbs × 30 analytical subjects × six scopes = 1,800 combinations.
-// This rotating line is decorative; the separate phase line reports actual backend status.
-const analysisVerbs=[
-  "Reviewing","Checking","Comparing","Inspecting","Examining",
-  "Mapping","Summarizing","Tracing","Cross-checking","Assessing"
-];
-const analysisSubjects=[
-  "Elo expectations","game results","opponent ratings","rating changes",
-  "opening choices","Rapid performance","Blitz performance","Bullet performance",
-  "accuracy trends","scoring trends","historical patterns","game sequences",
-  "rating differences","draw frequencies","win frequencies","loss frequencies",
-  "thinking times","move timings","time controls","result distributions",
-  "opening frequencies","game chronology","sample coverage","accuracy coverage",
-  "rating stability","opponent strength","rolling averages","recent activity",
-  "statistical variation","period comparisons"
-];
-const analysisScopes=[
-  "across the game history","in the available games","over time",
-  "within each time control","across recent periods","against earlier results"
-];
-function analysisStatusLine(){
-  const index=Math.floor(Math.max(0,Date.now()-reviewProgressStarted)/3400);
-  const total=analysisVerbs.length*analysisSubjects.length*analysisScopes.length;
-  // Coprime stride visits every combination before repeating.
-  const n=(index*427+137)%total;
-  const verb=analysisVerbs[n%analysisVerbs.length];
-  const subject=analysisSubjects[Math.floor(n/analysisVerbs.length)%analysisSubjects.length];
-  const scope=analysisScopes[Math.floor(n/(analysisVerbs.length*analysisSubjects.length))];
-  return verb+" "+subject+" "+scope+"…";
-}
+// These milestones come from the actual worker and Python scan stages.
+// Do not manufacture progress from elapsed seconds: a fast scan must not
+// finish while the visible bar is still at 20%.
 function currentReviewEstimate(){
-  const elapsed=Math.max(0,Date.now()-reviewProgressStarted);
-  const seconds=elapsed/1000;
-  // One continuous decelerating curve: no 80% target or hard stop at 80.
-  // Work-phase information only lifts the target slightly, never the displayed value.
-  let target=95*(1-Math.exp(-seconds/39));
-  const phaseCaps={queued:23,preparing:45,dependencies:67,analyzing:94,uploading:98};
-  target=Math.min(phaseCaps[reviewProgressStage]??94,target);
-  if(reviewProgressStage==="uploading") target=Math.max(target,95);
-  const ahead=Math.max(0,target-reviewProgressPercent);
-  const maxStep=reviewProgressPercent<65?.42:reviewProgressPercent<85?.25:.13;
-  return Math.min(98,reviewProgressPercent+Math.min(ahead,maxStep));
+  return reviewProgressPercent;
 }
 function stopReviewProgress(){
-  if(reviewProgressTimer!==null){clearInterval(reviewProgressTimer);reviewProgressTimer=null;}
-  reviewProgressStarted=0;
+  // Progress is event-driven; no artificial animation or polling timer.
 }
-function showReviewProgress(message,stage="queued",completed=false){
+function showReviewProgress(message,stage="queued",completed=false,percent=null){
   const panel=document.getElementById("v87-review");
   if(!panel)return;
   let progress=panel.querySelector(".v87-progress");
@@ -528,7 +490,9 @@ function showReviewProgress(message,stage="queued",completed=false){
   }
   if(stage)reviewProgressStage=stage;
   if(message)reviewProgressReport=message;
-  reviewProgressPercent=completed?100:currentReviewEstimate();
+  if(completed)reviewProgressPercent=100;
+  else if(typeof percent==="number"&&Number.isFinite(percent))
+    reviewProgressPercent=Math.max(reviewProgressPercent,Math.min(99,Math.max(0,percent)));
   const value=progress.querySelector(".v87-progress-value");
   const track=progress.querySelector(".v87-progress-track");
   const fill=progress.querySelector(".v87-progress-fill");
@@ -536,19 +500,14 @@ function showReviewProgress(message,stage="queued",completed=false){
   track.setAttribute("aria-valuenow",String(Math.floor(reviewProgressPercent)));
   fill.style.width=reviewProgressPercent+"%";
   document.querySelectorAll(".rating-sparkline").forEach(svg=>{svg.style.clipPath="inset(0 "+(100-reviewProgressPercent)+"% 0 0)"});
-  progress.querySelector(".v87-progress-message").textContent=completed?"Review complete.":analysisStatusLine();
+  progress.querySelector(".v87-progress-message").textContent=completed?"Review complete.":reviewProgressReport;
   progress.classList.toggle("v87-progress-complete",completed);
 }
 function startReviewProgress(){
   stopReviewProgress();
-  reviewProgressStarted=Date.now();
   reviewProgressFinishing=false;
   reviewProgressPercent=0;reviewProgressStage="queued";reviewProgressReport="";
-  showReviewProgress("Preparing local analysis on this device…","queued");
-  reviewProgressTimer=setInterval(()=>{
-    if(!reviewProgressFinishing&&document.querySelector("#v87-review .v87-progress"))
-      showReviewProgress(reviewProgressReport,reviewProgressStage);
-  },180);
+  showReviewProgress("Preparing local analysis on this device…","queued",false,0);
 }
 async function finishReviewProgress(){
   // Once the worker has returned its completed report, show it immediately.
@@ -831,7 +790,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-214"));}
+    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-215"));}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
@@ -854,7 +813,7 @@ function analyzeOnVisitorDevice(username){
       const data=event.data||{};
       if(data.type==="progress"){
         reviewProgressStage=data.phase||"analyzing";
-        showReviewProgress(data.progress||"Analyzing locally on your device…",reviewProgressStage);
+        showReviewProgress(data.progress||"Analyzing locally on your device…",reviewProgressStage,false,data.percent);
         return;
       }
       if(data.type==="profile"){
