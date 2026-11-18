@@ -325,3 +325,10 @@ test('fast Elo Chernoff guard matches original 40-step numerical bounds and tier
  });
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Chernoff parity failed'));
 });
+
+test('scan phase breakdown is visible without hover on mobile',()=>{
+ assert.match(script,/target\.textContent\+=\" · Archives \"/);
+ assert.match(script,/phases\.python_analysis_seconds\+\"s · Runtime wait \"/);
+ assert.match(worker,/const REVISION = \"20261118-review-speed-211\"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-211/);
+});
