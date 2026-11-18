@@ -581,6 +581,9 @@ function showMeasuredDuration(result) {
     target.title="Chess.com archives: "+phases.archive_download_seconds+"s · Pyodide wait: "+
       phases.pyodide_extra_wait_seconds+"s · Python analysis: "+phases.python_analysis_seconds+
       "s · archive backfill: "+(phases.archive_backfill_seconds||0)+"s";
+    // Make phase timings available on touch devices (not just hover tooltip).
+    target.textContent+=" · Archives "+phases.archive_download_seconds+"s · Python "+
+      phases.python_analysis_seconds+"s · Runtime wait "+phases.pyodide_extra_wait_seconds+"s";
   }else{
     target.removeAttribute("title");
   }
