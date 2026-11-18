@@ -244,3 +244,29 @@ test('browser Method 3 reuses PGN legality validation rather than replaying the 
  assert.match(source,/side = \(chess\.WHITE if ply % 2 else chess\.BLACK\) if method3_only else board\.turn/);
  assert.match(source,/ply, \(ply \+ 1\) \/\/ 2, '', node\.move\.uci\(\)/);
 });
+
+test('streaming PGN visitor preserves headers, mainline clocks and variation errors',()=>{
+ const python=[
+  'import sys,io,chess.pgn',
+  "sys.path.insert(0,'client-v87')",
+  'from fairplay_data import QuietGameBuilder,ClockOnlyGameBuilder',
+  'fixtures=[',
+  '  """[White "example"]\\n[Black "opponent"]\\n[Result "1-0"]\\n\\n1. e4 {[%clk 0:03:00]} e5 {note [%clk 0:02:59]} 2. Nf3 {[%clk 0:02:57]} Nc6 1-0""",',
+  '  """[White "example"]\\n[Black "opponent"]\\n[Result "0-1"]\\n\\n1. d4 {text} {[%clk 0:02:57]} d5 (1... Nf6 {[%clk 0:02:59]} 2. c4 (2. Nf3) 2... g6) 2. c4 {[%clk 0:02:55]} e6 0-1""",',
+  '  """[White "example"]\\n[Black "opponent"]\\n[Result "1/2-1/2"]\\n\\n{introduction} 1. c4 $1 {[%clk 0:05:00]} e5 2. Nc3 Nf6 {[%clk 0:04:57]} 1/2-1/2""",',
+  '  """[White "example"]\\n[Black "opponent"]\\n[Result "1-0"]\\n\\n1. e4 e9 1-0"""',
+  ']',
+  'for text in fixtures:',
+  '    full=chess.pgn.read_game(io.StringIO(text),Visitor=QuietGameBuilder)',
+  '    fast=chess.pgn.read_game(io.StringIO(text),Visitor=ClockOnlyGameBuilder)',
+  '    assert dict(full.headers)==dict(fast.headers)',
+  '    assert len(full.errors)==len(fast.errors)',
+  '    assert full.board().fen()==fast.board().fen()',
+  '    assert [(n.move.uci(),n.clock()) for n in full.mainline()]==[(n.move.uci(),n.clock()) for n in fast.mainline()]',
+  "print('PGN header, result, clock and legal-move parity verified')"
+ ].join('\n');
+ const result=spawnSync('python3',['-c',python],{
+  cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
+ });
+ assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'PGN visitor test failed'));
+});
