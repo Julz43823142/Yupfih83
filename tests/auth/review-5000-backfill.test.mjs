@@ -247,8 +247,9 @@ test('browser Method 3 reuses PGN legality validation rather than replaying the 
 
 test('streaming PGN visitor preserves headers, mainline clocks and variation errors',()=>{
  const python=[
-  'import sys,io,chess.pgn',
+  'import sys,io',
   "sys.path.insert(0,'client-v87')",
+  'import chess.pgn',
   'from fairplay_data import QuietGameBuilder,ClockOnlyGameBuilder',
   'fixtures=[',
   '  """[White "example"]\\n[Black "opponent"]\\n[Result "1-0"]\\n\\n1. e4 {[%clk 0:03:00]} e5 {note [%clk 0:02:59]} 2. Nf3 {[%clk 0:02:57]} Nc6 1-0""",',
