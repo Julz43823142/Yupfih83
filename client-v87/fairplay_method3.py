@@ -35,7 +35,7 @@ def review_confidence(priority, total_games, chosen, partial):
 
 
 def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
-           checkpoint=None, **unused):
+           checkpoint=None, lightweight_method3=False, **unused):
     from fairplay_analysis import ReviewResult
     start=time.monotonic()
     deadline=ScanDeadline(start+900,cancel)
@@ -51,7 +51,7 @@ def review(target, progress, config=CONFIG, *, api_factory=PubAPI, cancel=None,
         games,skipped,partial=collect_games(api,target,progress,collection,
             include_unrated=True,include_latest_fifty_short=True,
             include_recent_all_short_count=sample_limit,time_classes={'rapid','blitz','bullet'},
-            progress_detail=True)
+            progress_detail=True, lightweight_method3=lightweight_method3)
         check_deadline(deadline)
         games=sorted((g for g in games if type(g.rated) is bool),key=lambda g:(g.ended,g.identity))[-sample_limit:]
         if not games:raise ReviewError('No eligible live games were found.')
