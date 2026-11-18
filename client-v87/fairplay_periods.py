@@ -22,13 +22,28 @@ def _upper_bound(probabilities,actual):
     if actual==n:return exp(sum(log(p) for p in probabilities))
     # Bounded [0,1] points, including draws. The Bernoulli MGF upper-bounds
     # the MGF for points with the same mean; it does not estimate winrate.
+    # The old implementation evaluated 40 full-window binary-search steps.
+    # A bracketed Newton step uses the same MGF and stationary equation but
+    # normally converges in a fraction of that work. Keep the original
+    # [0, 64] bracket and 40-iteration limit for adversarial Elo distributions.
     lo,hi=0.0,64.0
+    t=0.0
     for _ in range(40):
-        t=(lo+hi)/2;et=exp(t)
-        tilted=sum(p*et/(1+p*(et-1)) for p in probabilities)
+        et=exp(t)
+        delta=et-1
+        tilted=0.0
+        curvature=0.0
+        for p in probabilities:
+            q=p*et/(1+p*delta)
+            tilted+=q
+            curvature+=q*(1-q)
         if tilted<actual:lo=t
         else:hi=t
-    t=(lo+hi)/2
+        if hi-lo<=1e-8:
+            break
+        step=(tilted-actual)/curvature if curvature else 0.0
+        candidate=t-step
+        t=candidate if lo<candidate<hi else (lo+hi)/2
     return min(1.0,exp(sum(log1p(p*expm1(t)) for p in probabilities)-t*actual))
 
 
