@@ -30,19 +30,19 @@ function progress(message, phase = "preparing", percent = null) {
 // A completed report alone advances the bar to 100%.
 function pythonProgress(message){
   const text=String(message);
-  const collected=text.match(/Collecting (?:rated and unrated|rated) games.*?(\\d+)\\/5000 games/i);
+  const collected=text.match(/Collecting (?:rated and unrated|rated) games.*?(\d+)\/5000 games/i);
   if(collected){
     const done=Math.min(5000,Number(collected[1]));
     progress("Validating games "+done+" / 5,000…","analyzing",40+24*done/5000);
     return;
   }
-  const block=text.match(/^Method 3: block (\\d+)\\/(\\d+)$/);
+  const block=text.match(/^Method 3: block (\d+)\/(\d+)$/);
   if(block){
     progress("Comparing game periods · block "+block[1]+"/"+block[2],"analyzing",
       65+20*(Math.max(0,Number(block[1])-1)/Math.max(1,Number(block[2]))));
     return;
   }
-  const bridge=text.match(/^Method 3: boundary (\\d+)\\/(\\d+)$/);
+  const bridge=text.match(/^Method 3: boundary (\d+)\/(\d+)$/);
   if(bridge){
     progress("Checking overlapping periods · "+bridge[1]+"/"+bridge[2],"analyzing",
       85+10*(Math.max(0,Number(bridge[1])-1)/Math.max(1,Number(bridge[2]))));
