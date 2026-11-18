@@ -566,7 +566,7 @@ function placeExampleCardsNearOverview() {
 function showMeasuredDuration(result) {
   const target=document.getElementById("analysisDuration");
   if(!target)return;
-  const seconds=Number(result?.elapsed_seconds);
+  const seconds=Number(result?.total_scan_seconds ?? result?.elapsed_seconds);
   if(!Number.isFinite(seconds)||seconds<=0){
     target.textContent="Analysis time unavailable";
     target.hidden=false;
@@ -855,6 +855,7 @@ function analyzeOnVisitorDevice(username){
   });
 }
 async function runReview(username,requestId){
+ const startedAt=performance.now();
  const panel=document.getElementById("v87-review");panel.replaceChildren();
  reviewProgressStage="preparing";startReviewProgress();statusText.textContent="";
  showReviewProgress("Starting analysis on your device…","preparing");
@@ -862,6 +863,8 @@ async function runReview(username,requestId){
  if(requestId!==activeReviewSerial)return;
  await finishReviewProgress();
  if(requestId!==activeReviewSerial)return;
+ // Browser-visible duration includes Python startup, downloads and analysis.
+ report.total_scan_seconds=(performance.now()-startedAt)/1000;
  renderReview(report);
 
  statusText.textContent="Chess.com analysis complete: "+report.games+
