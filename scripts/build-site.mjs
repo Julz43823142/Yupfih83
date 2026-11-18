@@ -55,7 +55,7 @@ export function buildSite(root = resolve('.'), output = resolve(root, 'dist')) {
   if(existsSync(homepageScript)&&existsSync(homepage)){
     const fingerprint=createHash('sha256').update(readFileSync(homepageScript)).digest('hex').slice(0,16);
     const original=readFileSync(homepage,'utf8');
-    const updated=original.replace(/((?:\\.\\/|\\/)script\\.js)(?:\\?v=[a-zA-Z0-9_-]+)?(?=["'])/g,
+    const updated=original.replace(/((?:\.\/|\/)script\.js)(?:\?v=[a-zA-Z0-9_-]+)?(?=["'])/g,
       (_,file)=>file+'?v='+fingerprint);
     writeFileSync(homepage,updated);
   }
