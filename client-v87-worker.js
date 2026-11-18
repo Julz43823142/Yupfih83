@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261118-review-speed-208";
+const REVISION = "20261118-review-speed-209";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -91,6 +91,7 @@ async function chessJSON(url,limit=16000000){
   throw Error("Unable to load Chess.com public games.");
 }
 async function run(username){
+  const scanStartedAt=Date.now();
   if(!/^[A-Za-z0-9_-]{3,25}$/.test(username))throw Error("Invalid Chess.com username.");
   const name=username.toLowerCase();
   // Download Python runtime in parallel with the Chess.com archives.
@@ -149,13 +150,19 @@ async function run(username){
   // A modest raw overfetch usually avoids a second expensive Python review
   // when some PGNs are not eligible after parsing.
   await fetchArchivesUntil(6500);
+  const firstArchivesReadyAt=Date.now();
   const py=await runtime;
+  const runtimeReadyAt=Date.now();
+  let pythonAnalysisMs=0;
+  let backfillMs=0;
   for(let attempt=0;attempt<=months.length;attempt++){
     progress("Calculating the original Insights v87 report locally…","analyzing");
     py.FS.writeFile("/home/pyodide/v87-input.json",JSON.stringify(input),{encoding:"utf8"});
     py.globals.set("v87_target",name);
     try{
-      py.runPython("browser_adapter.run(v87_target)");
+      const pythonStartedAt=Date.now();
+      try{py.runPython("browser_adapter.run(v87_target)");}
+      finally{pythonAnalysisMs+=Date.now()-pythonStartedAt;}
       const report=JSON.parse(py.FS.readFile("/home/pyodide/v87-result.json",{encoding:"utf8"}));
       if(report.version!=="fairplay-v87-review-reliability"||report.username!==name)
         throw Error("Unexpected local Insights output.");
@@ -175,11 +182,20 @@ async function run(username){
           Math.ceil((5000-accepted)/fraction)));
         const target=candidates+desiredAdditional;
         progress("Review parsed "+accepted+" / 5,000 games. Checking older Chess.com archives…","collecting");
-        await fetchArchivesUntil(target);
+        const backfillStartedAt=Date.now();
+        try{await fetchArchivesUntil(target);}
+        finally{backfillMs+=Date.now()-backfillStartedAt;}
         if(index===previousIndex||candidates===previousCandidates&&index<months.length)
           progress("Some monthly archives have no eligible games; continuing the search…","collecting");
         continue;
       }
+      report.scan_timings={
+        archive_download_seconds:Math.round((firstArchivesReadyAt-scanStartedAt)/100)/10,
+        pyodide_extra_wait_seconds:Math.round((runtimeReadyAt-firstArchivesReadyAt)/100)/10,
+        python_analysis_seconds:Math.round(pythonAnalysisMs/100)/10,
+        archive_backfill_seconds:Math.round(backfillMs/100)/10,
+        worker_total_seconds:Math.round((Date.now()-scanStartedAt)/100)/10
+      };
       report.archive_months_checked=index;
       report.archive_months_available=months.length;
       report.source_platform="chess.com";
@@ -190,7 +206,9 @@ async function run(username){
       // months. Fetch them and rerun; do not silently mark them unavailable.
       if(!String(error).includes("BROWSER_ARCHIVE_NOT_READY"))throw error;
       const before=candidates;
-      await fetchArchivesUntil(before+400);
+      const backfillStartedAt=Date.now();
+      try{await fetchArchivesUntil(before+400);}
+      finally{backfillMs+=Date.now()-backfillStartedAt;}
       if(candidates===before&&index>=months.length)throw Error("Not enough public archive data.");
     }
   }
