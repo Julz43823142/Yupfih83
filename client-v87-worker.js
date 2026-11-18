@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261117-insights-backfill-194";
+const REVISION = "20261118-review-speed-203";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -112,15 +112,15 @@ async function run(username){
     .sort().reverse().slice(0,240);
   const input={profile,manifest,archives:{}};
   let index=0,candidates=0,lastArchiveRequest=0;
+  // Prefetch a few months concurrently instead of serial 500 ms requests.
+  // Count candidates conservatively; the authoritative 5,000-game limit is
+  // still applied by the original Python parser (not by this raw count).
   async function nextArchive(){
     if(index>=months.length)return false;
-    // Match the upstream collector's half-second pacing to reduce 429s.
-    const pause=Math.max(0,500-(Date.now()-lastArchiveRequest));
-    if(pause)await new Promise(done=>setTimeout(done,pause));
-    lastArchiveRequest=Date.now();
-    const url=months[index++];
+    const current=++index;
+    const url=months[current-1];
     const suffix=url.slice(prefix.length);
-    progress("Checking Chess.com archives "+index+"/"+months.length+" · "+candidates+" raw eligible candidates (target: 5,000 parsed games)…","collecting");
+    progress("Checking Chess.com archives "+current+"/"+months.length+" · "+candidates+" raw eligible candidates (target: 5,000 parsed games)…","collecting");
     try{
       const body=await chessJSON(url);
       input.archives[suffix]=body;
@@ -133,11 +133,22 @@ async function run(username){
       }
     }catch(error){
       if(/Chess.com is busy|HTTP 429|size limit/.test(String(error)))throw error;
-      input.archives[suffix]=null; // Explicit incomplete coverage, never fake data.
+      input.archives[suffix]=null;
     }
     return true;
   }
-  while(index<months.length&&candidates<5300)await nextArchive();
+  async function fetchArchivesUntil(target){
+    // Bounded concurrency limits rate-limit risk and preserves the chronological
+    // backfill: each launched month is still stored under its original URL.
+    while(index<months.length&&candidates<target){
+      const remaining=months.length-index;
+      const batchSize=Math.min(3,remaining);
+      await Promise.all(Array.from({length:batchSize},()=>nextArchive()));
+    }
+  }
+  // A modest raw overfetch usually avoids a second expensive Python review
+  // when some PGNs are not eligible after parsing.
+  await fetchArchivesUntil(6500);
   const py=await runtime;
   for(let attempt=0;attempt<=months.length;attempt++){
     progress("Calculating the original Insights v87 report locally…","analyzing");
@@ -164,7 +175,7 @@ async function run(username){
           Math.ceil((5000-accepted)/fraction)));
         const target=candidates+desiredAdditional;
         progress("Review parsed "+accepted+" / 5,000 games. Checking older Chess.com archives…","collecting");
-        while(index<months.length&&candidates<target)await nextArchive();
+        await fetchArchivesUntil(target);
         if(index===previousIndex||candidates===previousCandidates&&index<months.length)
           progress("Some monthly archives have no eligible games; continuing the search…","collecting");
         continue;
@@ -179,8 +190,8 @@ async function run(username){
       // months. Fetch them and rerun; do not silently mark them unavailable.
       if(!String(error).includes("BROWSER_ARCHIVE_NOT_READY"))throw error;
       const before=candidates;
-      if(!await nextArchive())throw Error("Not enough public archive data.");
-      while(index<months.length&&candidates<before+400)await nextArchive();
+      await fetchArchivesUntil(before+400);
+      if(candidates===before&&index>=months.length)throw Error("Not enough public archive data.");
     }
   }
   throw Error("Review could not complete its archive backfill.");
