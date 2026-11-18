@@ -76,7 +76,7 @@ test('a review reports the honest available game count when all archives are exh
 });
 
 test('the main script always loads the updated review worker',()=>{
- assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-213'));
+ assert.ok(script.includes('/client-v87-worker.js?v=20261118-review-speed-214'));
  assert.ok(script.includes('report.archive_months_checked'));
  assert.ok(script.includes('of up to 5,000 eligible games reviewed'));
 });
@@ -282,7 +282,7 @@ test('real scan reports independent archive, startup and Python phase timings',(
  assert.match(worker,/pyodide_extra_wait_seconds:/);
  assert.match(worker,/python_analysis_seconds:/);
  assert.match(worker,/archive_backfill_seconds:/);
- assert.match(script,/target\.title="Chess\.com archives:/);
+ assert.match(script,/target\.removeAttribute\("title"\)/);
 });
 
 test('fast Elo Chernoff guard matches original 40-step numerical bounds and tiers',()=>{
@@ -330,11 +330,14 @@ test('fast Elo Chernoff guard matches original 40-step numerical bounds and tier
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Chernoff parity failed'));
 });
 
-test('scan phase breakdown is visible without hover on mobile',()=>{
- assert.match(script,/target\.textContent\+=\" · Archives \"/);
- assert.match(script,/phases\.python_analysis_seconds\+\"s · Runtime wait \"/);
- assert.match(worker,/const REVISION = \"20261118-review-speed-213\"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-213/);
+test('only end-to-end scan time is displayed without phase details',()=>{
+ assert.match(script,/target\.textContent="Analysis time: "/);
+ assert.match(script,/target\.removeAttribute\("title"\)/);
+ assert.doesNotMatch(script,/target\.textContent\+=" · Archives "/);
+ assert.doesNotMatch(script,/target\.textContent\+=" · unchanged archives/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-214"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-214/);
+
 });
 
 test('successful reviews keep the warmed worker but cancellation discards it',()=>{
@@ -343,8 +346,8 @@ test('successful reviews keep the warmed worker but cancellation discards it',()
  assert.match(script,/worker\.removeEventListener\("message",onWorkerMessage\)/);
  assert.match(script,/if\(callback===reject\)\s*\{\s*worker\.terminate\(\);/);
  assert.match(script,/reusableReviewWorker===worker\)reusableReviewWorker=null/);
- assert.match(worker,/const REVISION = "20261118-review-speed-213"/);
- assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-213/);
+ assert.match(worker,/const REVISION = "20261118-review-speed-214"/);
+ assert.match(script,/client-v87-worker\.js\?v=20261118-review-speed-214/);
 });
 
 test('identical fresh 5000-game archives reuse the previous complete v87 result',async()=>{
@@ -367,4 +370,21 @@ test('changed Chess.com archives invalidate the reused v87 report',async()=>{
  assert.equal(pythonRuns,2,'Any change in downloaded archive contents must trigger full analysis');
  assert.equal(messages[3].result.scan_timings.unchanged_archive_cache,undefined);
  assert.equal(messages[3].result.games,5000);
+});
+
+test('selected period explicitly shows scored points above or below expected',()=>{
+ assert.match(script,/metric\(periodMetrics, "EXPECTED POINTS", formatPoints\(r\.expected_points\)\)/);
+ assert.match(script,/metric\(periodMetrics, "SCORED POINTS", formatPoints\(r\.actual_points\)\)/);
+ assert.match(script,/difference=pointsKnown\?r\.actual_points-r\.expected_points:null/);
+ assert.match(script,/metric\(periodMetrics, "VS EXPECTED", pointsDelta\)/);
+ assert.match(script,/points above expected/);
+ assert.match(script,/points below expected/);
+ assert.match(script,/Exactly as expected/);
+});
+
+test('report cache avoids redundant JSON roundtrips on 5000-game reruns',()=>{
+ assert.match(worker,/const report=\{\.\.\.lastCompletedReview\.report\}/);
+ assert.match(worker,/lastCompletedReview=\{username:name,inputJSON,report\}/);
+ assert.doesNotMatch(worker,/JSON\.parse\(JSON\.stringify\(lastCompletedReview\.report\)\)/);
+ assert.doesNotMatch(worker,/report:JSON\.parse\(JSON\.stringify\(report\)\)/);
 });
