@@ -116,7 +116,8 @@ test('v87 parser keeps full move validation but limits expensive metrics to subj
  assert.ok(loop.includes('if ply > config.max_plies or node.move not in board.legal_moves:'));
  assert.ok(loop.includes('previous[side] = after'));
  assert.ok(loop.includes('board.push(node.move)'));
- const subject=loop.indexOf('        if side == color:');
+ const subject=loop.indexOf('        elif side == color:');
+ assert.ok(subject>=0,'The full decision path remains available for other callers');
  for(const operation of ['legal = board.legal_moves.count()', 'in_check = board.is_check()', 'material = sum(', 'opening = book_status(', 'forced = legal == 1']){
    assert.ok(loop.indexOf(operation)>subject,'Subject-only operation is not guarded: '+operation);
  }
