@@ -175,7 +175,7 @@ class QuietGameBuilder(chess.pgn.GameBuilder):
 
 
 def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusions=None,
-               allow_short=False, include_unrated=False) -> GameSample | None:
+               allow_short=False, include_unrated=False, method3_only=False) -> GameSample | None:
     def reject(reason):
         if exclusions is not None:exclusions[reason] += 1
         return None
@@ -235,7 +235,19 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
         # exported, so avoid expensive per-position metrics on opponent turns.
         capture = board.is_capture(node.move)
         recapture = capture and node.move.to_square == previous_capture_square
-        if side == color:
+        if side == color and method3_only:
+            # Method 3 scores only game outcomes, Elo and published Accuracy.
+            # Its website charts additionally need player clocks/fullmove.
+            # Keep PGN validation, clocks and all actual moves identical, but
+            # skip position-analysis features not consumed by this exporter.
+            clock_valid = (think is not None and 0 <= think < 120 and before is not None and after is not None
+                           and min(before,after)>max(10,(base or 0)*.05))
+            decisions.append(Decision(
+                ply, board.fullmove_number, '', node.move.uci(),
+                before, after, think, 0, False, capture, '', False,
+                False, False, False, clock_valid=clock_valid,
+                opponent_clock_before=previous[not side]))
+        elif side == color:
             legal = board.legal_moves.count()
             in_check = board.is_check()
             # Count the same pieces directly from python-chess bitboards:
@@ -267,8 +279,8 @@ def parse_game(row: dict, target: str, config: ReviewConfig = CONFIG, *, exclusi
     # A finished game with no played target decision has nothing to evaluate.
     if not decisions:return reject('no_player_decisions')
     if ply < config.min_plies and not allow_short:return reject('too_short')
-    if (sum(d.useful for d in decisions) < config.min_game_decisions
-            and not allow_short):return reject('insufficient_decisions')
+    if not allow_short and sum(d.useful for d in decisions) < config.min_game_decisions:
+        return reject('insufficient_decisions')
     won = game.headers['Result'] == ('1-0' if color else '0-1')
     lost = game.headers['Result'] == ('0-1' if color else '1-0')
     if (own['result'] == 'win') != won or (other['result'] == 'win') != lost:
@@ -371,7 +383,8 @@ def collect_games(api: PubAPI, target: str, progress: Callable, config=CONFIG,
                   *, include_latest_fifty_short=False,
                   include_recent_nonbullet_short_count=0,
                   include_recent_all_short_count=0,
-                  include_unrated=False, time_classes=None, progress_detail=False):
+                  include_unrated=False, time_classes=None, progress_detail=False,
+                  lightweight_method3=False):
     # An excluded class must not consume the requested sample quota. Older
     # callers retain their mixed live/correspondence collection contract.
     if time_classes is not None:
@@ -499,7 +512,8 @@ def collect_games(api: PubAPI, target: str, progress: Callable, config=CONFIG,
                 uncertain_before={key:skipped[key] for key in uncertain_reasons}
                 try:sample = parse_game(
                     row,target,config,exclusions=skipped,allow_short=allow_short,
-                    include_unrated=include_unrated)
+                    include_unrated=include_unrated,
+                    method3_only=lightweight_method3 and allow_short)
                 except (ValueError, TypeError, KeyError, IndexError, RecursionError):
                     skipped['invalid_pgn'] += 1;sample = None
                 for reason in uncertain_reasons:
