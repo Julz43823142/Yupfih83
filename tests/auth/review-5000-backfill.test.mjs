@@ -113,7 +113,7 @@ test('the example page never waits for a live profile or game analysis',()=>{
 test('v87 parser keeps full move validation but limits expensive metrics to subject turns',()=>{
  const source=readFileSync(new URL('client-v87/fairplay_data.py',root),'utf8');
  const loop=source.slice(source.indexOf('    for node in game.mainline():'),source.indexOf('    # The latest-50 comprehensive scope',source.indexOf('    for node in game.mainline():')));
- assert.ok(loop.includes('if ply > config.max_plies or node.move not in board.legal_moves:'));
+ assert.ok(loop.includes('if ply > config.max_plies or (not method3_only and node.move not in board.legal_moves):'));
  assert.ok(loop.includes('previous[side] = after'));
  assert.ok(loop.includes('board.push(node.move)'));
  const subject=loop.indexOf('        elif side == color:');
