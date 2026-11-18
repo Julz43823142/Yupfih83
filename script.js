@@ -577,6 +577,7 @@ function showMeasuredDuration(result) {
   const remainder=rounded%60;
   target.textContent="Analysis time: "+(minutes?minutes+"m ":"")+remainder+"s";
   const phases=result?.scan_timings;
+  if(phases?.unchanged_archive_cache)target.textContent+=" · unchanged archives, reused analysis";
   if(phases && [phases.archive_download_seconds,phases.pyodide_extra_wait_seconds,phases.python_analysis_seconds].every(Number.isFinite)){
     target.title="Chess.com archives: "+phases.archive_download_seconds+"s · Pyodide wait: "+
       phases.pyodide_extra_wait_seconds+"s · Python analysis: "+phases.python_analysis_seconds+
@@ -832,7 +833,7 @@ function analyzeOnVisitorDevice(username){
       return;
     }
     let worker;
-    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-212"));}
+    try{worker=reusableReviewWorker||(reusableReviewWorker=new Worker("/client-v87-worker.js?v=20261118-review-speed-213"));}
     catch(error){reject(new Error("Unable to start the local analysis worker: "+error.message));return;}
     let settled=false;
     let verifiedProfile=null,latestStats=null;
