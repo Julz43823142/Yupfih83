@@ -187,7 +187,7 @@ test('browser lightweight PGN path preserves original v87 game and graph evidenc
   'from fairplay_data import parse_game',
   'from fairplay_method3 import observations',
   'from fairplay_website_runner import chart_samples, rolling_winrate_samples, opening_summary',
-  "moves='e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 d7d6 c2c3 e8g8 h2h3 c6b8 d2d4 b8d7'.split()",
+  "moves='e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 d7d6 c2c3 e8g8 h2h3 c6b8 d2d4 b8d7 d4e5 d6e5'.split()",
   'samples=[]',
   'for color in (True,False):',
   '    for rated in (True,False):',
@@ -219,6 +219,10 @@ test('browser lightweight PGN path preserves original v87 game and graph evidenc
   "        for field in ('ply','fullmove','move','clock_before','clock_after','think','clock_valid','opponent_clock_before'):",
   '            assert [getattr(d,field) for d in full.decisions]==[getattr(d,field) for d in quick.decisions],field',
   '        samples.append((full,quick))',
+  '        if color and rated:',
+  "            invalid=dict(row,pgn=row['pgn'].replace('e4','e9',1))",
+  "            assert parse_game(invalid,target,allow_short=True,include_unrated=True) is None",
+  "            assert parse_game(invalid,target,allow_short=True,include_unrated=True,method3_only=True) is None",
   'full=[a for a,b in samples]',
   'quick=[b for a,b in samples]',
   'assert observations(full)==observations(quick)',
@@ -230,4 +234,13 @@ test('browser lightweight PGN path preserves original v87 game and graph evidenc
   cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:60000
  });
  assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'PGN fixture failed'));
+});
+
+test('browser Method 3 reuses PGN legality validation rather than replaying the board',()=>{
+ const source=readFileSync(new URL('client-v87/fairplay_data.py',root),'utf8');
+ assert.match(source,/game is None or game\.errors or game\.headers\.get\('Result'\)/);
+ assert.match(source,/not method3_only and node\.move not in board\.legal_moves/);
+ assert.match(source,/if not method3_only:\s*board\.push\(node\.move\)/);
+ assert.match(source,/side = \(chess\.WHITE if ply % 2 else chess\.BLACK\) if method3_only else board\.turn/);
+ assert.match(source,/ply, \(ply \+ 1\) \/\/ 2, '', node\.move\.uci\(\)/);
 });
