@@ -1,3 +1,4 @@
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -144,4 +145,35 @@ test('sample coverage uses v87 diagnostic counts instead of sampled chart points
  const section=script.slice(script.indexOf('function renderReview(data)'),script.indexOf('function renderPlayer(',script.indexOf('function renderReview(data)')));
  assert.doesNotMatch(section,/Review findings|Key observations|No period passed to configure/i);
  assert.match(section,/sectionTitle\(panel, "Selected period"/);
+});
+
+test('indexed v87 safeguards exactly match the original results over 5,000 games',()=>{
+ const python=[
+  'import sys',
+  'from types import SimpleNamespace',
+  "sys.path.insert(0, 'client-v87')",
+  'from fairplay_method3_reliability import rating_support, opponent_support, index_history',
+  'games=[]',
+  'for i in range(5000):',
+  "    kind=('rapid','blitz','bullet')[i%3]",
+  '    games.append(SimpleNamespace(identity=str(i), ended=1700000000+i*11000,',
+  "        time_class=kind, rated=(i%11!=0), rating=1250+(i%70)*9,",
+  "        opponent_username=('friend'+str(i%17)) if i%13 else None))",
+  'index=index_history(games)',
+  'for left in (0,1,40,300,900,2500,4600,4900,4990):',
+  '    for width in (1,5,20,80):',
+  '        members=[g for g in games[left:left+width] if g.time_class==games[left].time_class]',
+  '        if not members:continue',
+  '        old=rating_support(games,members,account_joined=None)',
+  '        new=rating_support(games,members,account_joined=None,history_index=index)',
+  '        assert old==new, (left,width,old,new)',
+  '        old=opponent_support(members,history=games)',
+  '        new=opponent_support(members,history=games,history_index=index)',
+  '        assert old==new, (left,width,old,new)',
+  "print('Indexed reliability output matches baseline')"
+ ].join('\\n');
+ const result=spawnSync('python3',['-c',python],{
+  cwd:new URL('../../',import.meta.url),encoding:'utf8',timeout:30000
+ });
+ assert.equal(result.status,0,result.stderr||result.stdout||String(result.error||'Python check failed'));
 });
