@@ -47,8 +47,8 @@ async function runSimulatedReview({firstCount,secondCount,firstReported,secondRe
  const a=worker.indexOf('async function run(username){');
  const b=worker.indexOf('self.v87Progress=',a);
  assert.ok(a>0&&b>a,'Worker run() must exist');
- const calls=Array.from({length:runs},(_,i)=>'scanIteration='+String(i+1)+'; await run("hikaru");').join('\\n');
- await runInNewContext('(async()=>{'+worker.slice(a,b)+'\\n'+calls+'})()',context);
+ const calls=Array.from({length:runs},(_,i)=>'scanIteration='+String(i+1)+'; await run("hikaru");').join('\n');
+ await runInNewContext('(async()=>{'+worker.slice(a,b)+'\n'+calls+'})()',context);
  return {visited,messages,progressMessages,pythonRuns};
 }
 
