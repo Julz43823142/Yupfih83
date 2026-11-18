@@ -2,7 +2,7 @@
  * Uses original v87 calculation modules, never starts GitHub Actions.
  */
 "use strict";
-const REVISION = "20261118-review-speed-214";
+const REVISION = "20261118-review-speed-215";
 const PYODIDE_URL = "/vendor/pyodide/";
 const PYTHON_FILES = [
   "fairplay_deviation_display.py", "fairplay_method3.py", "fairplay_method3_coverage.py",
@@ -23,14 +23,42 @@ let loading = null;
 let busy = false;
 // Reuse a report only when every freshly downloaded archive matches.
 let lastCompletedReview = null;
-function progress(message, phase = "preparing") {
-  self.postMessage({type:"progress",progress:String(message),phase});
+function progress(message, phase = "preparing", percent = null) {
+  self.postMessage({type:"progress",progress:String(message),phase,percent});
+}
+// Percentages track observed work milestones, never elapsed wall-clock time.
+// A completed report alone advances the bar to 100%.
+function pythonProgress(message){
+  const text=String(message);
+  const collected=text.match(/Collecting (?:rated and unrated|rated) games.*?(\\d+)\\/5000 games/i);
+  if(collected){
+    const done=Math.min(5000,Number(collected[1]));
+    progress("Validating games "+done+" / 5,000…","analyzing",40+24*done/5000);
+    return;
+  }
+  const block=text.match(/^Method 3: block (\\d+)\\/(\\d+)$/);
+  if(block){
+    progress("Comparing game periods · block "+block[1]+"/"+block[2],"analyzing",
+      65+20*(Math.max(0,Number(block[1])-1)/Math.max(1,Number(block[2]))));
+    return;
+  }
+  const bridge=text.match(/^Method 3: boundary (\\d+)\\/(\\d+)$/);
+  if(bridge){
+    progress("Checking overlapping periods · "+bridge[1]+"/"+bridge[2],"analyzing",
+      85+10*(Math.max(0,Number(bridge[1])-1)/Math.max(1,Number(bridge[2]))));
+    return;
+  }
+  if(text.includes("building graphs and report")){
+    progress("Building charts and final report…","analyzing",96);
+    return;
+  }
+  progress(text,"analyzing");
 }
 async function preparePython() {
-  progress("Loading Insights v87 on your device…","preparing");
+  progress("Loading Insights v87 on your device…","preparing",2);
   importScripts(PYODIDE_URL+"pyodide.js");
   const py = await self.loadPyodide({indexURL:PYODIDE_URL});
-  progress("Loading the original Insights calculations…","dependencies");
+  progress("Loading the original Insights calculations…","dependencies",5);
   const files = await Promise.all(PYTHON_FILES.map(async path => {
     const response = await fetch("/client-v87/"+path+"?v="+REVISION,{cache:"force-cache"});
     if(!response.ok)throw Error("Missing local analysis module: "+path);
@@ -98,7 +126,7 @@ async function run(username){
   const name=username.toLowerCase();
   // Download Python runtime in parallel with the Chess.com archives.
   const runtime=loading||(loading=preparePython().catch(error=>{loading=null;throw error}));
-  progress("Reading the public Chess.com game history…","collecting");
+  progress("Reading the public Chess.com game history…","collecting",8);
   const prefix="https://api.chess.com/pub/player/"+encodeURIComponent(name);
   const [profile,manifest]=await Promise.all([
     chessJSON(prefix,1000000),chessJSON(prefix+"/games/archives",1000000)
@@ -123,7 +151,8 @@ async function run(username){
     const current=++index;
     const url=months[current-1];
     const suffix=url.slice(prefix.length);
-    progress("Checking Chess.com archives "+current+"/"+months.length+" · "+candidates+" raw eligible candidates (target: 5,000 parsed games)…","collecting");
+    progress("Checking Chess.com archives "+current+"/"+months.length+" · "+candidates+" raw eligible candidates (target: 5,000 parsed games)…","collecting",
+      10+25*Math.min(1,candidates/6500));
     try{
       const body=await chessJSON(url);
       input.archives[suffix]=body;
@@ -138,6 +167,8 @@ async function run(username){
       if(/Chess.com is busy|HTTP 429|size limit/.test(String(error)))throw error;
       input.archives[suffix]=null;
     }
+    progress("Downloaded "+candidates+" candidate games…","collecting",
+      10+25*Math.min(1,candidates/6500));
     return true;
   }
   async function fetchArchivesUntil(target){
@@ -153,12 +184,13 @@ async function run(username){
   // when some PGNs are not eligible after parsing.
   await fetchArchivesUntil(6500);
   const firstArchivesReadyAt=Date.now();
+  progress("Archives ready · preparing local analysis…","preparing",36);
   const py=await runtime;
   const runtimeReadyAt=Date.now();
   let pythonAnalysisMs=0;
   let backfillMs=0;
   for(let attempt=0;attempt<=months.length;attempt++){
-    progress("Calculating the original Insights v87 report locally…","analyzing");
+    progress("Calculating the original Insights v87 report locally…","analyzing",40);
     const inputJSON=JSON.stringify(input);
     const cached=lastCompletedReview&&lastCompletedReview.username===name
       &&lastCompletedReview.inputJSON===inputJSON;
@@ -176,6 +208,7 @@ async function run(username){
       };
       report.archive_months_checked=index;
       report.archive_months_available=months.length;
+      progress("Final report ready…","analyzing",99);
       self.postMessage({type:"complete",result:report});
       return;
     }
@@ -225,6 +258,7 @@ async function run(username){
       report.archive_months_checked=index;
       report.archive_months_available=months.length;
       report.source_platform="chess.com";
+      progress("Final report ready…","analyzing",99);
       self.postMessage({type:"complete",result:report});
       return;
     }catch(error){
@@ -240,7 +274,7 @@ async function run(username){
   }
   throw Error("Review could not complete its archive backfill.");
 }
-self.v87Progress=message=>progress(message,"analyzing");
+self.v87Progress=pythonProgress;
 self.onmessage=async event=>{
   if(!event.data||event.data.type!=="run"||busy)return;
   busy=true;
