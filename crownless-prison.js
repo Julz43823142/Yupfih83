@@ -314,7 +314,7 @@ function interact(){if(!$('story').hidden||!$('start').hidden||!$('pause-menu').
 }
 function pause(open){
  if(!$('start').hidden||!$('story').hidden)return;
- paused=open;$('pause-menu').hidden=!open;$('pause-btn').textContent=open?'Hervatten':'Pauze';
+ paused=open;$('pause-menu').hidden=!open;$('pause-btn').textContent=open?'Resume':'Pause';
  if(open){keys.clear();touch.clear();document.exitPointerLock?.();}else{canvas.focus();canvas.requestPointerLock?.();}
 }
 function collides(x,z){
