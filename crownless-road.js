@@ -83,27 +83,70 @@ function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);g
 function setupGL(){
  gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'})||canvas.getContext('experimental-webgl');
  if(!gl)throw Error('WebGL is unavailable');
- program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,`
- attribute vec3 pos;attribute vec3 color;uniform vec3 camera;uniform vec2 angle;uniform float aspect;
- varying vec3 vcolor;varying float depth;
+ program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,\`
+ attribute vec3 pos;attribute vec3 color;attribute vec3 normal;
+ uniform vec3 camera;uniform vec2 angle;uniform float aspect;
+ varying vec3 vcolor;varying vec3 vnormal;varying vec3 vworld;varying float depth;
  void main(){
- vec3 p=pos-camera;
- float sy=sin(angle.x),cy=cos(angle.x),sp=sin(angle.y),cp=cos(angle.y);
- vec3 q=vec3(cy*p.x+sy*p.z,p.y,-sy*p.x+cy*p.z);
- vec3 r=vec3(q.x,cp*q.y+sp*q.z,-sp*q.y+cp*q.z);
- float nearZ=max(.045,-r.z);
- gl_Position=vec4(r.x*1.5/aspect,r.y*1.5,-r.z*1.001-.10,nearZ);
- depth=length(p.xz);
- vcolor=color;
- }`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,`
- precision mediump float;varying vec3 vcolor;varying float depth;uniform vec3 fogColor;uniform float fogRange;
- void main(){float fog=clamp((depth-8.)/fogRange,0.,.96);gl_FragColor=vec4(mix(vcolor,fogColor,fog*fog*(3.-2.*fog)),1.);}`));
+  vec3 p=pos-camera;
+  float sy=sin(angle.x),cy=cos(angle.x),sp=sin(angle.y),cp=cos(angle.y);
+  vec3 q=vec3(cy*p.x+sy*p.z,p.y,-sy*p.x+cy*p.z);
+  vec3 r=vec3(q.x,cp*q.y+sp*q.z,-sp*q.y+cp*q.z);
+  float distanceToCamera=-r.z;
+  // True perspective with proper near-plane clipping; no clamped W distortion.
+  gl_Position=vec4(r.x*1.55/aspect,r.y*1.55,distanceToCamera*1.001-0.10,distanceToCamera);
+  depth=length(p.xz);vcolor=color;vnormal=normal;vworld=pos;
+ }\`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,\`
+ precision highp float;
+ varying vec3 vcolor;varying vec3 vnormal;varying vec3 vworld;varying float depth;
+ uniform vec3 fogColor;uniform float fogRange;uniform vec3 camera;
+ uniform vec3 lightPosition;uniform vec3 lightTint;uniform vec3 sunDirection;
+ uniform float interior;uniform float time;
+ float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+ float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+  return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),mix(hash21(i+vec2(0.,1.)),hash21(i+1.),f.x),f.y);
+ }
+ void main(){
+  vec3 n=normalize(vnormal);
+  vec3 sunlight=normalize(sunDirection);
+  float diffuse=max(0.0,dot(n,sunlight));
+  vec3 toLamp=lightPosition-vworld;
+  float radius=length(toLamp);
+  float lambert=max(0.0,dot(n,normalize(toLamp)));
+  float falloff=1.0/(1.0+0.06*radius+0.075*radius*radius);
+  float skylight=0.45+0.30*max(n.y,0.0);
+  float warm=lambert*falloff*(interior>0.5?3.8:1.5);
+  vec3 light=vec3(skylight)+vec3(.40,.34,.29)*diffuse+lightTint*warm;
+  // Fine coherent material breakup replaces flat pixels without shimmering.
+  float grain=(noise(vworld.xz*4.6+vworld.y*.17)-.5)*.065;
+  float stone=noise(vworld.xz*.72+vworld.yy*.27);
+  vec3 shaded=vcolor*max(vec3(.19),light)*(0.94+grain+stone*.09);
+  // Slightly brighter in the direction of the light, subtle view-dependent sheen.
+  vec3 view=normalize(camera-vworld);
+  vec3 halfvec=normalize(normalize(toLamp)+view);
+  shaded+=lightTint*pow(max(dot(n,halfvec),0.),32.)*falloff*.075;
+  float fog=clamp((depth-(interior>.5?5.:13.))/fogRange,0.0,.88);
+  fog=fog*fog*(3.0-2.0*fog);
+  shaded=mix(shaded,fogColor,fog*.80);
+  shaded=shaded/(shaded+vec3(.20)); // mild filmic highlight rolloff
+  shaded=pow(max(shaded,vec3(0.)),vec3(.91));
+  gl_FragColor=vec4(shaded,1.0);
+ }\`));
  gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
- gl.useProgram(program);u.camera=gl.getUniformLocation(program,'camera');u.angle=gl.getUniformLocation(program,'angle');u.aspect=gl.getUniformLocation(program,'aspect');u.fogColor=gl.getUniformLocation(program,'fogColor');u.fogRange=gl.getUniformLocation(program,'fogRange');
+ gl.useProgram(program);
+ for(const name of ['camera','angle','aspect','fogColor','fogRange','lightPosition','lightTint','sunDirection','interior','time'])u[name]=gl.getUniformLocation(program,name);
  buffer=gl.createBuffer();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
+ gl.clearDepth(1);gl.enable(gl.DITHER);
+
 }
 let vertices=[],count=0;
-function triangle(a,b,c,col){for(const p of [a,b,c])vertices.push(...p,...col)}
+function triangle(a,b,c,col){
+ const ab=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],ac=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
+ const n=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]];
+ const d=Math.hypot(...n)||1;
+ for(const p of [a,b,c])vertices.push(...p,...col,n[0]/d,n[1]/d,n[2]/d);
+}
 function quad(a,b,c,d,col){triangle(a,b,c,col);triangle(a,c,d,col)}
 function box(x,y,z,w,h,d,hex){const c=toRGB(hex),a=x-w/2,b=x+w/2,t=y+h/2,bt=y-h/2,f=z-d/2,k=z+d/2;
  const sides=[[[a,bt,f],[b,bt,f],[b,t,f],[a,t,f],.87],[[b,bt,k],[a,bt,k],[a,t,k],[b,t,k],.76],[[a,bt,k],[a,bt,f],[a,t,f],[a,t,k],.67],[[b,bt,f],[b,bt,k],[b,t,k],[b,t,f],.76],[[a,t,f],[b,t,f],[b,t,k],[a,t,k],1.15]];
@@ -217,9 +260,9 @@ function buildGeometry(){
   if(f.type==='timber'&&!state.timber)for(let i=0;i<4;i++)box(f.x,.19+i*.19,f.z+(i%2)*.24,1.68,.18,.31,'#806246');
   if(f.type==='ropes'&&!state.ropes){box(f.x,.22,f.z,.81,.44,.74,'#8b7152');for(let i=0;i<3;i++)box(f.x,.48+i*.10,f.z,.68,.08,.63,'#baa075');}
  }
- const arr=new Float32Array(vertices);count=arr.length/6;gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);
- const pos=gl.getAttribLocation(program,'pos'),color=gl.getAttribLocation(program,'color');
- gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,3,gl.FLOAT,false,24,0);gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,24,12);
+ const arr=new Float32Array(vertices);count=arr.length/9;gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);
+ const pos=gl.getAttribLocation(program,'pos'),color=gl.getAttribLocation(program,'color'),normal=gl.getAttribLocation(program,'normal');
+ gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,3,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,36,12);gl.enableVertexAttribArray(normal);gl.vertexAttribPointer(normal,3,gl.FLOAT,false,36,24);
  gl.uniform3fv(u.fogColor,palette[stage].fog);gl.uniform1f(u.fogRange,stage==='sewer'?18:stage==='cell'?13:stage==='watchtower'?18:42);
 }
 function canStep(x,z){
@@ -268,7 +311,13 @@ function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=M
  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,1.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
  if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;gl.viewport(0,0,pw,ph);}
  const sky=palette[stage].sky;gl.clearColor(...sky,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- gl.uniform3f(u.camera,px,1.67-.72*crouch+jumpY,pz);gl.uniform2f(u.angle,yaw,pitch);gl.uniform1f(u.aspect,w/h);
+ gl.uniform3f(u.camera,px,1.67-.72*crouch+jumpY,pz);
+ gl.uniform2f(u.angle,yaw,pitch);gl.uniform1f(u.aspect,w/h);
+ const night=stage==='cell'||stage==='sewer'||stage==='watchtower';
+ const lamp=stage==='cell'?[13.5,2.65,7.5]:stage==='watchtower'?[8.5,2.7,5.5]:stage==='sewer'?[Math.round(px/9)*9,3.12,Math.round(pz/9)*9]:[px+8,5,pz-10];
+ gl.uniform3fv(u.lightPosition,lamp);gl.uniform3fv(u.lightTint,night?[1.0,.67,.36]:[1.0,.68,.42]);
+ gl.uniform3fv(u.sunDirection,night?[.28,.90,-.23]:[-.68,.78,.33]);
+ gl.uniform1f(u.interior,night?1:0);gl.uniform1f(u.time,ms*.001);
  gl.drawArrays(gl.TRIANGLES,0,count);
 }
 async function init(){
