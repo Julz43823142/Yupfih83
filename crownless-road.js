@@ -415,9 +415,19 @@ function finishStoryIntro(){
  talk('Oliver',['Edwin took my crown. They believe I am an impostor.','I must escape the prison and find my way back to Aldemar.']);
  canvas.focus();canvas.requestPointerLock?.();
 }
+const originalStory=[
+ ['THE KINGDOM OF ALDEMAR','King Oliver had ruled over the kingdom of Aldemar for many years.'],
+ ['A PEACEFUL NIGHT','King Oliver slept peacefully, unaware of the darkness that awaited him.'],
+ ['THE STOLEN CROWN','Edwin sneaks in and reaches for Oliver’s crown.'],
+ ['THE FALSE KING','Edwin, now posing as the king, orders the guards to arrest Oliver and lock him away, claiming that Oliver is a trespasser.'],
+ ['THE KING IMPRISONED','Oliver was locked away, while Edwin took the throne.']
+];
 function showStoryFrame(){
- $('story-image').src='/assets/fallen-king-intro/intro-'+(storyFrame+1)+'.png';
- $('story-progress').textContent='The Fallen King · '+(storyFrame+1)+' / 5';
+ const [heading,line]=originalStory[storyFrame];
+ $('story-scene').dataset.scene=String(storyFrame);
+ $('story-heading').textContent=heading;
+ $('story-line').textContent=line;
+ $('story-progress').textContent='THE FALLEN KING · '+(storyFrame+1)+' / 5';
  $('story-next').textContent=storyFrame===4?'Enter prison':'Continue';
 }
 $('begin').addEventListener('click',()=>{$('intro').hidden=true;paused=true;storyFrame=0;showStoryFrame();$('story-art').hidden=false;});
