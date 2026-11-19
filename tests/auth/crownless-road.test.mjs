@@ -33,7 +33,7 @@ test('The Crownless Road keeps the original prison-sewer-forest-watchtower-villa
 });
 test('Fallen King 2.0 points to the new admin prison preview',()=>{
  assert.match(hub,/href="\/crownless-prison\.html"/);
- assert.match(hub,/<h2>The Fallen King 2\.0<\/h2><p>Coming soon\.<\/p>/);
+ assert.match(hub,/<h2>The Fallen King 2\.0<\/h2><p>Explore King Oliver/);
  assert.match(hub,/The Fallen King/);
 });
 
