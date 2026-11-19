@@ -114,10 +114,10 @@ function createWorld(){
   lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
  }
  // A genuine recessed door opening, not a wooden door drawn over an intact wall.
- box('corridor far wall left',-4.96,2.25,-9.2,2.60,4.8,.65,stone);
- box('corridor far wall right',1.20,2.25,-9.2,9.0,4.8,.65,stone);
- box('corridor wall above doorway',-3.05,4.02,-9.2,1.75,1.23,.65,stone);
- box('corridor wall below doorway',-3.05,.18,-9.2,1.75,.38,.65,stone);
+ box('corridor far wall left',-5.15,2.25,-9.2,2.20,4.8,.65,stone);
+ box('corridor far wall right',2.11,2.25,-9.2,8.28,4.8,.65,stone);
+ box('corridor wall above doorway',-3.05,3.91,-9.2,2.04,1.50,.65,stone);
+ box('corridor wall below doorway',-3.05,.10,-9.2,2.04,.20,.65,stone);
  for(const side of [-1,1])box('corridor side enclosure',side*6.05,2.18,-6.84,.55,4.65,4.75,stone);
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
@@ -140,7 +140,7 @@ function createWorld(){
    let p;
    if(side==='rear'||side==='far'){
     const x=-5.9+col*.47+offset,y=.14+row*.37;
-    if(side==='far'&&x>-4.0&&x<-2.12&&y<3.65)continue; // do not draw stone patches across the doorway
+    if(side==='far'&&x>-4.17&&x<-1.93&&y<3.25)continue; // do not draw stone patches across the doorway
     p=box('irregular masonry stone',x,y,side==='rear'?4.214:-8.848,.43+noise*.04,.345,.045+noise*.06,brick);
    }else{
     const z=-8.7+col*.51+offset,y=.14+row*.37;
