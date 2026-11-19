@@ -61,7 +61,7 @@ function buildStage(name){
   w=create(61,43,'.');for(let z=1;z<42;z++)for(let x=1;x<60;x++)if(z<=2||z>=40||x<=2||x>=58)fill(w,x,z,'T');
   road(w,[[4,30],[15,30],[25,29],[36,29],[44,23],[44,19],[56,19]],2);
   road(w,[[25,29],[25,21],[21,15],[21,7]],2);road(w,[[36,29],[35,35]],2);
-  const houses=[[13,23,7,6],[30,19,8,7],[43,30,8,7],[17,8,8,6],[40,9,10,7]];
+  const houses=[[13,23,7,6],[30,19,8,7],[35,33,8,7],[17,8,8,6],[35,9,10,7]];
   for(const [hx,hz,ww,hh] of houses)for(let z=hz;z<hz+hh;z++)for(let x=hx;x<hx+ww;x++)fill(w,x,z,'H');
   w.houses=houses;w.spawn=[26.5,30.5];
   // River has a real physical barrier. Only the completed bridge can cross it.
