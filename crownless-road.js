@@ -153,7 +153,17 @@ function box(x,y,z,w,h,d,hex){const c=toRGB(hex),a=x-w/2,b=x+w/2,t=y+h/2,bt=y-h/
  for(const [v1,v2,v3,v4,s] of sides)quad(v1,v2,v3,v4,c.map(v=>Math.min(1,v*s)));
 }
 function cone(x,y,z,r,h,hex,n=7){const col=toRGB(hex);for(let i=0;i<n;i++){const a=i*Math.PI*2/n,b=(i+1)*Math.PI*2/n,lit=.66+.3*Math.abs(Math.sin(a+1));triangle([x+Math.cos(a)*r,y,z+Math.sin(a)*r],[x+Math.cos(b)*r,y,z+Math.sin(b)*r],[x,y+h,z],col.map(v=>v*lit));}}
-function tree(x,z,seed){const size=2.9+(seed%5)*.35;box(x,1.3,z,.25,2.6,.30,'#66503e');cone(x,1.7,z,1.25,size*.65,'#304b3c');cone(x,2.6,z,1.01,size*.65,'#3e684e');cone(x,3.45,z,.77,size*.64,'#587d56');}
+function tree(x,z,seed){
+ const h=3.6+seed*.15,sw=1.15+seed*.035;
+ box(x,1.16,z,.27,2.32,.27,'#574634');
+ box(x,.35,z,.37,.7,.32,'#66503d');
+ for(let j=0;j<4;j++){
+  const level=1.45+j*.78,r=sw*(1-j*.17);
+  cone(x,level,z,r,2.15-j*.16,j%2?'#496a4b':'#355640',11);
+  if(j<3){cone(x-.28,level-.16,z+.18,r*.48,1.16,'#526f4b',9);cone(x+.27,level-.11,z-.23,r*.42,1.22,'#3d6248',9);}
+ }
+ cone(x,h+.3,z,.33,.93,'#6c8559',9);
+}
 function lantern(x,z,seed){box(x,.8,z,.12,1.6,.12,'#554838');box(x,1.66,z,.28,.28,.28,'#edb877');cone(x,1.88,z,.20,.23,'#594e43');}
 function hash(x,z){let v=Math.sin(x*127.1+z*311.7)*43758.5453;return v-Math.floor(v)}
 function buildGeometry(){
@@ -187,7 +197,22 @@ function buildGeometry(){
   if(isSewer&&path&&((x*5+z*3)%7===0))box(x+.5,.018,z+.5,.65,.015,.25,'#4a7a78');
  }
  if(inside){
-  // Open-topped 3D ceiling arches make the interiors read as castle/sewer.
+  // Continuous overhead vaults: interior corridors are enclosed instead of
+  // showing the sky through their ceilings. Merge contiguous tiles by row.
+  for(let z=1;z<world.h-1;z++){
+   let x=1;
+   while(x<world.w-1){
+    if(world.tiles[z][x]==='H'){x++;continue;}
+    const x0=x;
+    while(x<world.w-1&&world.tiles[z][x]!=='H')x++;
+    const span=x-x0;
+    if(span>0){
+     box(x0+span/2,3.76,z+.5,span,.29,1,stage==='cell'?'#555453':stage==='sewer'?'#3e5451':'#6e6659');
+     if(z%4===0)box(x0+span/2,3.48,z+.5,span,.19,.32,stage==='sewer'?'#637a73':'#8d8170');
+    }
+   }
+  }
+  // Heavy cross-braces and discreet overhead lamps.
   for(let z=2;z<world.h-2;z+=4)for(let x=2;x<world.w-2;x+=4)if(world.tiles[z][x]!=='H'&&hash(x,z)>.36){
    box(x+.5,3.4,z+.5,3.8,.32,.28,'#7e8178');
    // Pendant ceiling light; never a walk-through lamp post in the corridor.
@@ -196,6 +221,14 @@ function buildGeometry(){
  }else{
   for(let i=0;i<26;i++){const x=(i*7)%world.w,z=(i*13)%world.h;if(world.tiles[z]?.[x]!=='.')continue;cone(x+.5,.04,z+.5,.65,.63,'#75806a',6)}
   if(stage==='forest')for(const [x,z] of [[7,9],[13,10],[19,10],[24,12],[30,9]])lantern(x,z,0);
+  // Layered treeline and distant ridges conceal the edge of the map.
+  if(stage==='forest'||stage==='village'){
+   for(let i=0;i<25;i++){
+    const x=2+i*(world.w-4)/24,z=world.h-.6,high=2.4+hash(i,64)*3.7;
+    cone(x,0,z,3.1,high,'#657963',9);
+    if(i%2===0)cone(x,1,z-1.1,1.45,4.8,'#344f40',9);
+   }
+  }
  }
  if(stage==='cell'){
   // Oliver can inspect both barred cells from his own prison chamber.
