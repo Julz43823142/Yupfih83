@@ -427,11 +427,26 @@ function interact(){if(!$('story').hidden||!$('start').hidden||!$('pause-menu').
 function pause(open){
  if(!$('start').hidden||!$('story').hidden)return;
  paused=open;$('pause-menu').hidden=!open;$('pause-btn').textContent=open?'Resume':'Pause';
- if(open){keys.clear();touch.clear();document.exitPointerLock?.();}else{canvas.focus();canvas.requestPointerLock?.();}
+ if(open){
+  keys.clear();touch.clear();ignorePointerExit=true;
+  if(document.pointerLockElement===canvas)document.exitPointerLock?.();
+ }else{
+  ignorePointerExit=false;canvas.focus();
+  // Returning from Escape is a keyboard user gesture: restore mouse capture immediately.
+  try{const result=canvas.requestPointerLock?.();if(result?.catch)result.catch(()=>{});}catch(e){console.info('Click the game to recapture mouse',e);}
+ }
 }
+function onCot(x,z){return x> -4.94&&x< -2.37&&z> -.72&&z<3.49;}
 function collides(x,z){
  if(x< -5.61||x>5.61||z< -4.19||z>4.12)return true;
- for(const s of solid)if(Math.abs(x-s.x)<s.w/2+.28&&Math.abs(z-s.z)<s.d/2+.28)return true;
+ const playerRadius=.24;
+ for(const s of solid){
+  if(Math.abs(x-s.x)<s.w/2+playerRadius&&Math.abs(z-s.z)<s.d/2+playerRadius){
+   // Landing on the sleeping cot is permitted once the player jumps high enough.
+   if(s.x===-3.65&&s.z===1.4&&jumpHeight>.77)continue;
+   return true;
+  }
+ }
  return false;
 }
 function frame(){
@@ -447,7 +462,13 @@ function frame(){
   if(!collides(camera.position.x+dx,camera.position.z))camera.position.x+=dx;
   if(!collides(camera.position.x,camera.position.z+dz))camera.position.z+=dz;
   crouch+=(Number(keys.has('control'))-crouch)*Math.min(1,dt*9);
-  if(jumpHeight>0||jumpVelocity>0){jumpVelocity-=15.2*dt;jumpHeight=Math.max(0,jumpHeight+jumpVelocity*dt);if(jumpHeight===0)jumpVelocity=0;}
+  if(jumpHeight>0||jumpVelocity>0){
+   jumpVelocity-=15.2*dt;
+   const nextHeight=jumpHeight+jumpVelocity*dt;
+   const bedSurface=onCot(camera.position.x,camera.position.z)?.96:0;
+   if(nextHeight<=bedSurface&&jumpVelocity<=0){jumpHeight=bedSurface;jumpVelocity=0;}
+   else jumpHeight=Math.max(0,nextHeight);
+  }
   if(walking||strafing)bob+=dt*(running?16:10);
   const sway=(walking||strafing)&&jumpHeight===0?Math.sin(bob)*.024:0;
   camera.position.y=1.66-.53*crouch+jumpHeight+sway;
@@ -458,7 +479,7 @@ function frame(){
 }
 function reset(){
  camera.position.set(0,1.66,2.2);camera.rotation.set(0,Math.PI,0);
- readCount=0;dialogue=false;paused=false;active=true;jumpHeight=0;jumpVelocity=0;crouch=0;keys.clear();touch.clear();
+ readCount=0;dialogue=false;paused=false;active=true;ignorePointerExit=false;jumpHeight=0;jumpVelocity=0;crouch=0;keys.clear();touch.clear();
  $('note').hidden=true;$('pause-menu').hidden=true;$('prompt').hidden=true;
  $('objective').textContent='Explore the cell. Look for clues about your imprisonment.';
 }
@@ -490,13 +511,14 @@ document.addEventListener('keydown',e=>{
  if(['w','a','s','d','e','shift','control','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
  if(k==='escape'){if(!dialogue&&!e.repeat)pause(!paused);return;}
  if(k==='e'||k==='enter'){if(!e.repeat)interact();return;}
- if(k===' '){if(!e.repeat&&active&&!paused&&!dialogue&&jumpHeight===0&&jumpVelocity===0&&crouch<.3){jumpVelocity=5.5;}return;}
+ if(k===' '){if(!e.repeat&&active&&!paused&&!dialogue&&jumpVelocity===0&&crouch<.3&&(jumpHeight===0||onCot(camera.position.x,camera.position.z))){jumpVelocity=5.5;}return;}
  keys.add(k);
 });
 document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 document.addEventListener('blur',()=>keys.clear());
 document.addEventListener('pointerlockchange',()=>{
- if(document.pointerLockElement!==canvas&&active&&!paused&&!dialogue&&$('start').hidden&&$('story').hidden){pause(true);}
+ if(document.pointerLockElement!==canvas&&!ignorePointerExit&&active&&!paused&&!dialogue&&$('start').hidden&&$('story').hidden){pause(true);}
+ if(document.pointerLockElement===canvas)ignorePointerExit=false;
 });
 document.querySelectorAll('[data-move]').forEach(btn=>{
  const key=btn.dataset.move;
