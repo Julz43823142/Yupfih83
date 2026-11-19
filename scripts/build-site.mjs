@@ -4,7 +4,7 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
-const directories = new Set(['assets', 'client-v87', 'vendor', 'engine', 'stockfish', 'images', 'fonts']);
+const directories = new Set(['assets', 'client-v87', 'vendor', 'engine', 'stockfish', 'images', 'fonts', 'fallen-king-unity']);
 const files = /\.(html|css|js|mjs|json|svg|png|jpg|jpeg|webp|avif|ico|txt|xml|wasm|webmanifest|woff2?)$/i;
 // Only ship recognized runtime formats from public asset directories; unknown
 // formats must not become public just because they are nested under assets/.
@@ -39,10 +39,13 @@ export function buildSite(root = resolve('.'), output = resolve(root, 'dist')) {
         continue;
       }
       if (!item.isFile()) continue;
-      if (nested && !nestedRuntimeFile.test(item.name)) continue;
+      if (nested && !nestedRuntimeFile.test(item.name) && !(path.startsWith('fallen-king-unity/Build/') && /\.data$/i.test(item.name))) continue;
       if (!nested && (['package.json', 'package-lock.json', 'playwright.config.mjs'].includes(item.name) || !(files.test(item.name) || ['_headers', '_redirects', '_routes.json'].includes(item.name)))) continue;
       // Vendor demos are unnecessary same-origin pages with external scripts.
-      if (nested && /\.html?$/i.test(item.name)) continue;
+      // Only the dedicated Unity preview landing page is an approved nested HTML entry.
+      if (nested && /\.html?$/i.test(item.name) && path !== 'fallen-king-unity/index.html') continue;
+      // Unity ships a data payload which must not be accidentally accepted in other asset trees.
+      if (nested && /\.data$/i.test(item.name) && !path.startsWith('fallen-king-unity/Build/')) continue;
       const target = join(output, path); mkdirSync(dirname(target), { recursive: true });
       if (/\.html$/i.test(item.name)) writeFileSync(target, protectHTML(readFileSync(join(root, path), 'utf8')));
       else copyFileSync(join(root, path), target);
