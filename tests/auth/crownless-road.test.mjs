@@ -33,7 +33,7 @@ test('The Crownless Road keeps the original prison-sewer-forest-watchtower-villa
 });
 test('Fallen King 2.0 points to the new admin prison preview',()=>{
  assert.match(hub,/href="\/crownless-prison\.html"/);
- assert.match(hub,/<h2>The Fallen King 2\.0<\/h2><p>Explore King Oliver/);
+ assert.match(hub,/<h2>The Fallen King 2\.0<\/h2><p>Coming soon\.<\/p>/);
  assert.match(hub,/The Fallen King/);
 });
 
@@ -133,4 +133,14 @@ test('Babylon prison preview is admin-gated, in English, and supports jumping',(
  assert.ok(preview.includes('Space jump'));
  assert.ok(preview.includes('WASD move'));
  assert.ok(preview.includes('#game{position:fixed;inset:0'));
+});
+
+test('Babylon prison artwork contains only Babylon meshes and has a sleeping rook, no white floor decals',()=>{
+ const prison=readFileSync(resolve(root,'crownless-prison.js'),'utf8');
+ assert.match(prison,/sleeping chess rook pivot/);
+ assert.match(prison,/rook tower crenellation/);
+ assert.match(prison,/rook sleep ZZZ billboard/);
+ assert.match(prison,/side arch pier/);
+ assert.doesNotMatch(prison,/CreateDisc\('subtle damp patch'/);
+ assert.doesNotMatch(prison,/sphere\('rounded rubble stone'/);
 });
