@@ -137,8 +137,9 @@ function createWorld(){
     const brow=box('pawn thoughtful eyebrow',px+.365,2.065,pz+shift,.045,.035,.17,warmCheek);
     brow.rotation.x=shift*1.2;
    }
-   const smile=BABYLON.Curve3.CreateQuadraticBezier(V(px+.38,1.76,pz-.17),V(px+.455,1.70,pz),V(px+.38,1.76,pz+.17),9);
-   const lips=BABYLON.MeshBuilder.CreateTube('pawn subtle friendly smile',{path:smile.getPoints(),radius:.017,tessellation:8},scene);
+   // A worried, exhausted prisoner: downturned corners, no cheerful grin.
+   const smile=BABYLON.Curve3.CreateQuadraticBezier(V(px+.39,1.73,pz-.14),V(px+.423,1.78,pz),V(px+.39,1.73,pz+.14),9);
+   const lips=BABYLON.MeshBuilder.CreateTube('pawn weary neutral mouth',{path:smile.getPoints(),radius:.012,tessellation:8},scene);
    lips.material=eyeShade;
    const cuffs=BABYLON.MeshBuilder.CreateTorus('left prisoner rusted neck ring',{diameter:.46,thickness:.05,tessellation:26},scene);
    cuffs.position.set(px,1.42,pz);cuffs.material=iron;
@@ -239,12 +240,25 @@ function createWorld(){
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
  box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
  for(let x=-6;x<=6.05;x+=.86){
+  if(Math.abs(x)<1.58)continue; // preserve the central gate's visual silhouette
   box('iron prison bar',x,2.2,-4.57,.085,3.5,.085,iron);
   sphere('rivet',x,2.89,-4.48,.13,rust);
  }
- for(let y of [1.12,3.27])box('forged crossbar',0,y,-4.49,12,.115,.13,iron);
+ for(let y of [1.12,3.27])for(const side of [-1,1])
+  box('forged crossbar',side*3.82,y,-4.49,4.36,.115,.13,iron);
  box('main gate frame left',-1.55,2.15,-4.42,.17,3.8,.18,rust);
  box('main gate frame right',1.55,2.15,-4.42,.17,3.8,.18,rust);
+ // A readable heavy central gate: dark backing, two forged leaves, cross braces and lock.
+ box('gate recessed dark iron backing',0,2.15,-4.405,3.08,3.42,.035,water);
+ for(const leaf of [-1,1]){
+  for(let i=0;i<5;i++){
+   const x=leaf*(.20+i*.265);
+   box('gate heavy vertical iron slat',x,2.16,-4.33,.155,3.24,.10,iron);
+  }
+  for(const y of [1.17,2.16,3.14])box('gate leaf forged brace',leaf*.76,y,-4.245,1.36,.115,.12,rust);
+ }
+ box('gate locking crossbolt',.53,1.46,-4.17,1.64,.12,.18,iron);
+ box('gate bolt handle',-.28,1.52,-4.06,.12,.23,.14,rust);
  // Architectural frame, riveted hinges and a heavy double-leaf gate.
  for(const x of [-1.58,1.58]){
   box('decorative gate stone post',x,2.13,-4.34,.33,3.82,.46,darkStone);
@@ -257,23 +271,44 @@ function createWorld(){
  box('gate lockbox',1.53,1.37,-4.11,.32,.35,.27,iron);
  cylinder('keyhole',1.53,1.36,-4.1,.037,.04,water);
  register('Locked cell gate','The iron gate is locked. Edwin ordered the guards never to let the real king leave.',0,-4.5,2.5);
- // Wall masonry: uneven relief stones and mortar courses create visual texture.
- for(const side of ['rear','left','right','far']){
-  for(let row=0;row<12;row++)for(let col=0;col<26;col++){
-   const offset=(row%2)*.24,j=col+row*29,noise=seed(j*3+side.length);
-   if(noise<.12)continue;
-   let p;
-   if(side==='rear'||side==='far'){
-    const x=-5.9+col*.47+offset,y=.14+row*.37;
-    if(side==='far')continue; // the original short-hall end was replaced by a long corridor
-    p=box('irregular masonry stone',x,y,4.214,.43+noise*.04,.345,.045+noise*.06,brick);
-   }else{
-    const z=-8.7+col*.51+offset,y=.14+row*.37;
-    if(z> -2.4&&z<2.25&&y>.98&&y<3.35)continue;
-    p=box('old stone edge',side==='left'?-5.742:5.742,y,z,.05+noise*.05,.34,.47,brick);
+ // Clean masonry lives only on actual walls. Previously, raised blocks extended
+ // through the neighboring-cell openings and out into the corridor, appearing airborne.
+ // Shallow recessed mortar lines provide depth without unstable overlapping geometry.
+ const mortar=mat('deep recessed masonry mortar','#44433e',1);
+ function masonryFace(axis,constant,start,end,y0,y1,outerSign=1){
+  const course=.52,blockLength=1.10;
+  for(let row=0; y0+(row+.5)*course<y1; row++){
+   const y=y0+(row+.5)*course;
+   const shift=(row%2)*blockLength/2;
+   for(let p=start-shift;p<end;p+=blockLength){
+    const a=Math.max(p,start),b=Math.min(p+blockLength,end);
+    if(b-a<.12)continue;
+    const midpoint=(a+b)/2;
+    const seam=.025;
+    if(axis==='z'){
+     box('setback stone course',midpoint,y,constant+outerSign*.012,b-a-seam,course-.022,.018,brick);
+     box('mortar bed',midpoint,y-course/2,constant+outerSign*.016,b-a,.014,.018,mortar);
+    }else{
+     box('setback stone course',constant+outerSign*.012,y,midpoint,.018,course-.022,b-a-seam,brick);
+     box('mortar bed',constant+outerSign*.016,y-course/2,midpoint,.018,.014,b-a,mortar);
+    }
    }
-   if(row%3===0&&noise>.91)p.material=darkStone;
   }
+ }
+ // Back wall has an actual window; keep its opening clear of decorative relief.
+ masonryFace('z',4.215,-5.92,-3.65,.12,4.31,-1);
+ masonryFace('z',4.215,-1.22,5.92,.12,4.31,-1);
+ masonryFace('z',4.215,-3.65,-1.22,.12,2.76,-1);
+ masonryFace('z',4.215,-3.65,-1.22,4.09,4.31,-1);
+ // Side masonry is continuous below/above each neighboring-cell opening.
+ for(const x of [-5.75,5.75]){
+  for(const [a,b] of [[-4.48,-2.4],[2.25,4.48]])masonryFace('x',x,a,b,.13,4.26,x<0?1:-1);
+  masonryFace('x',x,-2.4,2.25,.13,.91,x<0?1:-1);
+  masonryFace('x',x,-2.4,2.25,3.37,4.26,x<0?1:-1);
+ }
+ // The massive corridor far wall is flat: restrained recessed seams, not protruding bricks.
+ for(let x=-38;x<39;x+=4.4){
+  box('far wall vertical mortar recess',x,2.18,-11.43,.026,4.23,.016,mortar);
  }
  // Thick structural pilasters and overhead beams.
  for(const x of [-5.3,0,5.3]){
@@ -361,18 +396,19 @@ function createWorld(){
   battlement.position.set(Math.cos(theta)*.29,1.72,Math.sin(theta)*.29);
   battlement.rotation.y=-theta;
  }
- // The sleeping rook is a character, not only a chess marker: sculpted shut eyes and a smile.
+ // Natural sleeping expression: two softly curved eyelids and a relaxed straight mouth.
+ // Avoid exaggerated angled slits or raised eyebrows.
  const faceShade=mat('rook face ink','#24282a',1,0);
- const faceHighlight=mat('rook face eyelid trim','#c2ad89',.93,.08);
  for(const side of [-1,1]){
-  const eye=box('rook closed sleeping eyelid',side*.145,1.06,.351,.195,.036,.026,faceShade);
-  eye.parent=guardRoot;eye.rotation.z=side*.20;
-  const eyebrow=box('rook peaceful brow',side*.145,1.17,.357,.19,.027,.018,faceHighlight);
-  eyebrow.parent=guardRoot;
+  const center=side*.145;
+  const lidCurve=BABYLON.Curve3.CreateQuadraticBezier(
+   V(center-.081,1.065,.357),V(center,1.041,.373),V(center+.081,1.065,.357),9);
+  const lid=BABYLON.MeshBuilder.CreateTube('rook relaxed closed eyelid',
+   {path:lidCurve.getPoints(),radius:.009,tessellation:8},scene);
+  lid.parent=guardRoot;lid.material=faceShade;
  }
- const rookSmile=BABYLON.Curve3.CreateQuadraticBezier(V(-.17,.91,.362),V(0,.85,.398),V(.17,.91,.362),10);
- const rookMouth=BABYLON.MeshBuilder.CreateTube('rook small curved sleeping mouth',{path:rookSmile.getPoints(),radius:.013,tessellation:8},scene);
- rookMouth.parent=guardRoot;rookMouth.material=faceShade;
+ const rookMouth=box('rook resting neutral mouth',0,.91,.366,.115,.012,.018,faceShade);
+ rookMouth.parent=guardRoot;
  const insignia=BABYLON.MeshBuilder.CreateTorus('rook royal insignia',{diameter:.35,thickness:.045,tessellation:24},scene);
  insignia.parent=guardRoot;insignia.position.set(0,1.04,-.34);insignia.material=rookTrim;
  // ZZZ floats above the chess rook and always faces the first-person camera.
@@ -438,7 +474,7 @@ function createWorld(){
  }
  // Merge thousands of static masonry and paving blocks into a few draw calls.
  // Visual detail remains, but the GPU sees far fewer separate meshes.
- for(const category of ['irregular masonry stone','old stone edge','repeated barred hall cell','near cell gate iron rod','far cell steel grille rod','cross-gallery ceiling rib']){
+ for(const category of ['setback stone course','mortar bed','repeated barred hall cell','near cell gate iron rod','far cell steel grille rod','cross-gallery ceiling rib']){
   const list=scene.meshes.filter(m=>m.name===category);
   const groups=new Map();
   for(const m of list){const name=m.material?.name||'default';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(m);}
