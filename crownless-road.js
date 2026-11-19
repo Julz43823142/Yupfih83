@@ -241,6 +241,26 @@ function buildGeometry(){
    box(x-.5,.73,10.5,.55,.15,.85,'#c7b5a0');
    box(x+.30,.70,10.5,.97,.13,.84,'#6e8187');
   }
+  // Weathered castle masonry, oak cupboards and iron torch brackets.
+  for(const z of [6,8,12,13]){
+   for(let x=7;x<18;x+=1.55){
+    box(x+.48,.11,z+.48,.93,.13,.15,'#817e73');
+    if((Math.floor(x)+z)%3===0)box(x+.48,2.35,z+.48,.62,.17,.09,'#77776f');
+   }
+  }
+  for(const [x,z] of [[8.3,6.1],[16.6,6.1]]){
+   box(x,2.16,z,.22,.50,.20,'#40382d');
+   box(x,2.55,z,.29,.16,.31,'#b99b66');
+   cone(x,2.64,z,.15,.38,'#ebaa62',11);
+   cone(x,2.78,z,.08,.22,'#f8db9a',9);
+  }
+  // Drawers and books fit against the rear wall rather than intersecting the route.
+  box(9.1,.61,12.3,.82,1.2,.58,'#69533e');
+  for(const y of [.38,.72,1.06]){
+   box(9.1,y,12.63,.67,.035,.04,'#a68a69');
+   box(9.1,y+.07,12.66,.16,.045,.05,'#d5b078');
+  }
+  for(let i=0;i<6;i++)box(9.1,1.33,12.3+.06*i,.86,.04,.035,'#7e6250');
   // Stone murder-holes, northern guard passage, and iron cell fronts.
   for(let x=7;x<18;x+=1.0)box(x+.5,1.66,5.47,.065,2.7,.10,'#333d40');
   box(12.5,3.35,5.55,11,.22,.24,'#a6a39a');
@@ -248,7 +268,15 @@ function buildGeometry(){
   box(15.5,.06,10.5,1.2,.09,1.05,'#353638');for(let i=0;i<5;i++)box(15.1+i*.2,.15,10.5,.04,.18,.95,'#9a9c91');
  }else if(stage==='sewer'){
   for(let i=0;i<110;i++){const x=3+(i*19)%78,z=3+(i*31)%47;if(world.tiles[z]?.[x]!=='p')continue;
-   if(hash(x,z)>.45)box(x+.5,.035,z+.5,.7,.05,.46,'#386b6b');}
+   if(hash(x,z)>.45)box(x+.5,.035,z+.5,.7,.05,.46,'#386b6b');
+  }
+  // Moist courses of old brick and moss, attached to the solid masonry only.
+  for(let z=2;z<world.h-2;z+=3)for(let x=2;x<world.w-2;x+=3){
+   if(world.tiles[z]?.[x]!=='H')continue;
+   if(![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>world.tiles[z+dz]?.[x+dx]==='p'))continue;
+   box(x+.5,.45,z+.5,.89,.43,.88,'#465e53');
+   if(hash(x+8,z)>.4)box(x+.5,1.86,z+.5,.78,.08,.84,'#738276');
+  }
  }else if(stage==='forest'){
   box(27.5,2.1,5.5,5,4.2,4,'#9a9078');
   cone(27.5,4.18,5.5,3.9,2.8,'#735547',4);
