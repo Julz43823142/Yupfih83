@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
 let engine,scene,camera,active=false,paused=true,dialogue=false;
 const keys=new Set(),touch=new Set(),things=[],solid=[];
-let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0;
+let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0,sleepIndicator=null;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const seed=(n)=>{let v=Math.sin(n*127.1+22.7)*43758.5453123;return v-Math.floor(v);};
@@ -91,7 +91,11 @@ function createWorld(){
   const x=side*6.05;
   box('cell side lower masonry',x,.48,-.1,.55,1.0,9.3,stone);
   box('cell side upper masonry',x,3.83,-.1,.55,1.75,9.3,stone);
-  for(const z of [-3.6,3.1])box('side arch pier',x,2.15,z,.57,2.75,2.4,stone);
+  for(const z of [-3.6,3.1]){
+   box('side arch pier',x,2.15,z,.57,2.75,2.4,darkStone);
+   // Soft carved edge instead of a white featureless column.
+   for(const y of [.86,3.43])box('pier stone cap',x,y,z,.64,.12,2.46,stone);
+  }
   for(let z=-2.12;z<=1.77;z+=.37)box('neighbor cell forged bars',x,2.18,z,.11,2.36,.08,iron);
   box('neighbor cell top rail',x,3.24,-.16,.12,.12,4.4,iron);
   box('neighbor cell bottom rail',x,1.12,-.16,.12,.12,4.4,iron);
@@ -101,13 +105,19 @@ function createWorld(){
   box('neighbor end wall',side*8.43,2.2,4.30,4.8,4.8,.43,stone);
   box('neighbor rear wall',side*8.43,2.2,-4.6,4.8,4.8,.43,stone);
   box('neighbor ceiling',side*8.43,4.65,-.16,4.8,.3,9.1,darkStone);
+  // Solid posts and bars are structural: the player cannot walk through them.
+  solid.push({x:side*5.79,z:-3.6,w:.38,d:2.1},{x:side*5.79,z:3.1,w:.38,d:2.1});
   box('neighbor cot',side*8.58,.44,1.57,1.7,.31,2.8,woodDark);
   box('neighbor mattress',side*8.58,.69,1.57,1.46,.2,2.45,linen);
   box('neighbor blanket',side*8.58,.83,2.03,1.43,.06,1.25,cloth);
   const lit=new BABYLON.PointLight('dim neighboring cell',V(side*8.2,2.75,-1.5),scene);
   lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
  }
- box('corridor far wall',0,2.25,-9.2,12.5,4.8,.65,stone);
+ // A genuine recessed door opening, not a wooden door drawn over an intact wall.
+ box('corridor far wall left',-4.96,2.25,-9.2,2.60,4.8,.65,stone);
+ box('corridor far wall right',1.20,2.25,-9.2,9.0,4.8,.65,stone);
+ box('corridor wall above doorway',-3.05,4.02,-9.2,1.75,1.23,.65,stone);
+ box('corridor wall below doorway',-3.05,.18,-9.2,1.75,.38,.65,stone);
  for(const side of [-1,1])box('corridor side enclosure',side*6.05,2.18,-6.84,.55,4.65,4.75,stone);
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
@@ -130,6 +140,7 @@ function createWorld(){
    let p;
    if(side==='rear'||side==='far'){
     const x=-5.9+col*.47+offset,y=.14+row*.37;
+    if(side==='far'&&x>-4.0&&x<-2.12&&y<3.65)continue; // do not draw stone patches across the doorway
     p=box('irregular masonry stone',x,y,side==='rear'?4.214:-8.848,.43+noise*.04,.345,.045+noise*.06,brick);
    }else{
     const z=-8.7+col*.51+offset,y=.14+row*.37;
@@ -162,17 +173,8 @@ function createWorld(){
   }
  }
  floorTex.update();floorMat.albedoTexture=floorTex;floorMat.albedoColor=BABYLON.Color3.FromHexString('#b0aca4');
- // Faint rounded wet marks and worn patches, not floating stone slabs.
- const dampMat=mat('worn floor stains','#565b59');dampMat.alpha=.23;
- for(let i=0;i<12;i++){
-  const p=BABYLON.MeshBuilder.CreateDisc('subtle damp patch',{radius:.22+seed(i+9)*.49,tessellation:26,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
-  p.position.set(-5.3+seed(i*8+2)*10.6,.009,-3.7+seed(i*13+3)*7.4);p.rotation.x=Math.PI/2;p.scaling.y=.4+seed(i+2)*.65;p.material=dampMat;
- }
- // Darkened masonry wash near floor height, using thin blended planes.
- for(let i=0;i<10;i++){
-  const p=BABYLON.MeshBuilder.CreateDisc('damp wall discoloration',{radius:.22+seed(i+2)*.42,tessellation:18,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
-  p.position.set(-5+seed(i*4+3)*10,.28+seed(i+11)*1.5,4.179);p.scaling.y=1.55;p.material=grime;
- }
+ // No translucent floor discs: they rendered as pale circular artefacts on some GPUs.
+ // Stone wear remains baked into the textured masonry; no opaque white decals.
  // Inmate sleeping cot: wooden frame, slats, mattress, blanket.
  const cot=box('prison bunk',-3.65,.56,1.4,2.55,.22,4.18,woodDark,true);
  for(const z of [-.35,3.15])for(const x of [-4.7,-2.6])box('bedpost',x,.5,z,.13,1.04,.14,wood);
@@ -197,30 +199,61 @@ function createWorld(){
  for(let i=-2;i<=2;i++)box('cross brace',2.48,.128,1.16+i*.21,1.11,.046,.045,rust);
  register('Loose drain grate','Water echoes below the iron grate. Oliver may escape through here one day—but this preview contains only the prison.',2.48,1.16,2);
  // Wooden door recess and storeroom in corridor.
- box('corridor arch lintel',-4.45,3.42,-8.78,2.3,1.03,.18,darkStone);
- box('locked storeroom door',-4.45,1.68,-8.76,1.75,3.2,.14,woodDark);
- for(let i=-1;i<=1;i++)box('door boards',-4.45+i*.48,1.67,-8.64,.41,2.95,.055,wood);
- for(let y of [.58,2.55])box('door iron brace',-4.45,y,-8.57,1.85,.12,.13,iron);
- sphere('door handle',-3.76,1.43,-8.52,.14,rust);
- // A sleeping sentry, visible through the cell bars in the corridor.
- // Articulated round shapes and a recognizable helmet, not a block mannequin.
- const skin=mat('guard skin','#a98b70'),tunic=mat('guard uniform','#526272'),trim=mat('guard gold piping','#a58a5d');
- const gx=-1.7,gz=-6.85;
- box('guard bench frame',gx,.43,gz,2.65,.2,.92,woodDark,true);
- for(const bx of [gx-1.04,gx+1.04])for(const bz of [gz-.31,gz+.31])cylinder('bench wooden leg',bx,.25,bz,.085,.50,wood,10);
- const body=BABYLON.MeshBuilder.CreateCapsule('sleeping royal guard torso',{radius:.35,height:1.37,tessellation:12},scene);
- body.position.set(gx,.91,gz);body.rotation.z=Math.PI/2.1;body.material=tunic;
- const head=sphere('guard face',gx-1.0,.94,gz,.57,skin);
- const helmet=BABYLON.MeshBuilder.CreateSphere('guard steel helmet',{diameter:.65,segments:16,slice:.57},scene);
- helmet.position.set(gx-1.0,1.15,gz);helmet.material=iron;
- const crest=BABYLON.MeshBuilder.CreateTorus('helmet crest',{diameter:.41,thickness:.06,tessellation:20},scene);
- crest.position.set(gx-.99,1.32,gz);crest.rotation.y=Math.PI/2;crest.material=trim;
- for(const zShift of [-.28,.28]){
-  const arm=cylinder('guard sleeping arm',gx-.22,.59,gz+zShift,.12,.95,tunic,12);arm.rotation.z=Math.PI/2;
-  const boot=cylinder('guard boot',gx+.85,.54,gz+zShift,.14,.52,woodDark,12);boot.rotation.z=Math.PI/2;
+ box('corridor arch lintel',-3.05,3.38,-8.82,2.26,.34,.36,darkStone);
+ box('storeroom jamb left',-4.03,1.66,-8.82,.24,3.30,.35,darkStone);
+ box('storeroom jamb right',-2.07,1.66,-8.82,.24,3.30,.35,darkStone);
+ box('locked storeroom door',-3.05,1.62,-8.77,1.72,2.99,.14,woodDark);
+ for(let i=-1;i<=1;i++)box('recessed oak planking',-3.05+i*.51,1.61,-8.660,.45,2.86,.055,wood);
+ for(let y of [.58,2.54])box('door iron brace',-3.05,y,-8.585,1.68,.12,.115,iron);
+ sphere('door handle',-2.46,1.43,-8.46,.13,rust);
+ // Aldemar's guards are chess pieces. A dozing ROOK lies on the wooden guard bench.
+ // All shapes are authored directly using Babylon meshes: no AI or generated-image assets.
+ const rookStone=mat('rook armour ceramic','#6b7780',.83,.12);
+ const rookShade=mat('rook inset slate','#36454f',.89,.08);
+ const rookTrim=mat('rook brass trim','#aa8960',.53,.62);
+ const gx=-1.45,gz=-6.56;
+ box('sentry bench',gx,.40,gz,2.52,.15,1.07,woodDark,true);
+ for(const bx of [gx-1.0,gx+1.0])for(const bz of [gz-.35,gz+.35]){
+  cylinder('rounded bench leg',bx,.22,bz,.084,.43,wood,12);
  }
- sphere('guard nose',gx-1.29,.88,gz,.08,skin);
- register('Sleeping royal guard','The royal guard is asleep on his bench. He wears Edwin’s insignia. Best not wake him.',-1.55,-4.47,2.25);
+ // A reclining rook chess piece: turned pedestal, narrow stem, crenellated turret crown.
+ const guardRoot=new BABYLON.TransformNode('sleeping chess rook pivot',scene);
+ guardRoot.position.set(gx,.76,gz);guardRoot.rotation.z=-Math.PI/2;
+ const stack=(name,y,radius,height,material,edges=32)=>{
+  const mesh=BABYLON.MeshBuilder.CreateCylinder(name,{diameter:radius*2,height,tessellation:edges},scene);
+  mesh.parent=guardRoot;mesh.position.y=y;mesh.material=material;return mesh;
+ };
+ stack('rook foot outer lip',0,.44,.16,rookShade);
+ stack('rook foot bevel',.14,.39,.15,rookTrim);
+ stack('rook sturdy pedestal',.29,.32,.25,rookStone);
+ stack('rook waist',.58,.22,.38,rookStone);
+ stack('rook middle collar',.80,.29,.10,rookTrim);
+ stack('rook tower shoulder',1.04,.33,.42,rookStone);
+ stack('rook upper band',1.28,.36,.15,rookTrim);
+ stack('rook parapet',1.47,.40,.24,rookStone);
+ stack('rook hollow dark top',1.61,.30,.04,rookShade);
+ for(let i=0;i<6;i++){
+  const theta=i*Math.PI/3;
+  const battlement=BABYLON.MeshBuilder.CreateBox('rook tower crenellation',{width:.21,height:.24,depth:.20},scene);
+  battlement.material=rookStone;battlement.parent=guardRoot;
+  battlement.position.set(Math.cos(theta)*.29,1.72,Math.sin(theta)*.29);
+  battlement.rotation.y=-theta;
+ }
+ const insignia=BABYLON.MeshBuilder.CreateTorus('rook royal insignia',{diameter:.35,thickness:.045,tessellation:24},scene);
+ insignia.parent=guardRoot;insignia.position.set(0,1.04,-.34);insignia.material=rookTrim;
+ // ZZZ floats above the chess rook and always faces the first-person camera.
+ const sleepTex=new BABYLON.DynamicTexture('sleeping rook ZZZ texture',{width:256,height:128},scene,true);
+ sleepTex.hasAlpha=true;
+ const sc=sleepTex.getContext();sc.clearRect(0,0,256,128);
+ sc.font='bold 78px Georgia';sc.textAlign='center';sc.lineWidth=6;sc.strokeStyle='rgba(8,13,19,.8)';
+ sc.strokeText('Z z z',128,92);sc.fillStyle='#edd4aa';sc.fillText('Z z z',128,92);sleepTex.update();
+ const sleepMat=new BABYLON.StandardMaterial('floating ZZZ',scene);
+ sleepMat.diffuseTexture=sleepTex;sleepMat.opacityTexture=sleepTex;
+ sleepMat.useAlphaFromDiffuseTexture=true;sleepMat.backFaceCulling=false;
+ sleepMat.disableLighting=true;sleepMat.emissiveColor=BABYLON.Color3.FromHexString('#d5b78c');
+ sleepIndicator=BABYLON.MeshBuilder.CreatePlane('rook sleep ZZZ billboard',{width:1.35,height:.67,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+ sleepIndicator.position.set(gx-.62,2.16,gz);sleepIndicator.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;sleepIndicator.material=sleepMat;
+ register('Sleeping rook guard','A rook guard is fast asleep. His tower-shaped helmet bears Edwin’s mark. Do not wake him.',-1.3,-4.46,2.35);
  // Iron shackles on wall, chains suspended overhead.
  for(const [x,z] of [[-5.67,-.8],[5.67,-2.2],[-5.67,2.4]]){
   const alongX=Math.abs(x)>5.6;
@@ -261,12 +294,13 @@ function createWorld(){
  box('high stone window aperture',-2.45,3.45,4.22,1.85,1.12,.18,water);
  for(const x of [-2.95,-2.45,-1.95])box('window iron bars',x,3.48,4.085,.07,1.05,.12,iron);
  box('window stone sill',-2.45,2.82,4.0,2.18,.18,.58,stone);
- // Small rounded rubble replaces the floating white square debris.
- for(let i=0;i<15;i++){
-  const x=-5.2+seed(i*43)*10.4,z=-3.7+seed(i*17)*7.7;
-  if(Math.hypot(x+3.65,z-1.4)<1.9||Math.hypot(x-3.72,z-2.95)<1.5)continue;
-  const p=sphere('rounded rubble stone',x,.08,z,.15+seed(i+3)*.16,darkStone);
-  p.scaling.set(1,.46,.7);
+ // Remove all floating pebble spheres; add restrained, dark worn masonry fragments instead.
+ const rubbleMat=mat('aged small debris','#52514a');
+ for(let i=0;i<9;i++){
+  const x=-5.1+seed(i*43)*10.0,z=-3.6+seed(i*17)*7.1;
+  if(Math.hypot(x+3.65,z-1.4)<2||Math.hypot(x-3.72,z-2.95)<1.75)continue;
+  const o=BABYLON.MeshBuilder.CreatePolyhedron('tiny dark floor chip',{type:2,size:.08+seed(i+3)*.07},scene);
+  o.position.set(x,.07,z);o.rotation.y=seed(i+6)*6.28;o.material=rubbleMat;
  }
  // Merge thousands of static masonry and paving blocks into a few draw calls.
  // Visual detail remains, but the GPU sees far fewer separate meshes.
@@ -341,6 +375,7 @@ function frame(){
   camera.position.y=1.66-.53*crouch+jumpHeight+sway;
   const t=candidates();$('prompt').hidden=!t;$('prompt').textContent=t?'[ E ] '+t.name:'';
  }
+ if(sleepIndicator){const time=performance.now()*.001;sleepIndicator.position.y=2.16+Math.sin(time*1.3)*.09;}
  scene.render();
 }
 function reset(){
