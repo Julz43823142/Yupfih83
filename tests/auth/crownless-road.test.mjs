@@ -86,7 +86,7 @@ test('high-resolution physically lit first-person renderer and rich environmenta
  assert.match(game,/function tree\(x,z,seed\)/);
  assert.match(game,/Continuous overhead vaults/);
  assert.match(game,/Heavy cross-braces/);
- assert.match(game,/Sloped roof silhouette/);
+ assert.match(game,/Genuine sloped roof planes/);
  assert.match(page,/id="story-scene"/);
 });
 
