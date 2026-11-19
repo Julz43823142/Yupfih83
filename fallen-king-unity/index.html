@@ -3,13 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>The Fallen King — Unity Preview | EloScanner</title>
-    <meta name="robots" content="noindex,nofollow">
+    <title>Unity Web Player | The Fallen King</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
   <body>
-    <a href="/" style="position:fixed;z-index:50;top:12px;left:12px;color:#f1d4a5;background:#162029e6;padding:7px 12px;border:1px solid #795f3e;border-radius:5px;font:13px Arial,sans-serif;text-decoration:none">← EloScanner</a>
     <div id="unity-container" class="unity-desktop">
       <div id="unity-fullscreen-container">
         <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
@@ -62,9 +60,9 @@
       var loaderUrl = buildUrl + "/WebBuild.loader.js";
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/WebBuild.data",
-        frameworkUrl: buildUrl + "/WebBuild.framework.js",
-        codeUrl: buildUrl + "/WebBuild.wasm",
+        dataUrl: buildUrl + "/WebBuild.data.br",
+        frameworkUrl: buildUrl + "/WebBuild.framework.js.br",
+        codeUrl: buildUrl + "/WebBuild.wasm.br",
         streamingAssetsUrl: "StreamingAssets",
 
         // If you have a custom web site structure, or want to place multiple Unity build instances on the same page,
