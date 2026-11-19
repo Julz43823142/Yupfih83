@@ -79,7 +79,7 @@ function createWorld(){
  const wood=mat('old oak','#8e6a4b'),woodDark=mat('weathered oak','#604734'),iron=mat('black wrought iron','#596068',.68,.7),rust=mat('rusty steel','#88644d',.87,.45);
  const linen=mat('dirty wool','#b0a48e'),straw=mat('dry straw','#c7a36b'),cloth=mat('washed blanket','#58636b'),water=mat('drain darkness','#17272a',.21,.08);
  const grime=mat('wall shadow grime','#565953'),paper=mat('old parchment','#d2bd8e'),candle=mat('flame','#ffa33a',.6,0,'#ed7c29');
- stone.albedoTexture=texture('limestone stone','#a1a09c');floorMat.albedoTexture=texture('floor flagstone','#8d8980');
+ stone.albedoTexture=texture('limestone stone','#a1a09c');darkStone.albedoTexture=texture('old shadowed stone','#62605b');floorMat.albedoTexture=texture('floor flagstone','#8d8980');
  brick.albedoTexture=texture('stone block','#a19b92');wood.albedoTexture=texture('wood grain','#88715b');
  woodDark.albedoTexture=texture('dark wood grain','#675344');linen.albedoTexture=texture('linen worn','#ada28e');
  // Main royal prison cell. Geometry retains its proportions while surface detail comes from textured masonry.
@@ -100,7 +100,7 @@ function createWorld(){
   box('neighbor cell top rail',x,3.24,-.16,.12,.12,4.4,iron);
   box('neighbor cell bottom rail',x,1.12,-.16,.12,.12,4.4,iron);
   // The adjacent cell extends behind the bars and is illuminated separately.
-  box('neighbor flagstone floor',side*8.48,-.17,-.16,4.8,.3,9.0,floorMat);
+  box('neighbor flagstone floor',side*8.48,-.17,-.04,4.8,.3,8.75,floorMat);
   box('neighbor back wall',side*10.73,2.2,-.16,.45,4.8,9.1,stone);
   box('neighbor end wall',side*8.43,2.2,4.30,4.8,4.8,.43,stone);
   // Each adjoining cell has its own barred doorway facing the main hall.
@@ -130,6 +130,16 @@ function createWorld(){
    cylinder('left cell pawn body',px,.88,pz,.28,.97,pawnMaterial,30);
    cylinder('left cell pawn neck',px,1.36,pz,.23,.18,pawnCollar,26);
    sphere('left prisoner pawn head',px,1.84,pz,.81,pawnMaterial);
+   const eyeShade=mat('pawn face charcoal','#302e2c',1,0);
+   const warmCheek=mat('pawn face blush','#87776b',1,0);
+   for(const shift of [-.16,.16]){
+    sphere('pawn expressive dark eye',px+.37,1.94,pz+shift,.105,eyeShade);
+    const brow=box('pawn thoughtful eyebrow',px+.365,2.065,pz+shift,.045,.035,.17,warmCheek);
+    brow.rotation.x=shift*1.2;
+   }
+   const smile=BABYLON.Curve3.CreateQuadraticBezier(V(px+.38,1.76,pz-.17),V(px+.455,1.70,pz),V(px+.38,1.76,pz+.17),9);
+   const lips=BABYLON.MeshBuilder.CreateTube('pawn subtle friendly smile',{path:smile.getPoints(),radius:.017,tessellation:8},scene);
+   lips.material=eyeShade;
    const cuffs=BABYLON.MeshBuilder.CreateTorus('left prisoner rusted neck ring',{diameter:.46,thickness:.05,tessellation:26},scene);
    cuffs.position.set(px,1.42,pz);cuffs.material=iron;
    box('left cell pawn dark chalk mark',px,2.35,4.13,.9,.12,.05,darkStone);
@@ -351,6 +361,18 @@ function createWorld(){
   battlement.position.set(Math.cos(theta)*.29,1.72,Math.sin(theta)*.29);
   battlement.rotation.y=-theta;
  }
+ // The sleeping rook is a character, not only a chess marker: sculpted shut eyes and a smile.
+ const faceShade=mat('rook face ink','#24282a',1,0);
+ const faceHighlight=mat('rook face eyelid trim','#c2ad89',.93,.08);
+ for(const side of [-1,1]){
+  const eye=box('rook closed sleeping eyelid',side*.145,1.06,.351,.195,.036,.026,faceShade);
+  eye.parent=guardRoot;eye.rotation.z=side*.20;
+  const eyebrow=box('rook peaceful brow',side*.145,1.17,.357,.19,.027,.018,faceHighlight);
+  eyebrow.parent=guardRoot;
+ }
+ const rookSmile=BABYLON.Curve3.CreateQuadraticBezier(V(-.17,.91,.362),V(0,.85,.398),V(.17,.91,.362),10);
+ const rookMouth=BABYLON.MeshBuilder.CreateTube('rook small curved sleeping mouth',{path:rookSmile.getPoints(),radius:.013,tessellation:8},scene);
+ rookMouth.parent=guardRoot;rookMouth.material=faceShade;
  const insignia=BABYLON.MeshBuilder.CreateTorus('rook royal insignia',{diameter:.35,thickness:.045,tessellation:24},scene);
  insignia.parent=guardRoot;insignia.position.set(0,1.04,-.34);insignia.material=rookTrim;
  // ZZZ floats above the chess rook and always faces the first-person camera.
@@ -416,7 +438,7 @@ function createWorld(){
  }
  // Merge thousands of static masonry and paving blocks into a few draw calls.
  // Visual detail remains, but the GPU sees far fewer separate meshes.
- for(const category of ['irregular masonry stone','old stone edge','offset flagstone']){
+ for(const category of ['irregular masonry stone','old stone edge','repeated barred hall cell','near cell gate iron rod','far cell steel grille rod','cross-gallery ceiling rib']){
   const list=scene.meshes.filter(m=>m.name===category);
   const groups=new Map();
   for(const m of list){const name=m.material?.name||'default';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(m);}
