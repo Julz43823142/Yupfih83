@@ -145,7 +145,7 @@ function triangle(a,b,c,col){
  const ab=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],ac=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
  const n=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]];
  const d=Math.hypot(...n)||1;
- for(const p of [a,b,c])vertices.push(...p,...col,n[0]/d,n[1]/d,n[2]/d);
+ for(const p of [a,b,c])vertices.push(...p,...col,-n[0]/d,-n[1]/d,-n[2]/d);
 }
 function quad(a,b,c,d,col){triangle(a,b,c,col);triangle(a,c,d,col)}
 function box(x,y,z,w,h,d,hex){const c=toRGB(hex),a=x-w/2,b=x+w/2,t=y+h/2,bt=y-h/2,f=z-d/2,k=z+d/2;
