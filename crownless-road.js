@@ -388,7 +388,7 @@ function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=M
   if(keys.has('q'))yaw-=dt*1.65;if(keys.has('e-look'))yaw+=dt*1.65;
   findNearby();
  }
- const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,1.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
+ const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,2.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
  if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;gl.viewport(0,0,pw,ph);}
  const sky=palette[stage].sky;gl.clearColor(...sky,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
  gl.uniform3f(u.camera,px,1.67-.72*crouch+jumpY,pz);
