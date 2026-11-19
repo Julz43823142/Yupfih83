@@ -185,6 +185,50 @@ function createWorld(){
    light.intensity=i===0?4:2.4;light.range=10;light.diffuse=BABYLON.Color3.FromHexString('#c89967');
   }
  }
+ // Quiet narrative details, rendered as ordinary Babylon geometry.
+ const heraldicBlue=mat('Aldemar banner navy','#394956',.92);
+ const fadedGold=mat('faded royal embroidery','#ac8257',.82,.09);
+ const softLeather=mat('aged prison leather','#655143',.9);
+ for(const side of [-1,1]){
+  for(let i=0;i<4;i++){
+   const z=-10.2-i*7.1;
+   // Hanging royal banners, made from slender flat meshes with visible trim.
+   box('stone banner iron rod',side*11.84,3.60,z,.24,.07,1.23,iron);
+   box('Aldemar hanging cloth',side*11.73,2.73,z,.09,1.58,.95,heraldicBlue);
+   box('Aldemar banner gold edging',side*11.675,2.78,z-.43,.025,1.44,.045,fadedGold);
+   box('Aldemar banner gold edging',side*11.675,2.78,z+.43,.025,1.44,.045,fadedGold);
+   const medallion=BABYLON.MeshBuilder.CreateTorus('Aldemar royal seal on banner',{diameter:.38,thickness:.06,tessellation:18},scene);
+   medallion.position.set(side*11.65,2.98,z);medallion.rotation.y=Math.PI/2;medallion.material=fadedGold;
+  }
+  // Distant inmate silhouettes: chess pawns and a bishop behind the cell bars.
+  for(const [n,z] of [[0,-12],[1,-23.2],[2,-29.1]]){
+   const px=side*9.0;
+   const pieceMat=n===2?darkStone:brick;
+   cylinder('distant chess pawn base',px,.19,z,.37,.23,pieceMat,18);
+   cylinder('distant chess pawn column',px,.76,z,.24,.96,pieceMat,18);
+   sphere('distant prisoner pawn crown',px,1.51,z,n===2?.76:.63,pieceMat);
+   if(n===2){
+    const spire=BABYLON.MeshBuilder.CreateCylinder('distant bishop chapel peak',{diameterTop:0,diameterBottom:.35,height:.44,tessellation:18},scene);
+    spire.position.set(px,2.12,z);spire.material=pieceMat;
+   }
+  }
+ }
+ // The corner of Oliver's cell has a hook, a wooden cup and a leather satchel.
+ cylinder('prison rough water jug',4.64,.22,-.10,.26,.42,softLeather,18);
+ cylinder('jug neck',4.64,.48,-.10,.11,.17,woodDark,16);
+ const jugHandle=BABYLON.MeshBuilder.CreateTorus('water jug handle',{diameter:.28,thickness:.06,tessellation:16},scene);
+ jugHandle.position.set(4.89,.30,-.10);jugHandle.rotation.y=Math.PI/2;jugHandle.material=softLeather;
+ const bag=BABYLON.MeshBuilder.CreateSphere('worn satchel',{diameter:.66,segments:12},scene);
+ bag.position.set(4.79,.26,.45);bag.scaling.set(1,.61,.48);bag.material=softLeather;
+ const strap=BABYLON.MeshBuilder.CreateTorus('satchel strap',{diameter:.69,thickness:.04,tessellation:24},scene);
+ strap.position.set(4.79,.45,.45);strap.rotation.x=Math.PI/2;strap.material=woodDark;
+ // Deep perspective: paired narrow floor drainage channels along the gallery.
+ for(const side of [-1,1]){
+  box('hall drainage groove',side*5.45,-.007,-20.5,.055,.014,31.0,water);
+  for(let k=0;k<13;k++){
+   box('drainage joint',side*5.45,.006,-6.5-k*2.35,.23,.021,.065,iron);
+  }
+ }
  // Door at the far end of the hall, inset between stone piers.
  box('distant prison hall exit',0,1.57,-37.82,2.15,3.1,.13,woodDark);
  for(const xx of [-.87,-.44,0,.44,.87])box('far door oak planks',xx,1.54,-37.7,.39,3.0,.06,wood);
