@@ -83,8 +83,8 @@ function createWorld(){
  brick.albedoTexture=texture('stone block','#a19b92');wood.albedoTexture=texture('wood grain','#88715b');
  woodDark.albedoTexture=texture('dark wood grain','#675344');linen.albedoTexture=texture('linen worn','#ada28e');
  // Main royal prison cell. Geometry retains its proportions while surface detail comes from textured masonry.
- box('stone pavement',0,-.22,.2,12.5,.4,19,floorMat);
- box('vault ceiling',0,4.7,.2,12.5,.48,19,darkStone);
+ box('stone pavement',0,-.22,0,12.5,.4,9.2,floorMat);
+ box('vault ceiling',0,4.7,0,12.5,.48,9.2,darkStone);
  box('rear stone wall',0,2.2,4.55,12.5,4.8,.6,stone);
  // Side openings look into real adjacent cells, never into painted fake windows.
  for(const side of [-1,1]){
@@ -138,82 +138,85 @@ function createWorld(){
   const lit=new BABYLON.PointLight('dim neighboring cell',V(side*8.2,2.75,-1.5),scene);
   lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
  }
- // A long central prison hallway with visible cells fading into atmospheric haze.
- const hallEnd=-38, hallLength=33.5, hallCenter=-21.15;
- box('long prison corridor flagstone floor',0,-.22,hallCenter,24.0,.4,hallLength,floorMat);
- box('long prison hall vaulted ceiling',0,4.7,hallCenter,24.0,.48,hallLength,darkStone);
- box('distant prison end wall',0,2.2,-38.18,24.0,4.8,.48,stone);
- const hallLeft=mat('hall rough stone','#96938a'),hallInset=mat('hall door shadow','#31393a');
- hallLeft.albedoTexture=stone.albedoTexture;
- // The corridor continues well beyond Oliver's cell; paired cells line its sides.
- for(const side of [-1,1]){
-  box('outer prison hall wall',side*12.15,2.25,-22.2,.55,4.85,31.8,hallLeft);
-  box('hall side upper vault edge',side*7.55,4.38,-22.1,8.7,.38,31.8,darkStone);
-  // Keep the near entrances open to the adjoining cells.
-  for(let bay=0;bay<5;bay++){
-   const z=-11.5-bay*5.65;
-   for(const [x,w] of [[side*7.7,3.0]]){
-    box('hall cell door shadow',x,1.83,z,.06,3.3,3.28,hallInset);
-    // A real barred gate framed in textured stone, not a flat wall.
-    for(let j=0;j<7;j++){
-     const bz=z-1.26+j*.42;
-     box('repeated barred hall cell',x,2.13,bz,.11,3.23,.085,iron);
-    }
-    box('repeated hall gate upper rail',x,3.35,z,.13,.14,3.22,rust);
-    box('repeated hall gate lower rail',x,1.1,z,.13,.14,3.22,rust);
-    for(const zz of [z-1.65,z+1.65])box('distant cell stone doorway jamb',x,2.08,zz,.44,4.03,.39,stone);
-    cylinder('old cell padlock',x,1.42,z+.90,.15,.23,rust,12);
-   }
-   box('hall buttress left',side*11.66,2.2,z-2.45,.52,4.43,.62,darkStone);
-  }
- }
- for(let i=0;i<8;i++){
-  const z=-8.6-i*3.8;
-  box('prison corridor roof beam',0,4.4,z,23.1,.39,.46,darkStone);
- }
- // Repeated lanterns create a warm vanishing point without too many lights.
- for(let i=0;i<7;i++){
-  const z=-10-i*3.7;
-  cylinder('hall lantern iron hook',0,3.75,z,.06,.68,iron,8);
-  sphere('hall lantern glazed housing',0,3.35,z,.27,mat('lantern amber glass '+i,'#b67b42',.4,.05,'#4b2407'));
-  for(let a=0;a<4;a++){
-   const angle=a*Math.PI/2;
-   box('hall lantern framing',Math.cos(angle)*.17,3.3,z+Math.sin(angle)*.17,.04,.47,.04,iron);
-  }
-  if(i===0||i===3||i===6){
-   const light=new BABYLON.PointLight('hall gas lamp '+i,V(0,3.2,z),scene);
-   light.intensity=i===0?4:2.4;light.range=10;light.diffuse=BABYLON.Color3.FromHexString('#c89967');
-  }
- }
- // Quiet narrative details, rendered as ordinary Babylon geometry.
- const heraldicBlue=mat('Aldemar banner navy','#394956',.92);
+ // Horizontal cross-gallery: the player sees cells stretching LEFT and RIGHT,
+ // not an endless tunnel straight ahead. Only the near wing can be entered later.
+ const hallInset=mat('distant doorway shadow','#3a3b3a'),heraldicBlue=mat('Aldemar banner navy','#394956',.92);
  const fadedGold=mat('faded royal embroidery','#ac8257',.82,.09);
  const softLeather=mat('aged prison leather','#655143',.9);
+ box('horizontal gallery continuous flagstone floor',0,-.22,-8.1,79,.4,7.0,floorMat);
+ box('horizontal gallery ceiling',0,4.7,-8.1,79,.42,7.0,darkStone);
+ box('hall far wall textured stone',0,2.2,-11.73,79,4.8,.55,stone);
  for(const side of [-1,1]){
-  for(let i=0;i<4;i++){
-   const z=-10.2-i*7.1;
-   // Hanging royal banners, made from slender flat meshes with visible trim.
-   box('stone banner iron rod',side*11.84,3.60,z,.24,.07,1.23,iron);
-   box('Aldemar hanging cloth',side*11.73,2.73,z,.09,1.58,.95,heraldicBlue);
-   box('Aldemar banner gold edging',side*11.675,2.78,z-.43,.025,1.44,.045,fadedGold);
-   box('Aldemar banner gold edging',side*11.675,2.78,z+.43,.025,1.44,.045,fadedGold);
-   const medallion=BABYLON.MeshBuilder.CreateTorus('Aldemar royal seal on banner',{diameter:.38,thickness:.06,tessellation:18},scene);
-   medallion.position.set(side*11.65,2.98,z);medallion.rotation.y=Math.PI/2;medallion.material=fadedGold;
+  box('horizontal gallery end wall',side*39.6,2.2,-8.10,.55,4.8,7.2,stone);
+  // Cells on the near side of the hall appear behind heavy barred doorways.
+  // A real brick surround is built for every bay, leaving a dark recess behind.
+  for(let bay=0;bay<6;bay++){
+   const x=side*(14.3+bay*4.4);
+   box('near cell entrance dark recess',x,1.97,-4.66,3.12,3.4,.22,hallInset);
+   box('near cell entrance lintel',x,3.94,-4.60,3.72,.95,.50,stone);
+   box('near cell entrance sill',x,.22,-4.60,3.72,.42,.5,darkStone);
+   for(const edge of [-1,1])box('near cell entrance stone jamb',x+edge*1.7,2.03,-4.61,.32,3.88,.55,darkStone);
+   for(let j=0;j<7;j++)box('near cell gate iron rod',x-1.34+j*.45,2.06,-4.42,.07,3.43,.10,iron);
+   for(const y of [1.24,3.16])box('near cell gate horizontal brace',x,y,-4.35,3.28,.10,.12,rust);
+   box('near cell gate padlock',x+.68,1.59,-4.26,.26,.34,.18,rust);
   }
-  // Distant inmate silhouettes: chess pawns and a bishop behind the cell bars.
-  for(const [n,z] of [[0,-12],[1,-23.2],[2,-29.1]]){
-   const px=side*9.0;
-   const pieceMat=n===2?darkStone:brick;
-   cylinder('distant chess pawn base',px,.19,z,.37,.23,pieceMat,18);
-   cylinder('distant chess pawn column',px,.76,z,.24,.96,pieceMat,18);
-   sphere('distant prisoner pawn crown',px,1.51,z,n===2?.76:.63,pieceMat);
-   if(n===2){
-    const spire=BABYLON.MeshBuilder.CreateCylinder('distant bishop chapel peak',{diameterTop:0,diameterBottom:.35,height:.44,tessellation:18},scene);
-    spire.position.set(px,2.12,z);spire.material=pieceMat;
+  // Cell doors on the far side of the gallery face Oliver's cell.
+  for(let bay=0;bay<8;bay++){
+   const x=side*(4.5+bay*4.45);
+   box('far cell dark doorway',x,1.91,-11.39,3.05,3.37,.06,hallInset);
+   box('far cell upper arch',x,3.9,-11.34,3.7,.76,.48,darkStone);
+   for(const edge of [-1,1])box('far cell stone column',x+edge*1.69,2.05,-11.34,.31,3.96,.43,stone);
+   for(let j=0;j<7;j++)box('far cell steel grille rod',x-1.30+j*.435,2.04,-11.19,.064,3.30,.11,iron);
+   for(const y of [1.1,3.15])box('far cell steel crossbar',x,y,-11.1,3.19,.10,.12,rust);
+   box('far cell iron keyplate',x+.76,1.50,-11.05,.24,.35,.14,iron);
+   // A few restrained chess-piece silhouettes visible behind the grilles.
+   if(bay%3===1){
+    const pawnMat=bay%2?brick:darkStone;
+    cylinder('distant horizontal gallery pawn foot',x,.22,-11.57,.34,.21,pawnMat,16);
+    cylinder('distant horizontal gallery pawn stem',x,.80,-11.57,.23,.98,pawnMat,16);
+    sphere('distant horizontal gallery pawn head',x,1.55,-11.57,.60,pawnMat);
    }
   }
  }
- // The corner of Oliver's cell has a hook, a wooden cup and a leather satchel.
+ // Columns, roof cross-beams and ceiling gas lamps repeat into the distance.
+ for(let i=-9;i<=9;i++){
+  const x=i*4.15;
+  box('cross-gallery ceiling rib',x,4.40,-8.10,.40,.40,6.85,darkStone);
+  box('cross-gallery far wall buttress',x,2.17,-11.18,.48,4.1,.43,darkStone);
+  if(i%2===0){
+   cylinder('cross-gallery lamp chain',x,3.90,-8.15,.055,.83,iron,10);
+   sphere('cross-gallery amber lantern',x,3.34,-8.15,.29,candle);
+   for(let j=0;j<4;j++){
+    const theta=j*Math.PI/2;
+    box('cross-gallery lantern cage',x+Math.cos(theta)*.20,3.32,-8.15+Math.sin(theta)*.20,.035,.52,.035,iron);
+   }
+  }
+  if(i%4===0){
+   const l=new BABYLON.PointLight('warm horizontal hall pool '+i,V(x,3.3,-8.15),scene);
+   l.intensity=4.1;l.range=9.5;l.diffuse=BABYLON.Color3.FromHexString('#d7a374');
+  }
+ }
+ // A royal banner in each wing acts as a visual landmark.
+ for(const sign of [-1,1]){
+  const x=sign*18.9;
+  box('Aldemar pennant supporting rod',x,3.82,-11.04,1.32,.08,.21,iron);
+  box('Aldemar historic cloth',x,2.93,-11.03,.98,1.48,.085,heraldicBlue);
+  for(const edge of [-.44,.44])box('Aldemar banner frayed golden seam',x+edge,2.93,-10.97,.045,1.35,.025,fadedGold);
+  const seal=BABYLON.MeshBuilder.CreateTorus('Aldemar faded heraldic seal',{diameter:.42,thickness:.055,tessellation:20},scene);
+  seal.position.set(x,2.98,-10.91);seal.material=fadedGold;
+ }
+ // Two doors close the ends of the horizontal prison wing.
+ for(const side of [-1,1]){
+  const x=side*39.2;
+  box('cross-gallery heavy end door',x,1.66,-8.1,.18,3.2,2.25,woodDark);
+  for(const z of [-8.90,-8.5,-8.10,-7.7,-7.3])box('end door aged oak boards',x-side*.13,1.65,z,.045,3.0,.35,wood);
+  for(const y of [.88,2.55])box('end door iron braces',x-side*.20,y,-8.10,.065,.12,2.20,iron);
+ }
+ // Deep navy-black drainage seams are flush to the floor, not raised shimmering meshes.
+ for(const z of [-5.04,-10.9]){
+  box('horizontal gallery drainage channel',0,-.006,z,77,.012,.042,water);
+ }
+ // Small, hand-made belongings add readable environmental storytelling.
  cylinder('prison rough water jug',4.64,.22,-.10,.26,.42,softLeather,18);
  cylinder('jug neck',4.64,.48,-.10,.11,.17,woodDark,16);
  const jugHandle=BABYLON.MeshBuilder.CreateTorus('water jug handle',{diameter:.28,thickness:.06,tessellation:16},scene);
@@ -222,19 +225,6 @@ function createWorld(){
  bag.position.set(4.79,.26,.45);bag.scaling.set(1,.61,.48);bag.material=softLeather;
  const strap=BABYLON.MeshBuilder.CreateTorus('satchel strap',{diameter:.69,thickness:.04,tessellation:24},scene);
  strap.position.set(4.79,.45,.45);strap.rotation.x=Math.PI/2;strap.material=woodDark;
- // Deep perspective: paired narrow floor drainage channels along the gallery.
- for(const side of [-1,1]){
-  box('hall drainage groove',side*5.45,-.007,-20.5,.055,.014,31.0,water);
-  for(let k=0;k<13;k++){
-   box('drainage joint',side*5.45,.006,-6.5-k*2.35,.23,.021,.065,iron);
-  }
- }
- // Door at the far end of the hall, inset between stone piers.
- box('distant prison hall exit',0,1.57,-37.82,2.15,3.1,.13,woodDark);
- for(const xx of [-.87,-.44,0,.44,.87])box('far door oak planks',xx,1.54,-37.7,.39,3.0,.06,wood);
- for(const yy of [.8,2.45])box('distant exit iron straps',0,yy,-37.62,2.1,.10,.13,iron);
- box('distant exit stone arch',0,3.43,-37.58,2.55,.48,.4,darkStone);
- 
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
  box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
@@ -482,7 +472,7 @@ function pause(open){
 }
 function onCot(x,z){return x> -4.94&&x< -2.37&&z> -.72&&z<3.49;}
 function collides(x,z){
- if(x< -5.61||x>5.61||z< -4.19||z>4.12)return true;
+ if(x< -5.25||x>5.25||z< -4.17||z>4.02)return true;
  const playerRadius=.24;
  for(const s of solid){
   if(Math.abs(x-s.x)<s.w/2+playerRadius&&Math.abs(z-s.z)<s.d/2+playerRadius){
