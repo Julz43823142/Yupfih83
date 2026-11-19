@@ -15,7 +15,7 @@ test('Crownless Road is a separate first-person WebGL adventure with valid JavaS
  assert.match(game,/requestPointerLock/);
  assert.match(game,/mousemove/);
  assert.match(page,/The Fallen King 2\.0/);
- assert.match(page,/crownless-road\.js\?v=4/);
+ assert.match(page,/crownless-road\.js\?v=5/);
 });
 test('Crownless Road is admin gated through the same protected API as Fallen King',()=>{
  assert.match(game,/fetch\('\/api\/fallen-king\/world',\{credentials:'same-origin',cache:'no-store'\}\)/);
@@ -102,4 +102,18 @@ test('non-block terrain is replaced by rounded organic geometry and sunset sky',
  assert.match(game,/Genuine sloped roof planes/);
  assert.match(game,/Full porcelain toilet/);
  assert.match(game,/Articulated human silhouettes/);
+});
+
+test('admin can teleport to every authored scene and major checkpoint without Q camera rotation',()=>{
+ assert.match(page,/id="dev-teleport"/);
+ assert.match(page,/id="teleport-destination"/);
+ assert.match(page,/id="teleport-go"/);
+ for(const id of ['cell','sewer','sewer-middle','sewer-exit','forest','forest-tower','forest-gate','watchtower','village','village-bridge']){
+  assert.ok(page.includes('value="'+id+'"'),'missing destination '+id);
+ }
+ assert.match(game,/const teleportPoints=/);
+ assert.match(game,/function teleportTo\(target\)/);
+ assert.match(game,/beginScene\(stageName,destination\.position\)/);
+ assert.doesNotMatch(game,/if\(keys\.has\('q'\)\)yaw/);
+ assert.match(game,/ADMIN TELEPORT|Camera rotation is mouse-only/);
 });
