@@ -15,7 +15,7 @@ test('Crownless Road is a separate first-person WebGL adventure with valid JavaS
  assert.match(game,/requestPointerLock/);
  assert.match(game,/mousemove/);
  assert.match(page,/The Fallen King 2\.0/);
- assert.match(page,/crownless-road\.js\?v=2/);
+ assert.match(page,/crownless-road\.js\?v=3/);
 });
 test('Crownless Road is admin gated through the same protected API as Fallen King',()=>{
  assert.match(game,/fetch\('\/api\/fallen-king\/world',\{credentials:'same-origin',cache:'no-store'\}\)/);
@@ -37,10 +37,14 @@ test('spare coming soon slot contains only Coming soon in its description',()=>{
  assert.match(hub,/The Fallen King/);
 });
 
-test('original five illustrated story panels are shown before prison gameplay',()=>{
+test('original Fallen King story beats are rendered in a new cinematic visual style',()=>{
  assert.match(page,/id="story-art"/);
- assert.match(page,/id="story-image"/);
- assert.match(game,/\/assets\/fallen-king-intro\/intro-/);
+ assert.match(page,/id="story-scene"/);
+ assert.match(page,/id="story-heading"/);
+ assert.match(page,/id="story-line"/);
+ assert.doesNotMatch(page,/\/assets\/fallen-king-intro\/intro-/);
+ assert.match(game,/const originalStory=/);
+ assert.match(game,/Edwin, now posing as the king/);
  assert.match(game,/storyFrame>=5/);
  assert.match(game,/finishStoryIntro/);
 });
@@ -67,4 +71,19 @@ test('prison bars, neighbouring sleeping prisoners and village collection quest 
  assert.match(game,/state\.timber=true/);
  assert.match(game,/state\.ropes=true/);
  assert.match(game,/state\.metMerrick/);
+});
+
+test('high-resolution physically lit first-person renderer and rich environmental geometry',()=>{
+ assert.match(game,/Math\.min\(devicePixelRatio\|\|1,2\.5\)/);
+ assert.match(game,/attribute vec3 normal/);
+ assert.match(game,/varying vec3 vnormal/);
+ assert.match(game,/normalize\(vnormal\)/);
+ assert.match(game,/lightPosition/);
+ assert.match(game,/float noise\(vec2 p\)/);
+ assert.match(game,/gl\.uniform3fv\(u\.sunDirection/);
+ assert.match(game,/function tree\(x,z,seed\)/);
+ assert.match(game,/Continuous overhead vaults/);
+ assert.match(game,/Heavy cross-braces/);
+ assert.match(game,/Sloped roof silhouette/);
+ assert.match(page,/id="story-scene"/);
 });
