@@ -116,7 +116,15 @@ function buildGeometry(){
   if(wall){
    if(stage==='village'&&world.houses?.some(([a,b,w,h])=>x>=a&&x<a+w&&z>=b&&z<b+h))continue;
    if(!inside&&rand<.2){box(x+.5,.04,z+.5,1,.14,1,'#57644d');continue;}
-   if(inside){if([[1,0],[-1,0],[0,1],[0,-1]].every(([dx,dz])=>['H','D',undefined].includes(world.tiles[z+dz]?.[x+dx])))continue;
+   if(inside){
+    if(stage==='cell'&&(x===6||x===18)&&(z===9||z===10)){
+     // Genuine openings in both flanking walls, with iron bars and dressed stone frames.
+     box(x+.5,.25,z+.5,1,.50,1,'#5e6264');box(x+.5,3.14,z+.5,1,.80,1,'#83817c');
+     for(const v of [.20,.5,.80])box(x+v,1.69,z+.5,.075,2.46,.10,'#333d42');
+     box(x+.5,2.92,z+.5,1,.12,.15,'#90928b');
+     continue;
+    }
+    if([[1,0],[-1,0],[0,1],[0,-1]].every(([dx,dz])=>['H','D',undefined].includes(world.tiles[z+dz]?.[x+dx])))continue;
     box(x+.5,1.8,z+.5,1,3.6,1,rand>.7?'#676b67':P.wall);
     if(rand>.89)box(x+.5,3.5,z+.5,.78,.15,.78,'#96918a');
    }else{box(x+.5,.45,z+.5,1,.9,1,P.wall);if(rand>.85)cone(x+.5,.9,z+.5,.55,.8,'#657553');}
@@ -128,7 +136,7 @@ function buildGeometry(){
   if(path&&rand>.55)box(x+.28,.011,z+.46,.22,.012,.17,inside?'#8a8679':'#d1b18b');
   if(!inside&&wood){tree(x+.5,z+.5,Math.floor(rand*9));continue;}
   if(!inside&&!path&&rand>.80){cone(x+.32,.015,z+.4,.13,.28,rand>.9?'#81916a':'#75895e',5);cone(x+.69,.015,z+.52,.11,.24,'#47674a',5);}
-  if(inside&&rand>.94&&tile!=='D')box(x+.5,.025,z+.5,.42,.06,.51,'#716f67');
+  // Do not place randomly raised rubble in the walkable corridor.
   if(isSewer&&path&&((x*5+z*3)%7===0))box(x+.5,.018,z+.5,.65,.015,.25,'#4a7a78');
  }
  if(inside){
@@ -142,7 +150,19 @@ function buildGeometry(){
   if(stage==='forest')for(const [x,z] of [[7,9],[13,10],[19,10],[24,12],[30,9]])lantern(x,z,0);
  }
  if(stage==='cell'){
-  for(const x of [7,18])for(let z=6;z<14;z++)box(x-.03,1.35,z+.5,.07,2.5,.08,'#323d42');
+  // Oliver can inspect both barred cells from his own prison chamber.
+  for(const x of [6.5,18.5])for(let z=9;z<=10;z++)for(const off of [-.26,.26])
+   box(x+off,1.60,z+.5,.065,2.35,.08,'#29373d');
+  // Narrow beds in the left and right neighbour cells; the prisoners sleep on them.
+  for(const x of [3.5,21.5]){
+   box(x,.32,10.5,1.9,.5,1.0,'#725947');
+   box(x,.61,10.5,1.8,.13,.95,'#9a8b72');
+   box(x-.5,.73,10.5,.55,.15,.85,'#c7b5a0');
+   box(x+.30,.70,10.5,.97,.13,.84,'#6e8187');
+  }
+  // Stone murder-holes, northern guard passage, and iron cell fronts.
+  for(let x=7;x<18;x+=1.0)box(x+.5,1.66,5.47,.065,2.7,.10,'#333d40');
+  box(12.5,3.35,5.55,11,.22,.24,'#a6a39a');
   box(11.5,.26,11.5,2,.45,1.35,'#79695a');box(11.5,.51,11.5,1.9,.13,1.25,'#b0a08a');
   box(15.5,.06,10.5,1.2,.09,1.05,'#353638');for(let i=0;i<5;i++)box(15.1+i*.2,.15,10.5,.04,.18,.95,'#9a9c91');
  }else if(stage==='sewer'){
@@ -167,7 +187,22 @@ function buildGeometry(){
   if(state.bridge){for(let z=18;z<=21;z++)box(47.5,.12,z+.5,4.5,.26,.78,'#9b8058');}
   else for(const x of [45.1,49.9])box(x,.3,19.5,.6,.6,1.5,'#7d6652');
  }
- for(const npc of world.npcs){box(npc.x,.67,npc.z,.57,1.34,.47,npc.name.includes('Bishop')?'#b9ada1':'#6b7b74');cone(npc.x,1.35,npc.z,.35,.50,'#d4c1a4',8);box(npc.x,1.78,npc.z,.16,.14,.22,'#b6a287');}
+ for(const npc of world.npcs){
+  if(npc.sleeping){
+   box(npc.x,.77,npc.z,.45,.21,.50,'#a69583');
+   box(npc.x+.34,.82,npc.z,.71,.26,.63,'#657c7a');
+   box(npc.x-.32,.85,npc.z,.30,.26,.32,'#e2c3a0');
+   continue;
+  }
+  const cleric=npc.name.includes('Bishop'),keeper=npc.name.includes('Keeper')||npc.name.includes('Guard');
+  const coat=cleric?'#c9c0a8':keeper?'#756d64':'#6d897d';
+  box(npc.x,.72,npc.z,.58,1.25,.44,coat);
+  cone(npc.x,1.28,npc.z,.37,.65,cleric?'#d6be8d':'#596b64',9);
+  box(npc.x,1.65,npc.z,.42,.36,.36,'#d9ba9a');
+  box(npc.x,1.96,npc.z,.49,.17,.45,keeper?'#676c6d':'#7c5c49');
+  for(const dx of [-.29,.29])box(npc.x+dx,1.12,npc.z,.14,.67,.17,coat);
+  for(const dx of [-.13,.13])box(npc.x+dx,1.72,npc.z+.185,.05,.045,.02,'#46403a');
+ }
  for(const f of world.features){
   if(f.type==='ladder'){for(let i=0;i<7;i++)box(f.x, i*.39+.18,f.z,.75,.065,.10,'#b5a085');}
   if(f.type==='chest')box(f.x,.67,f.z,2.3,1.3,1.6,'#9a6845');
@@ -185,9 +220,11 @@ function canStep(x,z){
  for(const dx of [-r,r])for(const dz of [-r,r]){
   const tx=Math.floor(x+dx),tz=Math.floor(z+dz),tile=world.tiles[tz]?.[tx];
   if(!tile||tile==='H'||tile==='T'||tile==='D')return false;
+  if(tile==='w'&&!(state.bridge&&stage==='village'&&tz>=18&&tz<=21))return false;
  }
- for(const f of world.features)if(f.type==='chest'&&Math.abs(x-f.x)<1.42&&Math.abs(z-f.z)<1.08)return false;
- for(const npc of world.npcs)if(Math.hypot(x-npc.x,z-npc.z)<.45)return false;
+ for(const solid of world.solids||[])
+  if(Math.abs(x-solid.x)<solid.w/2+r&&Math.abs(z-solid.z)<solid.d/2+r)return false;
+ for(const npc of world.npcs)if(!npc.sleeping&&Math.hypot(x-npc.x,z-npc.z)<.48)return false;
  return true;
 }
 function talk(name,lines,after){dialogue={name,lines,after};dialogIndex=0;paused=true;showLine();}
