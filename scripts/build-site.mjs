@@ -21,7 +21,9 @@ export function protectHTML(html) {
   }
   // Permit the optional browser-side recognition runtime only on the analysis page.
   const scanner = html.includes('src="/analysis-photo-import.js?');
-  const policy = `script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''} ${[...new Set(hashes)].join(' ')}; script-src-attr 'none'; connect-src 'self' ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''} https://api.chess.com; worker-src 'self' ${scanner ? 'blob:' : ''}; object-src 'none'; base-uri 'self'`;
+  // Only the admin prison preview loads Babylon.js from its documented preview CDN.
+  const babylonPrison = html.includes('src="/crownless-prison.js?');
+  const policy = `script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''} ${babylonPrison ? 'https://cdn.babylonjs.com' : ''} ${[...new Set(hashes)].join(' ')}; script-src-attr 'none'; connect-src 'self' ${scanner ? 'https://esm.sh https://cdn.jsdelivr.net' : ''} https://api.chess.com; worker-src 'self' ${scanner ? 'blob:' : ''}; object-src 'none'; base-uri 'self'`;
   return html.replace(/<head\b[^>]*>/i, head => `${head}\n<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 }
 
