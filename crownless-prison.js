@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
 let engine,scene,camera,active=false,paused=true,dialogue=false;
-const keys=new Set(),touch=new Set(),things=[],solid=[];
+const keys=new Set(),touch=new Set(),things=[],solid=[],actors=[];
 let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0,sleepIndicator=null,ignorePointerExit=false;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -59,22 +59,32 @@ function plane(name,x,y,z,w,h,m,rot=0){
  const o=BABYLON.MeshBuilder.CreatePlane(name,{width:w,height:h,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
  o.position.set(x,y,z);o.rotation.y=rot;o.material=m;return o;
 }
+// Revolved profiles and hand-shaped metalwork replace box-only hero props.
+function sculpt(name,x,y,z,profile,material,segments=28){
+ const mesh=BABYLON.MeshBuilder.CreateLathe(name,{shape:profile.map(p=>V(p[0],p[1],0)),tessellation:segments,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+ mesh.position.set(x,y,z);mesh.material=material;mesh.receiveShadows=true;return mesh;
+}
+function arch(name,cx,cy,z,w,h,material,r=.08){
+ const path=[];for(let i=0;i<=24;i++){const t=Math.PI-i*Math.PI/24;path.push(V(cx+Math.cos(t)*w,cy+Math.sin(t)*h,z));}
+ const o=BABYLON.MeshBuilder.CreateTube(name,{path,radius:r,tessellation:10,cap:BABYLON.Mesh.CAP_ALL},scene);
+ o.material=material;return o;
+}
 function register(name,description,x,z,r=1.75,action=null){things.push({name,description,x,z,r,action});}
 function createWorld(){
  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:true});
  engine.setHardwareScalingLevel(Math.max(1,Math.min(1.6,(devicePixelRatio||1)/1.35)));
  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.045,.056,.068,1);
- scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.029;scene.fogColor=BABYLON.Color3.FromHexString('#151b20');
- scene.environmentIntensity=.42;
+ scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.018;scene.fogColor=BABYLON.Color3.FromHexString('#232a2e');
+ scene.environmentIntensity=.62;scene.imageProcessingConfiguration.toneMappingEnabled=true;scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
  camera=new BABYLON.UniversalCamera('Oliver camera',V(0,1.65,2.2),scene);
  camera.fov=1.10;camera.minZ=.045;camera.maxZ=85;camera.rotation.set(0,Math.PI,0);
  scene.activeCamera=camera;
  const hemi=new BABYLON.HemisphericLight('cold ambient',V(.2,1,.4),scene);
- hemi.intensity=.42;hemi.diffuse=BABYLON.Color3.FromHexString('#aebaca');hemi.groundColor=BABYLON.Color3.FromHexString('#343539');
- const fire=new BABYLON.PointLight('torch amber',V(1.4,3,-2.85),scene);fire.intensity=15;fire.range=10;fire.diffuse=BABYLON.Color3.FromHexString('#ffb36b');
+ hemi.intensity=.63;hemi.diffuse=BABYLON.Color3.FromHexString('#aebaca');hemi.groundColor=BABYLON.Color3.FromHexString('#343539');
+ const fire=new BABYLON.PointLight('torch amber',V(4.0,3.1,3.7),scene);fire.intensity=10;fire.range=10;fire.diffuse=BABYLON.Color3.FromHexString('#ffb36b');
  const moon=new BABYLON.PointLight('cold moonlight',V(-4.9,3.9,3.7),scene);moon.intensity=7.5;moon.range=9;moon.diffuse=BABYLON.Color3.FromHexString('#7995b5');
  const bounce=new BABYLON.PointLight('corridor spill',V(0,2.6,-6.2),scene);bounce.intensity=7;bounce.range=11;bounce.diffuse=BABYLON.Color3.FromHexString('#e0a86d');
- scene.onBeforeRenderObservable.add(()=>{fire.intensity=15+Math.sin(performance.now()*.009)*.8+Math.sin(performance.now()*.017)*.7;});
+ scene.onBeforeRenderObservable.add(()=>{fire.intensity=10+Math.sin(performance.now()*.009)*.8+Math.sin(performance.now()*.017)*.7;});
  const stone=mat('limestone','#a1a4a0'),darkStone=mat('stone seams','#74756d'),floorMat=mat('worn slate','#a3a09a'),brick=mat('hand dressed limestone','#97938c');
  const wood=mat('old oak','#8e6a4b'),woodDark=mat('weathered oak','#604734'),iron=mat('black wrought iron','#596068',.68,.7),rust=mat('rusty steel','#88644d',.87,.45);
  const linen=mat('dirty wool','#b0a48e'),straw=mat('dry straw','#c7a36b'),cloth=mat('washed blanket','#58636b'),water=mat('drain darkness','#17272a',.21,.08);
@@ -92,9 +102,7 @@ function createWorld(){
   box('cell side lower masonry',x,.48,-.1,.55,1.0,9.3,stone);
   box('cell side upper masonry',x,3.83,-.1,.55,1.75,9.3,stone);
   for(const z of [-3.6,3.1]){
-   box('side arch pier',x,2.15,z,.57,2.75,2.4,darkStone);
-   // Soft carved edge instead of a white featureless column.
-   for(const y of [.86,3.43])box('pier stone cap',x,y,z,.64,.12,2.46,stone);
+   sculpt('carved round stone pier',x,.15,z,[[.40,0],[.48,.16],[.35,.30],[.34,2.5],[.43,2.70],[.49,2.79]],stone,24);
   }
   for(let z=-2.12;z<=1.77;z+=.37)box('neighbor cell forged bars',x,2.18,z,.11,2.36,.08,iron);
   box('neighbor cell top rail',x,3.24,-.16,.12,.12,4.4,iron);
@@ -125,10 +133,12 @@ function createWorld(){
    const pawnMaterial=mat('prisoner weathered ivory','#9c9888',.91,.03);
    const pawnCollar=mat('prisoner worn metal','#716958',.85,.17);
    const px=-8.65,pz=-.85;
+   const pawnMeshesStart=scene.meshes.length;
    cylinder('left cell pawn foot',px,.17,pz,.52,.24,pawnCollar,28);
    cylinder('left cell pawn beveled base',px,.35,pz,.43,.22,pawnMaterial,28);
    cylinder('left cell pawn body',px,.88,pz,.28,.97,pawnMaterial,30);
    cylinder('left cell pawn neck',px,1.36,pz,.23,.18,pawnCollar,26);
+   sculpt('pawn sculpted ivory silhouette',px,.30,pz,[[.39,0],[.41,.13],[.29,.28],[.23,.67],[.31,1.03],[.23,1.19]],pawnMaterial,32);
    sphere('left prisoner pawn head',px,1.84,pz,.81,pawnMaterial);
    const eyeShade=mat('pawn face charcoal','#302e2c',1,0);
    const warmCheek=mat('pawn face blush','#87776b',1,0);
@@ -144,6 +154,9 @@ function createWorld(){
    const cuffs=BABYLON.MeshBuilder.CreateTorus('left prisoner rusted neck ring',{diameter:.46,thickness:.05,tessellation:26},scene);
    cuffs.position.set(px,1.42,pz);cuffs.material=iron;
    box('left cell pawn dark chalk mark',px,2.35,4.13,.9,.12,.05,darkStone);
+   const captive=new BABYLON.TransformNode('wandering prisoner root',scene);captive.position.set(px,0,pz);
+   for(const m of scene.meshes.slice(pawnMeshesStart))if(m.name!=='left cell pawn dark chalk mark')m.setParent(captive);
+   actors.push({root:captive,x:px,z:pz,range:.62,speed:.44,phase:1.3});
    register('Prisoner in the left cell','A lonely pawn from Aldemar sits in the next cell. They have been imprisoned since Edwin seized the throne.',-5.65,-.9,1.75);
   }
   const lit=new BABYLON.PointLight('dim neighboring cell',V(side*8.2,2.75,-1.5),scene);
@@ -236,6 +249,12 @@ function createWorld(){
  bag.position.set(4.79,.26,.45);bag.scaling.set(1,.61,.48);bag.material=softLeather;
  const strap=BABYLON.MeshBuilder.CreateTorus('satchel strap',{diameter:.69,thickness:.04,tessellation:24},scene);
  strap.position.set(4.79,.45,.45);strap.rotation.x=Math.PI/2;strap.material=woodDark;
+ // Sculpted stone arch and forged curved lintel give the central gate a clear silhouette.
+ arch('carved Gothic doorway arch',0,3.30,-4.22,1.62,.70,stone,.155);
+ arch('arched wrought iron reinforcing',0,3.25,-4.12,1.40,.57,iron,.052);
+ for(const x of [-1.63,1.63]){
+  sculpt('turned weathered door pilaster',x,.20,-4.40,[[.23,0],[.28,.12],[.20,.25],[.18,3.35],[.26,3.55]],darkStone,20);
+ }
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
  box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
@@ -250,6 +269,7 @@ function createWorld(){
  box('main gate frame right',1.55,2.15,-4.42,.17,3.8,.18,rust);
  // A readable heavy central gate: dark backing, two forged leaves, cross braces and lock.
  box('gate recessed dark iron backing',0,2.15,-4.405,3.08,3.42,.035,water);
+ for(let i=0;i<11;i++)cylinder('hand forged round gate spindle',-1.32+i*.264,2.18,-4.15,.051,3.28,iron,12);
  for(const leaf of [-1,1]){
   for(let i=0;i<5;i++){
    const x=leaf*(.20+i*.265);
@@ -344,7 +364,7 @@ function createWorld(){
  for(let i=0;i<8;i++)box('bed joinery',-4.55+i*.25,.4,1.35,.12,.12,3.95,wood);
  register('Prison cot','A thin mattress and a worn wool blanket. This is how they treat their king.',-3.65,1.4,2.2);
  // Hand-built latrine: rounded stone pedestal, dark ceramic bowl and curved rim.
- cylinder('worn stone toilet pedestal',3.72,.34,2.95,.73,.63,darkStone,28);
+ sculpt('carved latrine pedestal',3.72,0,2.95,[[.52,.03],[.67,.10],[.74,.33],[.66,.54],[.72,.65]],darkStone,28);
  cylinder('recessed lavatory cavity',3.72,.67,2.95,.50,.05,water,32);
  const rim=BABYLON.MeshBuilder.CreateTorus('rounded latrine rim',{diameter:1.25,thickness:.18,tessellation:32},scene);
  rim.position.set(3.72,.73,2.95);rim.material=stone;
@@ -435,7 +455,7 @@ function createWorld(){
  }
  // Props: barrels, buckets, rope, lanterns, old scrolls.
  for(const [x,z] of [[4.7,-2.9],[-4.5,-6.7],[3.95,-7.3]]){
-  const b=cylinder('oak storage barrel',x,.65,z,.42,1.3,woodDark,13);
+  sculpt('curved stave oak barrel',x,0,z,[[.31,.02],[.41,.12],[.43,.40],[.48,.67],[.44,.94],[.36,1.24]],woodDark,24);
   for(const y of [.2,.94,1.16])cylinder('barrel metal band',x,y,z,.435,.07,iron,16);
   cylinder('barrel lid',x,1.31,z,.4,.07,wood,13);
   solid.push({x,z,w:.98,d:.98});
@@ -452,14 +472,14 @@ function createWorld(){
  box('parchment note',3.96,2.26,3.99,.83,.032,.47,paper);
  cylinder('ink bottle',4.82,2.32,3.99,.08,.21,water,12);
  register('Edwin\'s letter','"Aldemar has no King Oliver anymore. No one will believe you." — E.',3.92,3.46,1.85);
- // Torch brackets cast warm light, with visibly glowing flame.
+ // Fix: wall-mounted torches stay clear of the cell doorway and gate collision.
  function torch(x,y,z){
-  box('torch wall bracket',x,y-.38,z,.14,.4,.42,iron);
-  cylinder('torch wooden shaft',x,y-.13,z-.22,.075,.85,wood,10);
-  const c=cylinder('torch ember bowl',x,y+.29,z-.22,.17,.13,iron,12);
-  sphere('torch burning core',x,y+.5,z-.22,.33,candle);
+  box('torch wall bracket',x,y-.35,z,.15,.28,.30,iron);
+  const shaft=cylinder('carved wooden torch handle',x,y-.12,z-.18,.065,.74,wood,16);shaft.rotation.z=-.15;
+  sculpt('forged torch bowl',x,y+.23,z-.18,[[.17,0],[.20,.07],[.11,.18]],iron,16);
+  sculpt('sculpted tapered flame',x,y+.35,z-.18,[[.08,0],[.15,.12],[.11,.24],[.07,.40],[0,.51]],candle,16);
  }
- torch(1.45,2.65,-4.01);torch(-4.2,2.63,-8.89);torch(4.95,2.65,-8.89);
+ torch(4.0,2.8,3.97);torch(-4.2,2.75,-10.98);torch(4.95,2.75,-10.98);
  // View outside prison through barred rear window, moonlit glow.
  box('high stone window aperture',-2.45,3.45,4.22,1.85,1.12,.18,water);
  for(const x of [-2.95,-2.45,-1.95])box('window iron bars',x,3.48,4.085,.07,1.05,.12,iron);
@@ -530,8 +550,8 @@ function pause(open){
 }
 function onCot(x,z){return x> -4.94&&x< -2.37&&z> -.72&&z<3.49;}
 function collides(x,z){
- if(x< -5.25||x>5.25||z< -4.17||z>4.02)return true;
- const playerRadius=.24;
+ if(x< -5.20||x>5.20||z< -3.93||z>4.02)return true;
+ const playerRadius=.31;
  for(const s of solid){
   if(Math.abs(x-s.x)<s.w/2+playerRadius&&Math.abs(z-s.z)<s.d/2+playerRadius){
    // Landing on the sleeping cot is permitted once the player jumps high enough.
@@ -566,7 +586,15 @@ function frame(){
   camera.position.y=1.66-.53*crouch+jumpHeight+sway;
   const t=candidates();$('prompt').hidden=!t;$('prompt').textContent=t?'[ E ] '+t.name:'';
  }
- if(sleepIndicator){const time=performance.now()*.001;sleepIndicator.position.y=2.16+Math.sin(time*1.3)*.09;}
+ const time=performance.now()*.001;
+ if(sleepIndicator)sleepIndicator.position.y=2.16+Math.sin(time*1.3)*.09;
+ if(active&&!paused&&!dialogue)for(const a of actors){
+  const t=time*a.speed+a.phase;
+  a.root.position.x=a.x+Math.sin(t)*a.range;
+  a.root.position.z=a.z+Math.sin(t*.64)*.12;
+  a.root.rotation.y=Math.cos(t)>0?-.15:.15;
+  a.root.position.y=Math.sin(t*2)*.016;
+ }
  scene.render();
 }
 function reset(){
