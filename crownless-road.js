@@ -3,7 +3,7 @@
 // The Fallen King 2.0: original first-person renderer. No third-party runtime,
 // no installs, and a separate save from The Fallen King.
 const $=id=>document.getElementById(id),gate=$('gate'),canvas=$('view');
-let gl,program,buffer,u={},stage='cell',world,px=12.5,pz=9.5,yaw=0,pitch=0,last=0,paused=false,muted=false,dialogue=null,dialogIndex=0,nearby=null,frames=0;
+let gl,program,buffer,skyProgram,skyBuffer,skyLocations={},u={},stage='cell',world,px=12.5,pz=9.5,yaw=0,pitch=0,last=0,paused=false,muted=false,dialogue=null,dialogIndex=0,nearby=null,frames=0;
 const keys=new Set(),touch=new Set(),state={watchKey:false,bridge:false,metMerrick:false,timber:false,ropes:false};
 let ac=null,lastFoot=0,jumpY=0,jumpSpeed=0,crouch=0,menuOpen=false,storyFrame=0;
 const label={cell:'The Prison',sewer:'The Underground Sewers',forest:'The Willowmere Woods',watchtower:'The Old Watchtower',village:'Willowmere Village'};
@@ -147,6 +147,44 @@ function setupGL(){
  for(const name of ['camera','angle','aspect','fogColor','fogRange','lightPosition','lightTint','sunDirection','interior','time'])u[name]=gl.getUniformLocation(program,name);
  buffer=gl.createBuffer();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
  gl.clearDepth(1);gl.enable(gl.DITHER);
+ // A distinct outdoor sky pass adds a continuous atmospheric gradient, a soft
+ // sun halo and large-scale cloud layers rather than the old one-color clear.
+ skyProgram=gl.createProgram();
+ gl.attachShader(skyProgram,shader(gl.VERTEX_SHADER,`
+ attribute vec2 corner;varying vec2 uv;
+ void main(){uv=corner*.5+.5;gl_Position=vec4(corner,0.999,1.);}
+ `));
+ gl.attachShader(skyProgram,shader(gl.FRAGMENT_SHADER,`
+ precision highp float;varying vec2 uv;
+ uniform vec3 topTint;uniform vec3 horizonTint;
+ uniform float direction;uniform float timeSky;
+ float hash(vec2 p){return fract(sin(dot(p,vec2(151.7,327.1)))*43241.437);}
+ float valueNoise(vec2 p){
+  vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);
+ }
+ void main(){
+  float altitude=clamp(uv.y,0.,1.);
+  vec3 sky=mix(horizonTint,topTint,smoothstep(.04,1.0,altitude));
+  float sunX=.66+.37*sin(direction*.60+.45),sunY=.48;
+  vec2 p=(uv-vec2(sunX,sunY))*vec2(1.65,1.);
+  float disc=exp(-dot(p,p)*690.);
+  float glow=exp(-dot(p,p)*12.);
+  sky+=vec3(1.0,.52,.25)*glow*.21+vec3(1.,.70,.43)*disc*.76;
+  float n=valueNoise(uv*vec2(7.,5.)+vec2(timeSky*.005,0.));
+  float detail=valueNoise(uv*vec2(19.,12.)+vec2(timeSky*.01,2.));
+  float clouds=smoothstep(.48,.69,n*.8+detail*.20)*(.3+.7*altitude);
+  sky=mix(sky,vec3(.91,.80,.71),clouds*.16);
+  gl_FragColor=vec4(sky,1.);
+ }`));
+ gl.linkProgram(skyProgram);
+ if(!gl.getProgramParameter(skyProgram,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(skyProgram));
+ for(const name of ['topTint','horizonTint','direction','timeSky'])skyLocations[name]=gl.getUniformLocation(skyProgram,name);
+ skyLocations.corner=gl.getAttribLocation(skyProgram,'corner');
+ skyBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,skyBuffer);
+ gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+ gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+
 
 }
 let vertices=[],count=0;
@@ -413,9 +451,36 @@ function buildGeometry(){
   if(f.type==='ropes'&&!state.ropes){box(f.x,.22,f.z,.81,.44,.74,'#8b7152');for(let i=0;i<3;i++)box(f.x,.48+i*.10,f.z,.68,.08,.63,'#baa075');}
  }
  const arr=new Float32Array(vertices);count=arr.length/9;gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);
- const pos=gl.getAttribLocation(program,'pos'),color=gl.getAttribLocation(program,'color'),normal=gl.getAttribLocation(program,'normal');
- gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,3,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,36,12);gl.enableVertexAttribArray(normal);gl.vertexAttribPointer(normal,3,gl.FLOAT,false,36,24);
+ bindWorldAttributes();
  gl.uniform3fv(u.fogColor,palette[stage].fog);gl.uniform1f(u.fogRange,stage==='sewer'?18:stage==='cell'?13:stage==='watchtower'?18:42);
+}
+function bindWorldAttributes(){
+ gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+ const pos=gl.getAttribLocation(program,'pos'),color=gl.getAttribLocation(program,'color'),normal=gl.getAttribLocation(program,'normal');
+ gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,3,gl.FLOAT,false,36,0);
+ gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,36,12);
+ gl.enableVertexAttribArray(normal);gl.vertexAttribPointer(normal,3,gl.FLOAT,false,36,24);
+}
+function paintSky(ms){
+ // The dungeon ceiling still occludes this pass as ordinary 3D geometry.
+ if(!skyProgram)return;
+ const indoor=stage==='cell'||stage==='sewer'||stage==='watchtower';
+ gl.disable(gl.DEPTH_TEST);gl.depthMask(false);
+ gl.useProgram(skyProgram);
+ gl.bindBuffer(gl.ARRAY_BUFFER,skyBuffer);
+ gl.enableVertexAttribArray(skyLocations.corner);
+ gl.vertexAttribPointer(skyLocations.corner,2,gl.FLOAT,false,8,0);
+ const t=indoor?[.04,.07,.09]:stage==='forest'?[.32,.45,.58]:[.37,.51,.63];
+ const h=indoor?[.09,.11,.14]:stage==='forest'?[.89,.59,.42]:[.94,.67,.49];
+ gl.uniform3fv(skyLocations.topTint,t);
+ gl.uniform3fv(skyLocations.horizonTint,h);
+ gl.uniform1f(skyLocations.direction,yaw);
+ gl.uniform1f(skyLocations.timeSky,ms*.001);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+ gl.disableVertexAttribArray(skyLocations.corner);
+ gl.useProgram(program);
+ bindWorldAttributes();
+ gl.depthMask(true);gl.enable(gl.DEPTH_TEST);
 }
 function canStep(x,z){
  const r=.19;
@@ -463,6 +528,7 @@ function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=M
  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,2.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
  if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;gl.viewport(0,0,pw,ph);}
  const sky=palette[stage].sky;gl.clearColor(...sky,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+ paintSky(ms);
  gl.uniform3f(u.camera,px,1.67-.72*crouch+jumpY,pz);
  gl.uniform2f(u.angle,yaw,pitch);gl.uniform1f(u.aspect,w/h);
  const night=stage==='cell'||stage==='sewer'||stage==='watchtower';
