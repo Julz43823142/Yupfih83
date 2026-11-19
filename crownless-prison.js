@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
-let engine,scene,camera,active=false,paused=true,dialogue=false;
+let engine,scene,camera,guardRoot,active=false,paused=true,dialogue=false;
 const keys=new Set(),touch=new Set(),things=[],solid=[],actors=[];
 let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0,sleepIndicator=null,ignorePointerExit=false;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
@@ -397,7 +397,7 @@ function createWorld(){
   cylinder('rounded bench leg',bx,.22,bz,.084,.43,wood,12);
  }
  // A reclining rook chess piece: turned pedestal, narrow stem, crenellated turret crown.
- const guardRoot=new BABYLON.TransformNode('sleeping chess rook pivot',scene);
+ guardRoot=new BABYLON.TransformNode('sleeping chess rook pivot',scene);
  guardRoot.position.set(gx,.76,gz);guardRoot.rotation.z=-Math.PI/2;
  const stack=(name,y,radius,height,material,edges=32)=>{
   const mesh=BABYLON.MeshBuilder.CreateCylinder(name,{diameter:radius*2,height,tessellation:edges},scene);
