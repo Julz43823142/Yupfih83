@@ -153,16 +153,57 @@ function box(x,y,z,w,h,d,hex){const c=toRGB(hex),a=x-w/2,b=x+w/2,t=y+h/2,bt=y-h/
  for(const [v1,v2,v3,v4,s] of sides)quad(v1,v2,v3,v4,c.map(v=>Math.min(1,v*s)));
 }
 function cone(x,y,z,r,h,hex,n=7){const col=toRGB(hex);for(let i=0;i<n;i++){const a=i*Math.PI*2/n,b=(i+1)*Math.PI*2/n,lit=.66+.3*Math.abs(Math.sin(a+1));triangle([x+Math.cos(a)*r,y,z+Math.sin(a)*r],[x+Math.cos(b)*r,y,z+Math.sin(b)*r],[x,y+h,z],col.map(v=>v*lit));}}
-function tree(x,z,seed){
- const h=3.6+seed*.15,sw=1.15+seed*.035;
- box(x,1.16,z,.27,2.32,.27,'#574634');
- box(x,.35,z,.37,.7,.32,'#66503d');
- for(let j=0;j<4;j++){
-  const level=1.45+j*.78,r=sw*(1-j*.17);
-  cone(x,level,z,r,2.15-j*.16,j%2?'#496a4b':'#355640',11);
-  if(j<3){cone(x-.28,level-.16,z+.18,r*.48,1.16,'#526f4b',9);cone(x+.27,level-.11,z-.23,r*.42,1.22,'#3d6248',9);}
+// Smooth, irregular organic meshes replace geometric cone-stack trees.
+function organicBall(x,y,z,rx,ry,rz,col,seed=0,segments=12,rings=7){
+ const rgb=toRGB(col),v=(a,b)=>{const theta=(a/segments)*Math.PI*2,phi=(b/rings)*Math.PI;
+  const sp=Math.sin(phi),cp=Math.cos(phi),ang=Math.sin(theta*3.0+seed)*.035+Math.sin(theta*7.0+phi*3.0+seed)*.028;
+  const rr=1+ang;
+  const nx=sp*Math.cos(theta),ny=cp,nz=sp*Math.sin(theta);
+  return {p:[x+nx*rx*rr,y+ny*ry*rr,z+nz*rz*rr],n:[nx/Math.max(rx,.01),ny/Math.max(ry,.01),nz/Math.max(rz,.01)]};
+ };
+ const put=(a,b,c)=>{for(const q of [a,b,c]){const nn=q.n,d=Math.hypot(...nn)||1;vertices.push(...q.p,...rgb,nn[0]/d,nn[1]/d,nn[2]/d)}};
+ for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
+  const a=v(i,j),b=v(i+1,j),c=v(i+1,j+1),d=v(i,j+1);
+  put(a,b,c);put(a,c,d);
  }
- cone(x,h+.3,z,.33,.93,'#6c8559',9);
+}
+function branchTube(ax,ay,az,bx,by,bz,r1,r2,col,sides=9){
+ const c=toRGB(col),dx=bx-ax,dy=by-ay,dz=bz-az,len=Math.hypot(dx,dy,dz)||1;
+ const ux=dx/len,uy=dy/len,uz=dz/len;
+ let sx=-uz,sy=0,sz=ux;let sl=Math.hypot(sx,sz);
+ if(sl<.1){sx=1;sz=0;sl=1;}
+ sx/=sl;sz/=sl;
+ const tx=uy*sz-uz*sy,ty=uz*sx-ux*sz,tz=ux*sy-uy*sx;
+ for(let i=0;i<sides;i++){
+  const a=i*Math.PI*2/sides,b=(i+1)*Math.PI*2/sides;
+  const pt=(theta,top)=>{const cos=Math.cos(theta),sin=Math.sin(theta),rad=top?r2:r1;
+   return [(top?bx:ax)+rad*(sx*cos+tx*sin),(top?by:ay)+rad*(sy*cos+ty*sin),(top?bz:az)+rad*(sz*cos+tz*sin)]};
+  const p=pt(a,0),q=pt(b,0),r=pt(b,1),v=pt(a,1);
+  quad(p,q,r,v,c.map(k=>k*(.81+.19*Math.cos(a+.3))));
+ }
+}
+function organicRock(x,z,seed=0,scale=1){
+ const stone=['#929487','#777b77','#a4a397','#7e8276'][seed%4],rx=.45*scale,rz=.53*scale;
+ organicBall(x,.12*scale,z,rx,.34*scale,rz,stone,seed,11,5);
+ organicBall(x+.12*scale,.15*scale,z-.08*scale,.24*scale,.20*scale,.30*scale,'#777f73',seed+3,9,5);
+}
+function shrub(x,z,seed=0,scale=1){
+ const c=['#45654a','#526b4c','#6b815a','#536f58'][seed%4];
+ for(let i=0;i<5;i++){
+  const a=(i*2.4+seed)*2.3999,rad=.21+.11*(i%2);
+  organicBall(x+Math.sin(a)*rad*scale,.26*scale+(.09*i%3)*scale,z+Math.cos(a)*rad*scale,.36*scale,.34*scale,.34*scale,c,seed+i,9,5);
+ }
+}
+function tree(x,z,seed){
+ const h=5.2+(seed%7)*.27,sc=.80+(seed%5)*.07;
+ branchTube(x,0,z,x+.08,h*.72,z+.04,.24*sc,.12*sc,'#594a39',10);
+ for(let j=0;j<7;j++){
+  const a=seed*1.7+j*2.3999632,height=1.65+j*.43,spread=(1.38-j*.11)*sc;
+  const bx=x+Math.cos(a)*spread,bz=z+Math.sin(a)*spread;
+  branchTube(x,height,z,bx,height-.17,bz,.085*sc,.035*sc,'#574c38',7);
+  organicBall(bx,height+.26,bz,.59*sc,.81*sc,.55*sc,j%3?'#365b45':'#527556',seed+j,11,7);
+ }
+ organicBall(x+.05,h-.25,z,.76*sc,1.16*sc,.72*sc,'#486a4e',seed,13,8);
 }
 function lantern(x,z,seed){box(x,.8,z,.12,1.6,.12,'#554838');box(x,1.66,z,.28,.28,.28,'#edb877');cone(x,1.88,z,.20,.23,'#594e43');}
 function hash(x,z){let v=Math.sin(x*127.1+z*311.7)*43758.5453;return v-Math.floor(v)}
