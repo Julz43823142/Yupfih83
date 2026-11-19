@@ -128,7 +128,7 @@ test('Babylon prison preview is admin-gated, in English, and supports jumping',(
  assert.ok(prison.includes('new BABYLON.Engine'));
  assert.ok(prison.includes('jumpVelocity=5.5'));
  assert.ok(prison.includes('jumpVelocity-=15.2*dt'));
- assert.ok(prison.includes('Sleeping royal guard'));
+ assert.ok(prison.includes('sleeping chess rook pivot'));
  assert.ok(prison.includes('neighbor cell forged bars'));
  assert.ok(preview.includes('Space jump'));
  assert.ok(preview.includes('WASD move'));
