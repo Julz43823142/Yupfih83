@@ -1,9 +1,9 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
-let engine,scene,camera,active=false,paused=true,dialogue=false,muted=false,stepClock=0;
+let engine,scene,camera,active=false,paused=true,dialogue=false;
 const keys=new Set(),touch=new Set(),things=[],solid=[];
-let crouch=0,bob=0,lookX=0,lookY=0,lastTouch=null,storyFrame=0,readCount=0;
+let crouch=0,bob=0,lastTouch=null,storyFrame=0,readCount=0;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const seed=(n)=>{let v=Math.sin(n*127.1+22.7)*43758.5453123;return v-Math.floor(v);};
@@ -212,6 +212,19 @@ function createWorld(){
   const piece=box('fallen masonry',x,.11,z,.12+seed(i+3)*.25,.14,.15+seed(i+10)*.3,darkStone);
   piece.rotation.y=seed(i+4)*Math.PI;
  }
+ // Merge thousands of static masonry and paving blocks into a few draw calls.
+ // Visual detail remains, but the GPU sees far fewer separate meshes.
+ for(const category of ['irregular masonry stone','old stone edge','offset flagstone']){
+  const list=scene.meshes.filter(m=>m.name===category);
+  const groups=new Map();
+  for(const m of list){const name=m.material?.name||'default';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(m);}
+  for(const pieces of groups.values()){
+   for(let start=0;start<pieces.length;start+=240){
+    const batch=pieces.slice(start,start+240);
+    if(batch.length>1){try{BABYLON.Mesh.MergeMeshes(batch,true,true,undefined,false,true);}catch(e){console.warn('Static stone batching skipped',e);}}
+   }
+  }
+ }
  // Simple moody postprocessing, no huge textures downloaded.
  try{
   const pipe=new BABYLON.DefaultRenderingPipeline('prison grading',true,scene,[camera]);
@@ -260,7 +273,7 @@ function frame(){
   const strafing=Number(keys.has('d')||keys.has('arrowright')||touch.has('d'))-Number(keys.has('a')||keys.has('arrowleft')||touch.has('a'));
   const mag=Math.hypot(walking,strafing)||1,yaw=camera.rotation.y;
   const running=keys.has('shift')&&!keys.has('control');
-  const speed=(running?3.65:2.4)*(keys.has('control')?.57:1);
+  const speed=(running?3.65:2.4)*(keys.has('control') ? 0.57 : 1);
   const dx=(Math.sin(yaw)*walking+Math.cos(yaw)*strafing)*speed*dt/mag;
   const dz=(Math.cos(yaw)*walking-Math.sin(yaw)*strafing)*speed*dt/mag;
   if(!collides(camera.position.x+dx,camera.position.z))camera.position.x+=dx;
@@ -294,7 +307,6 @@ $('story-next').addEventListener('click',()=>{storyFrame++;if(storyFrame>=5)fini
 $('story-skip').addEventListener('click',finishIntro);
 $('resume').addEventListener('click',()=>pause(false));$('pause-btn').addEventListener('click',()=>pause(!paused));
 $('restart').addEventListener('click',()=>{reset();pause(true);$('pause-menu').hidden=true;$('start').hidden=false;});
-$('sound').addEventListener('click',()=>{muted=!muted;$('sound').textContent='Geluid: '+(muted?'uit':'aan');});
 $('mobile-e').addEventListener('click',interact);
 canvas.addEventListener('click',()=>{if(dialogue){interact();return;}if(active&&!paused)canvas.requestPointerLock?.();});
 document.addEventListener('mousemove',e=>{
