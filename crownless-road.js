@@ -1,11 +1,11 @@
 (()=>{
 'use strict';
-// The Crownless Road: original first-person renderer. No third-party runtime,
+// The Fallen King 2.0: original first-person renderer. No third-party runtime,
 // no installs, and a separate save from The Fallen King.
 const $=id=>document.getElementById(id),gate=$('gate'),canvas=$('view');
 let gl,program,buffer,u={},stage='cell',world,px=12.5,pz=9.5,yaw=0,pitch=0,last=0,paused=false,muted=false,dialogue=null,dialogIndex=0,nearby=null,frames=0;
 const keys=new Set(),touch=new Set(),state={watchKey:false,bridge:false,metMerrick:false};
-let ac=null,lastFoot=0;
+let ac=null,lastFoot=0,jumpY=0,jumpSpeed=0,crouch=0,menuOpen=false,storyFrame=0;
 const label={cell:'The Prison',sewer:'The Underground Sewers',forest:'The Willowmere Woods',watchtower:'The Old Watchtower',village:'Willowmere Village'};
 const objective={cell:'Find the loose grate in your cell and escape.',sewer:'Follow the winding waterways to the iron ladder.',forest:'Follow the old road. Seek the watchtower key to pass the east gate.',watchtower:'Examine the locked chest and take the barrier key.',village:'Find Merrick, speak with the villagers, and repair the bridge.'};
 const palette={
@@ -16,7 +16,7 @@ const palette={
  village:{sky:[.93,.59,.37],fog:[.88,.58,.45],ground:'#6d7957',wall:'#8c8873',path:'#b5a084',leaf:'#4f7050',trunk:'#735440',light:'#f8ca84'}
 };
 const toRGB=hex=>[1,3,5].map(n=>parseInt(hex.slice(n,n+2),16)/255);
-function create(w,h,fill){return {w,h,tiles:Array.from({length:h},(_,z)=>Array.from({length:w},(_,x)=>x===0||z===0||x===w-1||z===h-1?'H':fill)),features:[],npcs:[],spawn:[3.5,5.5]};}
+function create(w,h,fill){return {w,h,tiles:Array.from({length:h},(_,z)=>Array.from({length:w},(_,x)=>x===0||z===0||x===w-1||z===h-1?'H':fill)),features:[],npcs:[],solids:[],spawn:[3.5,5.5]};}
 function fill(w,x,z,c){if(x>0&&z>0&&x<w.w-1&&z<w.h-1)w.tiles[z][x]=c;}
 function road(w,route,r=1){for(let n=1;n<route.length;n++){let [x,z]=route[n-1], [tx,tz]=route[n];while(true){for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++)fill(w,x+dx,z+dz,'p');if(x===tx&&z===tz)break;x+=Math.sign(tx-x);z+=Math.sign(tz-z);}}}
 function buildStage(name){
@@ -25,8 +25,13 @@ function buildStage(name){
   w=create(25,16,'H');for(let z=1;z<=13;z++)for(let x=1;x<=23;x++)fill(w,x,z,'s');
   for(let x=1;x<=23;x++)fill(w,x,5,'H');
   for(let z=5;z<=13;z++)for(const x of [6,18])fill(w,x,z,'H');
+  // The two neighbouring cells are visible through iron-barred side windows.
+  // Oliver's cell has a cot, a loose drain, and sleeping prisoners next door.
+  w.solids.push({x:11.5,z:11.5,w:2.25,d:1.55},{x:15.5,z:10.5,w:1.0,d:1.0});
   w.spawn=[12.5,9.5];w.features=[{x:15.5,z:10.5,type:'drain',name:'Loose prison grate',text:['The toilet drain is open. I can squeeze into the sewers.'],next:'sewer'}];
-  w.npcs=[{x:10.5,z:3.5,name:'Royal Guard',lines:['Edwin is king now. Those were the orders.','No one leaves this cell block.']}];
+  w.npcs=[{x:10.5,z:3.5,name:'Royal Guard',lines:['Edwin is king now. Those were the orders.','No one leaves this cell block.']},
+   {x:3.2,z:10.5,name:'Sleeping Prisoner',sleeping:true,lines:['The prisoner sleeps fitfully beneath a threadbare blanket.']},
+   {x:21.5,z:10.5,name:'Exhausted Prisoner',sleeping:true,lines:['A prisoner sleeps beyond the iron bars.']}];
  }else if(name==='sewer'){
   w=create(84,53,'H');const route=[[3,25],[6,25],[18,25],[18,10],[32,10],[32,38],[49,38],[49,13],[64,13],[64,25],[76,25]];
   road(w,route,2);
@@ -40,12 +45,16 @@ function buildStage(name){
   for(let z=3;z<=7;z++)for(let x=25;x<=29;x++)fill(w,x,z,'H');
   fill(w,27,7,'D');for(let z=8;z<=11;z++)for(let x=26;x<=28;x++)fill(w,x,z,'p');
   for(let z=7;z<=10;z++)for(let x=31;x<=34;x++)fill(w,x,z,'p');
-  w.spawn=[4.5,12.5];w.features=[{x:27.5,z:8.5,type:'door',name:'Watchtower door',text:['The old watchtower stands above the forest road.'],next:'watchtower'},
+  w.spawn=[4.5,12.5];
+  w.solids.push({x:9.5,z:13.5,w:2.6,d:.45},...[ [7,9],[13,10],[19,10],[24,12],[30,9] ].map(([x,z])=>({x,z,w:.26,d:.26})));
+  w.features=[{x:27.5,z:8.5,type:'door',name:'Watchtower door',text:['The old watchtower stands above the forest road.'],next:'watchtower'},
    {x:33.0,z:8.5,type:'gate',name:'Eastern forest gate',text:['The barrier opens. Willowmere is just beyond the trees.'],next:'village',locked:()=>!state.watchKey,lockText:'The gate is locked. The key is inside the watchtower.'}];
   w.npcs=[{x:13.5,z:7.5,name:'Travelling Bishop',lines:['A king? In these muddy woods? You must be joking.','Take the eastern path if you are looking for Willowmere.']},{x:21.5,z:13.5,name:'Old Woodcutter',lines:['King Oliver? I have seen the king in the castle, stranger.','Follow the lanterns. Willowmere is not far.']},{x:24.5,z:9.5,name:'Gatekeeper Rowan',lines:['The key is inside the watchtower. Enter through the door.']}];
  }else if(name==='watchtower'){
   w=create(17,14,'s');for(let x=1;x<16;x++){fill(w,x,1,'H');fill(w,x,12,'H');}for(let z=1;z<13;z++){fill(w,1,z,'H');fill(w,15,z,'H');}
-  fill(w,8,12,'D');w.spawn=[8.5,10.5];w.features=[{x:8.5,z:4.5,type:'chest',name:'Locked barrier chest',text:['The old lock yields. Inside lies the barrier key.'],action:()=>{state.watchKey=true;objective.forest='The barrier key is yours. Return to the eastern forest gate.'}},
+  fill(w,8,12,'D');w.spawn=[8.5,10.5];
+  w.solids.push({x:8.5,z:4.5,w:2.54,d:1.8},...[ [4,8],[13,6],[4,10] ].map(([x,z])=>({x,z,w:1.5,d:1.5})));
+  w.features=[{x:8.5,z:4.5,type:'chest',name:'Locked barrier chest',text:['The old lock yields. Inside lies the barrier key.'],action:()=>{state.watchKey=true;objective.forest='The barrier key is yours. Return to the eastern forest gate.'}},
    {x:8.5,z:11.5,type:'door',name:'Watchtower exit',text:['I step outside into the pine-scented air.'],next:'forest'}];
   w.npcs=[{x:5.5,z:6.5,name:'Tower Keeper',lines:['The barrier key is locked in that chest.','I cannot open it. Perhaps you can solve the old lock.']}];
  }else{
@@ -55,6 +64,9 @@ function buildStage(name){
   const houses=[[13,23,7,6],[30,19,8,7],[43,30,8,7],[17,8,8,6],[40,9,10,7]];
   for(const [hx,hz,ww,hh] of houses)for(let z=hz;z<hz+hh;z++)for(let x=hx;x<hx+ww;x++)fill(w,x,z,'H');
   w.houses=houses;w.spawn=[26.5,30.5];
+  // River has a real physical barrier. Only the completed bridge can cross it.
+  for(let z=3;z<40;z++)for(let x=46;x<=48;x++)if(w.tiles[z][x]!=='H')fill(w,x,z,'w');
+  w.solids.push(...[ [45.1,19.5],[49.9,19.5] ].map(([x,z])=>({x,z,w:.55,d:1.6})));
   w.npcs=[{x:21.5,z:28.5,name:'Merrick the Bishop',lines:['You claim to be Oliver? The king is already in the castle.','If you truly wish to help Willowmere, find timber and ropes for our bridge.'],action:()=>{state.metMerrick=true}},
    {x:33.5,z:31.5,name:'Willowmere Carpenter',lines:['The bridge needs timber. The woodcutters have some spare beams.']},
    {x:38.5,z:25.5,name:'Village Merchant',lines:['Ropes and nails are ready. We only need the king to give the order.']}];
@@ -62,7 +74,7 @@ function buildStage(name){
  }
  return w;
 }
-function beginScene(name,spawn){stage=name;world=buildStage(name);[px,pz]=spawn||world.spawn;yaw=name==='cell'?0:-1.3;pitch=0;nearby=null;dialogue=null;$('caption').hidden=true;buildGeometry();$('area').textContent=label[name];$('objective').textContent=objective[name];try{sessionStorage.setItem('crownless-stage',name)}catch{}}
+function beginScene(name,spawn){stage=name;world=buildStage(name);[px,pz]=spawn||world.spawn;yaw=name==='cell'?0:-1.3;pitch=0;jumpY=0;jumpSpeed=0;crouch=0;nearby=null;dialogue=null;$('caption').hidden=true;buildGeometry();$('area').textContent=label[name];$('objective').textContent=objective[name];try{sessionStorage.setItem('crownless-stage',name)}catch{}}
 function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
 function setupGL(){
  gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'})||canvas.getContext('experimental-webgl');
