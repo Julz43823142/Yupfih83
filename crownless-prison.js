@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
 let engine,scene,camera,active=false,paused=true,dialogue=false;
 const keys=new Set(),touch=new Set(),things=[],solid=[];
-let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0,sleepIndicator=null;
+let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0,sleepIndicator=null,ignorePointerExit=false;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const seed=(n)=>{let v=Math.sin(n*127.1+22.7)*43758.5453123;return v-Math.floor(v);};
@@ -18,7 +18,7 @@ async function auth(){
  try{
   const res=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});
   if(!res.ok){gate.textContent=res.status===401?'Sign in to access the admin preview.':res.status===403?'Only EloScanner administrators can access this preview.':'Administrator verification is currently unavailable.';return;}
-  const d=await res.json();if(!Array.isArray(d.tiles)||!d.width)throw Error('Ongeldig administratorantwoord');
+  const d=await res.json();if(!Array.isArray(d.tiles)||!d.width)throw Error('Invalid administrator response');
   if(!window.BABYLON){gate.textContent='The 3D engine could not load. Check your connection.';return;}
   createWorld();gate.hidden=true;$('game').hidden=false;engine.resize();requestAnimationFrame(()=>engine.resize());engine.runRenderLoop(frame);window.addEventListener('resize',()=>engine.resize());document.addEventListener('fullscreenchange',()=>requestAnimationFrame(()=>engine.resize()));
  }catch(e){console.error('Prison preview startup failed',e);gate.textContent='Could not start the prison: '+e.message;}
@@ -64,10 +64,10 @@ function createWorld(){
  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:true});
  engine.setHardwareScalingLevel(Math.max(1,Math.min(1.6,(devicePixelRatio||1)/1.35)));
  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.045,.056,.068,1);
- scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.022;scene.fogColor=BABYLON.Color3.FromHexString('#151b20');
+ scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.029;scene.fogColor=BABYLON.Color3.FromHexString('#151b20');
  scene.environmentIntensity=.42;
  camera=new BABYLON.UniversalCamera('Oliver camera',V(0,1.65,2.2),scene);
- camera.fov=1.17;camera.minZ=.045;camera.maxZ=80;camera.rotation.set(0,Math.PI,0);
+ camera.fov=1.10;camera.minZ=.045;camera.maxZ=85;camera.rotation.set(0,Math.PI,0);
  scene.activeCamera=camera;
  const hemi=new BABYLON.HemisphericLight('cold ambient',V(.2,1,.4),scene);
  hemi.intensity=.42;hemi.diffuse=BABYLON.Color3.FromHexString('#aebaca');hemi.groundColor=BABYLON.Color3.FromHexString('#343539');
@@ -103,22 +103,94 @@ function createWorld(){
   box('neighbor flagstone floor',side*8.48,-.17,-.16,4.8,.3,9.0,floorMat);
   box('neighbor back wall',side*10.73,2.2,-.16,.45,4.8,9.1,stone);
   box('neighbor end wall',side*8.43,2.2,4.30,4.8,4.8,.43,stone);
-  box('neighbor rear wall',side*8.43,2.2,-4.6,4.8,4.8,.43,stone);
+  // Each adjoining cell has its own barred doorway facing the main hall.
+  box('neighbor entrance lintel',side*8.43,4.06,-4.6,4.8,1.06,.43,stone);
+  box('neighbor entrance sill',side*8.43,.22,-4.6,4.8,.44,.43,darkStone);
+  for(let index=0;index<10;index++){
+   const bx=side*(6.25+index*.47);
+   box('neighbor entrance prison bars',bx,2.18,-4.6,.075,3.5,.09,iron);
+  }
+  for(const y of [1.2,3.14])box('neighbor cell gate bracing',side*8.43,y,-4.5,4.66,.10,.16,iron);
+  for(const bx of [side*6.06,side*10.66])box('neighbor entrance dressed stone',bx,2.18,-4.54,.35,3.70,.35,darkStone);
+  box('neighbor swinging gate edge',side*8.6,2.1,-4.43,.18,3.5,.22,rust);
+  box('neighbor iron lock',side*7.8,1.5,-4.3,.3,.33,.25,iron);
   box('neighbor ceiling',side*8.43,4.65,-.16,4.8,.3,9.1,darkStone);
   // Solid posts and bars are structural: the player cannot walk through them.
   solid.push({x:side*5.79,z:-3.6,w:.38,d:2.1},{x:side*5.79,z:3.1,w:.38,d:2.1});
   box('neighbor cot',side*8.58,.44,1.57,1.7,.31,2.8,woodDark);
   box('neighbor mattress',side*8.58,.69,1.57,1.46,.2,2.45,linen);
   box('neighbor blanket',side*8.58,.83,2.03,1.43,.06,1.25,cloth);
+  // Imprisoned Aldemar chess piece, a silent PAWN in the left-hand cell.
+  if(side===-1){
+   const pawnMaterial=mat('prisoner weathered ivory','#9c9888',.91,.03);
+   const pawnCollar=mat('prisoner worn metal','#716958',.85,.17);
+   const px=-8.65,pz=-.85;
+   cylinder('left cell pawn foot',px,.17,pz,.52,.24,pawnCollar,28);
+   cylinder('left cell pawn beveled base',px,.35,pz,.43,.22,pawnMaterial,28);
+   cylinder('left cell pawn body',px,.88,pz,.28,.97,pawnMaterial,30);
+   cylinder('left cell pawn neck',px,1.36,pz,.23,.18,pawnCollar,26);
+   sphere('left prisoner pawn head',px,1.84,pz,.81,pawnMaterial);
+   const cuffs=BABYLON.MeshBuilder.CreateTorus('left prisoner rusted neck ring',{diameter:.46,thickness:.05,tessellation:26},scene);
+   cuffs.position.set(px,1.42,pz);cuffs.material=iron;
+   box('left cell pawn dark chalk mark',px,2.35,4.13,.9,.12,.05,darkStone);
+   register('Prisoner in the left cell','A lonely pawn from Aldemar sits in the next cell. They have been imprisoned since Edwin seized the throne.',-5.65,-.9,1.75);
+  }
   const lit=new BABYLON.PointLight('dim neighboring cell',V(side*8.2,2.75,-1.5),scene);
   lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
  }
- // A genuine recessed door opening, not a wooden door drawn over an intact wall.
- box('corridor far wall left',-5.15,2.25,-9.2,2.20,4.8,.65,stone);
- box('corridor far wall right',2.11,2.25,-9.2,8.28,4.8,.65,stone);
- box('corridor wall above doorway',-3.05,3.91,-9.2,2.04,1.50,.65,stone);
- box('corridor wall below doorway',-3.05,.10,-9.2,2.04,.20,.65,stone);
- for(const side of [-1,1])box('corridor side enclosure',side*6.05,2.18,-6.84,.55,4.65,4.75,stone);
+ // A long central prison hallway with visible cells fading into atmospheric haze.
+ const hallEnd=-38, hallLength=33.5, hallCenter=-21.15;
+ box('long prison corridor flagstone floor',0,-.22,hallCenter,24.0,.4,hallLength,floorMat);
+ box('long prison hall vaulted ceiling',0,4.7,hallCenter,24.0,.48,hallLength,darkStone);
+ box('distant prison end wall',0,2.2,-38.18,24.0,4.8,.48,stone);
+ const hallLeft=mat('hall rough stone','#96938a'),hallInset=mat('hall door shadow','#31393a');
+ hallLeft.albedoTexture=stone.albedoTexture;
+ // The corridor continues well beyond Oliver's cell; paired cells line its sides.
+ for(const side of [-1,1]){
+  box('outer prison hall wall',side*12.15,2.25,-22.2,.55,4.85,31.8,hallLeft);
+  box('hall side upper vault edge',side*7.55,4.38,-22.1,8.7,.38,31.8,darkStone);
+  // Keep the near entrances open to the adjoining cells.
+  for(let bay=0;bay<5;bay++){
+   const z=-11.5-bay*5.65;
+   for(const [x,w] of [[side*7.7,3.0]]){
+    box('hall cell door shadow',x,1.83,z,.06,3.3,3.28,hallInset);
+    // A real barred gate framed in textured stone, not a flat wall.
+    for(let j=0;j<7;j++){
+     const bz=z-1.26+j*.42;
+     box('repeated barred hall cell',x,2.13,bz,.11,3.23,.085,iron);
+    }
+    box('repeated hall gate upper rail',x,3.35,z,.13,.14,3.22,rust);
+    box('repeated hall gate lower rail',x,1.1,z,.13,.14,3.22,rust);
+    for(const zz of [z-1.65,z+1.65])box('distant cell stone doorway jamb',x,2.08,zz,.44,4.03,.39,stone);
+    cylinder('old cell padlock',x,1.42,z+.90,.15,.23,rust,12);
+   }
+   box('hall buttress left',side*11.66,2.2,z-2.45,.52,4.43,.62,darkStone);
+  }
+ }
+ for(let i=0;i<8;i++){
+  const z=-8.6-i*3.8;
+  box('prison corridor roof beam',0,4.4,z,23.1,.39,.46,darkStone);
+ }
+ // Repeated lanterns create a warm vanishing point without too many lights.
+ for(let i=0;i<7;i++){
+  const z=-10-i*3.7;
+  cylinder('hall lantern iron hook',0,3.75,z,.06,.68,iron,8);
+  sphere('hall lantern glazed housing',0,3.35,z,.27,mat('lantern amber glass '+i,'#b67b42',.4,.05,'#4b2407'));
+  for(let a=0;a<4;a++){
+   const angle=a*Math.PI/2;
+   box('hall lantern framing',Math.cos(angle)*.17,3.3,z+Math.sin(angle)*.17,.04,.47,.04,iron);
+  }
+  if(i===0||i===3||i===6){
+   const light=new BABYLON.PointLight('hall gas lamp '+i,V(0,3.2,z),scene);
+   light.intensity=i===0?4:2.4;light.range=10;light.diffuse=BABYLON.Color3.FromHexString('#c89967');
+  }
+ }
+ // Door at the far end of the hall, inset between stone piers.
+ box('distant prison hall exit',0,1.57,-37.82,2.15,3.1,.13,woodDark);
+ for(const xx of [-.87,-.44,0,.44,.87])box('far door oak planks',xx,1.54,-37.7,.39,3.0,.06,wood);
+ for(const yy of [.8,2.45])box('distant exit iron straps',0,yy,-37.62,2.1,.10,.13,iron);
+ box('distant exit stone arch',0,3.43,-37.58,2.55,.48,.4,darkStone);
+ 
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
  box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
@@ -129,7 +201,16 @@ function createWorld(){
  for(let y of [1.12,3.27])box('forged crossbar',0,y,-4.49,12,.115,.13,iron);
  box('main gate frame left',-1.55,2.15,-4.42,.17,3.8,.18,rust);
  box('main gate frame right',1.55,2.15,-4.42,.17,3.8,.18,rust);
- box('gate lockbox',1.53,1.37,-4.26,.32,.35,.27,iron);
+ // Architectural frame, riveted hinges and a heavy double-leaf gate.
+ for(const x of [-1.58,1.58]){
+  box('decorative gate stone post',x,2.13,-4.34,.33,3.82,.46,darkStone);
+  for(const y of [1.12,2.15,3.25]){
+   cylinder('gate forged hinge pin',x,y,-4.18,.11,.21,rust,12);
+  }
+ }
+ box('gate central ornamental seam',0,2.18,-4.28,.065,3.5,.12,rust);
+ for(const x of [-.95,.95])for(const y of [1.2,2.98])sphere('gate iron rivet',x,y,-4.21,.13,rust);
+ box('gate lockbox',1.53,1.37,-4.11,.32,.35,.27,iron);
  cylinder('keyhole',1.53,1.36,-4.1,.037,.04,water);
  register('Locked cell gate','The iron gate is locked. Edwin ordered the guards never to let the real king leave.',0,-4.5,2.5);
  // Wall masonry: uneven relief stones and mortar courses create visual texture.
@@ -140,8 +221,8 @@ function createWorld(){
    let p;
    if(side==='rear'||side==='far'){
     const x=-5.9+col*.47+offset,y=.14+row*.37;
-    if(side==='far'&&x>-4.17&&x<-1.93&&y<3.25)continue; // do not draw stone patches across the doorway
-    p=box('irregular masonry stone',x,y,side==='rear'?4.214:-8.848,.43+noise*.04,.345,.045+noise*.06,brick);
+    if(side==='far')continue; // the original short-hall end was replaced by a long corridor
+    p=box('irregular masonry stone',x,y,4.214,.43+noise*.04,.345,.045+noise*.06,brick);
    }else{
     const z=-8.7+col*.51+offset,y=.14+row*.37;
     if(z> -2.4&&z<2.25&&y>.98&&y<3.35)continue;
@@ -198,14 +279,11 @@ function createWorld(){
  for(let i=-2;i<=2;i++)box('steel grate slat',2.48+i*.2,.12,1.16,.065,.08,1.1,iron);
  for(let i=-2;i<=2;i++)box('cross brace',2.48,.128,1.16+i*.21,1.11,.046,.045,rust);
  register('Loose drain grate','Water echoes below the iron grate. Oliver may escape through here one day—but this preview contains only the prison.',2.48,1.16,2);
- // Wooden door recess and storeroom in corridor.
- box('corridor arch lintel',-3.05,3.38,-8.82,2.26,.34,.36,darkStone);
- box('storeroom jamb left',-4.03,1.66,-8.82,.24,3.30,.35,darkStone);
- box('storeroom jamb right',-2.07,1.66,-8.82,.24,3.30,.35,darkStone);
- box('locked storeroom door',-3.05,1.62,-8.77,1.72,2.99,.14,woodDark);
- for(let i=-1;i<=1;i++)box('recessed oak planking',-3.05+i*.51,1.61,-8.660,.45,2.86,.055,wood);
- for(let y of [.58,2.54])box('door iron brace',-3.05,y,-8.585,1.68,.12,.115,iron);
- sphere('door handle',-2.46,1.43,-8.46,.13,rust);
+ // The long gallery replaces the obsolete storeroom at the old corridor endpoint.
+ // Extra guards' equipment in the corridor gives the scene a lived-in history.
+ cylinder('discarded steel helmet',2.6,.15,-7.9,.27,.24,iron,16);
+ box('guard duty ledger',2.1,.06,-7.4,.52,.075,.34,paper);
+ box('guard dropped torch',-3.4,.10,-7.7,.09,.11,.85,wood);
  // Aldemar's guards are chess pieces. A dozing ROOK lies on the wooden guard bench.
  // All shapes are authored directly using Babylon meshes: no AI or generated-image assets.
  const rookStone=mat('rook armour ceramic','#6b7780',.83,.12);
