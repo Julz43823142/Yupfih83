@@ -15,7 +15,7 @@ test('Crownless Road is a separate first-person WebGL adventure with valid JavaS
  assert.match(game,/requestPointerLock/);
  assert.match(game,/mousemove/);
  assert.match(page,/The Fallen King 2\.0/);
- assert.match(page,/crownless-road\.js\?v=3/);
+ assert.match(page,/crownless-road\.js\?v=4/);
 });
 test('Crownless Road is admin gated through the same protected API as Fallen King',()=>{
  assert.match(game,/fetch\('\/api\/fallen-king\/world',\{credentials:'same-origin',cache:'no-store'\}\)/);
@@ -37,12 +37,14 @@ test('spare coming soon slot contains only Coming soon in its description',()=>{
  assert.match(hub,/The Fallen King/);
 });
 
-test('original Fallen King story beats are rendered in a new cinematic visual style',()=>{
+test('the five original Fallen King intro images are restored while first-person art stays distinct',()=>{
  assert.match(page,/id="story-art"/);
  assert.match(page,/id="story-scene"/);
  assert.match(page,/id="story-heading"/);
  assert.match(page,/id="story-line"/);
- assert.doesNotMatch(page,/\/assets\/fallen-king-intro\/intro-/);
+ assert.match(page,/id="story-image"/);
+ assert.match(page,/\/assets\/fallen-king-intro\/intro-1\.png/);
+ assert.match(game,/\/assets\/fallen-king-intro\/intro-/);
  assert.match(game,/const originalStory=/);
  assert.match(game,/Edwin, now posing as the king/);
  assert.match(game,/storyFrame>=5/);
@@ -86,4 +88,18 @@ test('high-resolution physically lit first-person renderer and rich environmenta
  assert.match(game,/Heavy cross-braces/);
  assert.match(game,/Sloped roof silhouette/);
  assert.match(page,/id="story-scene"/);
+});
+
+test('non-block terrain is replaced by rounded organic geometry and sunset sky',()=>{
+ assert.match(game,/function organicBall\(/);
+ assert.match(game,/function branchTube\(/);
+ assert.match(game,/function shrub\(/);
+ assert.match(game,/function organicRock\(/);
+ assert.match(game,/function paintSky\(/);
+ assert.match(game,/skyProgram=gl\.createProgram/);
+ assert.match(game,/function tree\(x,z,seed\)/);
+ assert.doesNotMatch(game,/function tree\(x,z,seed\)\{const size=/);
+ assert.match(game,/Genuine sloped roof planes/);
+ assert.match(game,/Full porcelain toilet/);
+ assert.match(game,/Articulated human silhouettes/);
 });
