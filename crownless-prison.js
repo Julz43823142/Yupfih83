@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
 let engine,scene,camera,active=false,paused=true,dialogue=false;
 const keys=new Set(),touch=new Set(),things=[],solid=[];
-let crouch=0,bob=0,lastTouch=null,storyFrame=0,readCount=0;
+let crouch=0,bob=0,jumpHeight=0,jumpVelocity=0,lastTouch=null,storyFrame=0,readCount=0;
 const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const seed=(n)=>{let v=Math.sin(n*127.1+22.7)*43758.5453123;return v-Math.floor(v);};
@@ -17,11 +17,11 @@ const intro=[
 async function auth(){
  try{
   const res=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});
-  if(!res.ok){gate.textContent=res.status===401?'Log eerst in om de adminpreview te bekijken.':res.status===403?'Alleen EloScanner-administrators hebben toegang.':'De administratorcontrole is momenteel niet beschikbaar.';return;}
+  if(!res.ok){gate.textContent=res.status===401?'Sign in to access the admin preview.':res.status===403?'Only EloScanner administrators can access this preview.':'Administrator verification is currently unavailable.';return;}
   const d=await res.json();if(!Array.isArray(d.tiles)||!d.width)throw Error('Ongeldig administratorantwoord');
-  if(!window.BABYLON){gate.textContent='De 3D-engine kon niet worden geladen. Controleer je internetverbinding.';return;}
-  createWorld();gate.hidden=true;$('game').hidden=false;engine.runRenderLoop(frame);window.addEventListener('resize',()=>engine.resize());
- }catch(e){console.error('Prison preview startup failed',e);gate.textContent='Starten mislukt: '+e.message;}
+  if(!window.BABYLON){gate.textContent='The 3D engine could not load. Check your connection.';return;}
+  createWorld();gate.hidden=true;$('game').hidden=false;engine.resize();requestAnimationFrame(()=>engine.resize());engine.runRenderLoop(frame);window.addEventListener('resize',()=>engine.resize());document.addEventListener('fullscreenchange',()=>requestAnimationFrame(()=>engine.resize()));
+ }catch(e){console.error('Prison preview startup failed',e);gate.textContent='Could not start the prison: '+e.message;}
 }
 function texture(name,base,detail=1){
  const t=new BABYLON.DynamicTexture(name,{width:256,height:256},scene,false);
@@ -71,10 +71,10 @@ function createWorld(){
  scene.activeCamera=camera;
  const hemi=new BABYLON.HemisphericLight('cold ambient',V(.2,1,.4),scene);
  hemi.intensity=.42;hemi.diffuse=BABYLON.Color3.FromHexString('#aebaca');hemi.groundColor=BABYLON.Color3.FromHexString('#343539');
- const fire=new BABYLON.PointLight('torch amber',V(1.4,3,-2.85),scene);fire.intensity=30;fire.range=10;fire.diffuse=BABYLON.Color3.FromHexString('#ffb36b');
- const moon=new BABYLON.PointLight('cold moonlight',V(-4.9,3.9,3.7),scene);moon.intensity=18;moon.range=9;moon.diffuse=BABYLON.Color3.FromHexString('#7995b5');
- const bounce=new BABYLON.PointLight('corridor spill',V(0,2.6,-6.2),scene);bounce.intensity=19;bounce.range=11;bounce.diffuse=BABYLON.Color3.FromHexString('#e0a86d');
- scene.onBeforeRenderObservable.add(()=>{fire.intensity=29+Math.sin(performance.now()*.009)*1.6+Math.sin(performance.now()*.017)*1.3;});
+ const fire=new BABYLON.PointLight('torch amber',V(1.4,3,-2.85),scene);fire.intensity=15;fire.range=10;fire.diffuse=BABYLON.Color3.FromHexString('#ffb36b');
+ const moon=new BABYLON.PointLight('cold moonlight',V(-4.9,3.9,3.7),scene);moon.intensity=7.5;moon.range=9;moon.diffuse=BABYLON.Color3.FromHexString('#7995b5');
+ const bounce=new BABYLON.PointLight('corridor spill',V(0,2.6,-6.2),scene);bounce.intensity=7;bounce.range=11;bounce.diffuse=BABYLON.Color3.FromHexString('#e0a86d');
+ scene.onBeforeRenderObservable.add(()=>{fire.intensity=15+Math.sin(performance.now()*.009)*.8+Math.sin(performance.now()*.017)*.7;});
  const stone=mat('limestone','#a1a4a0'),darkStone=mat('stone seams','#74756d'),floorMat=mat('worn slate','#a3a09a'),brick=mat('hand dressed limestone','#97938c');
  const wood=mat('old oak','#8e6a4b'),woodDark=mat('weathered oak','#604734'),iron=mat('black wrought iron','#596068',.68,.7),rust=mat('rusty steel','#88644d',.87,.45);
  const linen=mat('dirty wool','#b0a48e'),straw=mat('dry straw','#c7a36b'),cloth=mat('washed blanket','#58636b'),water=mat('drain darkness','#17272a',.21,.08);
@@ -86,8 +86,27 @@ function createWorld(){
  box('stone pavement',0,-.22,.2,12.5,.4,19,floorMat);
  box('vault ceiling',0,4.7,.2,12.5,.48,19,darkStone);
  box('rear stone wall',0,2.2,4.55,12.5,4.8,.6,stone);
- box('left old wall',-6.05,2.2,.15,.55,4.8,19,stone);
- box('right old wall',6.05,2.2,.15,.55,4.8,19,stone);
+ // Side openings look into real adjacent cells, never into painted fake windows.
+ for(const side of [-1,1]){
+  const x=side*6.05;
+  box('cell side lower masonry',x,.48,-.1,.55,1.0,9.3,stone);
+  box('cell side upper masonry',x,3.83,-.1,.55,1.75,9.3,stone);
+  for(const z of [-3.6,3.1])box('side arch pier',x,2.15,z,.57,2.75,2.4,stone);
+  for(let z=-2.12;z<=1.77;z+=.37)box('neighbor cell forged bars',x,2.18,z,.11,2.36,.08,iron);
+  box('neighbor cell top rail',x,3.24,-.16,.12,.12,4.4,iron);
+  box('neighbor cell bottom rail',x,1.12,-.16,.12,.12,4.4,iron);
+  // The adjacent cell extends behind the bars and is illuminated separately.
+  box('neighbor flagstone floor',side*8.48,-.17,-.16,4.8,.3,9.0,floorMat);
+  box('neighbor back wall',side*10.73,2.2,-.16,.45,4.8,9.1,stone);
+  box('neighbor end wall',side*8.43,2.2,4.30,4.8,4.8,.43,stone);
+  box('neighbor rear wall',side*8.43,2.2,-4.6,4.8,4.8,.43,stone);
+  box('neighbor ceiling',side*8.43,4.65,-.16,4.8,.3,9.1,darkStone);
+  box('neighbor cot',side*8.58,.44,1.57,1.7,.31,2.8,woodDark);
+  box('neighbor mattress',side*8.58,.69,1.57,1.46,.2,2.45,linen);
+  box('neighbor blanket',side*8.58,.83,2.03,1.43,.06,1.25,cloth);
+  const lit=new BABYLON.PointLight('dim neighboring cell',V(side*8.2,2.75,-1.5),scene);
+  lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
+ }
  box('corridor far wall',0,2.25,-9.2,12.5,4.8,.65,stone);
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
@@ -101,7 +120,7 @@ function createWorld(){
  box('main gate frame right',1.55,2.15,-4.42,.17,3.8,.18,rust);
  box('gate lockbox',1.53,1.37,-4.26,.32,.35,.27,iron);
  cylinder('keyhole',1.53,1.36,-4.1,.037,.04,water);
- register('Gevangenisdeur','De deur zit stevig op slot. Edwin heeft gezworen dat de echte koning hier nooit meer uitkomt.',0,-4.5,2.5);
+ register('Locked cell gate','The iron gate is locked. Edwin ordered the guards never to let the real king leave.',0,-4.5,2.5);
  // Wall masonry: uneven relief stones and mortar courses create visual texture.
  for(const side of ['rear','left','right','far']){
   for(let row=0;row<12;row++)for(let col=0;col<26;col++){
@@ -113,6 +132,7 @@ function createWorld(){
     p=box('irregular masonry stone',x,y,side==='rear'?4.214:-8.848,.43+noise*.04,.345,.045+noise*.06,brick);
    }else{
     const z=-8.7+col*.51+offset,y=.14+row*.37;
+    if(z> -2.4&&z<2.25&&y>.98&&y<3.35)continue;
     p=box('old stone edge',side==='left'?-5.742:5.742,y,z,.05+noise*.05,.34,.47,brick);
    }
    if(row%3===0&&noise>.91)p.material=darkStone;
@@ -128,16 +148,29 @@ function createWorld(){
    box('wall pier',x,2.2,z,.55,4.43,.72,darkStone);
   }
  }
- // Floor paving: individual worn flagstones, not a flat color.
- for(let z=-8.65;z<4.2;z+=.92)for(let x=-5.57;x<5.6;x+=1.22){
-  const rand=seed(Math.floor((x+7)*23+(z+10)*117));
-  const p=box('offset flagstone',x+(rand-.5)*.12,.017+(rand-.5)*.007,z,.99,.035,.75,rand>.88?darkStone:floorMat);
-  p.rotation.y=(rand-.5)*.018;
+ // A continuous stone floor with subtle engraved mortar joints, rather than raised square blocks.
+ const floorTex=new BABYLON.DynamicTexture('stone flagstone floor art',{width:1024,height:1024},scene,false);
+ const fc=floorTex.getContext();fc.fillStyle='#8b8982';fc.fillRect(0,0,1024,1024);
+ let fn=0;for(let y=0;y<1024;y+=4)for(let x=0;x<1024;x+=4){
+  const q=seed(fn++*1.791);fc.fillStyle=q>.47?'rgba(203,193,170,.055)':'rgba(16,19,18,.045)';fc.fillRect(x,y,4,4);
  }
- // Water stains and wall patches.
- for(let i=0;i<18;i++){
-  const x=-5.3+seed(i*4+3)*10.6,z=4.16,y=.28+seed(i*11+4)*2.8;
-  box('damp stain',x,y,z,.25+seed(i+2)*.5,.25+seed(i+19)*.8,.022,grime);
+ for(let row=0;row<16;row++){const yy=row*64+8;
+  for(let col=0;col<12;col++){const xx=col*88-((row%2)*44)+8;
+   fc.strokeStyle='rgba(24,27,26,.28)';fc.lineWidth=3;fc.strokeRect(xx,yy,87,63);
+   fc.strokeStyle='rgba(227,214,183,.07)';fc.lineWidth=1;fc.strokeRect(xx+3,yy+3,81,57);
+  }
+ }
+ floorTex.update();floorMat.albedoTexture=floorTex;floorMat.albedoColor=BABYLON.Color3.FromHexString('#b0aca4');
+ // Faint rounded wet marks and worn patches, not floating stone slabs.
+ const dampMat=mat('worn floor stains','#565b59');dampMat.alpha=.23;
+ for(let i=0;i<12;i++){
+  const p=BABYLON.MeshBuilder.CreateDisc('subtle damp patch',{radius:.22+seed(i+9)*.49,tessellation:26,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+  p.position.set(-5.3+seed(i*8+2)*10.6,.009,-3.7+seed(i*13+3)*7.4);p.rotation.x=Math.PI/2;p.scaling.y=.4+seed(i+2)*.65;p.material=dampMat;
+ }
+ // Darkened masonry wash near floor height, using thin blended planes.
+ for(let i=0;i<10;i++){
+  const p=BABYLON.MeshBuilder.CreateDisc('damp wall discoloration',{radius:.22+seed(i+2)*.42,tessellation:18,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+  p.position.set(-5+seed(i*4+3)*10,.28+seed(i+11)*1.5,4.179);p.scaling.y=1.55;p.material=grime;
  }
  // Inmate sleeping cot: wooden frame, slats, mattress, blanket.
  const cot=box('prison bunk',-3.65,.56,1.4,2.55,.22,4.18,woodDark,true);
@@ -146,20 +179,22 @@ function createWorld(){
  box('threadbare blanket',-3.66,.89,2.14,2.17,.075,1.75,cloth);
  box('pillow',-3.65,.89,-.05,1.46,.15,.64,linen);
  for(let i=0;i<8;i++)box('bed joinery',-4.55+i*.25,.4,1.35,.12,.12,3.95,wood);
- register('Oude brits','Een dun matras en een wollen deken. Zo brengen ze hun koning de nacht door.',-3.65,1.4,2.2);
- // Latrine in rear right corner — grimy stone basin, visible iron pipe and floor drain.
- box('stone latrine platform',3.72,.32,2.95,2.15,.58,1.68,darkStone,true);
- for(const x of [3.12,4.26])box('latrine ledge',x,.67,2.95,.22,.16,1.55,stone);
- for(const z of [2.29,3.61])box('latrine rim',3.7,.66,z,1.38,.16,.18,stone);
- box('latrine darkness',3.72,.63,2.95,1.06,.01,.85,water);
- box('rusty outlet pipe',4.85,.66,3.12,.28,1.18,.32,iron);
- register('Stenen latrine','Een smerige afvoer onder de latrine. Er komt koude lucht uit het rooster, maar deze proefversie bevat alleen de gevangenis.',3.6,2.97,2.35);
+ register('Prison cot','A thin mattress and a worn wool blanket. This is how they treat their king.',-3.65,1.4,2.2);
+ // Hand-built latrine: rounded stone pedestal, dark ceramic bowl and curved rim.
+ cylinder('worn stone toilet pedestal',3.72,.34,2.95,.73,.63,darkStone,28);
+ cylinder('recessed lavatory cavity',3.72,.67,2.95,.50,.05,water,32);
+ const rim=BABYLON.MeshBuilder.CreateTorus('rounded latrine rim',{diameter:1.25,thickness:.18,tessellation:32},scene);
+ rim.position.set(3.72,.73,2.95);rim.material=stone;
+ cylinder('drain collar',3.72,.42,2.95,.39,.14,iron,28);
+ box('latrine waste pipe in wall',4.88,.47,3.22,.24,.73,.29,iron);
+ solid.push({x:3.72,z:2.95,w:1.55,d:1.55});
+ register('Old stone latrine','The filthy latrine smells of damp stone. An iron drain beneath it may hide a way out. Only the prison is playable in this preview.',3.65,2.95,2.15);
  // Crumbling grating as a story clue, but it does not transition to the sewers.
  box('loose floor grate surround',2.48,.035,1.16,1.4,.09,1.25,darkStone);
  box('drain well',2.48,.087,1.16,1.12,.025,1.02,water);
  for(let i=-2;i<=2;i++)box('steel grate slat',2.48+i*.2,.12,1.16,.065,.08,1.1,iron);
  for(let i=-2;i<=2;i++)box('cross brace',2.48,.128,1.16+i*.21,1.11,.046,.045,rust);
- register('Los rioolrooster','Onder het ijzer klinkt stromend water. Hier zou Oliver kunnen ontsnappen... maar het riool is nog niet gebouwd.',2.48,1.16,2);
+ register('Loose drain grate','Water echoes below the iron grate. Oliver may escape through here one day—but this preview contains only the prison.',2.48,1.16,2);
  // Wooden door recess and storeroom in corridor.
  box('corridor arch lintel',-4.45,3.42,-8.78,2.3,1.03,.18,darkStone);
  box('locked storeroom door',-4.45,1.68,-8.76,1.75,3.2,.14,woodDark);
@@ -192,7 +227,7 @@ function createWorld(){
  for(let x of [2.94,4.86])box('shelf bracket',x,1.95,4.05,.12,.42,.5,iron);
  box('parchment note',3.96,2.26,3.99,.83,.032,.47,paper);
  cylinder('ink bottle',4.82,2.32,3.99,.08,.21,water,12);
- register('Brief van Edwin','"Aldemar heeft geen koning Oliver meer. Niemand zal je geloven." — E.',3.92,3.46,1.85);
+ register('Edwin\'s letter','"Aldemar has no King Oliver anymore. No one will believe you." — E.',3.92,3.46,1.85);
  // Torch brackets cast warm light, with visibly glowing flame.
  function torch(x,y,z){
   box('torch wall bracket',x,y-.38,z,.14,.4,.42,iron);
@@ -205,12 +240,12 @@ function createWorld(){
  box('high stone window aperture',-2.45,3.45,4.22,1.85,1.12,.18,water);
  for(const x of [-2.95,-2.45,-1.95])box('window iron bars',x,3.48,4.085,.07,1.05,.12,iron);
  box('window stone sill',-2.45,2.82,4.0,2.18,.18,.58,stone);
- // Decorations to break up silhouettes.
- for(let i=0;i<22;i++){
+ // Small rounded rubble replaces the floating white square debris.
+ for(let i=0;i<15;i++){
   const x=-5.2+seed(i*43)*10.4,z=-3.7+seed(i*17)*7.7;
   if(Math.hypot(x+3.65,z-1.4)<1.9||Math.hypot(x-3.72,z-2.95)<1.5)continue;
-  const piece=box('fallen masonry',x,.11,z,.12+seed(i+3)*.25,.14,.15+seed(i+10)*.3,darkStone);
-  piece.rotation.y=seed(i+4)*Math.PI;
+  const p=sphere('rounded rubble stone',x,.08,z,.15+seed(i+3)*.16,darkStone);
+  p.scaling.set(1,.46,.7);
  }
  // Merge thousands of static masonry and paving blocks into a few draw calls.
  // Visual detail remains, but the GPU sees far fewer separate meshes.
@@ -229,7 +264,7 @@ function createWorld(){
  try{
   const pipe=new BABYLON.DefaultRenderingPipeline('prison grading',true,scene,[camera]);
   pipe.fxaaEnabled=true;pipe.imageProcessingEnabled=true;
-  pipe.imageProcessing.contrast=1.17;pipe.imageProcessing.exposure=1.13;
+  pipe.imageProcessing.contrast=1.19;pipe.imageProcessing.exposure=1.02;
   pipe.bloomEnabled=true;pipe.bloomThreshold=.82;pipe.bloomWeight=.17;pipe.bloomKernel=35;
  }catch(e){console.warn('Postprocessing fallback',e);}
  scene.skipPointerMovePicking=true;
