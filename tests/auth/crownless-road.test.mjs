@@ -31,8 +31,8 @@ test('The Crownless Road keeps the original prison-sewer-forest-watchtower-villa
  assert.match(game,/state\.watchKey=true/);
  assert.match(game,/state\.bridge=true/);
 });
-test('spare coming soon slot contains only Coming soon in its description',()=>{
- assert.match(hub,/href="\/crownless-road\.html"/);
+test('Fallen King 2.0 points to the new admin prison preview',()=>{
+ assert.match(hub,/href="\/crownless-prison\.html"/);
  assert.match(hub,/<h2>The Fallen King 2\.0<\/h2><p>Coming soon\.<\/p>/);
  assert.match(hub,/The Fallen King/);
 });
@@ -116,4 +116,21 @@ test('admin can teleport to every authored scene and major checkpoint without Q 
  assert.match(game,/beginScene\(stageName,destination\.position\)/);
  assert.doesNotMatch(game,/if\(keys\.has\('q'\)\)yaw/);
  assert.match(game,/ADMIN TELEPORT|Camera rotation is mouse-only/);
+});
+
+test('Babylon prison preview is admin-gated, in English, and supports jumping',()=>{
+ const preview=readFileSync(resolve(root,'crownless-prison.html'),'utf8');
+ const prison=readFileSync(resolve(root,'crownless-prison.js'),'utf8');
+ assert.doesNotThrow(()=>new Script(prison,{filename:'crownless-prison.js'}));
+ assert.ok(prison.includes("fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'})"));
+ assert.ok(preview.includes('id="game" hidden'));
+ assert.ok(preview.includes('cdn.babylonjs.com/babylon.js'));
+ assert.ok(prison.includes('new BABYLON.Engine'));
+ assert.ok(prison.includes('jumpVelocity=5.5'));
+ assert.ok(prison.includes('jumpVelocity-=15.2*dt'));
+ assert.ok(prison.includes('Sleeping royal guard'));
+ assert.ok(prison.includes('neighbor cell forged bars'));
+ assert.ok(preview.includes('Space jump'));
+ assert.ok(preview.includes('WASD move'));
+ assert.ok(preview.includes('#game{position:fixed;inset:0'));
 });
