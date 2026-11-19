@@ -196,9 +196,12 @@ function createWorld(){
    // A few restrained chess-piece silhouettes visible behind the grilles.
    if(bay%3===1){
     const pawnMat=bay%2?brick:darkStone;
-    cylinder('distant horizontal gallery pawn foot',x,.22,-11.57,.34,.21,pawnMat,16);
-    cylinder('distant horizontal gallery pawn stem',x,.80,-11.57,.23,.98,pawnMat,16);
-    sphere('distant horizontal gallery pawn head',x,1.55,-11.57,.60,pawnMat);
+    const distant=new BABYLON.TransformNode('distant animated inmate '+side+' '+bay,scene);
+    distant.position.set(x,0,-11.60);
+    const shell=sculpt('distant carved pawn silhouette',0,0,0,[[.29,.08],[.38,.18],[.31,.29],[.24,.45],[.18,.88],[.27,1.09],[.19,1.20]],pawnMat,16);
+    shell.parent=distant;
+    const head=sphere('distant prisoner head',0,1.54,0,.60,pawnMat);head.parent=distant;
+    actors.push({root:distant,x,z:-11.60,range:.28,speed:.18+bay*.013,phase:bay+side});
    }
   }
  }
@@ -400,6 +403,9 @@ function createWorld(){
   const mesh=BABYLON.MeshBuilder.CreateCylinder(name,{diameter:radius*2,height,tessellation:edges},scene);
   mesh.parent=guardRoot;mesh.position.y=y;mesh.material=material;return mesh;
  };
+ // Sculpted single-piece central body, following a chess-rook silhouette.
+ const rookBody=sculpt('turned rook tower body',0,0,0,[[.43,0],[.44,.10],[.36,.22],[.29,.42],[.22,.70],[.31,.96],[.34,1.24],[.39,1.42],[.40,1.53]],rookStone,32);
+ rookBody.parent=guardRoot;
  stack('rook foot outer lip',0,.44,.16,rookShade);
  stack('rook foot bevel',.14,.39,.15,rookTrim);
  stack('rook sturdy pedestal',.29,.32,.25,rookStone);
@@ -588,6 +594,7 @@ function frame(){
  }
  const time=performance.now()*.001;
  if(sleepIndicator)sleepIndicator.position.y=2.16+Math.sin(time*1.3)*.09;
+ guardRoot.scaling.y=1+Math.sin(time*1.7)*.012;
  if(active&&!paused&&!dialogue)for(const a of actors){
   const t=time*a.speed+a.phase;
   a.root.position.x=a.x+Math.sin(t)*a.range;
