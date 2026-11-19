@@ -1,0 +1,336 @@
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id), canvas=$('view'), gate=$('gate');
+let engine,scene,camera,active=false,paused=true,dialogue=false,muted=false,stepClock=0;
+const keys=new Set(),touch=new Set(),things=[],solid=[];
+let crouch=0,bob=0,lookX=0,lookY=0,lastTouch=null,storyFrame=0,readCount=0;
+const V=(x,y,z)=>new BABYLON.Vector3(x,y,z);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const seed=(n)=>{let v=Math.sin(n*127.1+22.7)*43758.5453123;return v-Math.floor(v);};
+const intro=[
+ ['THE KINGDOM OF ALDEMAR','Oliver ruled the peaceful kingdom of Aldemar.'],
+ ['A PEACEFUL NIGHT','One night the king slept, unaware of the betrayal.'],
+ ['THE STOLEN CROWN','Edwin crept inside and stole the royal crown.'],
+ ['THE FALSE KING','Edwin claimed the throne and called Oliver an intruder.'],
+ ['THE KING IMPRISONED','Guards dragged the true king to a prison cell.']
+];
+async function auth(){
+ try{
+  const res=await fetch('/api/fallen-king/world',{credentials:'same-origin',cache:'no-store'});
+  if(!res.ok){gate.textContent=res.status===401?'Log eerst in om de adminpreview te bekijken.':res.status===403?'Alleen EloScanner-administrators hebben toegang.':'De administratorcontrole is momenteel niet beschikbaar.';return;}
+  const d=await res.json();if(!Array.isArray(d.tiles)||!d.width)throw Error('Ongeldig administratorantwoord');
+  if(!window.BABYLON){gate.textContent='De 3D-engine kon niet worden geladen. Controleer je internetverbinding.';return;}
+  createWorld();gate.hidden=true;$('game').hidden=false;engine.runRenderLoop(frame);window.addEventListener('resize',()=>engine.resize());
+ }catch(e){console.error('Prison preview startup failed',e);gate.textContent='Starten mislukt: '+e.message;}
+}
+function texture(name,base,detail=1){
+ const t=new BABYLON.DynamicTexture(name,{width:256,height:256},scene,false);
+ const c=t.getContext();c.fillStyle=base;c.fillRect(0,0,256,256);
+ let n=0;for(let y=0;y<256;y+=3)for(let x=0;x<256;x+=3){
+   const r=seed(++n*17+name.length*13),value=Math.floor((r-.5)*42*detail);
+   c.fillStyle=value>=0?'rgba(224,205,170,'+(value/170)+')':'rgba(9,14,19,'+(-value/115)+')';
+   c.fillRect(x,y,3+seed(n)*3,3+seed(n+3)*3);
+ }
+ if(name.includes('stone')||name.includes('floor')){
+  c.lineWidth=2;c.strokeStyle='rgba(15,17,21,.27)';
+  for(let j=0;j<7;j++){c.beginPath();c.moveTo(seed(j+6)*256,seed(j+19)*256);c.lineTo(seed(j+8)*256,seed(j+20)*256);c.stroke();}
+ }
+ if(name.includes('wood')){
+  for(let x=3;x<256;x+=11){c.strokeStyle='rgba(16,9,5,.16)';c.beginPath();c.moveTo(x,0);c.bezierCurveTo(x+9,75,x-8,130,x+3,256);c.stroke();}
+ }
+ t.update();t.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;t.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;return t;
+}
+function mat(name,color,rough=1,metal=0,emissive=null){
+ const m=new BABYLON.PBRMaterial(name,scene);m.albedoColor=BABYLON.Color3.FromHexString(color);m.roughness=rough;m.metallic=metal;
+ if(emissive)m.emissiveColor=BABYLON.Color3.FromHexString(emissive);
+ return m;
+}
+function box(name,x,y,z,w,h,d,m,collide=false){
+ const o=BABYLON.MeshBuilder.CreateBox(name,{width:w,height:h,depth:d},scene);o.position.set(x,y,z);o.material=m;o.receiveShadows=true;
+ if(collide)solid.push({x,z,w,d});return o;
+}
+function cylinder(name,x,y,z,r,h,m,edges=16){
+ const o=BABYLON.MeshBuilder.CreateCylinder(name,{diameter:r*2,height:h,tessellation:edges},scene);o.position.set(x,y,z);o.material=m;o.receiveShadows=true;return o;
+}
+function sphere(name,x,y,z,r,m){
+ const o=BABYLON.MeshBuilder.CreateSphere(name,{diameter:r,segments:10},scene);o.position.set(x,y,z);o.material=m;return o;
+}
+function plane(name,x,y,z,w,h,m,rot=0){
+ const o=BABYLON.MeshBuilder.CreatePlane(name,{width:w,height:h,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+ o.position.set(x,y,z);o.rotation.y=rot;o.material=m;return o;
+}
+function register(name,description,x,z,r=1.75,action=null){things.push({name,description,x,z,r,action});}
+function createWorld(){
+ engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:true});
+ engine.setHardwareScalingLevel(Math.max(1,Math.min(1.6,(devicePixelRatio||1)/1.35)));
+ scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.045,.056,.068,1);
+ scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.022;scene.fogColor=BABYLON.Color3.FromHexString('#151b20');
+ scene.environmentIntensity=.42;
+ camera=new BABYLON.UniversalCamera('Oliver camera',V(0,1.65,2.2),scene);
+ camera.fov=1.17;camera.minZ=.045;camera.maxZ=80;camera.rotation.set(0,Math.PI,0);
+ scene.activeCamera=camera;
+ const hemi=new BABYLON.HemisphericLight('cold ambient',V(.2,1,.4),scene);
+ hemi.intensity=.42;hemi.diffuse=BABYLON.Color3.FromHexString('#aebaca');hemi.groundColor=BABYLON.Color3.FromHexString('#343539');
+ const fire=new BABYLON.PointLight('torch amber',V(1.4,3,-2.85),scene);fire.intensity=30;fire.range=10;fire.diffuse=BABYLON.Color3.FromHexString('#ffb36b');
+ const moon=new BABYLON.PointLight('cold moonlight',V(-4.9,3.9,3.7),scene);moon.intensity=18;moon.range=9;moon.diffuse=BABYLON.Color3.FromHexString('#7995b5');
+ const bounce=new BABYLON.PointLight('corridor spill',V(0,2.6,-6.2),scene);bounce.intensity=19;bounce.range=11;bounce.diffuse=BABYLON.Color3.FromHexString('#e0a86d');
+ scene.onBeforeRenderObservable.add(()=>{fire.intensity=29+Math.sin(performance.now()*.009)*1.6+Math.sin(performance.now()*.017)*1.3;});
+ const stone=mat('limestone','#a1a4a0'),darkStone=mat('stone seams','#74756d'),floorMat=mat('worn slate','#a3a09a'),brick=mat('hand dressed limestone','#97938c');
+ const wood=mat('old oak','#8e6a4b'),woodDark=mat('weathered oak','#604734'),iron=mat('black wrought iron','#596068',.68,.7),rust=mat('rusty steel','#88644d',.87,.45);
+ const linen=mat('dirty wool','#b0a48e'),straw=mat('dry straw','#c7a36b'),cloth=mat('washed blanket','#58636b'),water=mat('drain darkness','#17272a',.21,.08);
+ const grime=mat('wall shadow grime','#565953'),paper=mat('old parchment','#d2bd8e'),candle=mat('flame','#ffa33a',.6,0,'#ed7c29');
+ stone.albedoTexture=texture('limestone stone','#a1a09c');floorMat.albedoTexture=texture('floor flagstone','#8d8980');
+ brick.albedoTexture=texture('stone block','#a19b92');wood.albedoTexture=texture('wood grain','#88715b');
+ woodDark.albedoTexture=texture('dark wood grain','#675344');linen.albedoTexture=texture('linen worn','#ada28e');
+ // Main royal prison cell. Geometry retains its proportions while surface detail comes from textured masonry.
+ box('stone pavement',0,-.22,.2,12.5,.4,19,floorMat);
+ box('vault ceiling',0,4.7,.2,12.5,.48,19,darkStone);
+ box('rear stone wall',0,2.2,4.55,12.5,4.8,.6,stone);
+ box('left old wall',-6.05,2.2,.15,.55,4.8,19,stone);
+ box('right old wall',6.05,2.2,.15,.55,4.8,19,stone);
+ box('corridor far wall',0,2.25,-9.2,12.5,4.8,.65,stone);
+ // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
+ box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
+ box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
+ for(let x=-6;x<=6.05;x+=.86){
+  box('iron prison bar',x,2.2,-4.57,.085,3.5,.085,iron);
+  sphere('rivet',x,2.89,-4.48,.13,rust);
+ }
+ for(let y of [1.12,3.27])box('forged crossbar',0,y,-4.49,12,.115,.13,iron);
+ box('main gate frame left',-1.55,2.15,-4.42,.17,3.8,.18,rust);
+ box('main gate frame right',1.55,2.15,-4.42,.17,3.8,.18,rust);
+ box('gate lockbox',1.53,1.37,-4.26,.32,.35,.27,iron);
+ cylinder('keyhole',1.53,1.36,-4.1,.037,.04,water);
+ register('Gevangenisdeur','De deur zit stevig op slot. Edwin heeft gezworen dat de echte koning hier nooit meer uitkomt.',0,-4.5,2.5);
+ // Wall masonry: uneven relief stones and mortar courses create visual texture.
+ for(const side of ['rear','left','right','far']){
+  for(let row=0;row<12;row++)for(let col=0;col<26;col++){
+   const offset=(row%2)*.24,j=col+row*29,noise=seed(j*3+side.length);
+   if(noise<.12)continue;
+   let p;
+   if(side==='rear'||side==='far'){
+    const x=-5.9+col*.47+offset,y=.14+row*.37;
+    p=box('irregular masonry stone',x,y,side==='rear'?4.214:-8.848,.43+noise*.04,.345,.045+noise*.06,brick);
+   }else{
+    const z=-8.7+col*.51+offset,y=.14+row*.37;
+    p=box('old stone edge',side==='left'?-5.742:5.742,y,z,.05+noise*.05,.34,.47,brick);
+   }
+   if(row%3===0&&noise>.91)p.material=darkStone;
+  }
+ }
+ // Thick structural pilasters and overhead beams.
+ for(const x of [-5.3,0,5.3]){
+  box('ceiling ribs',x,4.36,-.15,.42,.42,9.6,darkStone);
+  box('stone corbel',x,3.87,3.98,.85,.45,1.2,stone);
+ }
+ for(const z of [-3.55,.3,3.65]){
+  for(const x of [-5.73,5.73]){
+   box('wall pier',x,2.2,z,.55,4.43,.72,darkStone);
+  }
+ }
+ // Floor paving: individual worn flagstones, not a flat color.
+ for(let z=-8.65;z<4.2;z+=.92)for(let x=-5.57;x<5.6;x+=1.22){
+  const rand=seed(Math.floor((x+7)*23+(z+10)*117));
+  const p=box('offset flagstone',x+(rand-.5)*.12,.017+(rand-.5)*.007,z,.99,.035,.75,rand>.88?darkStone:floorMat);
+  p.rotation.y=(rand-.5)*.018;
+ }
+ // Water stains and wall patches.
+ for(let i=0;i<18;i++){
+  const x=-5.3+seed(i*4+3)*10.6,z=4.16,y=.28+seed(i*11+4)*2.8;
+  box('damp stain',x,y,z,.25+seed(i+2)*.5,.25+seed(i+19)*.8,.022,grime);
+ }
+ // Inmate sleeping cot: wooden frame, slats, mattress, blanket.
+ const cot=box('prison bunk',-3.65,.56,1.4,2.55,.22,4.18,woodDark,true);
+ for(const z of [-.35,3.15])for(const x of [-4.7,-2.6])box('bedpost',x,.5,z,.13,1.04,.14,wood);
+ box('mattress',-3.65,.73,1.42,2.19,.25,3.65,linen);
+ box('threadbare blanket',-3.66,.89,2.14,2.17,.075,1.75,cloth);
+ box('pillow',-3.65,.89,-.05,1.46,.15,.64,linen);
+ for(let i=0;i<8;i++)box('bed joinery',-4.55+i*.25,.4,1.35,.12,.12,3.95,wood);
+ register('Oude brits','Een dun matras en een wollen deken. Zo brengen ze hun koning de nacht door.',-3.65,1.4,2.2);
+ // Latrine in rear right corner — grimy stone basin, visible iron pipe and floor drain.
+ box('stone latrine platform',3.72,.32,2.95,2.15,.58,1.68,darkStone,true);
+ for(const x of [3.12,4.26])box('latrine ledge',x,.67,2.95,.22,.16,1.55,stone);
+ for(const z of [2.29,3.61])box('latrine rim',3.7,.66,z,1.38,.16,.18,stone);
+ box('latrine darkness',3.72,.63,2.95,1.06,.01,.85,water);
+ box('rusty outlet pipe',4.85,.66,3.12,.28,1.18,.32,iron);
+ register('Stenen latrine','Een smerige afvoer onder de latrine. Er komt koude lucht uit het rooster, maar deze proefversie bevat alleen de gevangenis.',3.6,2.97,2.35);
+ // Crumbling grating as a story clue, but it does not transition to the sewers.
+ box('loose floor grate surround',2.48,.035,1.16,1.4,.09,1.25,darkStone);
+ box('drain well',2.48,.087,1.16,1.12,.025,1.02,water);
+ for(let i=-2;i<=2;i++)box('steel grate slat',2.48+i*.2,.12,1.16,.065,.08,1.1,iron);
+ for(let i=-2;i<=2;i++)box('cross brace',2.48,.128,1.16+i*.21,1.11,.046,.045,rust);
+ register('Los rioolrooster','Onder het ijzer klinkt stromend water. Hier zou Oliver kunnen ontsnappen... maar het riool is nog niet gebouwd.',2.48,1.16,2);
+ // Wooden door recess and storeroom in corridor.
+ box('corridor arch lintel',-4.45,3.42,-8.78,2.3,1.03,.18,darkStone);
+ box('locked storeroom door',-4.45,1.68,-8.76,1.75,3.2,.14,woodDark);
+ for(let i=-1;i<=1;i++)box('door boards',-4.45+i*.48,1.67,-8.64,.41,2.95,.055,wood);
+ for(let y of [.58,2.55])box('door iron brace',-4.45,y,-8.57,1.85,.12,.13,iron);
+ sphere('door handle',-3.76,1.43,-8.52,.14,rust);
+ // Iron shackles on wall, chains suspended overhead.
+ for(const [x,z] of [[-5.67,-.8],[5.67,-2.2],[-5.67,2.4]]){
+  const alongX=Math.abs(x)>5.6;
+  for(let y=2.85;y>1.56;y-=.21){
+   const link=BABYLON.MeshBuilder.CreateTorus('hanging shackle chain',{diameter:.23,thickness:.038,tessellation:10},scene);
+   link.position.set(x,y,z);link.rotation.x=y% .4>.2?Math.PI/2:0;link.material=iron;
+  }
+  cylinder('shackle collar',x,1.5,z,.18,.12,iron,10).rotation.z=Math.PI/2;
+ }
+ // Props: barrels, buckets, rope, lanterns, old scrolls.
+ for(const [x,z] of [[4.7,-2.9],[-4.5,-6.7],[3.95,-7.3]]){
+  const b=cylinder('oak storage barrel',x,.65,z,.42,1.3,woodDark,13);
+  for(const y of [.2,.94,1.16])cylinder('barrel metal band',x,y,z,.435,.07,iron,16);
+  cylinder('barrel lid',x,1.31,z,.4,.07,wood,13);
+ }
+ cylinder('metal bucket',-1.5,.27,3.35,.31,.52,iron,13);
+ cylinder('bucket inner dark',-1.5,.53,3.35,.24,.015,water);
+ for(let i=0;i<13;i++){
+  const x=-1.7+seed(i*9)*1.8,z=2.5+seed(i*8+11)*1.2;
+  const s=box('scattered prison straw',x,.035,z,.02,.016,.27+seed(i+7)*.31,straw);s.rotation.y=seed(i+4)*6.28;
+ }
+ // King's sparse belongings and a readable letter.
+ box('wall shelf',3.95,2.17,4.14,2.58,.13,.67,wood);
+ for(let x of [2.94,4.86])box('shelf bracket',x,1.95,4.05,.12,.42,.5,iron);
+ box('parchment note',3.96,2.26,3.99,.83,.032,.47,paper);
+ cylinder('ink bottle',4.82,2.32,3.99,.08,.21,water,12);
+ register('Brief van Edwin','"Aldemar heeft geen koning Oliver meer. Niemand zal je geloven." — E.',3.92,3.46,1.85);
+ // Torch brackets cast warm light, with visibly glowing flame.
+ function torch(x,y,z){
+  box('torch wall bracket',x,y-.38,z,.14,.4,.42,iron);
+  cylinder('torch wooden shaft',x,y-.13,z-.22,.075,.85,wood,10);
+  const c=cylinder('torch ember bowl',x,y+.29,z-.22,.17,.13,iron,12);
+  sphere('torch burning core',x,y+.5,z-.22,.33,candle);
+ }
+ torch(1.45,2.65,-4.01);torch(-4.2,2.63,-8.89);torch(4.95,2.65,-8.89);
+ // View outside prison through barred rear window, moonlit glow.
+ box('high stone window aperture',-2.45,3.45,4.22,1.85,1.12,.18,water);
+ for(const x of [-2.95,-2.45,-1.95])box('window iron bars',x,3.48,4.085,.07,1.05,.12,iron);
+ box('window stone sill',-2.45,2.82,4.0,2.18,.18,.58,stone);
+ // Decorations to break up silhouettes.
+ for(let i=0;i<22;i++){
+  const x=-5.2+seed(i*43)*10.4,z=-3.7+seed(i*17)*7.7;
+  if(Math.hypot(x+3.65,z-1.4)<1.9||Math.hypot(x-3.72,z-2.95)<1.5)continue;
+  const piece=box('fallen masonry',x,.11,z,.12+seed(i+3)*.25,.14,.15+seed(i+10)*.3,darkStone);
+  piece.rotation.y=seed(i+4)*Math.PI;
+ }
+ // Simple moody postprocessing, no huge textures downloaded.
+ try{
+  const pipe=new BABYLON.DefaultRenderingPipeline('prison grading',true,scene,[camera]);
+  pipe.fxaaEnabled=true;pipe.imageProcessingEnabled=true;
+  pipe.imageProcessing.contrast=1.17;pipe.imageProcessing.exposure=1.13;
+  pipe.bloomEnabled=true;pipe.bloomThreshold=.82;pipe.bloomWeight=.17;pipe.bloomKernel=35;
+ }catch(e){console.warn('Postprocessing fallback',e);}
+ scene.skipPointerMovePicking=true;
+}
+function candidates(){
+ let best=null,dist=Infinity;
+ const p=camera.position;
+ for(const t of things){
+  const d=Math.hypot(p.x-t.x,p.z-t.z);
+  if(d>t.r||d>=dist)continue;
+  const dx=t.x-p.x,dz=t.z-p.z;
+  const forward=Math.atan2(dx,dz),angle=Math.abs(Math.atan2(Math.sin(forward-camera.rotation.y),Math.cos(forward-camera.rotation.y)));
+  if(angle>1.32)continue;
+  best=t;dist=d;
+ }
+ return best;
+}
+function showNote(t){
+ dialogue=true;document.exitPointerLock?.();$('note').hidden=false;
+ $('note-heading').textContent=t.name.toUpperCase();$('note-text').textContent=t.description;
+ $('prompt').hidden=true;readCount++;if(readCount>=2)$('objective').textContent='Verken meer details van de cel. De ontsnapping komt later.';
+}
+function interact(){if(!$('story').hidden||!$('start').hidden||!$('pause-menu').hidden)return;
+ if(dialogue){dialogue=false;$('note').hidden=true;canvas.requestPointerLock?.();return;}
+ const t=candidates();if(t)showNote(t);
+}
+function pause(open){
+ if(!$('start').hidden||!$('story').hidden)return;
+ paused=open;$('pause-menu').hidden=!open;$('pause-btn').textContent=open?'Hervatten':'Pauze';
+ if(open){keys.clear();touch.clear();document.exitPointerLock?.();}else{canvas.focus();canvas.requestPointerLock?.();}
+}
+function collides(x,z){
+ if(x< -5.61||x>5.61||z< -4.19||z>4.12)return true;
+ for(const s of solid)if(Math.abs(x-s.x)<s.w/2+.28&&Math.abs(z-s.z)<s.d/2+.28)return true;
+ return false;
+}
+function frame(){
+ const dt=Math.min(engine.getDeltaTime()/1000,.045);
+ if(active&&!paused&&!dialogue){
+  const walking=Number(keys.has('w')||keys.has('arrowup')||touch.has('w'))-Number(keys.has('s')||keys.has('arrowdown')||touch.has('s'));
+  const strafing=Number(keys.has('d')||keys.has('arrowright')||touch.has('d'))-Number(keys.has('a')||keys.has('arrowleft')||touch.has('a'));
+  const mag=Math.hypot(walking,strafing)||1,yaw=camera.rotation.y;
+  const running=keys.has('shift')&&!keys.has('control');
+  const speed=(running?3.65:2.4)*(keys.has('control')?.57:1);
+  const dx=(Math.sin(yaw)*walking+Math.cos(yaw)*strafing)*speed*dt/mag;
+  const dz=(Math.cos(yaw)*walking-Math.sin(yaw)*strafing)*speed*dt/mag;
+  if(!collides(camera.position.x+dx,camera.position.z))camera.position.x+=dx;
+  if(!collides(camera.position.x,camera.position.z+dz))camera.position.z+=dz;
+  crouch+=(Number(keys.has('control'))-crouch)*Math.min(1,dt*9);
+  if(walking||strafing)bob+=dt*(running?16:10);
+  const sway=(walking||strafing)?Math.sin(bob)*.024:0;
+  camera.position.y=1.66-.53*crouch+sway;
+  const t=candidates();$('prompt').hidden=!t;$('prompt').textContent=t?'[ E ] '+t.name:'';
+ }
+ scene.render();
+}
+function reset(){
+ camera.position.set(0,1.66,2.2);camera.rotation.set(0,Math.PI,0);
+ readCount=0;dialogue=false;paused=false;active=true;keys.clear();touch.clear();
+ $('note').hidden=true;$('pause-menu').hidden=true;$('prompt').hidden=true;
+ $('objective').textContent='Verken de cel. Zoek sporen van je gevangenschap.';
+}
+function storyShow(){
+ const item=intro[storyFrame];$('story-image').src='/assets/fallen-king-intro/intro-'+(storyFrame+1)+'.png';
+ $('story-counter').textContent='THE FALLEN KING · '+(storyFrame+1)+' / 5';
+ $('story-title').textContent=item[0];$('story-caption').textContent=item[1];
+ $('story-next').textContent=storyFrame===4?'Naar de gevangenis':'Verder';
+}
+function finishIntro(){
+ $('story').hidden=true;reset();
+ showNote({name:'King Oliver',description:'Edwin heeft mijn kroon gestolen. Niemand gelooft dat ik de echte koning ben... Ik moet deze gevangenis onderzoeken.'});
+}
+$('begin').addEventListener('click',()=>{$('start').hidden=true;$('story').hidden=false;storyFrame=0;storyShow();});
+$('story-next').addEventListener('click',()=>{storyFrame++;if(storyFrame>=5)finishIntro();else storyShow();});
+$('story-skip').addEventListener('click',finishIntro);
+$('resume').addEventListener('click',()=>pause(false));$('pause-btn').addEventListener('click',()=>pause(!paused));
+$('restart').addEventListener('click',()=>{reset();pause(true);$('pause-menu').hidden=true;$('start').hidden=false;});
+$('sound').addEventListener('click',()=>{muted=!muted;$('sound').textContent='Geluid: '+(muted?'uit':'aan');});
+$('mobile-e').addEventListener('click',interact);
+canvas.addEventListener('click',()=>{if(dialogue){interact();return;}if(active&&!paused)canvas.requestPointerLock?.();});
+document.addEventListener('mousemove',e=>{
+ if(document.pointerLockElement===canvas&&active&&!paused&&!dialogue){
+  camera.rotation.y+=e.movementX*.0021;
+  camera.rotation.x=clamp(camera.rotation.x+e.movementY*.0019,-1.17,1.17);
+ }
+});
+document.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(['w','a','s','d','e','shift','control','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+ if(k==='escape'){if(!dialogue&&!e.repeat)pause(!paused);return;}
+ if(k==='e'||k==='enter'){if(!e.repeat)interact();return;}
+ if(k===' '&&dialogue){interact();return;}
+ keys.add(k);
+});
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+document.addEventListener('blur',()=>keys.clear());
+document.addEventListener('pointerlockchange',()=>{
+ if(document.pointerLockElement!==canvas&&active&&!paused&&!dialogue&&$('start').hidden&&$('story').hidden){pause(true);}
+});
+document.querySelectorAll('[data-move]').forEach(btn=>{
+ const key=btn.dataset.move;
+ btn.addEventListener('pointerdown',e=>{e.preventDefault();touch.add(key);btn.setPointerCapture(e.pointerId);});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])btn.addEventListener(type,()=>touch.delete(key));
+});
+canvas.addEventListener('touchstart',e=>{
+ if(e.touches.length===1)lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+ if(lastTouch&&e.touches.length===1&&!paused){
+  const t=e.touches[0];camera.rotation.y+=(t.clientX-lastTouch.x)*.006;
+  camera.rotation.x=clamp(camera.rotation.x+(t.clientY-lastTouch.y)*.005,-1.17,1.17);
+  lastTouch={x:t.clientX,y:t.clientY};
+ }
+},{passive:true});
+canvas.addEventListener('touchend',()=>{lastTouch=null;});
+auth();
+})();
