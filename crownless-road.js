@@ -147,7 +147,8 @@ function buildGeometry(){
   // Open-topped 3D ceiling arches make the interiors read as castle/sewer.
   for(let z=2;z<world.h-2;z+=4)for(let x=2;x<world.w-2;x+=4)if(world.tiles[z][x]!=='H'&&hash(x,z)>.36){
    box(x+.5,3.4,z+.5,3.8,.32,.28,'#7e8178');
-   if(hash(x+3,z)>.48)lantern(x+.5,z+.5,0);
+   // Pendant ceiling light; never a walk-through lamp post in the corridor.
+   if(hash(x+3,z)>.48){box(x+.5,3.12,z+.5,.37,.34,.37,stage==='sewer'?'#8ac1ad':'#e1b781');box(x+.5,3.39,z+.5,.15,.27,.15,'#665c4e');}
   }
  }else{
   for(let i=0;i<26;i++){const x=(i*7)%world.w,z=(i*13)%world.h;if(world.tiles[z]?.[x]!=='.')continue;cone(x+.5,.04,z+.5,.65,.63,'#75806a',6)}
