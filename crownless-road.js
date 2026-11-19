@@ -83,7 +83,7 @@ function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);g
 function setupGL(){
  gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'})||canvas.getContext('experimental-webgl');
  if(!gl)throw Error('WebGL is unavailable');
- program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,\`
+ program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,`
  attribute vec3 pos;attribute vec3 color;attribute vec3 normal;
  uniform vec3 camera;uniform vec2 angle;uniform float aspect;
  varying vec3 vcolor;varying vec3 vnormal;varying vec3 vworld;varying float depth;
@@ -96,7 +96,7 @@ function setupGL(){
   // True perspective with proper near-plane clipping; no clamped W distortion.
   gl_Position=vec4(r.x*1.55/aspect,r.y*1.55,distanceToCamera*1.001-0.10,distanceToCamera);
   depth=length(p.xz);vcolor=color;vnormal=normal;vworld=pos;
- }\`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,\`
+ }`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,`
  precision highp float;
  varying vec3 vcolor;varying vec3 vnormal;varying vec3 vworld;varying float depth;
  uniform vec3 fogColor;uniform float fogRange;uniform vec3 camera;
@@ -132,7 +132,7 @@ function setupGL(){
   shaded=shaded/(shaded+vec3(.20)); // mild filmic highlight rolloff
   shaded=pow(max(shaded,vec3(0.)),vec3(.91));
   gl_FragColor=vec4(shaded,1.0);
- }\`));
+ }`));
  gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
  gl.useProgram(program);
  for(const name of ['camera','angle','aspect','fogColor','fogRange','lightPosition','lightTint','sunDirection','interior','time'])u[name]=gl.getUniformLocation(program,name);
