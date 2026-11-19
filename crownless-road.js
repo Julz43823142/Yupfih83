@@ -45,6 +45,15 @@ function buildStage(name){
   for(let z=3;z<=7;z++)for(let x=25;x<=29;x++)fill(w,x,z,'H');
   fill(w,27,7,'D');for(let z=8;z<=11;z++)for(let x=26;x<=28;x++)fill(w,x,z,'p');
   for(let z=7;z<=10;z++)for(let x=31;x<=34;x++)fill(w,x,z,'p');
+  // A real woodland rather than a mostly empty grid: clusters grow ONLY off
+  // the old road, gate, tower entrance and scripted character positions.
+  for(let z=3;z<19;z++)for(let x=4;x<31;x++){
+   if((x*13+z*17)%23!==0||w.tiles[z][x]!=='.')continue;
+   let clear=true;
+   for(let dz=-2;dz<=2&&clear;dz++)for(let dx=-2;dx<=2;dx++)
+    if(w.tiles[z+dz]?.[x+dx]==='p'||w.tiles[z+dz]?.[x+dx]==='D')clear=false;
+   if(clear)fill(w,x,z,'T');
+  }
   w.spawn=[4.5,12.5];
   w.solids.push({x:9.5,z:13.5,w:2.6,d:.45},...[ [7,9],[13,10],[19,10],[24,12],[30,9] ].map(([x,z])=>({x,z,w:.26,d:.26})));
   w.features=[{x:27.5,z:8.5,type:'door',name:'Watchtower door',text:['The old watchtower stands above the forest road.'],next:'watchtower'},
@@ -262,6 +271,18 @@ function buildGeometry(){
  }else{
   for(let i=0;i<26;i++){const x=(i*7)%world.w,z=(i*13)%world.h;if(world.tiles[z]?.[x]!=='.')continue;cone(x+.5,.04,z+.5,.65,.63,'#75806a',6)}
   if(stage==='forest')for(const [x,z] of [[7,9],[13,10],[19,10],[24,12],[30,9]])lantern(x,z,0);
+  // Soft shrubs, clusters of organic rocks and wildflower crowns grow on
+  // woodland margins; roads and all interactions stay physically clear.
+  for(let z=2;z<world.h-2;z++)for(let x=2;x<world.w-2;x++){
+   const tile=world.tiles[z][x],h=hash(x*3+5,z*7+11);
+   if(tile==='T'&&h>.78)shrub(x+.5,z+.5,Math.floor(h*29),.62);
+   else if(tile==='T'&&h<.14)organicRock(x+.50,z+.5,Math.floor(h*97),.45);
+   else if(tile==='.'&&h>.935){
+    // Ground-level flowers can be safely walked through.
+    for(let j=0;j<4;j++)organicBall(x+.28+(j%2)*.26,.10,z+.30+Math.floor(j/2)*.29,.075,.11,.075,
+     (j%3===0?'#d5b37e':j%3===1?'#9eaec2':'#e2b9ad'),j,7,4);
+   }
+  }
   // Layered treeline and distant ridges conceal the edge of the map.
   if(stage==='forest'||stage==='village'){
    for(let i=0;i<25;i++){
@@ -330,11 +351,21 @@ function buildGeometry(){
   for(const [x,z,w,d] of world.houses){
    const cx=x+w/2,cz=z+d/2,front=z+d+.08;
    box(cx,1.85,cz,w,3.7,d,'#c7b595');
-   // Sloped roof silhouette with timber ridge and overlapping clay courses.
-   for(let i=0;i<7;i++){
-    const layer=i/7;
-    box(cx,3.72+i*.19,cz,w+.75-layer*w*.64,.19,d+.65-layer*d*.65,i%2?'#695049':'#77584d');
+   // Genuine sloped roof planes, not stepped rectangular blocks.
+   const roofBase=3.72,roofPeak=5.62,lo=x-.55,hi=x+w+.55,frontZ=z+d+.46,backZ=z-.46;
+   const left=[lo,roofBase,frontZ],right=[hi,roofBase,frontZ],tip=[cx,roofPeak,frontZ];
+   const leftBack=[lo,roofBase,backZ],rightBack=[hi,roofBase,backZ],tipBack=[cx,roofPeak,backZ];
+   triangle(left,right,tip,toRGB('#9b8067'));
+   triangle(rightBack,leftBack,tipBack,toRGB('#847460'));
+   quad(left,leftBack,tipBack,tip,toRGB('#7d4c44'));
+   quad(tip,tipBack,rightBack,right,toRGB('#8a584a'));
+   // Short ceramic shingle courses sit above the same sloped surface.
+   for(let k=1;k<=7;k++){
+    const t=k/8,sideX=(hi-lo)*.5*(1-t),yy=roofBase+(roofPeak-roofBase)*t+.018;
+    branchTube(cx-sideX,yy,backZ,cx-sideX,yy,frontZ,.035,.035,'#a06a53',5);
+    branchTube(cx+sideX,yy,backZ,cx+sideX,yy,frontZ,.035,.035,'#b4775d',5);
    }
+   branchTube(cx,roofPeak,backZ,cx,roofPeak,frontZ,.11,.11,'#513d3b',8);
    for(const sx of [x+.24,x+w-.24]){
     box(sx,1.86,front,.21,3.72,.20,'#81664d');
     box(sx,3.19,front,.34,.14,.23,'#bca57d');
