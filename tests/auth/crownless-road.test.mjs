@@ -144,3 +144,19 @@ test('Babylon prison artwork contains only Babylon meshes and has a sleeping roo
  assert.doesNotMatch(prison,/CreateDisc\('subtle damp patch'/);
  assert.doesNotMatch(prison,/sphere\('rounded rubble stone'/);
 });
+
+test('prison hall redesign remains admin-only and includes chess neighbor, repeated cell gates and cot landing',()=>{
+ const page=readFileSync(resolve(root,'crownless-prison.html'),'utf8');
+ const game=readFileSync(resolve(root,'crownless-prison.js'),'utf8');
+ assert.match(page,/crownless-prison\.js\?v=4/);
+ assert.match(game,/fetch\('\/api\/fallen-king\/world'/);
+ assert.match(game,/left prisoner pawn head/);
+ assert.match(game,/neighbor entrance prison bars/);
+ assert.match(game,/repeated barred hall cell/);
+ assert.match(game,/distant chess pawn base/);
+ assert.match(game,/hall gas lamp/);
+ assert.match(game,/onCot\(x,z\)/);
+ assert.match(game,/jumpHeight>\.77/);
+ assert.match(game,/ignorePointerExit/);
+ assert.doesNotMatch(game,/new THREE\./);
+});
