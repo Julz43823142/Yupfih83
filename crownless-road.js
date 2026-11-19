@@ -229,7 +229,7 @@ function canStep(x,z){
 }
 function talk(name,lines,after){dialogue={name,lines,after};dialogIndex=0;paused=true;showLine();}
 function showLine(){if(!dialogue)return;$('caption').hidden=false;$('speaker').textContent=dialogue.name;$('message').textContent=dialogue.lines[dialogIndex];}
-function advance(){if(!dialogue)return;if(++dialogIndex<dialogue.lines.length){showLine();return;}const cb=dialogue.after;dialogue=null;paused=false;$('caption').hidden=true;cb?.();canvas.focus();}
+function advance(){if(!dialogue)return;if(++dialogIndex<dialogue.lines.length){showLine();return;}const cb=dialogue.after;dialogue=null;paused=menuOpen;$('caption').hidden=true;cb?.();canvas.focus();}
 function use(){if(dialogue){advance();return;}if($('intro').hidden===false)return;if(!nearby)return;const a=nearby;
  if(a.lines){talk(a.name,a.lines,a.action);return;}
  if(a.locked?.()){talk('Oliver',[a.lockText]);return;}
@@ -244,10 +244,14 @@ function findNearby(){
 function sound(freq=190,len=.09){if(muted)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.012,ac.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+len);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+len+.02)}catch{}}
 function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=Math.min(.06,(ms-last)/1000||.016);last=ms;
  if(!paused&&$('intro').hidden){
-  const run=keys.has('shift')?4.6:2.65;
+  const targetCrouch=(keys.has('control')||keys.has('c'))?1:0;
+  crouch+=(targetCrouch-crouch)*Math.min(1,dt*11);
+  if(jumpY>0||jumpSpeed>0){jumpSpeed-=13.8*dt;jumpY=Math.max(0,jumpY+jumpSpeed*dt);if(jumpY===0)jumpSpeed=0;}
+  const run=(keys.has('shift')&&!targetCrouch)?4.6:2.65;
+  const speed=run*(1-.52*crouch);
   const walk=(keys.has('w')||keys.has('arrowup')||touch.has('w')?1:0)-(keys.has('s')||keys.has('arrowdown')||touch.has('s')?1:0);
   const strafe=(keys.has('d')||keys.has('arrowright')||touch.has('d')?1:0)-(keys.has('a')||keys.has('arrowleft')||touch.has('a')?1:0);
-  const norm=Math.hypot(walk,strafe)||1;const dx=(Math.sin(yaw)*walk+Math.cos(yaw)*strafe)*run*dt/norm,dz=(-Math.cos(yaw)*walk+Math.sin(yaw)*strafe)*run*dt/norm;
+  const norm=Math.hypot(walk,strafe)||1;const dx=(Math.sin(yaw)*walk+Math.cos(yaw)*strafe)*speed*dt/norm,dz=(-Math.cos(yaw)*walk+Math.sin(yaw)*strafe)*speed*dt/norm;
   if(canStep(px+dx,pz))px+=dx;if(canStep(px,pz+dz))pz+=dz;
   if(Math.abs(dx)+Math.abs(dz)>.002&&ms-lastFoot>440){lastFoot=ms;sound(stage==='sewer'?105:145,.07);}
   if(keys.has('q'))yaw-=dt*1.65;if(keys.has('e-look'))yaw+=dt*1.65;
@@ -256,7 +260,7 @@ function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=M
  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,1.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
  if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;gl.viewport(0,0,pw,ph);}
  const sky=palette[stage].sky;gl.clearColor(...sky,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- gl.uniform3f(u.camera,px,1.67,pz);gl.uniform2f(u.angle,yaw,pitch);gl.uniform1f(u.aspect,w/h);
+ gl.uniform3f(u.camera,px,1.67-.72*crouch+jumpY,pz);gl.uniform2f(u.angle,yaw,pitch);gl.uniform1f(u.aspect,w/h);
  gl.drawArrays(gl.TRIANGLES,0,count);
 }
 async function init(){
@@ -269,15 +273,46 @@ async function init(){
   setupGL();gate.hidden=true;$('game').hidden=false;beginScene('cell');requestAnimationFrame(render);
  }catch(e){console.error('Crownless Road startup failed',e);gate.textContent='The first-person preview could not start: '+e.message;}
 }
-$('begin').addEventListener('click',()=>{$('intro').hidden=true;canvas.focus();canvas.requestPointerLock?.();talk('Narrator',['King Oliver had ruled over Aldemar for many years.','Edwin stole the crown and ordered the guards to imprison the true king.','Oliver wakes in a cold prison cell. His journey to reclaim the throne begins.']);});
-$('restart').addEventListener('click',()=>{state.watchKey=false;state.bridge=false;state.metMerrick=false;objective.forest='Follow the old road. Seek the watchtower key to pass the east gate.';objective.village='Find Merrick, speak with the villagers, and repair the bridge.';beginScene('cell');$('intro').hidden=false;paused=false;});
-$('mute').addEventListener('click',()=>{muted=!muted;$('mute').textContent='Sound: '+(muted?'Off':'On');});
-$('pause').addEventListener('click',()=>{paused=!paused;$('pause').textContent=paused?'Resume':'Pause';});
-canvas.addEventListener('click',()=>{if(!dialogue)canvas.requestPointerLock?.();else advance();});
+function finishStoryIntro(){
+ $('story-art').hidden=true;paused=false;
+ talk('Oliver',['Edwin took my crown. They believe I am an impostor.','I must escape the prison and find my way back to Aldemar.']);
+ canvas.focus();canvas.requestPointerLock?.();
+}
+function showStoryFrame(){
+ $('story-image').src='/assets/fallen-king-intro/intro-'+(storyFrame+1)+'.png';
+ $('story-progress').textContent='The Fallen King · '+(storyFrame+1)+' / 5';
+ $('story-next').textContent=storyFrame===4?'Enter prison':'Continue';
+}
+$('begin').addEventListener('click',()=>{$('intro').hidden=true;paused=true;storyFrame=0;showStoryFrame();$('story-art').hidden=false;});
+$('story-next').addEventListener('click',()=>{if(++storyFrame>=5)finishStoryIntro();else showStoryFrame();});
+$('story-skip').addEventListener('click',finishStoryIntro);
+function setPause(open){
+ if(!$('intro').hidden||!$('story-art').hidden)return;
+ menuOpen=open;$('pause-menu').hidden=!open;paused=open||!!dialogue;
+ $('pause').textContent=open?'Resume':'Pause';
+ if(open){keys.clear();touch.clear();document.exitPointerLock?.();}
+ else if(!dialogue){canvas.focus();canvas.requestPointerLock?.();}
+}
+$('resume').addEventListener('click',()=>setPause(false));
+function restartStory(){
+ state.watchKey=false;state.bridge=false;state.metMerrick=false;
+ objective.forest='Follow the old road. Seek the watchtower key to pass the east gate.';
+ objective.village='Find Merrick, speak with the villagers, and repair the bridge.';
+ menuOpen=false;$('pause-menu').hidden=true;$('story-art').hidden=true;
+ beginScene('cell');$('intro').hidden=false;paused=false;keys.clear();touch.clear();document.exitPointerLock?.();
+}
+$('restart').addEventListener('click',restartStory);
+$('pause-restart').addEventListener('click',restartStory);
+function toggleSound(){muted=!muted;for(const id of ['mute','pause-sound'])$(id).textContent='Sound: '+(muted?'Off':'On');}
+$('mute').addEventListener('click',toggleSound);$('pause-sound').addEventListener('click',toggleSound);
+$('pause').addEventListener('click',()=>setPause(!menuOpen));
+canvas.addEventListener('click',()=>{if(menuOpen||!$('story-art').hidden)return;if(!dialogue)canvas.requestPointerLock?.();else advance();});
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas&&!paused){yaw+=e.movementX*.0024;pitch=Math.max(-1.16,Math.min(1.16,pitch-e.movementY*.0022));}});
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift',' '].includes(k))e.preventDefault();
- if(k==='e'||k==='enter'||k===' '){if(!e.repeat)use();return;}
- if(k==='escape'){document.exitPointerLock?.();return;}
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift',' ','control','c'].includes(k))e.preventDefault();
+ if(k==='escape'){if(!e.repeat)setPause(!menuOpen);return;}
+ if(menuOpen||!$('story-art').hidden||!$('intro').hidden)return;
+ if(k==='e'||k==='enter'){if(!e.repeat)use();return;}
+ if(k===' '){if(!e.repeat&&!paused&&jumpY===0&&jumpSpeed===0&&crouch<.3){jumpSpeed=5.1;sound(240,.12);}return;}
  keys.add(k);});document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 for(const btn of document.querySelectorAll('[data-key]')){const k=btn.dataset.key;btn.addEventListener('pointerdown',e=>{e.preventDefault();touch.add(k)});for(const ev of ['pointerup','pointercancel','pointerleave'])btn.addEventListener(ev,()=>touch.delete(k));}
 $('mobile-action').addEventListener('click',use);
