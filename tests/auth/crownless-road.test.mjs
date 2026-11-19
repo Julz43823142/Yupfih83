@@ -27,7 +27,7 @@ test('Crownless Road is admin gated through the same protected API as Fallen Kin
 test('The Crownless Road keeps the original prison-sewer-forest-watchtower-village sequence',()=>{
  for(const stage of ["cell","sewer","forest","watchtower"])assert.match(game,new RegExp("name==='"+stage+"'"));
  assert.ok(game.includes("w=create(61,43"));
- for(const text of ['King Oliver','Edwin stole the crown','Willowmere Village','Merrick the Bishop','Travelling Bishop','barrier key','repair the bridge'])assert.ok(game.includes(text),text);
+ for(const text of ['King Oliver','Edwin took my crown','Willowmere Village','Merrick the Bishop','Travelling Bishop','barrier key','repair the bridge'])assert.ok(game.includes(text),text);
  assert.match(game,/state\.watchKey=true/);
  assert.match(game,/state\.bridge=true/);
 });
