@@ -4,10 +4,10 @@
 // no installs, and a separate save from The Fallen King.
 const $=id=>document.getElementById(id),gate=$('gate'),canvas=$('view');
 let gl,program,buffer,u={},stage='cell',world,px=12.5,pz=9.5,yaw=0,pitch=0,last=0,paused=false,muted=false,dialogue=null,dialogIndex=0,nearby=null,frames=0;
-const keys=new Set(),touch=new Set(),state={watchKey:false,bridge:false,metMerrick:false};
+const keys=new Set(),touch=new Set(),state={watchKey:false,bridge:false,metMerrick:false,timber:false,ropes:false};
 let ac=null,lastFoot=0,jumpY=0,jumpSpeed=0,crouch=0,menuOpen=false,storyFrame=0;
 const label={cell:'The Prison',sewer:'The Underground Sewers',forest:'The Willowmere Woods',watchtower:'The Old Watchtower',village:'Willowmere Village'};
-const objective={cell:'Find the loose grate in your cell and escape.',sewer:'Follow the winding waterways to the iron ladder.',forest:'Follow the old road. Seek the watchtower key to pass the east gate.',watchtower:'Examine the locked chest and take the barrier key.',village:'Find Merrick, speak with the villagers, and repair the bridge.'};
+const objective={cell:'Find the loose grate in your cell and escape.',sewer:'Follow the winding waterways to the iron ladder.',forest:'Follow the old road. Seek the watchtower key to pass the east gate.',watchtower:'Examine the locked chest and take the barrier key.',village:'Speak to Merrick, collect timber and rope, then repair Willowmere bridge.'};
 const palette={
  cell:{sky:[.065,.088,.118],fog:[.12,.17,.19],ground:'#444641',wall:'#5c6061',path:'#71685d',leaf:'#555f59',trunk:'#443d35',light:'#eab777'},
  sewer:{sky:[.038,.076,.083],fog:[.09,.18,.19],ground:'#283a3a',wall:'#4e5b59',path:'#606a63',leaf:'#4d6454',trunk:'#423f37',light:'#87c9b3'},
@@ -70,7 +70,11 @@ function buildStage(name){
   w.npcs=[{x:21.5,z:28.5,name:'Merrick the Bishop',lines:['You claim to be Oliver? The king is already in the castle.','If you truly wish to help Willowmere, find timber and ropes for our bridge.'],action:()=>{state.metMerrick=true}},
    {x:33.5,z:31.5,name:'Willowmere Carpenter',lines:['The bridge needs timber. The woodcutters have some spare beams.']},
    {x:38.5,z:25.5,name:'Village Merchant',lines:['Ropes and nails are ready. We only need the king to give the order.']}];
-  w.features=[{x:46.5,z:19.5,type:'bridge',name:'Broken Willowmere bridge',text:['The timber and ropes are ready. I repair the bridge across the river.','Beyond the crossing, an old road leads farther into Aldemar.'],action:()=>{state.bridge=true;objective.village='The bridge is repaired. Chapter One of this first-person preview is complete.'},locked:()=>!state.metMerrick,lockText:'I should speak to Merrick the Bishop before repairing the bridge.'}];
+  w.features=[
+   {x:12.5,z:32.5,type:'timber',name:'Woodcutters’ timber',text:['These fallen timbers will support a new bridge.'],action:()=>{state.timber=true}},
+   {x:40.5,z:27.5,type:'ropes',name:'Merchant’s rope',text:['This rope is strong enough to secure the bridge beams.'],action:()=>{state.ropes=true}},
+   {x:46.5,z:19.5,type:'bridge',name:'Broken Willowmere bridge',text:['The timber and ropes are ready. I repair the bridge across the river.','Beyond the crossing, an old road leads farther into Aldemar.'],action:()=>{state.bridge=true;objective.village='The bridge is repaired. Chapter One of this first-person preview is complete.';buildGeometry()},locked:()=>!state.metMerrick||!state.timber||!state.ropes,lockText:'Speak with Merrick, then collect the timber and ropes before repairing the bridge.'}
+  ];
  }
  return w;
 }
@@ -209,6 +213,8 @@ function buildGeometry(){
   if(f.type==='gate'){box(f.x,.95,f.z,.22,1.9,2.4,'#8b6b46');}
   if(f.type==='drain')box(f.x,.04,f.z,1.1,.08,1.1,'#454f50');
   if(f.type==='bridge'&&!state.bridge)box(f.x,.27,f.z,.9,.55,2.8,'#625744');
+  if(f.type==='timber'&&!state.timber)for(let i=0;i<4;i++)box(f.x,.19+i*.19,f.z+(i%2)*.24,1.68,.18,.31,'#806246');
+  if(f.type==='ropes'&&!state.ropes){box(f.x,.22,f.z,.81,.44,.74,'#8b7152');for(let i=0;i<3;i++)box(f.x,.48+i*.10,f.z,.68,.08,.63,'#baa075');}
  }
  const arr=new Float32Array(vertices);count=arr.length/6;gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);
  const pos=gl.getAttribLocation(program,'pos'),color=gl.getAttribLocation(program,'color');
@@ -234,7 +240,8 @@ function use(){if(dialogue){advance();return;}if($('intro').hidden===false)retur
  if(a.lines){talk(a.name,a.lines,a.action);return;}
  if(a.locked?.()){talk('Oliver',[a.lockText]);return;}
  if(a.type==='chest'&&state.watchKey){talk('Oliver',['The chest is empty. I already have the key.']);return;}
- talk('Oliver',a.text,()=>{a.action?.();$('objective').textContent=objective[stage];if(a.next){const from=stage;beginScene(a.next,from==='watchtower'?[27.5,9.5]:undefined);}});
+ if(a.type==='timber'&&state.timber||a.type==='ropes'&&state.ropes){talk('Oliver',['I already collected this.']);return;}
+ talk('Oliver',a.text,()=>{a.action?.();if(stage==='village'&&!state.bridge){objective.village=state.timber&&state.ropes?'Both supplies ready. Return to Willowmere bridge.':state.timber?'Timber collected. Find the merchant’s rope.':state.ropes?'Rope collected. Find the woodcutters’ timber.':objective.village;}$('objective').textContent=objective[stage];if(a.next){const from=stage;beginScene(a.next,from==='watchtower'?[27.5,9.5]:undefined);}});
 }
 function findNearby(){
  let best=null,dist=2.35;
@@ -295,9 +302,9 @@ function setPause(open){
 }
 $('resume').addEventListener('click',()=>setPause(false));
 function restartStory(){
- state.watchKey=false;state.bridge=false;state.metMerrick=false;
+ state.watchKey=false;state.bridge=false;state.metMerrick=false;state.timber=false;state.ropes=false;
  objective.forest='Follow the old road. Seek the watchtower key to pass the east gate.';
- objective.village='Find Merrick, speak with the villagers, and repair the bridge.';
+ objective.village='Speak to Merrick, collect timber and rope, then repair Willowmere bridge.';
  menuOpen=false;$('pause-menu').hidden=true;$('story-art').hidden=true;
  beginScene('cell');$('intro').hidden=false;paused=false;keys.clear();touch.clear();document.exitPointerLock?.();
 }
@@ -314,6 +321,7 @@ document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a',
  if(k==='e'||k==='enter'){if(!e.repeat)use();return;}
  if(k===' '){if(!e.repeat&&!paused&&jumpY===0&&jumpSpeed===0&&crouch<.3){jumpSpeed=5.1;sound(240,.12);}return;}
  keys.add(k);});document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement!==canvas&&!menuOpen&&$('intro').hidden&&$('story-art').hidden&&!dialogue)setPause(true);});
 for(const btn of document.querySelectorAll('[data-key]')){const k=btn.dataset.key;btn.addEventListener('pointerdown',e=>{e.preventDefault();touch.add(k)});for(const ev of ['pointerup','pointercancel','pointerleave'])btn.addEventListener(ev,()=>touch.delete(k));}
 $('mobile-action').addEventListener('click',use);
 let x0=null;canvas.addEventListener('touchstart',e=>{if(e.touches.length===1)x0={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});canvas.addEventListener('touchmove',e=>{if(x0&&e.touches.length===1){const x=e.touches[0].clientX,y=e.touches[0].clientY;yaw+=(x-x0.x)*.006;pitch=Math.max(-1.16,Math.min(1.16,pitch-(y-x0.y)*.006));x0={x,y};}},{passive:true});canvas.addEventListener('touchend',()=>{x0=null;});
