@@ -287,10 +287,29 @@ function buildGeometry(){
   box(8.5,.65,4.5,2.4,1.3,1.65,'#6a4832');box(8.5,1.4,4.5,2.54,.22,1.74,'#ae8250');
  }else if(stage==='village'){
   for(const [x,z,w,d] of world.houses){
-   box(x+w/2,1.85,z+d/2,w,3.7,d,'#c5ad86');
-   cone(x+w/2,3.67,z+d/2,Math.max(w,d)*.72,2.5,'#66544d',4);
-   box(x+w/2,1.06,z+d+.05,1.3,2.12,.22,'#775339');
-   for(const a of [x+1.5,x+w-1.5])box(a,2.28,z+d+.14,.95,.9,.24,'#7198a0');
+   const cx=x+w/2,cz=z+d/2,front=z+d+.08;
+   box(cx,1.85,cz,w,3.7,d,'#c7b595');
+   // Sloped roof silhouette with timber ridge and overlapping clay courses.
+   for(let i=0;i<7;i++){
+    const layer=i/7;
+    box(cx,3.72+i*.19,cz,w+.75-layer*w*.64,.19,d+.65-layer*d*.65,i%2?'#695049':'#77584d');
+   }
+   for(const sx of [x+.24,x+w-.24]){
+    box(sx,1.86,front,.21,3.72,.20,'#81664d');
+    box(sx,3.19,front,.34,.14,.23,'#bca57d');
+   }
+   for(let yy=.61;yy<3.4;yy+=.60)box(cx,yy,front,w-.5,.075,.12,'#bba17d');
+   box(cx,1.08,front+.10,1.29,2.11,.17,'#6c4935');
+   box(cx,1.07,front+.23,1.03,1.90,.07,'#896548');
+   box(cx+.37,1.19,front+.31,.075,.075,.10,'#e5c68a');
+   for(const a of [x+1.5,x+w-1.5]){
+    box(a,2.28,front+.11,1.24,1.07,.14,'#735640');
+    box(a,2.28,front+.25,.93,.76,.09,'#8da5a4');
+    box(a,2.28,front+.34,.075,.82,.04,'#d7c6aa');
+    box(a,2.28,front+.34,.96,.075,.05,'#d7c6aa');
+    box(a,1.73,front+.23,1.30,.14,.29,'#9d8261');
+   }
+   box(cx,3.58,front,.9,.16,.35,'#ddc69c');
   }
   for(let z=4;z<39;z++){box(47.5,-.015,z+.5,2,.04,1,'#4e8391');if(z%4===0)box(47.5,.018,z+.5,1.8,.015,.35,'#86a4a2');}
   if(state.bridge){for(let z=18;z<=21;z++)box(47.5,.12,z+.5,4.5,.26,.78,'#9b8058');}
