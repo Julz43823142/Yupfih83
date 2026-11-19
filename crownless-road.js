@@ -425,6 +425,7 @@ const originalStory=[
 function showStoryFrame(){
  const [heading,line]=originalStory[storyFrame];
  $('story-scene').dataset.scene=String(storyFrame);
+ $('story-image').src='/assets/fallen-king-intro/intro-'+(storyFrame+1)+'.png';
  $('story-heading').textContent=heading;
  $('story-line').textContent=line;
  $('story-progress').textContent='THE FALLEN KING · '+(storyFrame+1)+' / 5';
