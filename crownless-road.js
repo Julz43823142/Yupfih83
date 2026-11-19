@@ -365,7 +365,22 @@ function buildGeometry(){
   for(let x=7;x<18;x+=1.0)box(x+.5,1.66,5.47,.065,2.7,.10,'#333d40');
   box(12.5,3.35,5.55,11,.22,.24,'#a6a39a');
   box(11.5,.26,11.5,2,.45,1.35,'#79695a');box(11.5,.51,11.5,1.9,.13,1.25,'#b0a08a');
-  box(15.5,.06,10.5,1.2,.09,1.05,'#353638');for(let i=0;i<5;i++)box(15.1+i*.2,.15,10.5,.04,.18,.95,'#9a9c91');
+  // Full porcelain toilet above the original drainage grate, with a
+  // dark opening, rounded seat, cistern, flush handle and worn stone plinth.
+  box(15.5,.12,10.5,1.23,.24,1.25,'#6e706b');
+  box(15.5,.42,10.5,.58,.68,.67,'#bbb9ac');
+  organicBall(15.5,.76,10.64,.56,.22,.58,'#d3cec0',5,16,9);
+  organicBall(15.5,.80,10.65,.36,.032,.36,'#323938',11,16,6);
+  for(let i=0;i<16;i++){
+   const t=i*Math.PI/8,u=(i+1)*Math.PI/8;
+   branchTube(15.5+Math.cos(t)*.44,.875,10.65+Math.sin(t)*.44,
+              15.5+Math.cos(u)*.44,.875,10.65+Math.sin(u)*.44,.055,.055,'#ebe2cd',5);
+  }
+  box(15.5,1.07,10.08,.86,.78,.32,'#cfccbd');
+  box(15.5,1.49,10.08,.92,.08,.37,'#e2ddd1');
+  box(15.98,1.15,10.04,.22,.09,.15,'#a6a29a');
+  box(15.5,.06,10.5,1.2,.09,1.05,'#353638');
+  for(let i=0;i<5;i++)box(15.1+i*.2,.15,10.5,.04,.18,.95,'#9a9c91');
  }else if(stage==='sewer'){
   for(let i=0;i<110;i++){const x=3+(i*19)%78,z=3+(i*31)%47;if(world.tiles[z]?.[x]!=='p')continue;
    if(hash(x,z)>.45)box(x+.5,.035,z+.5,.7,.05,.46,'#386b6b');
@@ -427,19 +442,31 @@ function buildGeometry(){
  }
  for(const npc of world.npcs){
   if(npc.sleeping){
-   box(npc.x,.77,npc.z,.45,.21,.50,'#a69583');
-   box(npc.x+.34,.82,npc.z,.71,.26,.63,'#657c7a');
-   box(npc.x-.32,.85,npc.z,.30,.26,.32,'#e2c3a0');
+   organicBall(npc.x-.28,.77,npc.z,.25,.19,.26,'#d4b89e',4,14,8);
+   organicBall(npc.x+.25,.80,npc.z,.53,.23,.36,'#586b72',11,14,8);
+   branchTube(npc.x+.2,.76,npc.z-.22,npc.x+.55,.69,npc.z-.30,.09,.06,'#d8b99d',8);
    continue;
   }
+  // Articulated human silhouettes with rounded faces and actual arms and
+  // clothing, not the old chess-piece/block NPC models.
   const cleric=npc.name.includes('Bishop'),keeper=npc.name.includes('Keeper')||npc.name.includes('Guard');
-  const coat=cleric?'#c9c0a8':keeper?'#756d64':'#6d897d';
-  box(npc.x,.72,npc.z,.58,1.25,.44,coat);
-  cone(npc.x,1.28,npc.z,.37,.65,cleric?'#d6be8d':'#596b64',9);
-  box(npc.x,1.65,npc.z,.42,.36,.36,'#d9ba9a');
-  box(npc.x,1.96,npc.z,.49,.17,.45,keeper?'#676c6d':'#7c5c49');
-  for(const dx of [-.29,.29])box(npc.x+dx,1.12,npc.z,.14,.67,.17,coat);
-  for(const dx of [-.13,.13])box(npc.x+dx,1.72,npc.z+.185,.05,.045,.02,'#46403a');
+  const coat=cleric?'#b4a796':keeper?'#6e777e':'#697f74';
+  const trim=cleric?'#d1bd8f':keeper?'#9b8c77':'#8a9a81';
+  for(const dx of [-.16,.16]){
+   branchTube(npc.x+dx,.71,npc.z,npc.x+dx,.13,npc.z+.02,.14,.105,'#524e47',10);
+   organicBall(npc.x+dx,.13,npc.z+.12,.17,.12,.28,'#474a49',0,10,6);
+  }
+  organicBall(npc.x,1.13,npc.z,.42,.62,.30,coat,6,13,9);
+  organicBall(npc.x,1.54,npc.z,.36,.22,.27,trim,7,13,7);
+  for(const side of [-1,1]){
+   branchTube(npc.x+side*.34,1.47,npc.z,npc.x+side*.45,.91,npc.z+.13,.13,.10,coat,9);
+   organicBall(npc.x+side*.46,.86,npc.z+.14,.12,.15,.11,'#d7b697',3,10,6);
+  }
+  branchTube(npc.x,1.55,npc.z,npc.x,1.76,npc.z,.15,.12,'#c79f7f',9);
+  organicBall(npc.x,1.93,npc.z,.235,.29,.22,'#d8af8e',3,16,10);
+  organicBall(npc.x,2.12,npc.z-.08,.25,.135,.22,keeper?'#45484c':'#655447',8,13,6);
+  for(const dx of [-.09,.09])organicBall(npc.x+dx,1.97,npc.z+.205,.025,.022,.015,'#332e2a',2,8,4);
+  organicBall(npc.x,1.86,npc.z+.207,.065,.025,.017,'#a87662',5,8,4);
  }
  for(const f of world.features){
   if(f.type==='ladder'){for(let i=0;i<7;i++)box(f.x, i*.39+.18,f.z,.75,.065,.10,'#b5a085');}
