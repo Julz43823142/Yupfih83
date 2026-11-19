@@ -549,7 +549,7 @@ function render(ms){requestAnimationFrame(render);if(!gl||!world)return;let dt=M
   const norm=Math.hypot(walk,strafe)||1;const dx=(Math.sin(yaw)*walk+Math.cos(yaw)*strafe)*speed*dt/norm,dz=(-Math.cos(yaw)*walk+Math.sin(yaw)*strafe)*speed*dt/norm;
   if(canStep(px+dx,pz))px+=dx;if(canStep(px,pz+dz))pz+=dz;
   if(Math.abs(dx)+Math.abs(dz)>.002&&ms-lastFoot>440){lastFoot=ms;sound(stage==='sewer'?105:145,.07);}
-  if(keys.has('q'))yaw-=dt*1.65;if(keys.has('e-look'))yaw+=dt*1.65;
+  // Camera rotation is mouse-only. Q is reserved for future interactions.
   findNearby();
  }
  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),scale=Math.min(devicePixelRatio||1,2.5);const pw=Math.floor(w*scale),ph=Math.floor(h*scale);
@@ -575,6 +575,35 @@ async function init(){
   setupGL();gate.hidden=true;$('game').hidden=false;beginScene('cell');requestAnimationFrame(render);
  }catch(e){console.error('Crownless Road startup failed',e);gate.textContent='The first-person preview could not start: '+e.message;}
 }
+// The admin-only teleport panel is behind the same server-side permission
+// check as the whole game. It does not change quest flags or reveal later maps.
+const teleportPoints={
+ cell:{stage:'cell'},
+ sewer:{stage:'sewer'},
+ 'sewer-middle':{stage:'sewer',position:[32.5,28.5]},
+ 'sewer-exit':{stage:'sewer',position:[74.5,25.5]},
+ forest:{stage:'forest'},
+ 'forest-tower':{stage:'forest',position:[27.5,10.5]},
+ 'forest-gate':{stage:'forest',position:[31.5,8.5]},
+ watchtower:{stage:'watchtower'},
+ village:{stage:'village'},
+ 'village-bridge':{stage:'village',position:[44.5,19.5]}
+};
+function teleportTo(target){
+ const destination=teleportPoints[target];
+ if(!destination||!gl||!world||$('game').hidden)return;
+ menuOpen=false;paused=false;
+ $('pause-menu').hidden=true;
+ $('intro').hidden=true;
+ $('story-art').hidden=true;
+ const stageName=destination.stage;
+ beginScene(stageName,destination.position);
+ $('hint').hidden=true;
+ keys.clear();touch.clear();
+ canvas.focus({preventScroll:true});
+}
+$('teleport-go').addEventListener('click',()=>teleportTo($('teleport-destination').value));
+$('teleport-destination').addEventListener('keydown',e=>e.stopPropagation());
 function finishStoryIntro(){
  $('story-art').hidden=true;paused=false;
  talk('Oliver',['Edwin took my crown. They believe I am an impostor.','I must escape the prison and find my way back to Aldemar.']);
