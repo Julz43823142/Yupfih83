@@ -108,6 +108,7 @@ function createWorld(){
   lit.intensity=3;lit.range=6;lit.diffuse=BABYLON.Color3.FromHexString('#caa478');
  }
  box('corridor far wall',0,2.25,-9.2,12.5,4.8,.65,stone);
+ for(const side of [-1,1])box('corridor side enclosure',side*6.05,2.18,-6.84,.55,4.65,4.75,stone);
  // Cell front: substantial lintel, bottom plinth, two piers and individual forged bars.
  box('cell doorway top',0,4.04,-4.6,12.2,1.45,.62,stone);
  box('cell doorway footing',0,.24,-4.6,12.2,.48,.64,darkStone);
@@ -201,6 +202,25 @@ function createWorld(){
  for(let i=-1;i<=1;i++)box('door boards',-4.45+i*.48,1.67,-8.64,.41,2.95,.055,wood);
  for(let y of [.58,2.55])box('door iron brace',-4.45,y,-8.57,1.85,.12,.13,iron);
  sphere('door handle',-3.76,1.43,-8.52,.14,rust);
+ // A sleeping sentry, visible through the cell bars in the corridor.
+ // Articulated round shapes and a recognizable helmet, not a block mannequin.
+ const skin=mat('guard skin','#a98b70'),tunic=mat('guard uniform','#526272'),trim=mat('guard gold piping','#a58a5d');
+ const gx=-1.7,gz=-6.85;
+ box('guard bench frame',gx,.43,gz,2.65,.2,.92,woodDark,true);
+ for(const bx of [gx-1.04,gx+1.04])for(const bz of [gz-.31,gz+.31])cylinder('bench wooden leg',bx,.25,bz,.085,.50,wood,10);
+ const body=BABYLON.MeshBuilder.CreateCapsule('sleeping royal guard torso',{radius:.35,height:1.37,tessellation:12},scene);
+ body.position.set(gx,.91,gz);body.rotation.z=Math.PI/2.1;body.material=tunic;
+ const head=sphere('guard face',gx-1.0,.94,gz,.57,skin);
+ const helmet=BABYLON.MeshBuilder.CreateSphere('guard steel helmet',{diameter:.65,segments:16,slice:.57},scene);
+ helmet.position.set(gx-1.0,1.15,gz);helmet.material=iron;
+ const crest=BABYLON.MeshBuilder.CreateTorus('helmet crest',{diameter:.41,thickness:.06,tessellation:20},scene);
+ crest.position.set(gx-.99,1.32,gz);crest.rotation.y=Math.PI/2;crest.material=trim;
+ for(const zShift of [-.28,.28]){
+  const arm=cylinder('guard sleeping arm',gx-.22,.59,gz+zShift,.12,.95,tunic,12);arm.rotation.z=Math.PI/2;
+  const boot=cylinder('guard boot',gx+.85,.54,gz+zShift,.14,.52,woodDark,12);boot.rotation.z=Math.PI/2;
+ }
+ sphere('guard nose',gx-1.29,.88,gz,.08,skin);
+ register('Sleeping royal guard','The royal guard is asleep on his bench. He wears Edwin’s insignia. Best not wake him.',-1.55,-4.47,2.25);
  // Iron shackles on wall, chains suspended overhead.
  for(const [x,z] of [[-5.67,-.8],[5.67,-2.2],[-5.67,2.4]]){
   const alongX=Math.abs(x)>5.6;
@@ -215,6 +235,7 @@ function createWorld(){
   const b=cylinder('oak storage barrel',x,.65,z,.42,1.3,woodDark,13);
   for(const y of [.2,.94,1.16])cylinder('barrel metal band',x,y,z,.435,.07,iron,16);
   cylinder('barrel lid',x,1.31,z,.4,.07,wood,13);
+  solid.push({x,z,w:.98,d:.98});
  }
  cylinder('metal bucket',-1.5,.27,3.35,.31,.52,iron,13);
  cylinder('bucket inner dark',-1.5,.53,3.35,.24,.015,water);
@@ -285,7 +306,7 @@ function candidates(){
 function showNote(t){
  dialogue=true;document.exitPointerLock?.();$('note').hidden=false;
  $('note-heading').textContent=t.name.toUpperCase();$('note-text').textContent=t.description;
- $('prompt').hidden=true;readCount++;if(readCount>=2)$('objective').textContent='Verken meer details van de cel. De ontsnapping komt later.';
+ $('prompt').hidden=true;readCount++;if(readCount>=2)$('objective').textContent='Explore the cell. The escape comes in a future chapter.';
 }
 function interact(){if(!$('story').hidden||!$('start').hidden||!$('pause-menu').hidden)return;
  if(dialogue){dialogue=false;$('note').hidden=true;canvas.requestPointerLock?.();return;}
@@ -314,28 +335,29 @@ function frame(){
   if(!collides(camera.position.x+dx,camera.position.z))camera.position.x+=dx;
   if(!collides(camera.position.x,camera.position.z+dz))camera.position.z+=dz;
   crouch+=(Number(keys.has('control'))-crouch)*Math.min(1,dt*9);
+  if(jumpHeight>0||jumpVelocity>0){jumpVelocity-=15.2*dt;jumpHeight=Math.max(0,jumpHeight+jumpVelocity*dt);if(jumpHeight===0)jumpVelocity=0;}
   if(walking||strafing)bob+=dt*(running?16:10);
-  const sway=(walking||strafing)?Math.sin(bob)*.024:0;
-  camera.position.y=1.66-.53*crouch+sway;
+  const sway=(walking||strafing)&&jumpHeight===0?Math.sin(bob)*.024:0;
+  camera.position.y=1.66-.53*crouch+jumpHeight+sway;
   const t=candidates();$('prompt').hidden=!t;$('prompt').textContent=t?'[ E ] '+t.name:'';
  }
  scene.render();
 }
 function reset(){
  camera.position.set(0,1.66,2.2);camera.rotation.set(0,Math.PI,0);
- readCount=0;dialogue=false;paused=false;active=true;keys.clear();touch.clear();
+ readCount=0;dialogue=false;paused=false;active=true;jumpHeight=0;jumpVelocity=0;crouch=0;keys.clear();touch.clear();
  $('note').hidden=true;$('pause-menu').hidden=true;$('prompt').hidden=true;
- $('objective').textContent='Verken de cel. Zoek sporen van je gevangenschap.';
+ $('objective').textContent='Explore the cell. Look for clues about your imprisonment.';
 }
 function storyShow(){
  const item=intro[storyFrame];$('story-image').src='/assets/fallen-king-intro/intro-'+(storyFrame+1)+'.png';
  $('story-counter').textContent='THE FALLEN KING · '+(storyFrame+1)+' / 5';
  $('story-title').textContent=item[0];$('story-caption').textContent=item[1];
- $('story-next').textContent=storyFrame===4?'Naar de gevangenis':'Verder';
+ $('story-next').textContent=storyFrame===4?'Enter the prison':'Continue';
 }
 function finishIntro(){
  $('story').hidden=true;reset();
- showNote({name:'King Oliver',description:'Edwin heeft mijn kroon gestolen. Niemand gelooft dat ik de echte koning ben... Ik moet deze gevangenis onderzoeken.'});
+ showNote({name:'King Oliver',description:'Edwin stole my crown. No one believes I am the rightful king... I must investigate this prison cell.'});
 }
 $('begin').addEventListener('click',()=>{$('start').hidden=true;$('story').hidden=false;storyFrame=0;storyShow();});
 $('story-next').addEventListener('click',()=>{storyFrame++;if(storyFrame>=5)finishIntro();else storyShow();});
@@ -355,7 +377,7 @@ document.addEventListener('keydown',e=>{
  if(['w','a','s','d','e','shift','control','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
  if(k==='escape'){if(!dialogue&&!e.repeat)pause(!paused);return;}
  if(k==='e'||k==='enter'){if(!e.repeat)interact();return;}
- if(k===' '&&dialogue){interact();return;}
+ if(k===' '){if(!e.repeat&&active&&!paused&&!dialogue&&jumpHeight===0&&jumpVelocity===0&&crouch<.3){jumpVelocity=5.5;}return;}
  keys.add(k);
 });
 document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
