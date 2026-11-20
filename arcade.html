@@ -9,11 +9,11 @@
 <link rel="stylesheet" href="/style.css?v=20261104-dark">
 <link rel="stylesheet" href="/elo-global-menu.css?v=179-quiet">
 <link rel="stylesheet" href="/elo-chess-unified-theme.css?v=3">
-<link rel="stylesheet" href="/arcade.css?v=20261111-eloflow139">
+<link rel="stylesheet" href="/arcade.css?v=220-memory-difficulty">
 <link rel="stylesheet" href="/account.css?v=2-mobile-menu">
 <script src="/elo-global-menu.js?v=179-quiet" defer></script>
 <script src="/account-nav.js?v=178-active" defer></script>
-<script defer src="/arcade-bundle.js?v=200-material"></script>
+<script defer src="/arcade-bundle.js?v=220-memory-difficulty"></script>
 <script src="/puzzle-report.js?v=4-arcade" defer></script>
 <style>
 .arcade-panel-title #arcade-ranking-link,.arcade-panel-title #arcade-ranking-link:link,.arcade-panel-title #arcade-ranking-link:visited,.arcade-panel-title #arcade-ranking-link:hover,.arcade-panel-title #arcade-ranking-link:focus{color:#fff!important;-webkit-text-fill-color:#fff!important;text-decoration:underline;text-underline-offset:3px}
@@ -43,6 +43,14 @@ window.addEventListener('DOMContentLoaded',()=>{
 <div class="arcade-stat" id="arcade-move-clock-row" hidden><span>MOVE WITHIN</span><strong id="arcade-move-clock">3.0s</strong></div>
 </aside>
 <section class="arcade-main" aria-label="Chess minigame">
+<div id="arcade-memory-difficulty" class="arcade-memory-difficulty" hidden aria-label="Chess Memory difficulty">
+  <strong>Difficulty</strong>
+  <div class="arcade-memory-difficulty-options" role="group" aria-label="Choose Chess Memory difficulty">
+    <button type="button" data-memory-difficulty="easy" aria-pressed="true">Easy · 3×3</button>
+    <button type="button" data-memory-difficulty="medium" aria-pressed="false">Medium · 5×5</button>
+    <button type="button" data-memory-difficulty="hard" aria-pressed="false">Hard · 8×8</button>
+  </div>
+</div>
 <div class="arcade-board-wrap">
 <div id="arcade-board" class="arcade-board" data-orientation="white" role="group" aria-label="Chessboard. Select a piece, then a destination, or drag it. Right click for arrows."></div>
 </div>
