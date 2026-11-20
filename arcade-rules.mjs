@@ -128,15 +128,24 @@ export const memoryArea=difficulty=>{
 // Every memory challenge is a position actually reachable from the standard
 // chess starting position by legal moves, not a random arrangement of pieces.
 // Easy/Medium show only a window of that genuine board.
+const MEMORY_OPENINGS=[
+ ['e4','e5','Nf3','Nc6','Bc4','Bc5','c3','Nf6','d4','exd4','cxd4','Bb4+'],
+ ['d4','d5','c4','e6','Nc3','Nf6','Bg5','Be7','e3','O-O','Nf3','h6'],
+ ['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','a6','Be3','e5'],
+ ['e4','e6','d4','d5','Nd2','c5','exd5','exd5','Ngf3','Nc6','Bb5','Bd6']
+];
 export function memoryPosition(seed,n,difficulty='hard'){
  const rand=makeRandom(seed+':memory:'+n+':'+difficulty);
  const area=memoryArea(difficulty),minimum=difficulty==='easy'?3:difficulty==='medium'?5:10;
  let best=null;
- for(let attempt=0;attempt<12;attempt++){
+ for(let attempt=0;attempt<3;attempt++){
   const chess=new Chess();
-  const plies=18+Math.floor(rand()*32)+Math.min(Math.floor(n/4),16);
-  for(let i=0;i<plies&&!chess.isGameOver();i++){
-   const legal=chess.moves();
+  const opening=MEMORY_OPENINGS[Math.floor(rand()*MEMORY_OPENINGS.length)];
+  for(const move of opening)chess.move(move);
+  // Short, deterministic, legal continuations keep positions varied while
+  // avoiding expensive retrying of entire random games on every level.
+  for(let i=0,plies=5+Math.floor(rand()*15)+Math.min(Math.floor(n/8),8);i<plies&&!chess.isGameOver();i++){
+   const legal=chess.moves({verbose:true});
    if(!legal.length)break;
    chess.move(legal[Math.floor(rand()*legal.length)]);
   }
