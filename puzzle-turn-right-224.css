@@ -1,0 +1,10 @@
+/* Right-side puzzle details: side to move is the only heading. */
+body.elo-unified-chess .puzzles-layout .puzzle-details .puzzle-mode-label,
+body.elo-unified-chess .puzzles-layout .puzzle-details #puzzle-heading{display:none!important}
+body.elo-unified-chess .puzzles-layout .puzzle-details .puzzle-details-heading{margin-bottom:14px!important}
+body.elo-unified-chess .puzzles-layout .puzzle-details #puzzle-side{
+ display:block!important;margin:0!important;padding:0!important;
+ color:#f4faff!important;font:800 clamp(22px,2vw,30px)/1.2 system-ui,sans-serif!important;
+ letter-spacing:0!important;opacity:1!important;
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-board-card{padding-top:12px!important}
