@@ -503,7 +503,7 @@ function enterReview(index){
  orientation=position.turn()==='b'?'black':'white';board.dataset.orientation=boardFlipped?(orientation==='white'?'black':'white'):orientation;
  $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  $('puzzle-heading').textContent='Review mistake '+(index+1);
- $('puzzle-subtitle').textContent='Practice this position. Your original score stays '+(completedRun?.score??solved)+'.';
+ 
  say((item.attempt?.san?'Your move was '+item.attempt.san+'. ':'')+'Find the solution. Retry or use Hint twice.');
  stats();buttons();draw();
 }
@@ -520,7 +520,7 @@ function leaveReview(){
   $('puzzle-side').textContent=(position.turn()==='w'?'White':'Black')+' to move';
  }
  $('puzzle-heading').textContent=MODES[mode][0];
- $('puzzle-subtitle').textContent=MODES[mode][1];
+ 
  say('Select another missed puzzle below. Your final score stays '+(completedRun?.score??solved)+'.');
  buttons();draw();
 }
@@ -573,7 +573,7 @@ function switchMode(next){
  clearPrefetch();requestId++;stopTimers();closePromotion();runActive=false;ready=false;busy=false;solved=0;misses=0;lastChallengeRating=0;orientation='white';board.dataset.orientation=boardFlipped?'black':'white';
 
  selected=null;wrongSquare=null;lastMove=null;puzzle=null;position=new Chess();mode=next;
- $('puzzle-heading').textContent=MODES[next][0];$('puzzle-subtitle').textContent=MODES[next][1];
+ $('puzzle-heading').textContent=MODES[next][0];$('puzzle-side').textContent='White to move';
  $('puzzle-custom-controls').hidden=mode!=='custom';
  $('puzzle-sprint-guide').hidden=mode!=='sprint';
  $('puzzle-survival-guide').hidden=mode!=='survival';
