@@ -343,3 +343,5 @@ body.pawn-dash-active{overscroll-behavior:none}
 .arcade-board .arcade-square.memory-inactive .arcade-coordinate{opacity:.35}
 .arcade-board .arcade-square.memory-inactive .chess-piece{display:none!important}
 @media(max-width:480px){.arcade-memory-difficulty-options button{font-size:12px;padding:10px 4px}}
+
+.arcade-memory-difficulty[hidden]{display:none!important}
