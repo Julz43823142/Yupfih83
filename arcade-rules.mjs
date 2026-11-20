@@ -1,3 +1,4 @@
+import {Chess} from './vendor/chess/chess-1.4.0.mjs';
 // Shared, DOM-free rules for the EloScanner arcade boards.
 // Board indexes are a8=0 ... h1=63, matching the piece artwork and controls.
 export const GAME_CATALOG = Object.freeze([
@@ -118,13 +119,40 @@ export function safeSquareLevel(seed,n){
  }
  return {type,pos:27,pieces:{27:{type,side:'player'},0:{type:'R',side:'enemy'}},safe:[...safeMoves(type,27,{27:{type,side:'player'},0:{type:'R',side:'enemy'}})]};
 }
-export function memoryLevel(seed,n){
- const rand=makeRandom(seed+':memory:'+n);
- const count=Math.min(11,3+Math.ceil(n/2));
- const free=shuffle(Array.from({length:64},(_,i)=>i),rand);
- const types=['K','Q','R','B','N','P'],pieces={};
- for(let j=0;j<count;j++)pieces[free[j]]={type:types[(j+Math.floor(rand()*types.length))%types.length],side:j%3===0?'enemy':'player'};
- return pieces;
+export const MEMORY_DIFFICULTIES=Object.freeze({easy:{size:3,label:'Easy'},medium:{size:5,label:'Medium'},hard:{size:8,label:'Hard'}});
+export const memoryArea=difficulty=>{
+ const size=(MEMORY_DIFFICULTIES[difficulty]||MEMORY_DIFFICULTIES.hard).size;
+ const offset=Math.floor((8-size)/2);
+ return Array.from({length:size*size},(_,i)=>at(offset+i%size,offset+Math.floor(i/size)));
+};
+// Every memory challenge is a position actually reachable from the standard
+// chess starting position by legal moves, not a random arrangement of pieces.
+// Easy/Medium show only a window of that genuine board.
+export function memoryPosition(seed,n,difficulty='hard'){
+ const rand=makeRandom(seed+':memory:'+n+':'+difficulty);
+ const area=memoryArea(difficulty),minimum=difficulty==='easy'?3:difficulty==='medium'?5:10;
+ let best=null;
+ for(let attempt=0;attempt<12;attempt++){
+  const chess=new Chess();
+  const plies=18+Math.floor(rand()*32)+Math.min(Math.floor(n/4),16);
+  for(let i=0;i<plies&&!chess.isGameOver();i++){
+   const legal=chess.moves();
+   if(!legal.length)break;
+   chess.move(legal[Math.floor(rand()*legal.length)]);
+  }
+  const pieces={};
+  for(const i of area){
+   const p=chess.get(square(i));
+   if(p)pieces[i]={type:p.type.toUpperCase(),side:p.color==='w'?'player':'enemy'};
+  }
+  const result={pieces,area,fen:chess.fen()};
+  if(!best||Object.keys(pieces).length>Object.keys(best.pieces).length)best=result;
+  if(Object.keys(pieces).length>=minimum)return result;
+ }
+ return best;
+}
+export function memoryLevel(seed,n,difficulty='hard'){
+ return memoryPosition(seed,n,difficulty).pieces;
 }
 export function pawnEnemies(seed,n){
  const rand=makeRandom(seed+':pawn:'+n);
