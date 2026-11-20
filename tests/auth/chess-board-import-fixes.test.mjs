@@ -41,7 +41,7 @@ test('Puzzle chessboard has the same 700px playing surface as Guess the Elo',()=
  assert.match(css,/max-width:700px!important/);
  assert.match(css,/max-width:724px!important/);
  assert.match(css,/minmax\(0,724px\)/);
- assert.match(page,/puzzle-board-size-202\.css\?v=202/);
+ assert.match(page,/puzzle-board-size-202\.css\?v=217-puzzle-menu/);
  assert.doesNotMatch(page,/Find the best move<\/strong>/);
  assert.match(page,/id="puzzle-side"/);
 });
