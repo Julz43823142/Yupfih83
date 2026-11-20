@@ -1,0 +1,10 @@
+/* Side to move belongs in the puzzle information panel, not above the board. */
+body.elo-unified-chess .puzzles-layout>.puzzle-details .puzzle-turn-indicator{
+ display:block!important;
+ margin:8px 0 0!important;
+ color:#f4faff!important;
+ font:800 clamp(20px,1.7vw,27px)/1.25 system-ui,sans-serif!important;
+ letter-spacing:.01em!important;
+ opacity:1!important;
+}
+body.elo-unified-chess .puzzles-layout>.puzzle-board-card{padding-top:12px!important}
