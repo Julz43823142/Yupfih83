@@ -481,7 +481,7 @@ test('puzzle Auto Next is off by default, persists explicit opt-in, and loads fr
  const js=readFileSync(new URL('puzzles.js',root),'utf8');
  assert.match(html,/id="puzzle-auto-next" role="switch" aria-label="Automatically load the next puzzle"/);
  assert.doesNotMatch(html,/id="puzzle-auto-next"[^>]* checked/);
- assert.match(html,/puzzles\.js\?v=219-auto-next-off/);
+ assert.match(html,/puzzles\.js\?v=222-turn-right/);
  assert.match(js,/let autoNextEnabled=false;/);
  assert.match(js,/localStorage\.getItem\('eloscanner-puzzle-auto-next'\)==='on'/);
  assert.match(js,/localStorage\.setItem\('eloscanner-puzzle-auto-next',autoNextEnabled\?'on':'off'\)/);
