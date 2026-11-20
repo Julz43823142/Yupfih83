@@ -1,7 +1,8 @@
 import {Chess} from '../../vendor/chess/chess-1.4.0.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GAME_CATALOG,IDs,MISSING_PUZZLES,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened,safeMoves} from '../../arcade-rules.mjs';
+import {readFileSync} from 'node:fs';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,moves,at,cell,square,blockPartyLevel,safeSquareLevel,memoryLevel,memoryPosition,memoryArea,MEMORY_DIFFICULTIES,freshFalling,knightOptions,stepKnight,knightsAlive,queenEscape,threatened,safeMoves} from '../../arcade-rules.mjs';
 import {onRequestGet,onRequestPost} from '../../functions/api/arcade.js';
 
 test('nine standalone modes have unique URLs and score/ranking identities',()=>{
@@ -53,14 +54,39 @@ test('falling board starts with four distinct knights, never captures and remove
  assert.equal(knightsAlive(f),4);
 });
 
-test('memory boards use stable valid squares and bounded difficulty',()=>{
- for(let n=1;n<30;n++){
-  const p=memoryLevel('unit-test',n);
-  assert.equal(Object.keys(p).length,Math.min(11,3+Math.ceil(n/2)));
-  for(const [k,v] of Object.entries(p)){assert.ok(Number(k)>=0&&Number(k)<64);assert.ok('KQRBNP'.includes(v.type));}
+test('Chess Memory generates reachable legal games and correct 3x3, 5x5, 8x8 windows',()=>{
+ assert.deepEqual(Object.keys(MEMORY_DIFFICULTIES),['easy','medium','hard']);
+ for(const [difficulty,size] of [['easy',3],['medium',5],['hard',8]]){
+  const area=memoryArea(difficulty);
+  assert.equal(area.length,size*size);
+  assert.equal(new Set(area).size,size*size);
+  for(let level=1;level<=5;level++){
+   const challenge=memoryPosition('unit-test',level,difficulty);
+   const chess=new Chess(challenge.fen);
+   assert.equal(chess.isCheckmate()&&chess.isStalemate(),false);
+   assert.deepEqual(challenge.area,area);
+   if(level===1)assert.deepEqual(memoryLevel('unit-test',level,difficulty),challenge.pieces);
+   assert.ok(Object.keys(challenge.pieces).length>=1);
+   for(const [index,p] of Object.entries(challenge.pieces)){
+    assert.ok(area.includes(Number(index)),'piece must be inside visible window');
+    const actual=chess.get(square(Number(index)));
+    assert.ok(actual);
+    assert.equal(p.type,actual.type.toUpperCase());
+    assert.equal(p.side,actual.color==='w'?'player':'enemy');
+   }
+   // A legal full position always has exactly one king per side.
+   assert.equal(chess.board().flat().filter(p=>p?.type==='k'&&p.color==='w').length,1);
+   assert.equal(chess.board().flat().filter(p=>p?.type==='k'&&p.color==='b').length,1);
+  }
  }
 });
 
+test('Chess Memory area is centered and inactive cells cannot hold challenge pieces',()=>{
+ const easy=new Set(memoryArea('easy')),medium=new Set(memoryArea('medium'));
+ assert.equal(easy.size,9);assert.equal(medium.size,25);
+ assert.ok([...easy].every(i=>medium.has(i)));
+ assert.ok(!easy.has(cell('a8'))&&!medium.has(cell('a8')));
+});
 test('pawn crossing supports forward and diagonal arcade hops',()=>{
  assert.deepEqual(moves('P',cell('e2'),{}, {arcadePawn:true}),[cell('d3'),cell('e3'),cell('f3')]);
 });
@@ -107,4 +133,37 @@ test('Missing Piece mirrored setups preserve a legal pawn reply and valid mate i
   assert.ok(chess.move({from:p.mate[0],to:p.mate[1]}),'mate move '+index);
   assert.ok(chess.isCheckmate(),'solution must mate '+index);
  }
+});
+
+test('Memory difficulty controls, inactive squares and distinct scoring modes',async()=>{
+ const root=new URL('../../',import.meta.url);
+ const html=readFileSync(new URL('arcade.html',root),'utf8');
+ const script=readFileSync(new URL('arcade.js',root),'utf8');
+ const css=readFileSync(new URL('arcade.css',root),'utf8');
+ for(const [difficulty,size] of [['easy',3],['medium',5],['hard',8]]){
+  assert.ok(html.includes('data-memory-difficulty="'+difficulty+'"'));
+  assert.ok(html.includes(size+'×'+size));
+  const result=await onRequestGet({request:new Request('https://eloscanner.com/api/arcade?mode=chess-memory-'+difficulty),env:{}});
+  assert.equal(result.status,503,'valid score category, no DB configured');
+ }
+ assert.ok(script.includes('memoryPosition(state.seed,state.level,memoryDifficulty)'));
+ assert.ok(script.includes('state.memoryArea=challenge.area'));
+ assert.ok(script.includes('state.memoryArea?.includes(to)'));
+ assert.ok(script.includes('mode:state.scoreMode,score:state.score'));
+ assert.match(css,/\.arcade-square\.memory-inactive/);
+ assert.ok(html.includes('/arcade-bundle.js?v=220-memory-difficulty'));
+});
+
+test('leaderboards expose three Memory difficulties and omit removed games',()=>{
+ const root=new URL('../../',import.meta.url);
+ const page=readFileSync(new URL('puzzle-top100.html',root),'utf8');
+ const home=readFileSync(new URL('index.html',root),'utf8');
+ for(const difficulty of ['easy','medium','hard']){
+  assert.ok(page.includes('?mode=chess-memory-'+difficulty));
+  assert.ok(home.includes("['chess-memory-"+difficulty+"'"));
+ }
+ assert.match(page,/id="memory-leaderboard-difficulties"[^>]*hidden/);
+ assert.ok(page.indexOf('id="memory-leaderboard-difficulties"')>page.indexOf('Orange = nickname'));
+ assert.doesNotMatch(page,/data-mode="missing-piece"|data-mode="queen-chase"/);
+ assert.doesNotMatch(home,/\['missing-piece',|'queen-chase',/);
 });

@@ -24,14 +24,16 @@ async function ready(db){
  })().catch(error=>{schemas.delete(db);throw error});
  schemas.set(db,p);return p;
 }
-const maxScore={'endgame-survivor':1000,'guess-the-elo':250000,'chess-memory':100000,'missing-piece':1000,'safe-square-rush':2500,'falling-board':5000,'queen-chase':5000,'chess-block-party':2500,'pawn-dash':5000};
+const memoryModes=new Set(['chess-memory-easy','chess-memory-medium','chess-memory-hard']);
+const validMode=mode=>IDs.has(mode)||memoryModes.has(mode);
+const maxScore={'endgame-survivor':1000,'guess-the-elo':250000,'chess-memory':100000,'chess-memory-easy':100000,'chess-memory-medium':100000,'chess-memory-hard':100000,'missing-piece':1000,'safe-square-rush':2500,'falling-board':5000,'queen-chase':5000,'chess-block-party':2500,'pawn-dash':5000};
 async function rankings(db,mode){
  const r=await db.prepare("SELECT nickname,score,source_type AS sourceType,CASE WHEN source_type='account' AND account_id IS NOT NULL THEN 1 ELSE 0 END AS profileVerified FROM arcade_score_entries WHERE mode=? AND NOT EXISTS (SELECT 1 FROM leaderboard_removed_scores removed WHERE removed.board='arcade' AND removed.entry_id=arcade_score_entries.id) ORDER BY score DESC,created_at ASC,id ASC LIMIT 100").bind(mode).all();
  return (r.results||[]).map(entry=>entry.sourceType==='account'&&entry.nickname?{...entry,nickname:entry.nickname.charAt(0).toUpperCase()+entry.nickname.slice(1)}:entry);
 }
 export async function onRequestGet({request,env}){
  const mode=new URL(request.url).searchParams.get('mode');
- if(!IDs.has(mode))return json({error:'Invalid minigame.'},400);
+ if(!validMode(mode))return json({error:'Invalid minigame.'},400);
  if(!env.SUS_DB)return json({error:'Leaderboard database unavailable.'},503);
  try{await ready(env.SUS_DB);return json({mode,unverified:true,allTime:true,entries:await rankings(env.SUS_DB,mode)})}
  catch{return json({error:'Leaderboard temporarily unavailable.'},503)}
@@ -42,7 +44,7 @@ export async function onRequestPost({request,env}){
  const parsed=await readJsonPayload(request);
  if(parsed.error)return json({error:parsed.error},parsed.status);
  const d=parsed.data,action=d?.action,mode=d?.mode;
- if(!IDs.has(mode))return json({error:'Invalid minigame.'},400);
+ if(!validMode(mode))return json({error:'Invalid minigame.'},400);
  if(!['start','submit'].includes(action))return json({error:'Invalid action.'},400);
  try{
   if(action==='start'){

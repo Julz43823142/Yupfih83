@@ -20,7 +20,7 @@ test('all arcade and Knight Maze rankings validate real entries before accepting
   assert.equal(sent.length,1,'one notification per reported leaderboard entry');
   assert.equal((await onRequestPost({env,request:request('knight-maze','Sharkmeister',7)})).status,200);
   assert.equal(sent.length,2);
-  assert.equal((await onRequestPost({env,request:request('queen-chase','Sharkmeister',5)})).status,404,'a non-existent entry cannot be reported');
+  assert.equal((await onRequestPost({env,request:request('queen-chase','Sharkmeister',5)})).status,400,'retired minigames cannot be reported');
  }finally{globalThis.fetch=original}
 });
 

@@ -2,23 +2,36 @@ import {Chess} from './vendor/chess/chess-1.4.0.mjs';
 import {updateMaterial} from './chess-material.mjs';
 import {attachChessBoardControls} from './chess-board-controls.js';
 import {appendChessArrow} from './chess-board-arrows.js';
-import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryLevel,pawnEnemies,queenEscape,guessEloPoints} from './arcade-rules.mjs';
+import {GAME_CATALOG,IDs,MISSING_PUZZLES,COLORS,KNIGHT_COLORS,xy,at,cell,square,makeRandom,shuffle,moves,safeMoves,threatened,freshFalling,knightOptions,stepKnight,knightsAlive,blockPartyLevel,safeSquareLevel,memoryPosition,pawnEnemies,queenEscape,guessEloPoints} from './arcade-rules.mjs';
 
 const $=id=>document.getElementById(id);
 window.__eloArcadeLoaded=true;
 const board=$('arcade-board'),modeParam=new URLSearchParams(location.search).get('game');
 const mode=IDs.has(modeParam)?modeParam:'endgame-survivor';
+let memoryDifficulty='easy';
+const scoreMode=()=>mode==='chess-memory'?'chess-memory-'+memoryDifficulty:mode;
+const memoryChooser=$('arcade-memory-difficulty');
+if(memoryChooser)memoryChooser.hidden=mode!=='chess-memory';
+function selectMemoryDifficulty(next){
+ if(mode!=='chess-memory'||!['easy','medium','hard'].includes(next)||state&&!state.finished)return;
+ memoryDifficulty=next;
+ document.querySelectorAll('[data-memory-difficulty]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.memoryDifficulty===next)));
+ $('arcade-ranking-link').href='/puzzle-top100.html?mode='+scoreMode();
+ $('arcade-ranking-name').textContent='Chess Memory · '+next.charAt(0).toUpperCase()+next.slice(1);
+ void loadRanking();paint();
+}
+document.querySelectorAll('[data-memory-difficulty]').forEach(button=>button.addEventListener('click',()=>selectMemoryDifficulty(button.dataset.memoryDifficulty)));
 if(mode==='missing-piece'||mode==='queen-chase')location.replace('/minigames.html');
 const info=GAME_CATALOG.find(g=>g.id===mode);
 $('arcade-title').textContent=info.name;
 $('arcade-description').textContent=info.description;
 $('arcade-ranking-name').textContent=info.name;
-$('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(mode);
+$('arcade-ranking-link').href='/puzzle-top100.html?mode='+encodeURIComponent(scoreMode());
 document.title=info.name+' | EloScanner';
 const instructions={
  'endgame-survivor':'Play increasingly varied endgames: pawns, minor pieces and rooks against Stockfish. Convert an advantage into a win. You have three lives; a draw or loss costs one. Every win is one point.',
  'guess-the-elo':'Review a genuine Chess.com rated game and estimate the player Elo.',
- 'chess-memory':'Memorize the position while it is visible. After the pieces disappear, choose a piece from the tray and click or drag it onto the correct square. Reconstruct as many boards as possible in three minutes.',
+ 'chess-memory':'Remember real chess positions made with legal moves. Choose Easy (3×3), Medium (5×5) or Hard (8×8). Grey squares are outside the challenge. Rebuild as many positions as possible in three minutes.',
  'missing-piece':'Select a white piece from the tray, then tap an empty square. Black responds; find checkmate in one. Any valid solution counts, including alternative pieces and placements. Three mistakes end the run.',
  'safe-square-rush':'Find a safe square without colour hints. Every completed level scores. Three minutes; three lives.',
  'falling-board':'You control the blue knight against three computer-controlled knights. Every square disappears when a knight leaves it. Nobody can capture another knight. You must move within three seconds. Last knight standing wins the round. No multiplayer.',
@@ -80,7 +93,7 @@ function available(i){
  const p=getPiece(i);
  if(mode==='endgame-survivor'||mode==='missing-piece')return state.chess.moves({square:square(i),verbose:true}).map(m=>cell(m.to));
  if(mode==='falling-board')return knightOptions(state.falling,0);
- if(mode==='chess-memory')return Array.from({length:64},(_,j)=>j).filter(j=>j!==i&&!getPiece(j));
+ if(mode==='chess-memory')return (state.memoryArea||[]).filter(j=>j!==i&&!getPiece(j));
  if(mode==='safe-square-rush')return moves(p.type,i,state.pieces,{side:'player'});
  if(mode==='chess-block-party')return moves(p.type,i);
  if(mode==='pawn-dash')return moves('P',i,{}, {arcadePawn:true});
@@ -149,7 +162,8 @@ function paint(){
    el.style.setProperty('--lava-progress',Math.min(100,Math.max(0,elapsed))+'%');
    el.style.setProperty('--lava-opacity','0.94');classes+=' lava-tile';
   }else{el.style.removeProperty('--lava-progress');el.style.removeProperty('--lava-opacity')}
-  if(state&&mode==='chess-memory'&&state.phase==='build'&&state.placed[i]&&state.answer[i])classes+=' safe-zone';
+  if(mode==='chess-memory'&&state?.memoryArea&&!state.memoryArea.includes(i))classes+=' memory-inactive';
+   if(state&&mode==='chess-memory'&&state.phase==='build'&&state.placed[i]&&state.answer[i])classes+=' safe-zone';
   el.className=classes;
   const existing=el.querySelector(':scope > .chess-piece');
   if(id!==el.dataset.pieceKey){
@@ -158,7 +172,7 @@ function paint(){
    el.dataset.pieceKey=id;
   }
   const label=square(i)+(p?', '+(p.colour?p.colour+' ':p.side==='player'?'white ':'black ')+(letters[p.type]||p.type):'')+(sources.includes(i)?', available move':'');
-  el.setAttribute('aria-label',label);
+  el.setAttribute('aria-label',mode==='chess-memory'&&state?.memoryArea&&!state.memoryArea.includes(i)?label+', outside memory challenge':label);
  }
  $('arcade-score').textContent=String(state?.score||0);
  $('arcade-level').textContent=String(state?.level||1);
@@ -235,7 +249,8 @@ function setupLevel(){
   status('Loading a different finished Chess.com game…');
   void loadRealEloGame(state);
  }else if(mode==='chess-memory'){
-  state.answer=memoryLevel(state.seed,state.level);state.placed={};state.phase='preview';
+  const challenge=memoryPosition(state.seed,state.level,memoryDifficulty);
+   state.answer=challenge.pieces;state.memoryArea=challenge.area;state.memoryFen=challenge.fen;state.placed={};state.phase='preview';
   state.previewDuration=Math.max(2700,6500-state.level*200);
    state.revealUntil=Date.now()+state.previewDuration;
   status('Memorize the pieces! They disappear shortly.');
@@ -321,6 +336,7 @@ board.addEventListener('click',e=>{
 },true);
 function placePalette(to){
  if(to<0||!palettePiece||!state||state.finished)return;
+  if(mode==='chess-memory'&&!state.memoryArea?.includes(to))return;
  if(mode==='chess-memory'&&state.phase==='build'){
   if(state.placed[to])return;
   const a=state.answer[to];
@@ -497,7 +513,7 @@ function play(f,t){
   paint();return true;
  }
  if(mode==='chess-memory'){
-  const p=state.placed[f];if(!p||state.placed[t])return false;
+  const p=state.placed[f];if(!p||state.placed[t]||!state.memoryArea?.includes(t))return false;
   if(state.answer[t]?.type===p.type&&state.answer[t]?.side===p.side){
    delete state.placed[f];state.placed[t]=p;status('Piece moved.');
   }else lose('Incorrect piece placement.');
@@ -657,7 +673,8 @@ async function start(){
  state?.eloAbort?.abort();stopBot();clearInterval(clockTimer);resetAnnotations();controls.cancelDrag();queuedPremove=null;premovePointer=null;pawnWorld?.destroy();pawnWorld=null;board.hidden=false;
  
  const now=Date.now(),s=seed();premoveSource=null;runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
- state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party'].includes(mode)?3:mode==='pawn-dash'?1:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
+ document.querySelectorAll('[data-memory-difficulty]').forEach(button=>{button.disabled=mode==='chess-memory'});
+  state={mode,scoreMode:scoreMode(),seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party'].includes(mode)?3:mode==='pawn-dash'?1:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
@@ -667,7 +684,7 @@ async function start(){
  clockTimer=setInterval(tick,100);
  tick();
  try{
-  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'start',mode}),cache:'no-store'});
+  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'start',mode:scoreMode()}),cache:'no-store'});
   if(r.ok){const data=await r.json();if(state?.startedAt===now)session=data.session;}
   else status(($('arcade-status').textContent||'')+' Online scores are currently unavailable.');
  }catch{status(($('arcade-status').textContent||'')+' Online scores are currently unavailable.')}
@@ -676,6 +693,7 @@ function finish(){
  if(!state||state.finished)return;
  queuedPremove=null;if(mode!=='pawn-dash'){pawnWorld?.destroy();pawnWorld=null}state.eloAbort?.abort();
  state.finished=true;state.phase='done';clearInterval(clockTimer);stopBot();controls.cancelDrag();
+  document.querySelectorAll('[data-memory-difficulty]').forEach(button=>{button.disabled=false});
  $('arcade-finish').hidden=true;
  $('arcade-final-score').textContent='Final score: '+state.score+' points · level '+state.level+'.';
  $('arcade-submit-panel').hidden=false;
@@ -698,7 +716,7 @@ async function submit(){
  if(!session){$('arcade-submit-status').textContent='No online game session. Score cannot be submitted. Play again when connected.';return}
  await getSession();
  try{
-  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'submit',session,mode,score:state.score,nickname:$('arcade-nickname').value.trim(),sourceType:account?'account':'nickname'})});
+  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'submit',session,mode:state.scoreMode,score:state.score,nickname:$('arcade-nickname').value.trim(),sourceType:account?'account':'nickname'})});
   const data=await r.json();
   if(!r.ok)throw Error(data.error||'Submission failed.');
   submitted=true;$('arcade-submit-status').textContent='Score saved (provisional arcade ranking).';
@@ -708,7 +726,7 @@ async function submit(){
 async function loadRanking(){
  const list=$('arcade-ranking');list.replaceChildren();
  try{
-  const r=await fetch('/api/arcade?mode='+encodeURIComponent(mode)+'&limit=100',{cache:'no-store'});
+  const r=await fetch('/api/arcade?mode='+encodeURIComponent(scoreMode())+'&limit=100',{cache:'no-store'});
   const data=await r.json();if(!r.ok)throw Error(data.error||'Unavailable');
   if(!Array.isArray(data.entries))throw Error('Invalid ranking');
   if(!data.entries.length){const li=document.createElement('li');li.className='arcade-empty';li.textContent='No scores yet. Be the first!';list.append(li);return}
@@ -717,7 +735,7 @@ async function loadRanking(){
    n.textContent=row.nickname;n.className='nickname'+(row.sourceType==='account'?' account':'');
    if(row.profileVerified)n.href='/profile/'+encodeURIComponent(row.nickname);
    const points=document.createElement('span');points.className='score';points.textContent=String(row.score);
-   const report=document.createElement('button');report.className='rank-report';report.type='button';report.textContent='Report';report.dataset.nickname=row.nickname;report.dataset.mode=mode;report.dataset.score=String(row.score);
+   const report=document.createElement('button');report.className='rank-report';report.type='button';report.textContent='Report';report.dataset.nickname=row.nickname;report.dataset.mode=scoreMode();report.dataset.score=String(row.score);
    li.append(n,points,report);list.append(li);
   }
  }catch(e){const li=document.createElement('li');li.className='arcade-empty';li.textContent='Rankings temporarily unavailable: '+e.message;list.append(li);}
@@ -729,6 +747,9 @@ $('arcade-next').addEventListener('click',nextLevel);
 window.addEventListener('elo-account-changed',e=>{account=e.detail?.user||null;if(account?.username){$('arcade-nickname').value=account.username;$('arcade-nickname').disabled=true}});
 window.addEventListener('pagehide',()=>{stopBot();pawnWorld?.destroy()});
 
+if(mode==='chess-memory'){
+ $('arcade-ranking-name').textContent='Chess Memory · Easy';
+}
 void getSession();void loadRanking();paint();
 // Pawn Dash is an immersive arcade: launching its card launches the game.
 if(mode==='pawn-dash')void start();
