@@ -1,0 +1,7 @@
+/* Move the Analysis board, evaluation bar and player strips upward together.
+   Leave a small gap between Black and the top edge of the panel. */
+@media (min-width:900px){
+ body.elo-unified-chess main.tool-page .tool-card:first-of-type>.analysis-three-column>.analysis-board-column{
+  margin-top:-18px!important;
+ }
+}
