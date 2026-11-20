@@ -1,0 +1,45 @@
+/* Laptop/desktop: the leaderboard, review form and Chess Tools occupy
+   separate tracks. Loaded after all inline homepage CSS. */
+@media(min-width:1100px){
+ body main>section.hero{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr)!important;
+  column-gap:clamp(16px,2vw,32px)!important;
+  align-items:start!important;
+ }
+ body main>section.hero>aside.hero-puzzle-ranking{
+  position:relative!important;inset:auto!important;left:auto!important;top:auto!important;
+  grid-column:1!important;grid-row:1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;
+ }
+ body main>section.hero>aside.hero-tool-links{
+  position:relative!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;
+  grid-column:3!important;grid-row:1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;
+ }
+ body main>section.hero>div.hero-content{
+  position:relative!important;inset:auto!important;transform:none!important;
+  grid-column:2!important;grid-row:1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:clamp(24px,3vw,48px) 0!important;
+  overflow-wrap:break-word!important;
+ }
+ body main>section.hero>div.hero-content h1,
+ body main>section.hero>div.hero-content h1 span{
+  font-size:clamp(27px,2.35vw,38px)!important;line-height:1.18!important;
+  letter-spacing:-.035em!important;max-width:100%!important;
+  overflow-wrap:break-word!important;word-break:normal!important;
+ }
+ body main>section.hero>div.hero-content .subtitle,
+ body main>section.hero>div.hero-content .search-box{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+ }
+ body main>section.hero>div.hero-content .search-box{display:flex!important;flex-wrap:nowrap!important}
+ body main>section.hero>div.hero-content .search-box input{flex:1 1 0!important;width:0!important;min-width:0!important}
+ body main>section.hero>div.hero-content .search-box button{flex:0 0 auto!important;max-width:48%!important}
+ body main>section.hero>section.sample-section{
+  grid-column:1/-1!important;grid-row:2!important;
+  position:relative!important;inset:auto!important;transform:none!important;
+  min-width:0!important;max-width:100%!important;
+ }
+}
