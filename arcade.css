@@ -330,3 +330,16 @@ body.pawn-dash-active{overscroll-behavior:none}
  .arcade-stats,.arcade-side .arcade-panel{padding:10px!important}
 }
 @media(max-width:760px){.arcade-heading{align-items:center!important}.arcade-heading h1{font-size:23px!important}}
+
+/* Chess Memory difficulty chooser and masked outside squares. */
+.arcade-memory-difficulty{display:grid;gap:9px;padding:14px;background:#0b2940;border:1px solid #36657f;border-radius:12px}
+.arcade-memory-difficulty>strong{color:#b8effb;font-size:14px}
+.arcade-memory-difficulty-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.arcade-memory-difficulty-options button{border:1px solid #3d728e;border-radius:9px;background:#123650;color:#e0f4ff;padding:12px 8px;font:750 14px/1.3 system-ui;cursor:pointer;min-width:0}
+.arcade-memory-difficulty-options button[aria-pressed="true"]{background:#176b84;border-color:#60d5ed;color:#fff;box-shadow:inset 0 0 0 1px #60d5ed}
+.arcade-memory-difficulty-options button:focus-visible{outline:2px solid #85f2ff;outline-offset:2px}
+.arcade-memory-difficulty-options button:disabled{opacity:.7;cursor:default}
+.arcade-board .arcade-square.memory-inactive{background:#465666!important;opacity:.73;box-shadow:inset 0 0 0 1px #283c4c!important;cursor:default}
+.arcade-board .arcade-square.memory-inactive .arcade-coordinate{opacity:.35}
+.arcade-board .arcade-square.memory-inactive .chess-piece{display:none!important}
+@media(max-width:480px){.arcade-memory-difficulty-options button{font-size:12px;padding:10px 4px}}
