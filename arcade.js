@@ -674,7 +674,7 @@ async function start(){
  
  const now=Date.now(),s=seed();premoveSource=null;runOffset=(runOffset+1+Math.floor(Math.random()*1000))%1000000;runReview=[];reviewStep=0;$('arcade-review').hidden=true;$('arcade-feedback').classList.remove('visible');
  document.querySelectorAll('[data-memory-difficulty]').forEach(button=>{button.disabled=mode==='chess-memory'});
-  state={mode,seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party'].includes(mode)?3:mode==='pawn-dash'?1:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
+  state={mode,scoreMode:scoreMode(),seed:s,positionOffset:runOffset,score:0,level:1,lives:['endgame-survivor','missing-piece','chess-memory','safe-square-rush','chess-block-party'].includes(mode)?3:mode==='pawn-dash'?1:null,startedAt:now,endsAt:now+180000,finished:false,phase:'playing',pieces:{}};
  submitted=false;session=null;palettePiece=null;
  $('arcade-submit-panel').hidden=true;$('arcade-submit-status').textContent='';
  $('arcade-start').textContent='Restart game';
@@ -716,7 +716,7 @@ async function submit(){
  if(!session){$('arcade-submit-status').textContent='No online game session. Score cannot be submitted. Play again when connected.';return}
  await getSession();
  try{
-  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'submit',session,mode:scoreMode(),score:state.score,nickname:$('arcade-nickname').value.trim(),sourceType:account?'account':'nickname'})});
+  const r=await fetch('/api/arcade',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'submit',session,mode:state.scoreMode,score:state.score,nickname:$('arcade-nickname').value.trim(),sourceType:account?'account':'nickname'})});
   const data=await r.json();
   if(!r.ok)throw Error(data.error||'Submission failed.');
   submitted=true;$('arcade-submit-status').textContent='Score saved (provisional arcade ranking).';
