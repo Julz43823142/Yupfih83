@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/elo-global-menu.css?v=185-tiles"><script src="/elo-global-menu.js?v=184-muted-active" defer></script><link rel="stylesheet" href="/elo-board-toolbar.css?v=1"><link rel="stylesheet" href="/elo-chess-unified-theme.css?v=3"><style id="eloflow-board-nav">body.elo-unified-chess .elo-nav-pair{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;flex:0 0 100%!important;min-width:0!important}body.elo-unified-chess .elo-nav-pair>button{width:100%!important;min-width:0!important;box-sizing:border-box!important}</style>
 <link rel="stylesheet" href="/account.css?v=186-consistent-active">
 <script src="/account-nav.js?v=178-active" defer></script>
-<link rel="stylesheet" href="/chess-layout-fixes.css?v=143"><link rel="stylesheet" href="/chess-material.css?v=202-no-totals"><link rel="stylesheet" href="/puzzle-board-size-202.css?v=217-puzzle-menu"></head>
+<link rel="stylesheet" href="/chess-layout-fixes.css?v=143"><link rel="stylesheet" href="/chess-material.css?v=202-no-totals"><link rel="stylesheet" href="/puzzle-board-size-202.css?v=217-puzzle-menu"><link rel="stylesheet" href="/puzzle-turn-right-222.css?v=222"></head>
 <body class="elo-unified-chess">
 <header class="navbar puzzles-navbar">
 <a class="brand" href="/" aria-label="EloScanner home"><img class="brand-logo" src="/assets/eloscanner-logo.svg" alt="EloScanner"></a>
@@ -52,13 +52,13 @@
       </div>
     </aside>
     <section class="puzzle-board-card" aria-label="Interactive puzzle board">
-      <div class="puzzle-board-top"><span class="puzzle-tag" id="puzzle-side">White to move</span></div>
+      
       <div id="puzzle-board" aria-label="Interactive chessboard"></div>
       <div id="puzzle-promotion" class="puzzle-promotion" hidden role="group" aria-label="Choose promotion piece"><strong>Promote pawn to:</strong><button data-promote="q" type="button">Queen</button><button data-promote="r" type="button">Rook</button><button data-promote="b" type="button">Bishop</button><button data-promote="n" type="button">Knight</button><button id="puzzle-promotion-cancel" type="button">Cancel</button></div>
 
     </section>
     <section class="puzzle-details" aria-label="Puzzle mode and progress">
-      <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-subtitle">Train with a random position.</p></div></div>
+      <div class="puzzle-details-heading"><div><div class="puzzle-mode-label">ELOSCANNER PUZZLES</div><h2 id="puzzle-heading">Random Puzzle</h2><p id="puzzle-side" class="puzzle-turn-indicator" aria-live="polite">White to move</p></div></div>
       <div class="puzzle-metrics">
         <div class="puzzle-metric" id="puzzle-elo-box"><span>Puzzle Elo</span><strong id="puzzle-elo">—</strong></div>
         <div class="puzzle-metric"><span id="puzzle-solved-label">Solved</span><strong id="puzzle-solved">0</strong></div>
@@ -97,7 +97,7 @@
   </section>
 </main>
 
-<script type="module" src="/puzzles.js?v=219-auto-next-off"></script>
+<script type="module" src="/puzzles.js?v=222-turn-right"></script>
 <script src="/puzzle-report.js?v=3" defer></script>
 </body>
 </html>
