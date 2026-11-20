@@ -458,3 +458,20 @@ test('latest UI shows ONLY total duration and receives true milestone percentage
  assert.match(script,/showReviewProgress\(data\.progress\|\|"Analyzing locally on your device…",reviewProgressStage,false,data\.percent\)/);
  assert.match(worker,/self\.v87Progress=pythonProgress/);
 });
+
+test('puzzle mode menu is visible before the board with four working tabs',()=>{
+ const html=readFileSync(new URL('puzzles.html',root),'utf8');
+ const js=readFileSync(new URL('puzzles.js',root),'utf8');
+ const css=readFileSync(new URL('puzzle-board-size-202.css',root),'utf8');
+ assert.ok(html.includes('class="puzzle-mode-menu"'));
+ assert.ok(html.indexOf('class="puzzle-mode-menu"')<html.indexOf('class="puzzle-board-card"'));
+ assert.ok(html.includes('Choose a puzzle'));
+ for(const mode of ['random','custom','sprint','survival']){
+  assert.ok(html.includes('data-puzzle-mode="'+mode+'"'),mode+' mode is visible');
+ }
+ assert.ok(js.includes("tab.addEventListener('click',()=>switchMode(tab.dataset.puzzleMode))"));
+ assert.ok(css.includes('.puzzles-layout>.puzzle-mode-menu'));
+ assert.ok(css.includes('grid-row:1 / span 3!important'));
+ assert.ok(css.includes('@media(max-width:759px)'));
+ assert.ok(html.includes('/puzzle-board-size-202.css?v=217-puzzle-menu'));
+});
