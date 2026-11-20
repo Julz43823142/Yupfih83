@@ -106,8 +106,8 @@ function stats(){
 }
 function stopTimers(){if(tick)clearInterval(tick);tick=null;if(auto)clearTimeout(auto);auto=null;if(replyFrame!==null)cancelAnimationFrame(replyFrame);replyFrame=null}
 function closePromotion(){pendingPromotion=null;$('puzzle-promotion').hidden=true;}
-let autoNextEnabled=true;
-try{autoNextEnabled=localStorage.getItem('eloscanner-puzzle-auto-next')!=='off'}catch{}
+let autoNextEnabled=false;
+try{autoNextEnabled=localStorage.getItem('eloscanner-puzzle-auto-next')==='on'}catch{}
 $('puzzle-auto-next').checked=autoNextEnabled;
 function buttons(){
  const challenge=mode==='sprint'||mode==='survival';

@@ -475,3 +475,14 @@ test('puzzle mode menu is visible before the board with four working tabs',()=>{
  assert.ok(css.includes('@media(max-width:759px)'));
  assert.ok(html.includes('/puzzle-board-size-202.css?v=217-puzzle-menu'));
 });
+
+test('puzzle Auto Next is off by default, persists explicit opt-in, and loads fresh JS',()=>{
+ const html=readFileSync(new URL('puzzles.html',root),'utf8');
+ const js=readFileSync(new URL('puzzles.js',root),'utf8');
+ assert.match(html,/id="puzzle-auto-next" role="switch" aria-label="Automatically load the next puzzle"/);
+ assert.doesNotMatch(html,/id="puzzle-auto-next"[^>]* checked/);
+ assert.match(html,/puzzles\.js\?v=219-auto-next-off/);
+ assert.match(js,/let autoNextEnabled=false;/);
+ assert.match(js,/localStorage\.getItem\('eloscanner-puzzle-auto-next'\)==='on'/);
+ assert.match(js,/localStorage\.setItem\('eloscanner-puzzle-auto-next',autoNextEnabled\?'on':'off'\)/);
+});
